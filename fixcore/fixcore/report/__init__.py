@@ -12,7 +12,7 @@ from attr import define, field, evolve
 from fixcore.ids import ConfigId, GraphName
 from fixcore.model.typed_model import to_js
 from fixcore.types import Json
-from fixcore.util import uuid_str, if_set, partition_by
+from fixcore.util import if_set, partition_by
 
 log = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ class CheckResult:
     check: ReportCheck
     number_of_resources_failing_by_account: Dict[str, int]
     resources_failing_by_account: Dict[str, List[Json]]
-    node_id: str = field(init=False, factory=uuid_str)
+    node_id: str
 
     @property
     def number_of_resources_failing(self) -> int:
@@ -213,6 +213,7 @@ class CheckResult:
             ),
             number_of_resources_failing_by_account=reported.get("number_of_resources_failing_by_account", {}),
             resources_failing_by_account=reported.get("resources_failing_by_account", {}),
+            node_id=js["id"],
         )
 
 
@@ -223,7 +224,7 @@ class CheckCollectionResult:
     documentation: Optional[str] = field(default=None, kw_only=True)
     checks: List[CheckResult] = field(factory=list, kw_only=True)
     children: List[CheckCollectionResult] = field(factory=list, kw_only=True)
-    node_id: str = field(init=False, factory=uuid_str)
+    node_id: str
 
     def to_node(self) -> Json:
         return dict(
@@ -245,6 +246,7 @@ class CheckCollectionResult:
             title=reported["title"],
             description=reported["description"],
             documentation=reported.get("documentation"),
+            node_id=js["id"],
         )
 
     def is_empty(self) -> bool:
@@ -342,6 +344,7 @@ class BenchmarkResult(CheckCollectionResult):
             accounts=reported["accounts"],
             only_failed=reported["only_failed"],
             severity=if_set(reported.get("severity"), ReportSeverity),
+            node_id=js["id"],
         )
 
     def to_graph(self, only_checks: bool = False) -> List[Json]:
