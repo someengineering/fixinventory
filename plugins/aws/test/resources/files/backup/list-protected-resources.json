@@ -1,28 +1,11 @@
 {
     "Results": [
         {
-            "ResourceArn": "foo",
-            "ResourceType": "foo",
-            "LastBackupTime": "2024-06-13T12:28:55Z",
-            "ResourceName": "foo",
-            "LastBackupVaultArn": "foo",
-            "LastRecoveryPointArn": "foo"
-        },
-        {
-            "ResourceArn": "foo",
-            "ResourceType": "foo",
-            "LastBackupTime": "2024-06-13T12:28:55Z",
-            "ResourceName": "foo",
-            "LastBackupVaultArn": "foo",
-            "LastRecoveryPointArn": "foo"
-        },
-        {
-            "ResourceArn": "foo",
-            "ResourceType": "foo",
-            "LastBackupTime": "2024-06-13T12:28:55Z",
-            "ResourceName": "foo",
-            "LastBackupVaultArn": "foo",
-            "LastRecoveryPointArn": "foo"
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678",
+            "ResourceType": "EBS",
+            "LastBackupTime": "2023-01-01T12:00:00Z",
+            "ResourceName": "example-resource",
+            "BackupPlanArn": "arn:aws:backup:us-east-1:123456789012:backup-plan:plan-1234abcd"
         }
     ],
     "NextToken": "foo"

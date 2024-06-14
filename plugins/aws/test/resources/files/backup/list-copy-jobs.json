@@ -1,103 +1,17 @@
 {
     "CopyJobs": [
         {
-            "AccountId": "foo",
-            "CopyJobId": "foo",
-            "SourceBackupVaultArn": "foo",
-            "SourceRecoveryPointArn": "foo",
-            "DestinationBackupVaultArn": "foo",
-            "DestinationRecoveryPointArn": "foo",
-            "ResourceArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "State": "RUNNING",
-            "StatusMessage": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "CreatedBy": {
-                "BackupPlanId": "foo",
-                "BackupPlanArn": "foo",
-                "BackupPlanVersion": "foo",
-                "BackupRuleId": "foo"
-            },
-            "ResourceType": "foo",
-            "ParentJobId": "foo",
-            "IsParent": true,
-            "CompositeMemberIdentifier": "foo",
-            "NumberOfChildJobs": 123,
-            "ChildJobsInState": {
-                "0": 123,
-                "1": 123,
-                "2": 123
-            },
-            "ResourceName": "foo",
-            "MessageCategory": "foo"
-        },
-        {
-            "AccountId": "foo",
-            "CopyJobId": "foo",
-            "SourceBackupVaultArn": "foo",
-            "SourceRecoveryPointArn": "foo",
-            "DestinationBackupVaultArn": "foo",
-            "DestinationRecoveryPointArn": "foo",
-            "ResourceArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "State": "RUNNING",
-            "StatusMessage": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "CreatedBy": {
-                "BackupPlanId": "foo",
-                "BackupPlanArn": "foo",
-                "BackupPlanVersion": "foo",
-                "BackupRuleId": "foo"
-            },
-            "ResourceType": "foo",
-            "ParentJobId": "foo",
-            "IsParent": true,
-            "CompositeMemberIdentifier": "foo",
-            "NumberOfChildJobs": 123,
-            "ChildJobsInState": {
-                "0": 123,
-                "1": 123,
-                "2": 123
-            },
-            "ResourceName": "foo",
-            "MessageCategory": "foo"
-        },
-        {
-            "AccountId": "foo",
-            "CopyJobId": "foo",
-            "SourceBackupVaultArn": "foo",
-            "SourceRecoveryPointArn": "foo",
-            "DestinationBackupVaultArn": "foo",
-            "DestinationRecoveryPointArn": "foo",
-            "ResourceArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "State": "RUNNING",
-            "StatusMessage": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "CreatedBy": {
-                "BackupPlanId": "foo",
-                "BackupPlanArn": "foo",
-                "BackupPlanVersion": "foo",
-                "BackupRuleId": "foo"
-            },
-            "ResourceType": "foo",
-            "ParentJobId": "foo",
-            "IsParent": true,
-            "CompositeMemberIdentifier": "foo",
-            "NumberOfChildJobs": 123,
-            "ChildJobsInState": {
-                "0": 123,
-                "1": 123,
-                "2": 123
-            },
-            "ResourceName": "foo",
-            "MessageCategory": "foo"
+            "CopyJobId": "copy-7890ijkl",
+            "SourceBackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:example-vault",
+            "DestinationBackupVaultArn": "arn:aws:backup:us-west-2:123456789012:vault:example-vault-copy",
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:abcd1234-56ef-78gh-90ij-klmn1234opqr",
+            "CreationDate": "2023-02-01T12:00:00Z",
+            "CompletionDate": "2023-02-01T13:00:00Z",
+            "Status": "COMPLETED",
+            "StatusMessage": "Copy completed successfully",
+            "BackupSizeInBytes": 10737418240,
+            "IamRoleArn": "arn:aws:iam::123456789012:role/AWSBackupDefaultServiceRole",
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678"
         }
     ],
     "NextToken": "foo"

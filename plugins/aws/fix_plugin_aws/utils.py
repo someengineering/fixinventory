@@ -163,7 +163,14 @@ class ToDict(Bender):
         self.value = value
 
     def execute(self, source: List[Json]) -> Dict[str, str]:
-        return {k.get(self.key, self.key): k.get(self.value, "") for k in source}
+        try:
+            result = {k.get(self.key, self.key): k.get(self.value, "") for k in source}
+            return result
+        except Exception:
+            import pdb
+
+            pdb.set_trace()
+            return {}
 
 
 class TagsValue(Bender):

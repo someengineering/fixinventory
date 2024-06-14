@@ -1,73 +1,17 @@
 {
     "RestoreJobs": [
         {
-            "AccountId": "foo",
-            "RestoreJobId": "foo",
-            "RecoveryPointArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "Status": "RUNNING",
-            "StatusMessage": "foo",
-            "PercentDone": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "ExpectedCompletionTimeMinutes": 123,
-            "CreatedResourceArn": "foo",
-            "ResourceType": "foo",
-            "RecoveryPointCreationDate": "2024-06-13T12:28:55Z",
-            "CreatedBy": {
-                "RestoreTestingPlanArn": "foo"
-            },
-            "ValidationStatus": "SUCCESSFUL",
-            "ValidationStatusMessage": "foo",
-            "DeletionStatus": "FAILED",
-            "DeletionStatusMessage": "foo"
-        },
-        {
-            "AccountId": "foo",
-            "RestoreJobId": "foo",
-            "RecoveryPointArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "Status": "RUNNING",
-            "StatusMessage": "foo",
-            "PercentDone": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "ExpectedCompletionTimeMinutes": 123,
-            "CreatedResourceArn": "foo",
-            "ResourceType": "foo",
-            "RecoveryPointCreationDate": "2024-06-13T12:28:55Z",
-            "CreatedBy": {
-                "RestoreTestingPlanArn": "foo"
-            },
-            "ValidationStatus": "SUCCESSFUL",
-            "ValidationStatusMessage": "foo",
-            "DeletionStatus": "FAILED",
-            "DeletionStatusMessage": "foo"
-        },
-        {
-            "AccountId": "foo",
-            "RestoreJobId": "foo",
-            "RecoveryPointArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "Status": "RUNNING",
-            "StatusMessage": "foo",
-            "PercentDone": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "ExpectedCompletionTimeMinutes": 123,
-            "CreatedResourceArn": "foo",
-            "ResourceType": "foo",
-            "RecoveryPointCreationDate": "2024-06-13T12:28:55Z",
-            "CreatedBy": {
-                "RestoreTestingPlanArn": "foo"
-            },
-            "ValidationStatus": "SUCCESSFUL",
-            "ValidationStatusMessage": "foo",
-            "DeletionStatus": "FAILED",
-            "DeletionStatusMessage": "foo"
+            "RestoreJobId": "restore-5678efgh",
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:abcd1234-56ef-78gh-90ij-klmn1234opqr",
+            "CreationDate": "2023-02-01T12:00:00Z",
+            "CompletionDate": "2023-02-01T13:00:00Z",
+            "Status": "COMPLETED",
+            "StatusMessage": "Restore completed successfully",
+            "PercentDone": "100%",
+            "BackupSizeInBytes": 10737418240,
+            "IamRoleArn": "arn:aws:iam::123456789012:role/AWSBackupDefaultServiceRole",
+            "ExpectedCompletionTimeMinutes": 60,
+            "CreatedResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678"
         }
     ],
     "NextToken": "foo"

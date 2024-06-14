@@ -1,112 +1,35 @@
 {
     "BackupJobs": [
         {
-            "AccountId": "foo",
-            "BackupJobId": "foo",
-            "BackupVaultName": "foo",
-            "BackupVaultArn": "foo",
-            "RecoveryPointArn": "foo",
-            "ResourceArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "State": "PENDING",
-            "StatusMessage": "foo",
-            "PercentDone": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
+            "BackupJobId": "abcd1234-56ef-78gh-90ij-klmn1234opqr",
+            "BackupVaultName": "example-vault",
+            "BackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:example-vault",
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:abcd1234-56ef-78gh-90ij-klmn1234opqr",
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678",
+            "CreationDate": "2023-01-01T12:00:00Z",
+            "CompletionDate": "2023-01-01T13:00:00Z",
+            "State": "COMPLETED",
+            "StatusMessage": "Backup completed successfully",
+            "PercentDone": "100%",
+            "BackupSizeInBytes": 10737418240,
+            "IamRoleArn": "arn:aws:iam::123456789012:role/AWSBackupDefaultServiceRole",
             "CreatedBy": {
-                "BackupPlanId": "foo",
-                "BackupPlanArn": "foo",
-                "BackupPlanVersion": "foo",
-                "BackupRuleId": "foo"
+                "BackupPlanId": "plan-1234abcd",
+                "BackupPlanArn": "arn:aws:backup:us-east-1:123456789012:backup-plan:plan-1234abcd",
+                "BackupPlanVersion": "1",
+                "BackupRuleId": "rule-5678efgh"
             },
-            "ExpectedCompletionDate": "2024-06-13T12:28:55Z",
-            "StartBy": "2024-06-13T12:28:55Z",
-            "ResourceType": "foo",
-            "BytesTransferred": 123,
+            "ResourceType": "EBS",
+            "BytesTransferred": 10737418240,
+            "ExpectedCompletionDate": "2023-01-01T13:00:00Z",
+            "StartBy": "2023-01-01T12:15:00Z",
             "BackupOptions": {
-                "0": "foo",
-                "1": "foo",
-                "2": "foo"
+                "WindowsVSS": "enabled"
             },
-            "BackupType": "foo",
-            "ParentJobId": "foo",
-            "IsParent": true,
-            "ResourceName": "foo",
-            "InitiationDate": "2024-06-13T12:28:55Z",
-            "MessageCategory": "foo"
-        },
-        {
-            "AccountId": "foo",
-            "BackupJobId": "foo",
-            "BackupVaultName": "foo",
-            "BackupVaultArn": "foo",
-            "RecoveryPointArn": "foo",
-            "ResourceArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "State": "PENDING",
-            "StatusMessage": "foo",
-            "PercentDone": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "CreatedBy": {
-                "BackupPlanId": "foo",
-                "BackupPlanArn": "foo",
-                "BackupPlanVersion": "foo",
-                "BackupRuleId": "foo"
-            },
-            "ExpectedCompletionDate": "2024-06-13T12:28:55Z",
-            "StartBy": "2024-06-13T12:28:55Z",
-            "ResourceType": "foo",
-            "BytesTransferred": 123,
-            "BackupOptions": {
-                "0": "foo",
-                "1": "foo",
-                "2": "foo"
-            },
-            "BackupType": "foo",
-            "ParentJobId": "foo",
-            "IsParent": true,
-            "ResourceName": "foo",
-            "InitiationDate": "2024-06-13T12:28:55Z",
-            "MessageCategory": "foo"
-        },
-        {
-            "AccountId": "foo",
-            "BackupJobId": "foo",
-            "BackupVaultName": "foo",
-            "BackupVaultArn": "foo",
-            "RecoveryPointArn": "foo",
-            "ResourceArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CompletionDate": "2024-06-13T12:28:55Z",
-            "State": "PENDING",
-            "StatusMessage": "foo",
-            "PercentDone": "foo",
-            "BackupSizeInBytes": 123,
-            "IamRoleArn": "foo",
-            "CreatedBy": {
-                "BackupPlanId": "foo",
-                "BackupPlanArn": "foo",
-                "BackupPlanVersion": "foo",
-                "BackupRuleId": "foo"
-            },
-            "ExpectedCompletionDate": "2024-06-13T12:28:55Z",
-            "StartBy": "2024-06-13T12:28:55Z",
-            "ResourceType": "foo",
-            "BytesTransferred": 123,
-            "BackupOptions": {
-                "0": "foo",
-                "1": "foo",
-                "2": "foo"
-            },
-            "BackupType": "foo",
-            "ParentJobId": "foo",
-            "IsParent": true,
-            "ResourceName": "foo",
-            "InitiationDate": "2024-06-13T12:28:55Z",
-            "MessageCategory": "foo"
+            "Lifecycle": {
+                "MoveToColdStorageAfterDays": 30,
+                "DeleteAfterDays": 365
+            }
         }
     ],
     "NextToken": "foo"

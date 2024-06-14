@@ -1,28 +1,35 @@
 {
     "Frameworks": [
         {
-            "FrameworkName": "foo",
-            "FrameworkArn": "foo",
-            "FrameworkDescription": "foo",
-            "NumberOfControls": 123,
-            "CreationTime": "2024-06-13T12:28:55Z",
-            "DeploymentStatus": "foo"
-        },
-        {
-            "FrameworkName": "foo",
-            "FrameworkArn": "foo",
-            "FrameworkDescription": "foo",
-            "NumberOfControls": 123,
-            "CreationTime": "2024-06-13T12:28:55Z",
-            "DeploymentStatus": "foo"
-        },
-        {
-            "FrameworkName": "foo",
-            "FrameworkArn": "foo",
-            "FrameworkDescription": "foo",
-            "NumberOfControls": 123,
-            "CreationTime": "2024-06-13T12:28:55Z",
-            "DeploymentStatus": "foo"
+            "FrameworkName": "example-framework",
+            "FrameworkArn": "arn:aws:backup:us-east-1:123456789012:framework/example-framework",
+            "CreationTime": "2023-01-01T12:00:00Z",
+            "DeploymentStatus": "DEPLOYED",
+            "FrameworkDescription": "Example framework for managing backups",
+            "FrameworkControls": [
+                {
+                    "ControlName": "DailyBackupControl",
+                    "ControlScope": {
+                        "ComplianceResourceTypes": [
+                            "EBS"
+                        ],
+                        "Tags": {
+                            "Environment": "Production",
+                            "Department": "IT"
+                        },
+                        "AllSupported": true,
+                        "ComplianceResourceIds": [
+                            "vol-0abcd1234efgh5678"
+                        ]
+                    },
+                    "ControlInputParameters": [
+                        {
+                            "ParameterName": "BackupFrequency",
+                            "ParameterValue": "24 hours"
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "NextToken": "foo"

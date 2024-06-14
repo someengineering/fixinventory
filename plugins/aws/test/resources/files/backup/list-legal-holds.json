@@ -2,31 +2,22 @@
     "NextToken": "foo",
     "LegalHolds": [
         {
-            "Title": "foo",
-            "Status": "ACTIVE",
-            "Description": "foo",
-            "LegalHoldId": "foo",
-            "LegalHoldArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CancellationDate": "2024-06-13T12:28:55Z"
-        },
-        {
-            "Title": "foo",
-            "Status": "ACTIVE",
-            "Description": "foo",
-            "LegalHoldId": "foo",
-            "LegalHoldArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CancellationDate": "2024-06-13T12:28:55Z"
-        },
-        {
-            "Title": "foo",
-            "Status": "ACTIVE",
-            "Description": "foo",
-            "LegalHoldId": "foo",
-            "LegalHoldArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "CancellationDate": "2024-06-13T12:28:55Z"
+            "LegalHoldId": "hold-1234abcd",
+            "LegalHoldArn": "arn:aws:backup:us-east-1:123456789012:legal-hold:hold-1234abcd",
+            "CreationTime": "2023-01-01T12:00:00Z",
+            "LegalHoldStatus": "ACTIVE",
+            "RetainUntilDate": "2024-01-01T12:00:00Z",
+            "BackupVaultName": "example-vault",
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:abcd1234-56ef-78gh-90ij-klmn1234opqr",
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678",
+            "ResourceType": "EBS",
+            "Description": "Legal hold for compliance",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "Production"
+                }
+            ]
         }
     ]
 }

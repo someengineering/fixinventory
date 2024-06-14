@@ -1,40 +1,28 @@
 {
     "BackupVaultList": [
         {
-            "BackupVaultName": "foo",
-            "BackupVaultArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "EncryptionKeyArn": "foo",
-            "CreatorRequestId": "foo",
-            "NumberOfRecoveryPoints": 123,
-            "Locked": true,
-            "MinRetentionDays": 123,
-            "MaxRetentionDays": 123,
-            "LockDate": "2024-06-13T12:28:55Z"
-        },
-        {
-            "BackupVaultName": "foo",
-            "BackupVaultArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "EncryptionKeyArn": "foo",
-            "CreatorRequestId": "foo",
-            "NumberOfRecoveryPoints": 123,
-            "Locked": true,
-            "MinRetentionDays": 123,
-            "MaxRetentionDays": 123,
-            "LockDate": "2024-06-13T12:28:55Z"
-        },
-        {
-            "BackupVaultName": "foo",
-            "BackupVaultArn": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "EncryptionKeyArn": "foo",
-            "CreatorRequestId": "foo",
-            "NumberOfRecoveryPoints": 123,
-            "Locked": true,
-            "MinRetentionDays": 123,
-            "MaxRetentionDays": 123,
-            "LockDate": "2024-06-13T12:28:55Z"
+            "BackupVaultName": "example-vault",
+            "BackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:example-vault",
+            "EncryptionKeyArn": "arn:aws:kms:us-east-1:123456789012:key/abcd1234-56ef-78gh-90ij-klmn1234opqr",
+            "CreatorRequestId": "request-5678efgh",
+            "CreationDate": "2023-01-01T12:00:00Z",
+            "NumberOfRecoveryPoints": 10,
+            "Locked": false,
+            "MinRetentionDays": 30,
+            "MaxRetentionDays": 365,
+            "Policy": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "backup.amazonaws.com"
+                        },
+                        "Action": "kms:Decrypt",
+                        "Resource": "arn:aws:kms:us-east-1:123456789012:key/abcd1234-56ef-78gh-90ij-klmn1234opqr"
+                    }
+                ]
+            }
         }
     ],
     "NextToken": "foo"

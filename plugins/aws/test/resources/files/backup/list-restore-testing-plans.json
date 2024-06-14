@@ -2,34 +2,14 @@
     "NextToken": "foo",
     "RestoreTestingPlans": [
         {
-            "CreationTime": "2024-06-13T12:38:49Z",
-            "LastExecutionTime": "2024-06-13T12:38:49Z",
-            "LastUpdateTime": "2024-06-13T12:38:49Z",
-            "RestoreTestingPlanArn": "foo",
-            "RestoreTestingPlanName": "foo",
-            "ScheduleExpression": "foo",
-            "ScheduleExpressionTimezone": "foo",
-            "StartWindowHours": 123
-        },
-        {
-            "CreationTime": "2024-06-13T12:38:49Z",
-            "LastExecutionTime": "2024-06-13T12:38:49Z",
-            "LastUpdateTime": "2024-06-13T12:38:49Z",
-            "RestoreTestingPlanArn": "foo",
-            "RestoreTestingPlanName": "foo",
-            "ScheduleExpression": "foo",
-            "ScheduleExpressionTimezone": "foo",
-            "StartWindowHours": 123
-        },
-        {
-            "CreationTime": "2024-06-13T12:38:49Z",
-            "LastExecutionTime": "2024-06-13T12:38:49Z",
-            "LastUpdateTime": "2024-06-13T12:38:49Z",
-            "RestoreTestingPlanArn": "foo",
-            "RestoreTestingPlanName": "foo",
-            "ScheduleExpression": "foo",
-            "ScheduleExpressionTimezone": "foo",
-            "StartWindowHours": 123
+            "TestingPlanName": "example-restore-testing-plan",
+            "TestingPlanArn": "arn:aws:backup:us-east-1:123456789012:restore-testing-plan:example-restore-testing-plan",
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:abcd1234-56ef-78gh-90ij-klmn1234opqr",
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678",
+            "TestingStatus": "COMPLETED",
+            "LastTestDate": "2023-02-01T12:00:00Z",
+            "TestFrequencyInHours": 24,
+            "CreationTime": "2023-01-01T12:00:00Z"
         }
     ]
 }

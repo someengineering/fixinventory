@@ -2,109 +2,44 @@
     "NextToken": "foo",
     "BackupPlansList": [
         {
-            "BackupPlanArn": "foo",
-            "BackupPlanId": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "DeletionDate": "2024-06-13T12:28:55Z",
-            "VersionId": "foo",
-            "BackupPlanName": "foo",
-            "CreatorRequestId": "foo",
-            "LastExecutionDate": "2024-06-13T12:28:55Z",
-            "AdvancedBackupSettings": [
+            "BackupPlanName": "example-backup-plan",
+            "BackupPlanId": "plan-1234abcd",
+            "VersionId": "1",
+            "Rules": [
                 {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
-                },
-                {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
-                },
-                {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
+                    "RuleName": "DailyBackup",
+                    "TargetBackupVaultName": "example-vault",
+                    "ScheduleExpression": "cron(0 12 * * ? *)",
+                    "StartWindowMinutes": 60,
+                    "CompletionWindowMinutes": 180,
+                    "Lifecycle": {
+                        "MoveToColdStorageAfterDays": 30,
+                        "DeleteAfterDays": 365
+                    },
+                    "RecoveryPointTags": {
+                        "Environment": "Production",
+                        "Department": "IT"
+                    },
+                    "RuleId": "rule-5678efgh",
+                    "CopyActions": [
+                        {
+                            "Lifecycle": {
+                                "MoveToColdStorageAfterDays": 60,
+                                "DeleteAfterDays": 730
+                            },
+                            "DestinationBackupVaultArn": "arn:aws:backup:us-west-2:123456789012:vault:example-vault-copy"
+                        }
+                    ]
                 }
-            ]
-        },
-        {
-            "BackupPlanArn": "foo",
-            "BackupPlanId": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "DeletionDate": "2024-06-13T12:28:55Z",
-            "VersionId": "foo",
-            "BackupPlanName": "foo",
-            "CreatorRequestId": "foo",
-            "LastExecutionDate": "2024-06-13T12:28:55Z",
+            ],
+            "CreationDate": "2023-01-01T12:00:00Z",
+            "DeletionDate": "2023-01-03T12:00:00Z",
+            "LastExecutionDate": "2023-01-02T12:00:00Z",
             "AdvancedBackupSettings": [
                 {
-                    "ResourceType": "foo",
+                    "ResourceType": "EC2",
                     "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
-                },
-                {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
-                },
-                {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
-                }
-            ]
-        },
-        {
-            "BackupPlanArn": "foo",
-            "BackupPlanId": "foo",
-            "CreationDate": "2024-06-13T12:28:55Z",
-            "DeletionDate": "2024-06-13T12:28:55Z",
-            "VersionId": "foo",
-            "BackupPlanName": "foo",
-            "CreatorRequestId": "foo",
-            "LastExecutionDate": "2024-06-13T12:28:55Z",
-            "AdvancedBackupSettings": [
-                {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
-                },
-                {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
-                    }
-                },
-                {
-                    "ResourceType": "foo",
-                    "BackupOptions": {
-                        "0": "foo",
-                        "1": "foo",
-                        "2": "foo"
+                        "WindowsVSS": "enabled"
                     }
                 }
             ]
