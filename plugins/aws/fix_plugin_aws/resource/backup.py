@@ -5,9 +5,9 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from fix_plugin_aws.utils import TagsValue, ToDict
+from fix_plugin_aws.utils import TagsValue
 from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -117,7 +117,8 @@ class AwsBackupJob(AwsResource):
                 ResourceArn=backup_job.arn,
             )
             if tags:
-                backup_job.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    backup_job.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -250,7 +251,8 @@ class AwsBackupPlan(AwsResource):
                 ResourceArn=backup_plan.backup_plan_arn,
             )
             if tags:
-                backup_plan.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    backup_plan.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -322,7 +324,8 @@ class AwsBackupVault(AwsResource):
                 ResourceArn=backup_plan.backup_vault_arn,
             )
             if tags:
-                backup_plan.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    backup_plan.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -437,7 +440,8 @@ class AwsBackupRecoveryPoint(AwsResource):
                 ResourceArn=recovery_point.recovery_point_arn,
             )
             if tags:
-                recovery_point.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    recovery_point.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -499,7 +503,9 @@ class AwsBackupReportPlan(AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_framework"]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-report-plans", "ReportPlans")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "backup", "list-report-plans", "ReportPlans", expected_errors=["AccessDeniedException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReportPlanArn"),
         "name": S("ReportPlanName"),
@@ -542,7 +548,8 @@ class AwsBackupReportPlan(AwsResource):
                 ResourceArn=report_plan.report_plan_arn,
             )
             if tags:
-                report_plan.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    report_plan.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -605,7 +612,8 @@ class AwsBackupRestoreTestingPlan(AwsResource):
                 ResourceArn=restore_plan.id,
             )
             if tags:
-                restore_plan.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    restore_plan.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -661,7 +669,8 @@ class AwsBackupLegalHold(AwsResource):
                 ResourceArn=legal_hold.legal_hold_arn,
             )
             if tags:
-                legal_hold.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    legal_hold.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -744,7 +753,8 @@ class AwsBackupRestoreJob(AwsResource):
                 ResourceArn=restore_job.arn,
             )
             if tags:
-                restore_job.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    restore_job.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -840,7 +850,8 @@ class AwsBackupCopyJob(AwsResource):
                 ResourceArn=copy_job.arn,
             )
             if tags:
-                copy_job.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    copy_job.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
@@ -865,7 +876,9 @@ class AwsBackupFramework(AwsResource):
         "AWS Backup Frameworks are predefined sets of controls and requirements designed to help organizations align their backup operations with regulatory and compliance standards. "
         "They provide a structured approach to managing backups, ensuring adherence to policies, and facilitating audits."
     )
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-frameworks", "Frameworks")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "backup", "list-frameworks", "Frameworks", expected_errors=["AccessDeniedException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("FrameworkArn"),
         "name": S("FrameworkName"),
@@ -902,7 +915,8 @@ class AwsBackupFramework(AwsResource):
                 ResourceArn=framework.framework_arn,
             )
             if tags:
-                framework.tags = bend(ToDict(), tags)
+                for tag in tags:
+                    framework.tags.update(tag)
 
         for js in json:
             if instance := cls.from_api(js, builder):
