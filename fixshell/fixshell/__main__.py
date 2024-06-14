@@ -68,6 +68,8 @@ async def main_async() -> None:
             client,
             True,
             detect_color_system(args),
+            graph=args.fixcore_graph,
+            section=args.fixcore_section,
             history=history,
             additional_headers=headers,
             should_benchmark=args.benchmark,
