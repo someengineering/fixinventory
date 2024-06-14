@@ -2,22 +2,13 @@
     "NextToken": "foo",
     "LegalHolds": [
         {
-            "LegalHoldId": "hold-1234abcd",
-            "LegalHoldArn": "arn:aws:backup:us-east-1:123456789012:legal-hold:hold-1234abcd",
-            "CreationTime": "2023-01-01T12:00:00Z",
-            "LegalHoldStatus": "ACTIVE",
-            "RetainUntilDate": "2024-01-01T12:00:00Z",
-            "BackupVaultName": "example-vault",
-            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:abcd1234-56ef-78gh-90ij-klmn1234opqr",
-            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678",
-            "ResourceType": "EBS",
-            "Description": "Legal hold for compliance",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "Production"
-                }
-            ]
+            "LegalHoldId": "1234567890abcdef",
+            "CreationDate": "2023-03-15T12:34:56.789Z",
+            "Title": "My Legal Hold",
+            "Status": "ACTIVE",
+            "Description": "My legal hold description",
+            "LegalHoldArn": "arn:aws:backup:us-east-1:123456789012:legal-hold:1234567890abcdef",
+            "CancellationDate": "2023-03-16T12:34:56.789Z"
         }
     ]
 }

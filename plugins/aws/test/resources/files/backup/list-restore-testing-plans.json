@@ -2,14 +2,14 @@
     "NextToken": "foo",
     "RestoreTestingPlans": [
         {
-            "TestingPlanName": "example-restore-testing-plan",
-            "TestingPlanArn": "arn:aws:backup:us-east-1:123456789012:restore-testing-plan:example-restore-testing-plan",
-            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:abcd1234-56ef-78gh-90ij-klmn1234opqr",
-            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abcd1234efgh5678",
-            "TestingStatus": "COMPLETED",
-            "LastTestDate": "2023-02-01T12:00:00Z",
-            "TestFrequencyInHours": 24,
-            "CreationTime": "2023-01-01T12:00:00Z"
+            "RestoreTestingPlanArn": "arn:aws:backup:us-east-1:123456789012:restore-testing-plan:MyRestoreTestingPlan",
+            "RestoreTestingPlanName": "MyRestoreTestingPlan",
+            "CreationTime": "2023-03-15T12:34:56.789Z",
+            "LastUpdateTime": "2023-03-16T12:34:56.789Z",
+            "LastExecutionTime": "2023-03-15T12:34:56.789Z",
+            "ScheduleExpression": "cron(0 0 * * ? *)",
+            "ScheduleExpressionTimezone": "UTC",
+            "StartWindowHours": 24
         }
     ]
 }

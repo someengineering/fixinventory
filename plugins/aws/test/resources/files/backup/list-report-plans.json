@@ -1,27 +1,41 @@
 {
     "ReportPlans": [
         {
-            "ReportPlanName": "example-report-plan",
-            "ReportPlanArn": "arn:aws:backup:us-east-1:123456789012:report-plan:example-report-plan",
-            "ReportPlanDescription": "Example report plan for backups",
+            "ReportPlanArn": "arn:aws:backup:us-east-1:123456789012:report-plan:MyReportPlan",
+            "ReportPlanName": "MyReportPlan",
+            "ReportPlanDescription": "My report plan description",
             "ReportSetting": {
-                "ReportTemplate": "BACKUP_JOB_REPORT",
+                "ReportTemplate": "RESOURCE_COMPLIANCE_REPORT",
                 "FrameworkArns": [
-                    "arn:aws:backup:us-east-1:123456789012:framework/example-framework"
+                    "arn:aws:backup:us-east-1:123456789012:framework:MyFramework"
                 ],
-                "NumberOfFrameworks": 1
+                "NumberOfFrameworks": 1,
+                "Accounts": [
+                    "123456789012"
+                ],
+                "OrganizationUnits": [
+                    "ou-1234567890abcdef0"
+                ],
+                "Regions": [
+                    "us-east-1"
+                ]
             },
+            "DeploymentStatus": "DEPLOYED",
             "ReportDeliveryChannel": {
-                "S3BucketName": "example-bucket",
-                "S3KeyPrefix": "reports/",
+                "S3BucketName": "my-report-bucket",
+                "S3KeyPrefix": "backup-reports",
                 "Formats": [
                     "CSV",
                     "JSON"
                 ]
             },
-            "CreationTime": "2023-01-01T12:00:00Z",
-            "LastAttemptedExecutionTime": "2023-02-01T12:00:00Z",
-            "LastSuccessfulExecutionTime": "2023-02-01T12:00:00Z"
+            "CreatedBy": {
+                "RestoreTestingPlanArn": "arn:aws:backup:us-east-1:123456789012:restore-testing-plan:MyRestoreTestingPlan"
+            },
+            "PlanDeploymentStatus": "COMPLETED",
+            "CreationTime": "2023-03-15T12:34:56.789Z",
+            "LastAttemptedExecutionTime": "2023-03-16T12:34:56.789Z",
+            "LastSuccessfulExecutionTime": "2023-03-15T12:34:56.789Z"
         }
     ],
     "NextToken": "foo"
