@@ -28,8 +28,6 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
         return count
 
     for resource in all_resources:
-        if resource.api_spec is None:
-            continue
         assert count_kind(resource) > 0, f"No instances of {resource.__name__} found"
 
     # make sure all threads have been joined
