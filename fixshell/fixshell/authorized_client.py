@@ -146,7 +146,7 @@ class ReshConfig:
 
     @staticmethod
     def default() -> ReshConfig:
-        return ReshConfig(Path.home() / ".fix" / "resh.ini")
+        return ReshConfig(Path.home() / ".fix" / "fixsh.ini")
 
 
 class AuthServer:
