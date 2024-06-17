@@ -1,7 +1,7 @@
 import json  # noqa: F401
 import re
 from textwrap import dedent
-from typing import List, Set, Optional, Tuple, Union, Dict
+from typing import Any, List, Set, Optional, Tuple, Union, Dict
 
 import boto3
 from attrs import define
@@ -169,8 +169,9 @@ def clazz_model(
     props = []
     prefix = prefix or ""
     prop_prefix = prop_prefix or ""
-    if isinstance(shape, StructureShape):
-        for name, prop_shape in shape.members.items():
+
+    def process_shape_items(shape_items: List[Tuple[Any, Any]], prop_prefix: str, clazz_name: Optional[str]) -> None:
+        for name, prop_shape in shape_items:
             prop = to_snake(name)
             if prop in ignore_props:
                 continue
@@ -232,6 +233,17 @@ def clazz_model(
 
         clazz_name = clazz_name if clazz_name else type_name(shape)
         result.append(AwsModel(clazz_name, props, aggregate_root, base_class, api_info))
+
+    if isinstance(shape, StructureShape):
+        process_shape_items(shape.members.items(), prop_prefix, clazz_name)
+    elif isinstance(shape, StringShape):
+        return []
+    elif isinstance(shape, ListShape):
+        process_shape_items(shape.member.members.items(), prop_prefix, clazz_name)
+    else:
+        if getattr(shape, "members", None) is None:
+            return []
+        process_shape_items(shape.members.items(), prop_prefix, clazz_name)
     return result
 
 
@@ -930,6 +942,47 @@ models: Dict[str, List[AwsFixModel]] = {
     ],
     "wafv2": [
         # AwsFixModel("get-logging-configuration", "LoggingConfigurations", "LoggingConfiguration", prefix="Waf")
+    ],
+    "backup": [
+        # AwsFixModel(
+        #     api_action="list-backup-job-summaries",
+        #     result_property="BackupJobSummaries",
+        #     result_shape="BackupJobSummaryList",
+        #     prefix="Backup",
+        # ),
+        # AwsFixModel(
+        #     api_action="list-backup-jobs", result_property="BackupJobs", result_shape="BackupJobsList", prefix="Backup"
+        # ),
+        # AwsFixModel(
+        #     api_action="list-backup-plan-templates",
+        #     result_property="BackupPlanTemplates",
+        #     result_shape="BackupPlanTemplatesList",
+        #     prefix="Backup",
+        # ),
+        # AwsFixModel(
+        #     api_action="list-backup-plan-versions",
+        #     result_property="BackupPlanVersions",
+        #     result_shape="BackupPlanVersionsList",
+        #     prefix="Backup",
+        # ),
+        # AwsFixModel(
+        #     api_action="list-backup-plans",
+        #     result_property="BackupPlans",
+        #     result_shape="BackupPlansList",
+        #     prefix="Backup",
+        # ),
+        # AwsFixModel(
+        #     api_action="list-backup-selections",
+        #     result_property="BackupSelections",
+        #     result_shape="BackupSelectionsList",
+        #     prefix="Backup",
+        # ),
+        # AwsFixModel(
+        #     api_action="list-backup-vaults",
+        #     result_property="BackupVaultList",
+        #     result_shape="BackupVaultListMember",
+        #     prefix="Backup",
+        # ),
     ],
 }
 

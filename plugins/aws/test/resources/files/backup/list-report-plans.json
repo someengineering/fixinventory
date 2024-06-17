@@ -1,0 +1,42 @@
+{
+    "ReportPlans": [
+        {
+            "ReportPlanArn": "arn:aws:backup:us-east-1:123456789012:report-plan:MyReportPlan",
+            "ReportPlanName": "MyReportPlan",
+            "ReportPlanDescription": "My report plan description",
+            "ReportSetting": {
+                "ReportTemplate": "RESOURCE_COMPLIANCE_REPORT",
+                "FrameworkArns": [
+                    "arn:aws:backup:us-east-1:123456789012:framework:MyFramework"
+                ],
+                "NumberOfFrameworks": 1,
+                "Accounts": [
+                    "123456789012"
+                ],
+                "OrganizationUnits": [
+                    "ou-1234567890abcdef0"
+                ],
+                "Regions": [
+                    "us-east-1"
+                ]
+            },
+            "DeploymentStatus": "DEPLOYED",
+            "ReportDeliveryChannel": {
+                "S3BucketName": "my-report-bucket",
+                "S3KeyPrefix": "backup-reports",
+                "Formats": [
+                    "CSV",
+                    "JSON"
+                ]
+            },
+            "CreatedBy": {
+                "RestoreTestingPlanArn": "arn:aws:backup:us-east-1:123456789012:restore-testing-plan:MyRestoreTestingPlan"
+            },
+            "PlanDeploymentStatus": "COMPLETED",
+            "CreationTime": "2023-03-15T12:34:56.789Z",
+            "LastAttemptedExecutionTime": "2023-03-16T12:34:56.789Z",
+            "LastSuccessfulExecutionTime": "2023-03-15T12:34:56.789Z"
+        }
+    ],
+    "NextToken": "foo"
+}

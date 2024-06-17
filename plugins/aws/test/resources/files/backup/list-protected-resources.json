@@ -1,0 +1,13 @@
+{
+    "Results": [
+        {
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0",
+            "ResourceName": "MyEC2Instance",
+            "ResourceType": "EC2",
+            "LastBackupTime": "2023-03-15T12:34:56.789Z",
+            "LastBackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:MyBackupVault",
+            "LastRecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45"
+        }
+    ],
+    "NextToken": "foo"
+}

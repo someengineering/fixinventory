@@ -1,0 +1,28 @@
+{
+    "RestoreJobs": [
+        {
+            "RestoreJobId": "1234567890abcdef",
+            "CreationDate": "2023-03-15T12:34:56.789Z",
+            "AccountId": "123456789012",
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45",
+            "CompletionDate": "2023-03-15T13:34:56.789Z",
+            "Status": "COMPLETED",
+            "StatusMessage": "Restore completed successfully",
+            "PercentDone": 100,
+            "BackupSizeInBytes": 1024,
+            "IamRoleArn": "arn:aws:iam::123456789012:role/BackupRole",
+            "ExpectedCompletionTimeMinutes": 60,
+            "CreatedResourceArn": "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0",
+            "ResourceType": "EC2",
+            "RecoveryPointCreationDate": "2023-03-15T12:34:56.789Z",
+            "CreatedBy": {
+                "RestoreTestingPlanArn": "arn:aws:backup:us-east-1:123456789012:restore-testing-plan:MyRestoreTestingPlan"
+            },
+            "ValidationStatus": "SUCCESSFUL",
+            "ValidationStatusMessage": "Restore validation successful",
+            "DeletionStatus": "SUCCESSFUL",
+            "DeletionStatusMessage": "Restore test data deleted successfully"
+        }
+    ],
+    "NextToken": "foo"
+}

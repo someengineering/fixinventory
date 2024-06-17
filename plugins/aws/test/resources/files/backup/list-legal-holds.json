@@ -1,0 +1,14 @@
+{
+    "NextToken": "foo",
+    "LegalHolds": [
+        {
+            "LegalHoldId": "1234567890abcdef",
+            "CreationDate": "2023-03-15T12:34:56.789Z",
+            "Title": "My Legal Hold",
+            "Status": "ACTIVE",
+            "Description": "My legal hold description",
+            "LegalHoldArn": "arn:aws:backup:us-east-1:123456789012:legal-hold:1234567890abcdef",
+            "CancellationDate": "2023-03-16T12:34:56.789Z"
+        }
+    ]
+}

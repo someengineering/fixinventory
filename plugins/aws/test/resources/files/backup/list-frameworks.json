@@ -1,0 +1,13 @@
+{
+    "Frameworks": [
+        {
+            "FrameworkArn": "arn:aws:backup:us-east-1:123456789012:framework:MyFramework",
+            "FrameworkName": "MyFramework",
+            "FrameworkDescription": "My framework description",
+            "NumberOfControls": 10,
+            "CreationTime": "2023-03-15T12:34:56.789Z",
+            "DeploymentStatus": "COMPLETED"
+        }
+    ],
+    "NextToken": "foo"
+}
