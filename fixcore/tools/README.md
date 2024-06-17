@@ -33,6 +33,6 @@ optional arguments:
   --engine ENGINE       graphviz layout engine to use
   --format FORMAT       output format
   --output OUTPUT       output file
-  --psk PSK             Pre shared key to be passed to resh
+  --psk PSK             Pre shared key to be passed to fixsh
   --fixcore-uri URI  fixcore URI
   ```

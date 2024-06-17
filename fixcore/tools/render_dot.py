@@ -232,24 +232,24 @@ def send_analytics(run_id: str, event: str):
         )
 
 
-def resh(query, args) -> str:
+def fixsh(query, args) -> str:
     uri = ["--fixcore-uri", shlex.quote(args.uri)] if args.uri else []
     psk = ["--psk", shlex.quote(args.psk)] if args.psk else []
-    command = ["resh"] + uri + psk + ["--stdin"]
+    command = ["fixsh"] + uri + psk + ["--stdin"]
     p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = p.communicate(input=query.encode())[0].decode()
     return output
 
 
 def preflight_check(args):
-    resh_result = subprocess.run(["resh", "-h"], stdout=subprocess.PIPE)
-    if resh_result.returncode != 0:
-        print("Can't find resh. Is fix virtualenv activated?")
+    fixsh_result = subprocess.run(["fixsh", "-h"], stdout=subprocess.PIPE)
+    if fixsh_result.returncode != 0:
+        print("Can't find fixsh. Is fix virtualenv activated?")
         print("Hint: see https://inventory.fix.security/docs/contributing/components for more info.")
         exit(1)
-    resh_ping = resh("echo ping", args)
-    if not resh_ping.startswith("ping"):
-        print(f"resh can't reach fixcore at {args.uri}: {resh_ping}")
+    fixsh_ping = fixsh("echo ping", args)
+    if not fixsh_ping.startswith("ping"):
+        print(f"fixsh can't reach fixcore at {args.uri}: {fixsh_ping}")
         exit(1)
     grahviz_result = subprocess.run([args.engine, "-V"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if grahviz_result.returncode != 0:
@@ -258,14 +258,14 @@ def preflight_check(args):
         exit(1)
 
 
-def call_resh(args):
+def call_fixsh(args):
     query = args.query
     query += " | format --json | write fix_graph_export.json"
     if os.path.isfile("fix_graph_export.json"):
         os.remove("fix_graph_export.json")
-    output = resh(query, args)
+    output = fixsh(query, args)
     if not output.startswith("Received a file"):
-        print(f"resh error: {output}")
+        print(f"fixsh error: {output}")
         exit(1)
 
 
@@ -308,12 +308,12 @@ This command will collect instances in your graph and render them to an svg file
     parser.add_argument("--engine", help="graphviz layout engine to use", default="sfdp")
     parser.add_argument("--format", help="output format", default="svg")
     parser.add_argument("--output", help="output file", default="graph.svg")
-    parser.add_argument("--psk", help="Pre shared key to be passed to resh", dest="psk")
+    parser.add_argument("--psk", help="Pre shared key to be passed to fixsh", dest="psk")
     parser.add_argument("--fixcore-uri", help="fixcore URI", dest="uri")
     args = parser.parse_args()
     preflight_check(args)
     ensure_assets()
-    call_resh(args)
+    call_fixsh(args)
     generate_dot()
     output_name = run_graphviz(args)
     report_success(output_name)

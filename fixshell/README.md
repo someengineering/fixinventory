@@ -1,4 +1,4 @@
-# `resh`
+# `fixsh`
 Fix Shell
 
 
@@ -15,13 +15,13 @@ Fix Shell
 
 
 ## Overview
-`resh` starts the fix shell. It is used to interact with `fixcore`. It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
+`fixsh` starts the fix shell. It is used to interact with `fixcore`. It allows you to explore the graph, find resources of interest, mark them for cleanup, fix their tagging, aggregate over their metadata to create metrics and format the output for use in a 3rd party script or system.
 
 More information can be found below and in [the docs](https://inventory.fix.security/docs/concepts/components/shell).
 
 
 ## Usage
-`resh` uses the following commandline arguments:
+`fixsh` uses the following commandline arguments:
 ```
   --fixcore-uri fixCORE_URI
                         fixcore URI (default: https://localhost:8900)
@@ -49,7 +49,7 @@ For instance `--fixcore-uri http://foobar.tld:8900` would become `fixSHELL_fixCO
 
 ## Examples
 ### Basics
-Enter `help` into `resh` to get an overview of all available commands
+Enter `help` into `fixsh` to get an overview of all available commands
 
 Using `help` followed by a command will provide more information about that command.
 
