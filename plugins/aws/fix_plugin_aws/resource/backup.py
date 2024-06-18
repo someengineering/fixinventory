@@ -40,7 +40,7 @@ class AwsBackupRecoveryPointCreator:
 class AwsBackupJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_job"
     kind_display: ClassVar[str] = "AWS Backup Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-job:{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Backup Jobs represent the individual backup tasks that are executed based on backup plans. "
         "They encompass the execution details and status of the backup process for a specified resource."
@@ -243,6 +243,7 @@ class AwsBackupPlan(AwsResource):
         "last_execution_date": S("LastExecutionDate"),
         "advanced_backup_settings": S("AdvancedBackupSettings", default=[])
         >> ForallBend(AwsBackupAdvancedBackupSetting.mapping),
+        "arn": S("BackupPlanArn"),
     }
     backup_plan_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a backup plan; for example, arn:aws:backup:us-east-1:123456789012:plan:8F81F553-3A74-4A3F-B93D-B3360DC80C50."})  # fmt: skip
     backup_plan_id: Optional[str] = field(default=None, metadata={"description": "Uniquely identifies a backup plan."})  # fmt: skip
@@ -305,6 +306,7 @@ class AwsBackupVault(AwsResource):
         "min_retention_days": S("MinRetentionDays"),
         "max_retention_days": S("MaxRetentionDays"),
         "lock_date": S("LockDate"),
+        "arn": S("BackupVaultArn"),
     }
     backup_vault_name: Optional[str] = field(default=None, metadata={"description": "The name of a logical container where backups are stored. Backup vaults are identified by names that are unique to the account used to create them and the Amazon Web Services Region where they are created. They consist of lowercase letters, numbers, and hyphens."})  # fmt: skip
     backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a backup vault; for example, arn:aws:backup:us-east-1:123456789012:vault:aBackupVault."})  # fmt: skip
@@ -540,6 +542,7 @@ class AwsBackupReportPlan(AwsResource):
         "creation_time": S("CreationTime"),
         "last_attempted_execution_time": S("LastAttemptedExecutionTime"),
         "last_successful_execution_time": S("LastSuccessfulExecutionTime"),
+        "arn": S("ReportPlanArn"),
     }
     report_plan_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
     report_plan_name: Optional[str] = field(default=None, metadata={"description": "The unique name of the report plan. This name is between 1 and 256 characters starting with a letter, and consisting of letters (a-z, A-Z), numbers (0-9), and underscores (_)."})  # fmt: skip
@@ -605,6 +608,7 @@ class AwsBackupRestoreTestingPlan(AwsResource):
         "schedule_expression": S("ScheduleExpression"),
         "schedule_expression_timezone": S("ScheduleExpressionTimezone"),
         "start_window_hours": S("StartWindowHours"),
+        "arn": S("RestoreTestingPlanArn"),
     }
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a restore testing plan was created, in Unix format and Coordinated Universal Time (UTC). The value of CreationTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
     last_execution_time: Optional[datetime] = field(default=None, metadata={"description": "The last time a restore test was run with the specified restore testing plan. A date and time, in Unix format and Coordinated Universal Time (UTC). The value of LastExecutionDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
@@ -663,6 +667,7 @@ class AwsBackupLegalHold(AwsResource):
         "legal_hold_arn": S("LegalHoldArn"),
         "creation_date": S("CreationDate"),
         "cancellation_date": S("CancellationDate"),
+        "arn": S("LegalHoldArn"),
     }
     title: Optional[str] = field(default=None, metadata={"description": "This is the title of a legal hold."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "This is the status of the legal hold. Statuses can be ACTIVE, CREATING, CANCELED, and CANCELING."})  # fmt: skip
@@ -703,7 +708,7 @@ class AwsBackupLegalHold(AwsResource):
 class AwsBackupRestoreJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_job"
     kind_display: ClassVar[str] = "AWS Restore Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-job:{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Backup Restore Jobs represent the tasks that restore data from backups. "
         "They include details on the restore process, target resources, and status of the restoration."
@@ -793,7 +798,7 @@ class AwsBackupRestoreJob(AwsResource):
 class AwsBackupCopyJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_copy_job"
     kind_display: ClassVar[str] = "AWS Copy Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:copy-job:{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Backup Copy Jobs are operations that duplicate backups from one backup vault to another. "
         "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
@@ -910,6 +915,7 @@ class AwsBackupFramework(AwsResource):
         "number_of_controls": S("NumberOfControls"),
         "creation_time": S("CreationTime"),
         "framework_deployment_status": S("DeploymentStatus"),
+        "arn": S("FrameworkArn"),
     }
     framework_name: Optional[str] = field(default=None, metadata={"description": "The unique name of a framework. This name is between 1 and 256 characters, starting with a letter, and consisting of letters (a-z, A-Z), numbers (0-9), and underscores (_)."})  # fmt: skip
     framework_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
