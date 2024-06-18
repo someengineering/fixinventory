@@ -5,6 +5,13 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.cloudformation import AwsCloudFormationStack
+from fix_plugin_aws.resource.dynamodb import AwsDynamoDbTable, AwsDynamoDbGlobalTable
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2Volume
+from fix_plugin_aws.resource.efs import AwsEfsFileSystem
+from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
+from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
+from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import TagsValue
 from fixlib.baseresources import ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
@@ -183,7 +190,22 @@ class AwsBackupProtectedResource(AwsResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_arn := self.resource_arn:
-            builder.add_edge(self, clazz=AwsResource, arn=resource_arn)
+            builder.add_edge(
+                self,
+                clazz=(
+                    AwsS3Bucket,
+                    AwsEc2Instance,
+                    AwsEc2Volume,
+                    AwsRdsCluster,
+                    AwsRdsInstance,
+                    AwsDynamoDbTable,
+                    AwsDynamoDbGlobalTable,
+                    AwsEfsFileSystem,
+                    AwsRedshiftCluster,
+                    AwsCloudFormationStack,
+                ),
+                arn=resource_arn,
+            )
         if vault_arn := self.last_backup_vault_arn:
             builder.add_edge(self, reverse=True, clazz=AwsBackupVault, id=vault_arn)
         if recovery_point_arn := self.last_recovery_point_arn:
