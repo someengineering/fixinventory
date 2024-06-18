@@ -121,7 +121,7 @@ class AwsBackupJob(AwsResource):
                 "list-tags",
                 "Tags",
                 expected_errors=["ResourceNotFoundException"],
-                ResourceArn=backup_job.arn,
+                ResourceArn=backup_job.recovery_point_arn,
             )
             if tags:
                 for tag in tags:
@@ -467,9 +467,10 @@ class AwsBackupRecoveryPoint(AwsResource):
                     recovery_point.tags.update(tag)
 
         for js in json:
-            if instance := cls.from_api(js, builder):
-                builder.add_node(instance, js)
-                builder.submit_work(service_name, add_tags, instance)
+            if (instance := cls.from_api(js, builder)) and (isinstance(instance, AwsBackupRecoveryPoint)):
+                if (status := instance.status) and (status in ["COMPLETED", "PARTIAL"]):
+                    builder.add_node(instance, js)
+                    builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if backup_vault_name := self.backup_vault_name:
@@ -776,7 +777,7 @@ class AwsBackupRestoreJob(AwsResource):
                 "list-tags",
                 "Tags",
                 expected_errors=["ResourceNotFoundException"],
-                ResourceArn=restore_job.arn,
+                ResourceArn=restore_job.recovery_point_arn,
             )
             if tags:
                 for tag in tags:
@@ -873,7 +874,7 @@ class AwsBackupCopyJob(AwsResource):
                 "list-tags",
                 "Tags",
                 expected_errors=["ResourceNotFoundException"],
-                ResourceArn=copy_job.arn,
+                ResourceArn=copy_job.source_recovery_point_arn,
             )
             if tags:
                 for tag in tags:
