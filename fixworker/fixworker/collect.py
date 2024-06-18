@@ -140,7 +140,7 @@ class CollectRun:
 
             # Make sure the graph is not cyclic
             if (cycle := graph.find_cycle()) is not None:
-                desc = ", ".join, [f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle]
+                desc = ", ".join(f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle)
                 log.error(f"Graph of {graph_info} is not acyclic - ignoring. Cycle {desc}")
                 continue
 
