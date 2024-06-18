@@ -179,7 +179,6 @@ class AwsBackupProtectedResource(AwsResource):
         "resource_name": S("ResourceName"),
         "last_backup_vault_arn": S("LastBackupVaultArn"),
         "last_recovery_point_arn": S("LastRecoveryPointArn"),
-        "arn": S("ResourceArn"),
     }
     resource_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
     resource_type: Optional[str] = field(default=None, metadata={"description": "The type of Amazon Web Services resource; for example, an Amazon Elastic Block Store (Amazon EBS) volume or an Amazon Relational Database Service (Amazon RDS) database. For Windows Volume Shadow Copy Service (VSS) backups, the only supported resource type is Amazon EC2."})  # fmt: skip
