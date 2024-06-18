@@ -4,6 +4,7 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 
+from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.cloudformation import AwsCloudFormationStack
 from fix_plugin_aws.resource.dynamodb import AwsDynamoDbTable, AwsDynamoDbGlobalTable
@@ -14,6 +15,7 @@ from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import TagsValue
 from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -263,6 +265,43 @@ class AwsBackupPlan(AwsResource):
         ]
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-backup-plan"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-backup-plan",
+            result_name=None,
+            BackupPlanId=self.id,
+        )
+        return True
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeyList=[key],
+        )
+        return True
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(backup_plan: AwsBackupPlan) -> None:
             tags = builder.client.list(
@@ -328,6 +367,43 @@ class AwsBackupVault(AwsResource):
         ]
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-backup-vault"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-backup-vault",
+            result_name=None,
+            BackupVaultName=self.name,
+        )
+        return True
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeyList=[key],
+        )
+        return True
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def collect_recovery_points(vault: AwsBackupVault) -> None:
             recovery_points = builder.client.list(
@@ -390,6 +466,7 @@ class AwsBackupRecoveryPoint(AwsResource):
         "They provide detailed information on the recovery points, including metadata, status, and lifecycle policies. "
         "These recovery points are crucial for restoring data during disaster recovery or operational recovery scenarios."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupvaults/details/{backup_vault_name}/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_vault", "aws_backup_plan"]},
     }
@@ -421,6 +498,7 @@ class AwsBackupRecoveryPoint(AwsResource):
         "is_parent": S("IsParent"),
         "resource_name": S("ResourceName"),
         "vault_type": S("VaultType"),
+        "arn": S("RecoveryPointArn"),
     }
     recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a recovery point; for example, arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45."})  # fmt: skip
     backup_vault_name: Optional[str] = field(default=None, metadata={"description": "The name of a logical container where backups are stored. Backup vaults are identified by names that are unique to the account used to create them and the Amazon Web Services Region where they are created. They consist of lowercase letters, numbers, and hyphens."})  # fmt: skip
@@ -451,6 +529,22 @@ class AwsBackupRecoveryPoint(AwsResource):
         return [
             AwsApiSpec(service_name, "list-tags"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "delete-recovery-point"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-recovery-point",
+            result_name=None,
+            BackupVaultName=self.backup_vault_name,
+            RecoveryPointArn=self.arn,
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -563,6 +657,43 @@ class AwsBackupReportPlan(AwsResource):
         ]
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-report-plan"),
+        ]
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeyList=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-report-plan",
+            result_name=None,
+            ReportPlanName=self.name,
+        )
+        return True
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(report_plan: AwsBackupReportPlan) -> None:
             tags = builder.client.list(
@@ -628,6 +759,43 @@ class AwsBackupRestoreTestingPlan(AwsResource):
         ]
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-restore-testing-plan"),
+        ]
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeyList=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-restore-testing-plan",
+            result_name=None,
+            RestoreTestingPlanName=self.name,
+        )
+        return True
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(restore_plan: AwsBackupRestoreTestingPlan) -> None:
             tags = builder.client.list(
@@ -684,6 +852,33 @@ class AwsBackupLegalHold(AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+        ]
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeyList=[key],
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -931,6 +1126,43 @@ class AwsBackupFramework(AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-framework"),
+        ]
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="tag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            Tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="untag-resource",
+            result_name=None,
+            ResourceArn=self.arn,
+            TagKeyList=[key],
+        )
+        return True
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-framework",
+            result_name=None,
+            FrameworkName=self.name,
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
