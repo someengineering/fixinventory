@@ -14,7 +14,7 @@ from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import TagsValue
 from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -171,7 +171,7 @@ class AwsBackupProtectedResource(AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ResourceArn"),
+        "id": S("ResourceArn") >> F(lambda arn: arn.rsplit("/")[1]),
         "name": S("ResourceName"),
         "resource_arn": S("ResourceArn"),
         "resource_type": S("ResourceType"),
