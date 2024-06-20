@@ -23,6 +23,32 @@ log = logging.getLogger("fix.plugins.aws")
 service_name = "backup"
 
 
+class BackupResourceTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service=service_name,
+                action="tag-resource",
+                result_name=None,
+                ResourceArn=self.arn,
+                Tags={key: value},
+            )
+            return True
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service=service_name,
+                action="untag-resource",
+                result_name=None,
+                ResourceArn=self.arn,
+                TagKeyList=[key],
+            )
+            return True
+        return False
+
+
 @define(eq=False, slots=False)
 class AwsBackupRecoveryPointCreator:
     kind: ClassVar[str] = "aws_backup_recovery_point_creator"
@@ -196,7 +222,7 @@ class AwsBackupAdvancedBackupSetting:
 
 
 @define(eq=False, slots=False)
-class AwsBackupPlan(AwsResource):
+class AwsBackupPlan(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_plan"
     kind_display: ClassVar[str] = "AWS Backup Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-plan:{id}"}  # fmt: skip
@@ -255,26 +281,6 @@ class AwsBackupPlan(AwsResource):
         )
         return True
 
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            Tags={key: value},
-        )
-        return True
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            TagKeyList=[key],
-        )
-        return True
-
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(backup_plan: AwsBackupPlan) -> None:
@@ -296,7 +302,7 @@ class AwsBackupPlan(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupVault(AwsResource):
+class AwsBackupVault(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_vault"
     kind_display: ClassVar[str] = "AWS Backup Vault"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
@@ -354,26 +360,6 @@ class AwsBackupVault(AwsResource):
             action="delete-backup-vault",
             result_name=None,
             BackupVaultName=self.name,
-        )
-        return True
-
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            Tags={key: value},
-        )
-        return True
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            TagKeyList=[key],
         )
         return True
 
@@ -584,7 +570,7 @@ class AwsBackupReportDeliveryChannel:
 
 
 @define(eq=False, slots=False)
-class AwsBackupReportPlan(AwsResource):
+class AwsBackupReportPlan(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_report_plan"
     kind_display: ClassVar[str] = "AWS Report Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/reports/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:report-plan:{name}"}  # fmt: skip
@@ -638,26 +624,6 @@ class AwsBackupReportPlan(AwsResource):
             AwsApiSpec(service_name, "delete-report-plan"),
         ]
 
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            Tags={key: value},
-        )
-        return True
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            TagKeyList=[key],
-        )
-        return True
-
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
@@ -692,7 +658,7 @@ class AwsBackupReportPlan(AwsResource):
                 builder.add_edge(self, reverse=True, clazz=AwsBackupFramework, id=framework_arn)
 
 
-class AwsBackupRestoreTestingPlan(AwsResource):
+class AwsBackupRestoreTestingPlan(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_restore_testing_plan"
     kind_display: ClassVar[str] = "AWS Restore Testing Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
@@ -740,26 +706,6 @@ class AwsBackupRestoreTestingPlan(AwsResource):
             AwsApiSpec(service_name, "delete-restore-testing-plan"),
         ]
 
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            Tags={key: value},
-        )
-        return True
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            TagKeyList=[key],
-        )
-        return True
-
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
@@ -790,7 +736,7 @@ class AwsBackupRestoreTestingPlan(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupLegalHold(AwsResource):
+class AwsBackupLegalHold(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_legal_hold"
     kind_display: ClassVar[str] = "AWS Legal Hold"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/legalholds/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:legal-hold:{id}"}  # fmt: skip
@@ -833,26 +779,6 @@ class AwsBackupLegalHold(AwsResource):
             AwsApiSpec(service_name, "tag-resource"),
             AwsApiSpec(service_name, "untag-resource"),
         ]
-
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            Tags={key: value},
-        )
-        return True
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            TagKeyList=[key],
-        )
-        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1012,7 +938,7 @@ class AwsBackupCopyJob(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupFramework(AwsResource):
+class AwsBackupFramework(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_framework"
     kind_display: ClassVar[str] = "AWS Backup Framework"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/frameworks/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:framework:{name}"}  # fmt: skip
@@ -1056,26 +982,6 @@ class AwsBackupFramework(AwsResource):
             AwsApiSpec(service_name, "untag-resource"),
             AwsApiSpec(service_name, "delete-framework"),
         ]
-
-    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="tag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            Tags={key: value},
-        )
-        return True
-
-    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
-        client.call(
-            aws_service=self.api_spec.service,
-            action="untag-resource",
-            result_name=None,
-            ResourceArn=self.arn,
-            TagKeyList=[key],
-        )
-        return True
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
