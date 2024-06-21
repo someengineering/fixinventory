@@ -4,6 +4,7 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 
 from attrs import define, field
 
+from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.cloudformation import AwsCloudFormationStack
 from fix_plugin_aws.resource.dynamodb import AwsDynamoDbTable, AwsDynamoDbGlobalTable
@@ -14,11 +15,38 @@ from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import TagsValue
 from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.graph import Graph
+from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "backup"
+
+
+class BackupResourceTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service=service_name,
+                action="tag-resource",
+                result_name=None,
+                ResourceArn=self.arn,
+                Tags={key: value},
+            )
+            return True
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service=service_name,
+                action="untag-resource",
+                result_name=None,
+                ResourceArn=self.arn,
+                TagKeyList=[key],
+            )
+            return True
+        return False
 
 
 @define(eq=False, slots=False)
@@ -40,7 +68,7 @@ class AwsBackupRecoveryPointCreator:
 class AwsBackupJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_job"
     kind_display: ClassVar[str] = "AWS Backup Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-job:{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Backup Jobs represent the individual backup tasks that are executed based on backup plans. "
         "They encompass the execution details and status of the backup process for a specified resource."
@@ -106,32 +134,6 @@ class AwsBackupJob(AwsResource):
     initiation_date: Optional[datetime] = field(default=None, metadata={"description": "This is the date on which the backup job was initiated."})  # fmt: skip
     message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and INVALIDPARAMETERS. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum."})  # fmt: skip
 
-    @classmethod
-    def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [
-            cls.api_spec,
-            AwsApiSpec(service_name, "list-tags"),
-        ]
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(backup_job: AwsBackupJob) -> None:
-            tags = builder.client.list(
-                service_name,
-                "list-tags",
-                "Tags",
-                expected_errors=["ResourceNotFoundException"],
-                ResourceArn=backup_job.arn,
-            )
-            if tags:
-                for tag in tags:
-                    backup_job.tags.update(tag)
-
-        for js in json:
-            if instance := cls.from_api(js, builder):
-                builder.add_node(instance, js)
-                builder.submit_work(service_name, add_tags, instance)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_arn := self.resource_arn:
             builder.add_edge(self, clazz=AwsBackupProtectedResource, resource_arn=resource_arn)
@@ -171,7 +173,7 @@ class AwsBackupProtectedResource(AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ResourceArn"),
+        "id": S("ResourceArn") >> F(lambda arn: arn.rsplit("/")[1]),
         "name": S("ResourceName"),
         "resource_arn": S("ResourceArn"),
         "resource_type": S("ResourceType"),
@@ -220,7 +222,7 @@ class AwsBackupAdvancedBackupSetting:
 
 
 @define(eq=False, slots=False)
-class AwsBackupPlan(AwsResource):
+class AwsBackupPlan(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_plan"
     kind_display: ClassVar[str] = "AWS Backup Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-plan:{id}"}  # fmt: skip
@@ -243,6 +245,7 @@ class AwsBackupPlan(AwsResource):
         "last_execution_date": S("LastExecutionDate"),
         "advanced_backup_settings": S("AdvancedBackupSettings", default=[])
         >> ForallBend(AwsBackupAdvancedBackupSetting.mapping),
+        "arn": S("BackupPlanArn"),
     }
     backup_plan_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a backup plan; for example, arn:aws:backup:us-east-1:123456789012:plan:8F81F553-3A74-4A3F-B93D-B3360DC80C50."})  # fmt: skip
     backup_plan_id: Optional[str] = field(default=None, metadata={"description": "Uniquely identifies a backup plan."})  # fmt: skip
@@ -260,6 +263,23 @@ class AwsBackupPlan(AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-backup-plan"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-backup-plan",
+            result_name=None,
+            BackupPlanId=self.id,
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -282,7 +302,7 @@ class AwsBackupPlan(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupVault(AwsResource):
+class AwsBackupVault(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_vault"
     kind_display: ClassVar[str] = "AWS Backup Vault"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
@@ -305,6 +325,7 @@ class AwsBackupVault(AwsResource):
         "min_retention_days": S("MinRetentionDays"),
         "max_retention_days": S("MaxRetentionDays"),
         "lock_date": S("LockDate"),
+        "arn": S("BackupVaultArn"),
     }
     backup_vault_name: Optional[str] = field(default=None, metadata={"description": "The name of a logical container where backups are stored. Backup vaults are identified by names that are unique to the account used to create them and the Amazon Web Services Region where they are created. They consist of lowercase letters, numbers, and hyphens."})  # fmt: skip
     backup_vault_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a backup vault; for example, arn:aws:backup:us-east-1:123456789012:vault:aBackupVault."})  # fmt: skip
@@ -324,6 +345,23 @@ class AwsBackupVault(AwsResource):
             AwsApiSpec(service_name, "list-tags"),
             AwsApiSpec(service_name, "list-recovery-points-by-backup-vault"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-backup-vault"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-backup-vault",
+            result_name=None,
+            BackupVaultName=self.name,
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -388,6 +426,7 @@ class AwsBackupRecoveryPoint(AwsResource):
         "They provide detailed information on the recovery points, including metadata, status, and lifecycle policies. "
         "These recovery points are crucial for restoring data during disaster recovery or operational recovery scenarios."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupvaults/details/{backup_vault_name}/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_vault", "aws_backup_plan"]},
     }
@@ -419,6 +458,7 @@ class AwsBackupRecoveryPoint(AwsResource):
         "is_parent": S("IsParent"),
         "resource_name": S("ResourceName"),
         "vault_type": S("VaultType"),
+        "arn": S("RecoveryPointArn"),
     }
     recovery_point_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a recovery point; for example, arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45."})  # fmt: skip
     backup_vault_name: Optional[str] = field(default=None, metadata={"description": "The name of a logical container where backups are stored. Backup vaults are identified by names that are unique to the account used to create them and the Amazon Web Services Region where they are created. They consist of lowercase letters, numbers, and hyphens."})  # fmt: skip
@@ -451,6 +491,22 @@ class AwsBackupRecoveryPoint(AwsResource):
         ]
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "delete-recovery-point"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-recovery-point",
+            result_name=None,
+            BackupVaultName=self.backup_vault_name,
+            RecoveryPointArn=self.arn,
+        )
+        return True
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         def add_tags(recovery_point: AwsBackupRecoveryPoint) -> None:
             tags = builder.client.list(
@@ -465,9 +521,10 @@ class AwsBackupRecoveryPoint(AwsResource):
                     recovery_point.tags.update(tag)
 
         for js in json:
-            if instance := cls.from_api(js, builder):
-                builder.add_node(instance, js)
-                builder.submit_work(service_name, add_tags, instance)
+            if (instance := cls.from_api(js, builder)) and (isinstance(instance, AwsBackupRecoveryPoint)):
+                if (status := instance.status) and (status in ["COMPLETED", "PARTIAL"]):
+                    builder.add_node(instance, js)
+                    builder.submit_work(service_name, add_tags, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if backup_vault_name := self.backup_vault_name:
@@ -513,7 +570,7 @@ class AwsBackupReportDeliveryChannel:
 
 
 @define(eq=False, slots=False)
-class AwsBackupReportPlan(AwsResource):
+class AwsBackupReportPlan(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_report_plan"
     kind_display: ClassVar[str] = "AWS Report Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/reports/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:report-plan:{name}"}  # fmt: skip
@@ -540,6 +597,7 @@ class AwsBackupReportPlan(AwsResource):
         "creation_time": S("CreationTime"),
         "last_attempted_execution_time": S("LastAttemptedExecutionTime"),
         "last_successful_execution_time": S("LastSuccessfulExecutionTime"),
+        "arn": S("ReportPlanArn"),
     }
     report_plan_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
     report_plan_name: Optional[str] = field(default=None, metadata={"description": "The unique name of the report plan. This name is between 1 and 256 characters starting with a letter, and consisting of letters (a-z, A-Z), numbers (0-9), and underscores (_)."})  # fmt: skip
@@ -557,6 +615,23 @@ class AwsBackupReportPlan(AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-report-plan"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-report-plan",
+            result_name=None,
+            ReportPlanName=self.name,
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -583,7 +658,7 @@ class AwsBackupReportPlan(AwsResource):
                 builder.add_edge(self, reverse=True, clazz=AwsBackupFramework, id=framework_arn)
 
 
-class AwsBackupRestoreTestingPlan(AwsResource):
+class AwsBackupRestoreTestingPlan(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_restore_testing_plan"
     kind_display: ClassVar[str] = "AWS Restore Testing Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
@@ -605,6 +680,7 @@ class AwsBackupRestoreTestingPlan(AwsResource):
         "schedule_expression": S("ScheduleExpression"),
         "schedule_expression_timezone": S("ScheduleExpressionTimezone"),
         "start_window_hours": S("StartWindowHours"),
+        "arn": S("RestoreTestingPlanArn"),
     }
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "The date and time that a restore testing plan was created, in Unix format and Coordinated Universal Time (UTC). The value of CreationTime is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
     last_execution_time: Optional[datetime] = field(default=None, metadata={"description": "The last time a restore test was run with the specified restore testing plan. A date and time, in Unix format and Coordinated Universal Time (UTC). The value of LastExecutionDate is accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
@@ -621,6 +697,23 @@ class AwsBackupRestoreTestingPlan(AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-restore-testing-plan"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-restore-testing-plan",
+            result_name=None,
+            RestoreTestingPlanName=self.name,
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -643,7 +736,7 @@ class AwsBackupRestoreTestingPlan(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupLegalHold(AwsResource):
+class AwsBackupLegalHold(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_legal_hold"
     kind_display: ClassVar[str] = "AWS Legal Hold"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/legalholds/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:legal-hold:{id}"}  # fmt: skip
@@ -663,6 +756,7 @@ class AwsBackupLegalHold(AwsResource):
         "legal_hold_arn": S("LegalHoldArn"),
         "creation_date": S("CreationDate"),
         "cancellation_date": S("CancellationDate"),
+        "arn": S("LegalHoldArn"),
     }
     title: Optional[str] = field(default=None, metadata={"description": "This is the title of a legal hold."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "This is the status of the legal hold. Statuses can be ACTIVE, CREATING, CANCELED, and CANCELING."})  # fmt: skip
@@ -677,6 +771,13 @@ class AwsBackupLegalHold(AwsResource):
         return [
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
         ]
 
     @classmethod
@@ -703,7 +804,7 @@ class AwsBackupLegalHold(AwsResource):
 class AwsBackupRestoreJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_job"
     kind_display: ClassVar[str] = "AWS Restore Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-job:{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Backup Restore Jobs represent the tasks that restore data from backups. "
         "They include details on the restore process, target resources, and status of the restoration."
@@ -756,32 +857,6 @@ class AwsBackupRestoreJob(AwsResource):
     deletion_status: Optional[str] = field(default=None, metadata={"description": "This notes the status of the data generated by the restore test. The status may be Deleting, Failed, or Successful."})  # fmt: skip
     deletion_status_message: Optional[str] = field(default=None, metadata={"description": "This describes the restore job deletion status."})  # fmt: skip
 
-    @classmethod
-    def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [
-            cls.api_spec,
-            AwsApiSpec(service_name, "list-tags"),
-        ]
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(restore_job: AwsBackupRestoreJob) -> None:
-            tags = builder.client.list(
-                service_name,
-                "list-tags",
-                "Tags",
-                expected_errors=["ResourceNotFoundException"],
-                ResourceArn=restore_job.arn,
-            )
-            if tags:
-                for tag in tags:
-                    restore_job.tags.update(tag)
-
-        for js in json:
-            if instance := cls.from_api(js, builder):
-                builder.add_node(instance, js)
-                builder.submit_work(service_name, add_tags, instance)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if testing_plan_arn := self.restore_job_created_by:
             builder.add_edge(self, reverse=True, clazz=AwsBackupRestoreTestingPlan, id=testing_plan_arn)
@@ -793,7 +868,7 @@ class AwsBackupRestoreJob(AwsResource):
 class AwsBackupCopyJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_copy_job"
     kind_display: ClassVar[str] = "AWS Copy Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:copy-job:{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Backup Copy Jobs are operations that duplicate backups from one backup vault to another. "
         "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
@@ -853,32 +928,6 @@ class AwsBackupCopyJob(AwsResource):
     resource_name: Optional[str] = field(default=None, metadata={"description": "This is the non-unique name of the resource that belongs to the specified backup."})  # fmt: skip
     message_category: Optional[str] = field(default=None, metadata={"description": "This parameter is the job count for the specified message category. Example strings may include AccessDenied, SUCCESS, AGGREGATE_ALL, and InvalidParameters. See Monitoring for a list of MessageCategory strings. The the value ANY returns count of all message categories.  AGGREGATE_ALL aggregates job counts for all message categories and returns the sum"})  # fmt: skip
 
-    @classmethod
-    def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [
-            cls.api_spec,
-            AwsApiSpec(service_name, "list-tags"),
-        ]
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(copy_job: AwsBackupCopyJob) -> None:
-            tags = builder.client.list(
-                service_name,
-                "list-tags",
-                "Tags",
-                expected_errors=["ResourceNotFoundException"],
-                ResourceArn=copy_job.arn,
-            )
-            if tags:
-                for tag in tags:
-                    copy_job.tags.update(tag)
-
-        for js in json:
-            if instance := cls.from_api(js, builder):
-                builder.add_node(instance, js)
-                builder.submit_work(service_name, add_tags, instance)
-
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (created_by := self.copy_job_created_by) and (backup_plan_id := created_by.backup_plan_id):
             builder.add_edge(self, reverse=True, clazz=AwsBackupPlan, arn=backup_plan_id)
@@ -889,7 +938,7 @@ class AwsBackupCopyJob(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupFramework(AwsResource):
+class AwsBackupFramework(AwsResource, BackupResourceTaggable):
     kind: ClassVar[str] = "aws_backup_framework"
     kind_display: ClassVar[str] = "AWS Backup Framework"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/frameworks/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:framework:{name}"}  # fmt: skip
@@ -910,6 +959,7 @@ class AwsBackupFramework(AwsResource):
         "number_of_controls": S("NumberOfControls"),
         "creation_time": S("CreationTime"),
         "framework_deployment_status": S("DeploymentStatus"),
+        "arn": S("FrameworkArn"),
     }
     framework_name: Optional[str] = field(default=None, metadata={"description": "The unique name of a framework. This name is between 1 and 256 characters, starting with a letter, and consisting of letters (a-z, A-Z), numbers (0-9), and underscores (_)."})  # fmt: skip
     framework_arn: Optional[str] = field(default=None, metadata={"description": "An Amazon Resource Name (ARN) that uniquely identifies a resource. The format of the ARN depends on the resource type."})  # fmt: skip
@@ -924,6 +974,23 @@ class AwsBackupFramework(AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
         ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-framework"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-framework",
+            result_name=None,
+            FrameworkName=self.name,
+        )
+        return True
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
