@@ -16,7 +16,7 @@ from aiohttp.web import Request
 from arango import ArangoServerError
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
-from attr import define
+from attr import define, evolve
 
 from fixcore.analytics import AnalyticsEventSender
 from fixcore.async_extensions import run_async
@@ -403,7 +403,16 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
 
     async def create_tenant_dependencies(self, tenant_hash: str, access: GraphDbAccess) -> TenantDependencies:
         dp = self._dependencies
-        config = dp.config
+        config = evolve(
+            dp.config,
+            db=evolve(
+                dp.config.db,
+                server=access.server,
+                database=access.database,
+                username=access.username,
+                password=access.password,
+            ),
+        )
         args = dp.config.args
         message_bus = dp.message_bus
         event_sender = dp.event_sender
