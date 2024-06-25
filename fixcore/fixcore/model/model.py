@@ -1298,9 +1298,12 @@ class ComplexKind(Kind):
                 for_complex_kind(owner, kind, relative)
 
         def for_complex_kind(owner: ComplexKind, current: ComplexKind, relative: PropertyPath) -> None:
-            for cpx in list(current.resolved_bases().values()) + [current]:
-                for prop in cpx.properties:
-                    path_for(owner, prop, cpx.__resolved_props[prop.name][1], relative)
+            bases = current.kind_hierarchy() | {current.fqn}
+            for cpx_fqn in bases:
+                if isinstance(cpx := model.get(cpx_fqn), ComplexKind):
+                    cpx.resolve(model)
+                    for prop in cpx.properties:
+                        path_for(owner, prop, cpx.__resolved_props[prop.name][1], relative)
 
         for_complex_kind(complex_kind, complex_kind, PropertyPath([], ""))
         return result, owner_lookup
