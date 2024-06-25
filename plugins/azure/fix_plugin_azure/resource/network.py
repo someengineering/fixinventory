@@ -2631,7 +2631,11 @@ class AzureNetworkInterface(AzureResource, BaseNetworkInterface):
             for interface_ip_configuration in interface_ip_configurations:
                 if public_ip := interface_ip_configuration._public_ip_id:
                     for public_ip_address in public_ip_addresses:
-                        if (ip_addr := public_ip_address.ip_address) and (ip_id := public_ip_address.id) and (public_ip == ip_id):
+                        if (
+                            (ip_addr := public_ip_address.ip_address)
+                            and (ip_id := public_ip_address.id)
+                            and (public_ip == ip_id)
+                        ):
                             self.public_ips.append(ip_addr)
 
 
