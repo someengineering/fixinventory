@@ -34,7 +34,7 @@ defusedxml==0.7.1
 deprecated==1.2.14
 detect-secrets==1.5.0
 fastjsonschema==2.19.1
-fixcompliance==0.4.24
+fixcompliance==0.4.25
 fixdatalink==2.0.2
 fixinventoryclient==2.0.1
 fixinventorydata==0.2.6
