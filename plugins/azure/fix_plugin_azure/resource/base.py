@@ -12,7 +12,7 @@ from azure.identity import DefaultAzureCredential
 from fix_plugin_azure.azure_client import AzureApiSpec, AzureClient
 from fix_plugin_azure.config import AzureConfig, AzureCredentials
 from fixlib.utils import utc
-from fixlib.baseresources import BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
+from fixlib.baseresources import BaseGroup, BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey
 from fixlib.json_bender import Bender, bend, S, ForallBend, Bend
@@ -296,7 +296,7 @@ class AzureLocation(AzureResource, BaseRegion):
 
 
 @define(eq=False, slots=False)
-class AzureResourceGroup(AzureResource):
+class AzureResourceGroup(AzureResource, BaseGroup):
     kind: ClassVar[str] = "azure_resource_group"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="resources",

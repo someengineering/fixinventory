@@ -14,7 +14,7 @@ from fix_plugin_azure.resource.base import (
     AzurePrincipalClient,
     AzureManagedServiceIdentity,
 )
-from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnapshot, EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
@@ -126,7 +126,8 @@ class AzureFleet(AzureResource):
                 expect_array=True,
             )
             items: List[Json] = graph_builder.client.list(api_spec)
-
+            if not items:
+                return
             item: Json = next(iter(items), {})
 
             try:
@@ -772,7 +773,7 @@ class AzureServiceMeshProfile:
 
 
 @define(eq=False, slots=False)
-class AzureManagedCluster(AzureResource):
+class AzureManagedCluster(AzureResource, BaseManagedKubernetesClusterProvider):
     kind: ClassVar[str] = "azure_managed_cluster"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="containerservice",
@@ -842,6 +843,8 @@ class AzureManagedCluster(AzureResource):
         "windows_profile": S("properties", "windowsProfile") >> Bend(AzureManagedClusterWindowsProfile.mapping),
         "workload_auto_scaler_profile": S("properties", "workloadAutoScalerProfile")
         >> Bend(AzureManagedClusterWorkloadAutoScalerProfile.mapping),
+        "version": S("properties", "currentKubernetesVersion"),
+        "endpoint": S("properties", "fqdn"),
     }
     aad_profile: Optional[AzureManagedClusterAADProfile] = field(default=None, metadata={'description': 'For more details see [managed AAD on AKS](https://docs.microsoft.com/azure/aks/managed-aad).'})  # fmt: skip
     addon_profiles: Optional[Dict[str, AzureManagedClusterAddonProfile]] = field(default=None, metadata={'description': 'The profile of managed cluster add-on.'})  # fmt: skip
@@ -956,7 +959,7 @@ class AzureOSOptionProperty:
 
 
 @define(eq=False, slots=False)
-class AzureManagedClusterSnapshot(AzureResource):
+class AzureManagedClusterSnapshot(AzureResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_managed_cluster_snapshot"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="containerservice",
@@ -983,6 +986,8 @@ class AzureManagedClusterSnapshot(AzureResource):
         "os_type": S("properties", "osType"),
         "snapshot_type": S("properties", "snapshotType"),
         "vm_size": S("properties", "vmSize"),
+        "owner_alias": S("systemData", "createdBy"),
+        "encrypted": S("properties", "enableFIPS"),
     }
     creation_data_source_id: Optional[str] = field(default=None, metadata={'description': 'Data used when creating a target resource from a source resource.'})  # fmt: skip
     enable_fips: Optional[bool] = field(default=None, metadata={"description": "Whether to use a FIPS-enabled OS."})
@@ -994,6 +999,15 @@ class AzureManagedClusterSnapshot(AzureResource):
     vm_size: Optional[str] = field(default=None, metadata={"description": "The size of the VM."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        from fix_plugin_azure.resource.compute import AzureVirtualMachineSize
+
+        if snapshot_vm_size := self.vm_size:
+            vm_sizes = builder.nodes(clazz=AzureVirtualMachineSize)
+            for vm_size in vm_sizes:
+                if (size_type := vm_size.name) and (size_type == snapshot_vm_size):
+                    if size := vm_size.os_disk_size_in_mb:
+                        self.volume_size = size // 1024
+
         if agent_pool_id := self.creation_data_source_id:
             cluster_id = "/".join((agent_pool_id.split("/")[:-2]))
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureManagedCluster, id=cluster_id)

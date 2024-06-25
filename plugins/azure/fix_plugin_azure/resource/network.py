@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, ClassVar, Dict, Optional, List, Type, Tuple
 
 from attr import define, field
@@ -18,18 +19,23 @@ from fix_plugin_azure.utils import rgetattr
 from fixlib.baseresources import (
     BaseGateway,
     BaseFirewall,
+    BaseIPAddress,
+    BaseNetworkInterface,
     BasePolicy,
     BaseLoadBalancer,
     BaseNetwork,
     BaseNetworkQuota,
     BasePeeringConnection,
+    BaseSecurityGroup,
+    BaseSubnet,
     ModelReference,
     EdgeType,
 )
-from fixlib.json_bender import Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber
 from fixlib.types import Json
 
 service_name = "azure_network"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -1756,7 +1762,7 @@ class AzureFlowLog:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkSecurityGroup(AzureResource):
+class AzureNetworkSecurityGroup(AzureResource, BaseSecurityGroup):
     kind: ClassVar[str] = "azure_network_security_group"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
@@ -1993,7 +1999,7 @@ class AzureNatGateway(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzurePublicIPAddress(AzureResource):
+class AzurePublicIPAddress(AzureResource, BaseIPAddress):
     kind: ClassVar[str] = "azure_public_ip_address"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
@@ -2030,13 +2036,13 @@ class AzurePublicIPAddress(AzureResource):
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "type": S("type"),
         "zones": S("zones"),
+        "ip_address_family": S("properties", "publicIPAddressVersion") >> F(lambda address: address.lower()),
     }
     ddos_settings: Optional[AzureDdosSettings] = field(default=None, metadata={'description': 'Contains the DDoS protection settings of the public IP.'})  # fmt: skip
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the public IP address when the VM using it is deleted'})  # fmt: skip
     ip_dns_settings: Optional[AzurePublicIPAddressDnsSettings] = field(default=None, metadata={'description': 'Contains FQDN of the DNS record associated with the public IP address.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     idle_timeout_in_minutes: Optional[int] = field(default=None, metadata={'description': 'The idle timeout of the public IP address.'})  # fmt: skip
-    ip_address: Optional[str] = field(default=None, metadata={'description': 'The IP address associated with the public IP address resource.'})  # fmt: skip
     ip_tags: Optional[List[AzureIpTag]] = field(default=None, metadata={'description': 'The list of tags associated with the public IP address.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     migration_phase: Optional[str] = field(default=None, metadata={'description': 'Migration phase of Public IP Address.'})  # fmt: skip
@@ -2162,7 +2168,7 @@ class AzureDelegation(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureSubnet(AzureResource):
+class AzureSubnet(AzureResource, BaseSubnet):
     kind: ClassVar[str] = "azure_subnet"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2522,7 +2528,7 @@ class AzurePrivateLinkService(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkInterface(AzureResource):
+class AzureNetworkInterface(AzureResource, BaseNetworkInterface):
     kind: ClassVar[str] = "azure_network_interface"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
@@ -2575,6 +2581,9 @@ class AzureNetworkInterface(AzureResource):
         "virtual_machine": S("properties", "virtualMachine", "id"),
         "vnet_encryption_supported": S("properties", "vnetEncryptionSupported"),
         "workload_type": S("properties", "workloadType"),
+        "mac": S("properties", "macAddress"),
+        "network_interface_status": S("properties", "provisioningState"),
+        "private_ips": S("properties", "ipConfigurations") >> ForallBend(S("properties", "privateIPAddress")),
     }
     auxiliary_mode: Optional[str] = field(default=None, metadata={'description': 'Auxiliary mode of Network Interface resource.'})  # fmt: skip
     auxiliary_sku: Optional[str] = field(default=None, metadata={'description': 'Auxiliary sku of Network Interface resource.'})  # fmt: skip
@@ -2616,6 +2625,14 @@ class AzureNetworkInterface(AzureResource):
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzurePrivateLinkService, id=p_l_service_id
             )
+
+        if interface_ip_configurations := self.interface_ip_configurations:
+            public_ip_addresses = builder.nodes(clazz=AzurePublicIPAddress)
+            for interface_ip_configuration in interface_ip_configurations:
+                if public_ip := interface_ip_configuration._public_ip_id:
+                    for public_ip_address in public_ip_addresses:
+                        if (ip_addr := public_ip_address.ip_address) and (ip_id := public_ip_address.id) and (public_ip == ip_id):
+                            self.public_ips.append(ip_addr)
 
 
 @define(eq=False, slots=False)
@@ -4451,7 +4468,7 @@ class AzureVpnClientConnectionHealth:
 
 
 @define(eq=False, slots=False)
-class AzureP2SVpnGateway(AzureResource):
+class AzureP2SVpnGateway(AzureResource, BaseGateway):
     kind: ClassVar[str] = "azure_p2_s_vpn_gateway"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="network",
