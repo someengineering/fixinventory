@@ -1220,12 +1220,12 @@ class BaseNetworkInterface(BaseResource):
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network_interface", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
     network_interface_status: str = ""
-    network_interface_type: str = ""
+    network_interface_type: Optional[str] = None
     mac: str = ""
     private_ips: List[str] = field(factory=list)
     public_ips: List[str] = field(factory=list)
-    v6_ips: List[str] = field(factory=list)
-    description: str = ""
+    v6_ips: Optional[List[str]] = None
+    description: Optional[str] = None
 
 
 @define(eq=False, slots=False)
@@ -1348,7 +1348,7 @@ class BaseHealthCheck(BaseResource):
     healthy_threshold: Optional[int] = None
     unhealthy_threshold: Optional[int] = None
     timeout: Optional[int] = None
-    health_check_type: str = ""
+    health_check_type: Optional[str] = None
 
 
 @define(eq=False, slots=False)
