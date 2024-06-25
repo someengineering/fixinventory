@@ -7,6 +7,7 @@ from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import ToDict
+from fixlib.baseresources import BaseCertificate
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 
 log = logging.getLogger("fix.plugins.aws")
@@ -66,7 +67,7 @@ class AwsAcmExtendedKeyUsage:
 
 
 @define(eq=False, slots=False)
-class AwsAcmCertificate(AwsResource):
+class AwsAcmCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_acm_certificate"
     kind_display: ClassVar[str] = "AWS ACM Certificate"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/acm/home?region={region}#/certificates/{id}", "arn_tpl": "arn:{partition}:acm:{region}:{account}:certificate/{id}"}  # fmt: skip
@@ -102,6 +103,8 @@ class AwsAcmCertificate(AwsResource):
         "certificate_authority_arn": S("CertificateAuthorityArn"),
         "renewal_eligibility": S("RenewalEligibility"),
         "certificate_transparency_logging": S("Options", "CertificateTransparencyLoggingPreference"),
+        "expires": S("NotAfter"),
+        "dns_names": S("SubjectAlternativeNames", default=[]),
     }
     subject_alternative_names: Optional[List[str]] = field(factory=list, metadata={"description": "One or more domain names (subject alternative names) included in the certificate. This list contains the domain names that are bound to the public key that is contained in the certificate. The subject alternative names include the canonical domain name (CN) of the certificate and additional domain names that can be used to connect to the website."})  # fmt: skip
     domain_validation_options: Optional[List[AwsAcmDomainValidation]] = field(factory=list, metadata={"description": "Contains information about the initial validation of each domain name that occurs as a result of the RequestCertificate request. This field exists only when the certificate type is AMAZON_ISSUED."})  # fmt: skip
