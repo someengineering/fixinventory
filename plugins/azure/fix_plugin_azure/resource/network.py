@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, ClassVar, Dict, Optional, List, Type, Tuple
+from typing import Any, Callable, ClassVar, Dict, Optional, List, Type, Tuple
 
 from attr import define, field
 
@@ -27,8 +27,8 @@ from fixlib.baseresources import (
     BaseNetwork,
     BaseNetworkQuota,
     BasePeeringConnection,
-    BaseSecurityGroup,
-    BaseSubnet,
+    BaseRoutingTable,
+    BaseTunnel,
     ModelReference,
     EdgeType,
 )
@@ -1832,8 +1832,17 @@ class AzureRoute(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureRouteTable:
+class AzureRouteTable(AzureResource, BaseRoutingTable):
     kind: ClassVar[str] = "azure_route_table"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="network",
+        version="2023-09-01",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/routeTables",
+        path_parameters=["subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "disable_bgp_route_propagation": S("properties", "disableBgpRoutePropagation"),
         "etag": S("etag"),
@@ -1845,16 +1854,14 @@ class AzureRouteTable:
         "routes": S("properties", "routes") >> ForallBend(AzureRoute.mapping),
         "tags": S("tags", default={}),
         "type": S("type"),
+        "subnets": S("properties", "subnets") >> ForallBend(S("id")),
     }
+    subnets: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to subnets.'})  # fmt: skip
     disable_bgp_route_propagation: Optional[bool] = field(default=None, metadata={'description': 'Whether to disable the routes learned by BGP on that route table. True means disable.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-    name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the route table.'})  # fmt: skip
     routes: Optional[List[AzureRoute]] = field(default=None, metadata={'description': 'Collection of routes contained within a route table.'})  # fmt: skip
-    tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags."})
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
 
@@ -2176,6 +2183,7 @@ class AzureSubnet(MicrosoftResource, BaseSubnet):
             "default": [
                 "azure_nat_gateway",
                 "azure_network_security_group",
+                "azure_route_table",
             ]
         },
     }
@@ -2203,7 +2211,7 @@ class AzureSubnet(MicrosoftResource, BaseSubnet):
         "purpose": S("properties", "purpose"),
         "resource_navigation_links": S("properties", "resourceNavigationLinks")
         >> ForallBend(AzureResourceNavigationLink.mapping),
-        "route_table": S("properties", "routeTable") >> Bend(AzureRouteTable.mapping),
+        "_route_table_id": S("properties", "routeTable") >> Bend(S("id")),
         "service_association_links": S("properties", "serviceAssociationLinks")
         >> ForallBend(AzureServiceAssociationLink.mapping),
         "service_endpoint_policies": S("properties", "serviceEndpointPolicies")
@@ -2227,7 +2235,7 @@ class AzureSubnet(MicrosoftResource, BaseSubnet):
     private_link_service_network_policies: Optional[str] = field(default=None, metadata={'description': 'Enable or Disable apply network policies on private link service in the subnet.'})  # fmt: skip
     purpose: Optional[str] = field(default=None, metadata={'description': 'A read-only string identifying the intention of use for this subnet based on delegations and other user-defined properties.'})  # fmt: skip
     resource_navigation_links: Optional[List[AzureResourceNavigationLink]] = field(default=None, metadata={'description': 'An array of references to the external resources using subnet.'})  # fmt: skip
-    route_table: Optional[AzureRouteTable] = field(default=None, metadata={"description": "Route table resource."})
+    _route_table_id: Optional[str] = field(default=None, metadata={"description": "Route table resource."})
     service_association_links: Optional[List[AzureServiceAssociationLink]] = field(default=None, metadata={'description': 'An array of references to services injecting into this subnet.'})  # fmt: skip
     service_endpoint_policies: Optional[List[AzureServiceEndpointPolicy]] = field(default=None, metadata={'description': 'An array of service endpoint policies.'})  # fmt: skip
     service_endpoints: Optional[List[AzureServiceEndpointPropertiesFormat]] = field(default=None, metadata={'description': 'An array of service endpoints.'})  # fmt: skip
@@ -2238,6 +2246,8 @@ class AzureSubnet(MicrosoftResource, BaseSubnet):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNatGateway, id=nat_gateway_id)
         if nsg_id := self._network_security_group_id:
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkSecurityGroup, id=nsg_id)
+        if route_table_id := self._route_table_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureRouteTable, id=route_table_id)
 
 
 @define(eq=False, slots=False)
@@ -5122,9 +5132,11 @@ class AzureVpnSiteLinkConnection(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVpnConnection(AzureSubResource):
+class AzureVpnConnection(AzureResource, BaseTunnel):
     kind: ClassVar[str] = "azure_vpn_connection"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+    # Collect via AzureVpnGateway
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
         "connection_bandwidth": S("properties", "connectionBandwidth"),
         "connection_status": S("properties", "connectionStatus"),
         "dpd_timeout_seconds": S("properties", "dpdTimeoutSeconds"),
@@ -5135,6 +5147,7 @@ class AzureVpnConnection(AzureSubResource):
         "etag": S("etag"),
         "ingress_bytes_transferred": S("properties", "ingressBytesTransferred"),
         "ipsec_policies": S("properties", "ipsecPolicies") >> ForallBend(AzureIpsecPolicy.mapping),
+        "tags": S("tags", default={}),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "remote_vpn_site": S("properties", "remoteVpnSite", "id"),
@@ -5158,8 +5171,6 @@ class AzureVpnConnection(AzureSubResource):
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ingress_bytes_transferred: Optional[int] = field(default=None, metadata={'description': 'Ingress bytes transferred.'})  # fmt: skip
     ipsec_policies: Optional[List[AzureIpsecPolicy]] = field(default=None, metadata={'description': 'The IPSec Policies to be considered by this connection.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     remote_vpn_site: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     routing_configuration: Optional[AzureRoutingConfiguration] = field(default=None, metadata={'description': 'Routing Configuration indicating the associated and propagated route tables for this connection.'})  # fmt: skip
     routing_weight: Optional[int] = field(default=None, metadata={"description": "Routing weight for vpn connection."})
@@ -5265,12 +5276,17 @@ class AzureVpnGateway(MicrosoftResource, BaseGateway):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["azure_vpn_connection"]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
-        "connections": S("properties", "connections") >> ForallBend(AzureVpnConnection.mapping),
+        "connections": S("properties", "connections") >> ForallBend(S("id")),
         "enable_bgp_route_translation_for_nat": S("properties", "enableBgpRouteTranslationForNat"),
         "etag": S("etag"),
         "gateway_ip_configurations": S("properties", "ipConfigurations")
@@ -5282,7 +5298,7 @@ class AzureVpnGateway(MicrosoftResource, BaseGateway):
         "vpn_gateway_scale_unit": S("properties", "vpnGatewayScaleUnit"),
     }
     bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
-    connections: Optional[List[AzureVpnConnection]] = field(default=None, metadata={'description': 'List of all vpn connections to the gateway.'})  # fmt: skip
+    connections: Optional[List[str]] = field(default=None, metadata={'description': 'List of all vpn connections to the gateway.'})  # fmt: skip
     enable_bgp_route_translation_for_nat: Optional[bool] = field(default=None, metadata={'description': 'Enable BGP routes translation for NAT on this VpnGateway.'})  # fmt: skip
     gateway_ip_configurations: Optional[List[AzureVpnGatewayIpConfiguration]] = field(default=None, metadata={'description': 'List of all IPs configured on the gateway.'})  # fmt: skip
     is_routing_preference_internet: Optional[bool] = field(default=None, metadata={'description': 'Enable Routing Preference property for the Public IP Interface of the VpnGateway.'})  # fmt: skip
@@ -5290,6 +5306,31 @@ class AzureVpnGateway(MicrosoftResource, BaseGateway):
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     vpn_gateway_scale_unit: Optional[int] = field(default=None, metadata={'description': 'The scale unit for this vpn gateway.'})  # fmt: skip
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_vpn_connections() -> None:
+            api_spec = AzureApiSpec(
+                service="network",
+                version="2023-09-01",
+                path=f"{self.id}/vpnConnections",
+                path_parameters=["subscriptionId"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            AzureVpnConnection.collect(items, graph_builder)
+
+        graph_builder.submit_work(service_name, collect_vpn_connections)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if connections := self.connections:
+            for connection_id in connections:
+                builder.add_edge(
+                    self,
+                    edge_type=EdgeType.default,
+                    clazz=AzureVpnConnection,
+                    id=connection_id,
+                )
 
 @define(eq=False, slots=False)
 class AzureVpnServerConfigVpnClientRootCertificate:
@@ -5787,6 +5828,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureRouteFilter,
     AzureSecurityPartnerProvider,
     AzureSubnet,
+    AzureRouteTable,
     AzureNetworkUsage,
     AzureVirtualHub,
     AzureVirtualNetwork,
