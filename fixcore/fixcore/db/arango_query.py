@@ -892,7 +892,7 @@ def load_time_series(
     # slot the time by averaging each single group
     query += f" LET {time_slot} = (FLOOR(d.at / @{gran}) * @{gran}) + @{ctx.add_bind_var(offset)}"
     query += f" COLLECT group_slot={time_slot}, complete_group=d.group"
-    if avg_factor:
+    if avg_factor:  # Required as long as https://github.com/arangodb/arangodb/issues/21096 is not fixed
         assert avg_factor > 0, "Given average factor must be greater than 0!"
         bvf = ctx.add_bind_var(avg_factor)
         query += f" AGGREGATE slot_avg = AVG(d.v / @{bvf})"
