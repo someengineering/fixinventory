@@ -2582,7 +2582,6 @@ class AzureNetworkInterface(AzureResource, BaseNetworkInterface):
         "vnet_encryption_supported": S("properties", "vnetEncryptionSupported"),
         "workload_type": S("properties", "workloadType"),
         "mac": S("properties", "macAddress"),
-        "network_interface_status": S("properties", "provisioningState"),
         "private_ips": S("properties", "ipConfigurations") >> ForallBend(S("properties", "privateIPAddress")),
     }
     auxiliary_mode: Optional[str] = field(default=None, metadata={'description': 'Auxiliary mode of Network Interface resource.'})  # fmt: skip
