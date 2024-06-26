@@ -49,6 +49,8 @@ async def test_create_time_series(timeseries_db: TimeSeriesDB, foo_model: Model,
     ## check filter_by is working
     # some_int is the same for all entries: one every hour: 5 entries
     assert len(await load_ts(name="test", start=begin, end=after5h, filter_by=[(P("id").eq("1"))])) == 5
+    # avg factor does not change the result size
+    assert len(await load_ts(name="test", start=begin, end=after5h, filter_by=[(P("id").eq("1"))], avg_factor=10)) == 5
 
 
 async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model, filled_graph_db: GraphDB) -> None:
