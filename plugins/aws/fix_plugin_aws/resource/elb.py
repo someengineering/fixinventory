@@ -8,7 +8,7 @@ from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import BaseHealthCheck, BaseLoadBalancer, MetricName, ModelReference
+from fixlib.baseresources import BaseLoadBalancer, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
@@ -247,7 +247,7 @@ class AwsElbLoadBalancerAttributes:
 
 
 @define(eq=False, slots=False)
-class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer, BaseHealthCheck):
+class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     kind_display: ClassVar[str] = "AWS ELB"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={name}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/{id}"}  # fmt: skip
@@ -289,10 +289,6 @@ class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer, BaseHealthCheck):
         "elb_health_check": S("HealthCheck") >> Bend(AwsElbHealthCheck.mapping),
         "elb_source_security_group": S("SourceSecurityGroup") >> Bend(AwsElbSourceSecurityGroup.mapping),
         "scheme": S("Scheme"),
-        "check_interval": S("HealthCheck", "Interval"),
-        "timeout": S("HealthCheck", "Timeout"),
-        "unhealthy_threshold": S("HealthCheck", "UnhealthyThreshold"),
-        "healthy_threshold": S("HealthCheck", "HealthyThreshold"),
     }
     scheme: Optional[str] = field(default=None)
     elb_canonical_hosted_zone_name: Optional[str] = field(default=None)

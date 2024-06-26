@@ -9,7 +9,7 @@ from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2Subnet, AwsEc2Instance,
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, bytes_to_megabits_per_second, normalizer_factory
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import BaseHealthCheck, BaseLoadBalancer, MetricName, ModelReference
+from fixlib.baseresources import BaseLoadBalancer, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
 from fixlib.types import Json
@@ -595,7 +595,7 @@ class AwsAlbTargetHealthDescription:
 
 
 @define(eq=False, slots=False)
-class AwsAlbTargetGroup(ElbV2Taggable, AwsResource, BaseHealthCheck):
+class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     kind_display: ClassVar[str] = "AWS ALB Target Group"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#TargetGroup:targetGroupArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:targetgroup/{name}/{id}"}  # fmt: skip
@@ -634,10 +634,6 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource, BaseHealthCheck):
         "alb_protocol_version": S("ProtocolVersion"),
         "alb_ip_address_type": S("IpAddressType"),
         "alb_lb_arns": S("LoadBalancerArns"),
-        "timeout": S("HealthCheckTimeoutSeconds"),
-        "check_interval": S("HealthCheckIntervalSeconds"),
-        "healthy_threshold": S("HealthyThresholdCount"),
-        "unhealthy_threshold": S("UnhealthyThresholdCount"),
     }
     target_type: Optional[str] = field(default=None)
     protocol: Optional[str] = field(default=None)
