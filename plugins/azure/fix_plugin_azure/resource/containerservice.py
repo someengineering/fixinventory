@@ -988,6 +988,7 @@ class AzureManagedClusterSnapshot(AzureResource, BaseSnapshot):
         "vm_size": S("properties", "vmSize"),
         "owner_alias": S("systemData", "createdBy"),
         "encrypted": S("properties", "enableFIPS"),
+        "location": S("location"),
     }
     creation_data_source_id: Optional[str] = field(default=None, metadata={'description': 'Data used when creating a target resource from a source resource.'})  # fmt: skip
     enable_fips: Optional[bool] = field(default=None, metadata={"description": "Whether to use a FIPS-enabled OS."})
@@ -997,16 +998,16 @@ class AzureManagedClusterSnapshot(AzureResource, BaseSnapshot):
     os_type: Optional[str] = field(default=None, metadata={'description': 'The operating system type. The default is Linux.'})  # fmt: skip
     snapshot_type: Optional[str] = field(default=None, metadata={'description': 'The type of a snapshot. The default is NodePool.'})  # fmt: skip
     vm_size: Optional[str] = field(default=None, metadata={"description": "The size of the VM."})
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         from fix_plugin_azure.resource.compute import AzureVirtualMachineSize
 
-        if snapshot_vm_size := self.vm_size:
-            vm_sizes = builder.nodes(clazz=AzureVirtualMachineSize)
+        if (snapshot_vm_size := self.vm_size) and (location := self.location):
+            vm_sizes = builder.nodes(clazz=AzureVirtualMachineSize, name=snapshot_vm_size, location=location)
             for vm_size in vm_sizes:
-                if (size_type := vm_size.name) and (size_type == snapshot_vm_size):
-                    if size := vm_size.os_disk_size_in_mb:
-                        self.volume_size = size // 1024
+                if size := vm_size.os_disk_size_in_mb:
+                    self.volume_size = size // 1024
 
         if agent_pool_id := self.creation_data_source_id:
             cluster_id = "/".join((agent_pool_id.split("/")[:-2]))
