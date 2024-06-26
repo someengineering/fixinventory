@@ -871,6 +871,7 @@ def load_time_series(
     group_aggregation: Literal["avg", "sum", "min", "max"] = "avg",
     group_by: Optional[Collection[str]] = None,
     group_filter: Optional[List[Predicate]] = None,
+    avg_factor: Optional[int] = None,
 ) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     bv_name = ctx.add_bind_var(time_series)
@@ -887,12 +888,18 @@ def load_time_series(
     time_slot = ctx.next_crs()
     slotter = int(granularity.total_seconds())
     gran = ctx.add_bind_var(slotter)
-    offset = start.timestamp() - ((start.timestamp() // slotter) * slotter)
+    offset = int(start.timestamp() - ((start.timestamp() // slotter) * slotter))
     # slot the time by averaging each single group
     query += f" LET {time_slot} = (FLOOR(d.at / @{gran}) * @{gran}) + @{ctx.add_bind_var(offset)}"
     query += f" COLLECT group_slot={time_slot}, complete_group=d.group"
-    query += " AGGREGATE slot_avg = AVG(d.v)"
-    query += " RETURN {at: group_slot, group: complete_group, v: slot_avg}"
+    if avg_factor:
+        assert avg_factor > 0, "Given average factor must be greater than 0!"
+        bvf = ctx.add_bind_var(avg_factor)
+        query += f" AGGREGATE slot_avg = AVG(d.v / @{bvf})"
+        query += f" RETURN {{at: group_slot, group: complete_group, v: slot_avg * @{bvf}}}"
+    else:
+        query += " AGGREGATE slot_avg = AVG(d.v)"
+        query += " RETURN {at: group_slot, group: complete_group, v: slot_avg}"
 
     # short circuit: no additional grouping and aggregation is avg
     if group_by is None and group_aggregation == "avg":

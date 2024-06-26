@@ -77,7 +77,15 @@ class TimeSeriesDB:
             for e in all_ts
         ]
 
-    async def add_entries(self, name: str, query_model: QueryModel, graph_db: GraphDB, at: Optional[int] = None) -> int:
+    async def add_entries(
+        self,
+        name: str,
+        query_model: QueryModel,
+        graph_db: GraphDB,
+        *,
+        avg_factor: Optional[int] = None,
+        at: Optional[int] = None,
+    ) -> int:
         query = query_model.query
         model = query_model.model
         assert query.aggregate is not None, "Only aggregate queries are supported for time series."
@@ -97,9 +105,9 @@ class TimeSeriesDB:
                 # update meta information
                 await self.__execute_aql(
                     "UPSERT { _key: @key } "
-                    "INSERT { _key: @key, created_at: DATE_NOW(), last_updated: DATE_NOW(), count: @count } "
-                    f"UPDATE {{ last_updated: DATE_NOW(), count: @count }} IN `{self.names_db}`",
-                    dict(key=name, count=result),
+                    "INSERT { _key: @key, created_at: DATE_NOW(), last_updated: DATE_NOW(), count: @count, factor: @factor } "  # noqa
+                    f"UPDATE {{ last_updated: DATE_NOW(), count: @count, factor: @factor }} IN `{self.names_db}`",
+                    dict(key=name, count=result, factor=avg_factor),
                 )
             return result
 
@@ -116,6 +124,7 @@ class TimeSeriesDB:
         batch_size: Optional[int] = None,
         timeout: Optional[timedelta] = None,
         aggregation: Literal["avg", "sum", "min", "max"] = "avg",
+        avg_factor: Optional[int] = None,
     ) -> AsyncCursor:
         """
         Load time series data.
@@ -131,6 +140,8 @@ class TimeSeriesDB:
         :param batch_size: Optional batch size for the query.
         :param timeout: Timeout for the query to run.
         :param aggregation: The aggregation function to use.
+        :param avg_factor: Apply this avg_factor to all values to compute the average in a slot.
+                       Required for big numbers to avoid overflows.
         :return: A cursor to iterate over the time series data.
         """
         assert start < end, "start must be before end"
@@ -145,10 +156,14 @@ class TimeSeriesDB:
         else:
             grl = duration / 20  # default to 20 datapoints if nothing is specified
 
+        # no avg_factor given, try to get it from the database
+        if avg_factor is None and (nd := await self.db.get(self.names_db, name)) and (fc := nd.get("factor")):
+            avg_factor = int(fc)
+
         grl = max(grl, timedelta(hours=1))
 
         qs, bv = arango_query.load_time_series(
-            self.collection_name, name, start, end, grl, aggregation, group_by, filter_by
+            self.collection_name, name, start, end, grl, aggregation, group_by, filter_by, avg_factor=avg_factor
         )
 
         def result_trafo(js: Json) -> Json:
