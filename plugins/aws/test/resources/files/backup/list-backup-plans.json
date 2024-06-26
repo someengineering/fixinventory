@@ -1,0 +1,23 @@
+{
+    "NextToken": "foo",
+    "BackupPlansList": [
+        {
+            "BackupPlanId": "8F81F553-3A74-4A3F-B93D-B3360DC80C50",
+            "BackupPlanArn": "arn:aws:backup:us-east-1:123456789012:plan:8F81F553-3A74-4A3F-B93D-B3360DC80C50",
+            "BackupPlanName": "MyBackupPlan",
+            "CreationDate": "2023-03-15T12:34:56.789Z",
+            "DeletionDate": "2023-03-16T12:34:56.789Z",
+            "VersionId": "1234567890abcdef",
+            "CreatorRequestId": "my-unique-request-id",
+            "LastExecutionDate": "2023-03-14T12:34:56.789Z",
+            "AdvancedBackupSettings": [
+                {
+                    "ResourceType": "EC2",
+                    "BackupOptions": {
+                        "WindowsVSS": "enabled"
+                    }
+                }
+            ]
+        }
+    ]
+}

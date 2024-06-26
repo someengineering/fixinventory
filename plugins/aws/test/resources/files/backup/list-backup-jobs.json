@@ -1,0 +1,39 @@
+{
+    "BackupJobs": [
+        {
+            "BackupJobId": "1234567890abcdef",
+            "CreationDate": "2023-03-15T12:34:56.789Z",
+            "AccountId": "123456789012",
+            "BackupVaultName": "MyBackupVault",
+            "BackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:MyBackupVault",
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45",
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0",
+            "CompletionDate": "2023-03-15T13:34:56.789Z",
+            "State": "COMPLETED",
+            "StatusMessage": "Backup completed successfully",
+            "PercentDone": 100,
+            "BackupSizeInBytes": 1024,
+            "IamRoleArn": "arn:aws:iam::123456789012:role/BackupRole",
+            "CreatedBy": {
+                "BackupPlanId": "arn:aws:backup:us-east-1:123456789012:plan:8F81F553-3A74-4A3F-B93D-B3360DC80C50",
+                "BackupPlanArn": "arn:aws:backup:us-east-1:123456789012:plan:8F81F553-3A74-4A3F-B93D-B3360DC80C50",
+                "BackupPlanVersion": "1234567890abcdef",
+                "BackupRuleId": "MyBackupRule"
+            },
+            "ExpectedCompletionDate": "2023-03-15T13:34:56.789Z",
+            "StartBy": "2023-03-15T12:34:56.789Z",
+            "ResourceType": "EC2",
+            "BytesTransferred": 1024,
+            "BackupOptions": {
+                "WindowsVSS": "enabled"
+            },
+            "BackupType": "FULL",
+            "ParentJobId": "1234567890abcdef",
+            "IsParent": true,
+            "ResourceName": "MyEC2Instance",
+            "InitiationDate": "2023-03-15T12:34:56.789Z",
+            "MessageCategory": "SUCCESS"
+        }
+    ],
+    "NextToken": "foo"
+}

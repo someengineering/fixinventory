@@ -1,0 +1,42 @@
+{
+    "NextToken": "foo",
+    "RecoveryPoints": [
+        {
+            "RecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45",
+            "CreationDate": "2023-03-15T12:34:56.789Z",
+            "BackupVaultName": "MyBackupVault",
+            "BackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:MyBackupVault",
+            "SourceBackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:MyBackupVault",
+            "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0",
+            "ResourceType": "EC2",
+            "RecoveryPointCreatedBy": {
+                "BackupPlanId": "arn:aws:backup:us-east-1:123456789012:plan:8F81F553-3A74-4A3F-B93D-B3360DC80C50",
+                "BackupPlanArn": "arn:aws:backup:us-east-1:123456789012:plan:8F81F553-3A74-4A3F-B93D-B3360DC80C50",
+                "BackupPlanVersion": "1234567890abcdef",
+                "BackupRuleId": "MyBackupRule"
+            },
+            "IamRoleArn": "arn:aws:iam::123456789012:role/BackupRole",
+            "Status": "COMPLETED",
+            "StatusMessage": "Recovery point created successfully",
+            "CompletionDate": "2023-03-15T13:34:56.789Z",
+            "BackupSizeInBytes": 1024,
+            "CalculatedLifecycle": {
+                "MoveToColdStorageAt": "2023-03-22T12:34:56.789Z",
+                "DeleteAt": "2023-03-29T12:34:56.789Z"
+            },
+            "Lifecycle": {
+                "MoveToColdStorageAfterDays": 7,
+                "DeleteAfterDays": 14,
+                "OptInToArchiveForSupportedResources": true
+            },
+            "EncryptionKeyArn": "arn:aws:kms:us-east-1:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "IsEncrypted": true,
+            "LastRestoreTime": "2023-03-16T12:34:56.789Z",
+            "ParentRecoveryPointArn": "arn:aws:backup:us-east-1:123456789012:recovery-point:1EB3B5E7-9EB0-435A-A80B-108B488B0D45",
+            "CompositeMemberIdentifier": "MyEC2Instance",
+            "IsParent": false,
+            "ResourceName": "MyEC2Instance",
+            "VaultType": "STANDARD"
+        }
+    ]
+}

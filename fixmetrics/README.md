@@ -64,11 +64,11 @@ For example, instances have CPU cores and memory, so they define default metrics
 
 For right now you can use the aggregate API at `{fixcore}:8900/graph/{graph}/reported/search/aggregate` or the `aggregate` CLI command to generate your own metrics. For API details check out the `fixcore` API documentation as well as the Swagger UI at `{fixcore}:8900/api-doc/`.
 
-In the following we will be using the Fix shell `resh` and the `aggregate` command.
+In the following we will be using the Fix shell `fixsh` and the `aggregate` command.
 
 
 ### Example
-Enter the following commands into `resh`
+Enter the following commands into `fixsh`
 ```
 search is(instance) | aggregate /ancestors.cloud.reported.name as cloud, /ancestors.account.reported.name as account, /ancestors.region.reported.name as region, instance_type as type : sum(1) as instances_total, sum(instance_cores) as cores_total, sum(instance_memory*1024*1024*1024) as memory_bytes
 ```

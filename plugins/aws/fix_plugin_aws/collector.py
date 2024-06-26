@@ -46,6 +46,7 @@ from fix_plugin_aws.resource import (
     opensearch,
     acm,
     waf,
+    backup,
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
@@ -103,6 +104,7 @@ regional_resources: List[Type[AwsResource]] = (
     + ssm.resources
     + sqs.resources
     + redshift.resources
+    + backup.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 

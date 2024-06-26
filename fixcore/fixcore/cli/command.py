@@ -3722,7 +3722,12 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
             try:
                 db_config = self.dependencies.config.db
                 if not shutil.which("arangodump"):
-                    raise CLIParseError("db_backup expects the executable `arangodump` to be in path!")
+                    raise CLIParseError("backup expects the executable `arangodump` to be in path!")
+                if db_config.server.startswith("https"):
+                    endpoint = db_config.server.replace("https", "http+ssl")
+                else:
+                    endpoint = db_config.server.replace("http", "http+tcp")
+
                 # fmt: off
                 process = await asyncio.create_subprocess_exec(
                     "arangodump",
@@ -3732,8 +3737,8 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                     "--log.level", "error",  # only print error messages
                     "--output-directory", temp_dir,  # directory to write to
                     "--overwrite", "true",  # required for existing directories
-                    "--server.endpoint", db_config.server.replace("http", "http+tcp"),
-                    "--server.authentication", "false" if db_config.no_ssl_verify else "true",
+                    "--server.endpoint", endpoint,
+                    "--server.authentication", "false",
                     "--server.database", db_config.database,
                     "--server.username", db_config.username,
                     "--server.password", db_config.password,
@@ -3783,7 +3788,14 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                     tar.extractall(temp_dir, members=safe_members_in_tarfile(tar))
 
                 # fmt: off
-                db_conf = self.dependencies.config.db
+                db_config = self.dependencies.config.db
+                if not shutil.which("arangorestore"):
+                    raise CLIParseError("restore expects the executable `arangorestore` to be in path!")
+                if db_config.server.startswith("https"):
+                    endpoint = db_config.server.replace("https", "http+ssl")
+                else:
+                    endpoint = db_config.server.replace("http", "http+tcp")
+
                 process = await asyncio.create_subprocess_exec(
                     "arangorestore",
                     "--progress", "false",  # do not show progress
@@ -3792,11 +3804,11 @@ class SystemCommand(CLICommand, PreserveOutputFormat):
                     "--log.level", "error",  # only print error messages
                     "--input-directory", temp_dir,  # directory to write to
                     "--overwrite", "true",  # required for existing db collections
-                    "--server.endpoint", db_conf.server.replace("http", "http+tcp"),
-                    "--server.authentication", "false" if db_conf.no_ssl_verify else "true",
-                    "--server.database", db_conf.database,
-                    "--server.username", db_conf.username,
-                    "--server.password", db_conf.password,
+                    "--server.endpoint", endpoint,
+                    "--server.authentication", "false",
+                    "--server.database", db_config.database,
+                    "--server.username", db_config.username,
+                    "--server.password", db_config.password,
                     "--configuration", "none",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,

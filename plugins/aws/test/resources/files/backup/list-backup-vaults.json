@@ -1,0 +1,17 @@
+{
+    "BackupVaultList": [
+        {
+            "BackupVaultName": "MyBackupVault",
+            "BackupVaultArn": "arn:aws:backup:us-east-1:123456789012:vault:MyBackupVault",
+            "CreationDate": "2023-03-15T12:34:56.789Z",
+            "EncryptionKeyArn": "arn:aws:kms:us-east-1:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "CreatorRequestId": "my-unique-request-id",
+            "NumberOfRecoveryPoints": 10,
+            "Locked": false,
+            "MinRetentionDays": 30,
+            "MaxRetentionDays": 365,
+            "LockDate": "2023-03-16T12:34:56.789Z"
+        }
+    ],
+    "NextToken": "foo"
+}

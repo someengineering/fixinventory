@@ -515,7 +515,18 @@ async def test_kinds_command(cli: CLI, foo_model: Model) -> None:
     assert result[0][0] == {
         "name": "datetime",
         "runtime_kind": "datetime",
-        "appears_in": ["base", "foo", "bla", "some_complex", "predefined_properties"],
+        "appears_in": [
+            "base",
+            "foo",
+            "bla",
+            "cloud",
+            "account",
+            "region",
+            "parent",
+            "child",
+            "some_complex",
+            "predefined_properties",
+        ],
     }
     with pytest.raises(Exception):
         await cli.execute_cli_command("kind foo bla bar", list_sink)
