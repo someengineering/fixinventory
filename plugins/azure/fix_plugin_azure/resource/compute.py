@@ -28,6 +28,7 @@ from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K
 from fixlib.types import Json
 from fixlib.baseresources import (
     BaseInstance,
+    BaseKeyPair,
     BaseVolume,
     BaseInstanceType,
     BaseSnapshot,
@@ -2190,7 +2191,7 @@ class AzureVirtualMachineSnapshot(AzureResource, BaseSnapshot):
 
 
 @define(eq=False, slots=False)
-class AzureSshPublicKeyResource(AzureResource):
+class AzureSshPublicKeyResource(AzureResource, BaseKeyPair):
     kind: ClassVar[str] = "azure_ssh_public_key_resource"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="compute",

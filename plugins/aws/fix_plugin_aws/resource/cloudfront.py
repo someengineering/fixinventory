@@ -12,7 +12,7 @@ from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.waf import AwsWafWebACL
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import BaseServerlessFunction, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend
 from fixlib.types import Json
@@ -758,7 +758,7 @@ class AwsCloudFrontFunctionConfig:
 
 
 @define(eq=False, slots=False)
-class AwsCloudFrontFunction(CloudFrontTaggable, CloudFrontResource, AwsResource):
+class AwsCloudFrontFunction(CloudFrontTaggable, BaseServerlessFunction, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
     kind_display: ClassVar[str] = "AWS CloudFront Function"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v3/home?region={region}#/functions/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:function/{name}"}  # fmt: skip

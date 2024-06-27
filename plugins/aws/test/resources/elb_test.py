@@ -7,12 +7,12 @@ from fix_plugin_aws.aws_client import AwsClient
 
 
 def test_elbs() -> None:
-    first, graph = round_trip_for(AwsElb, "public_ip_address")
+    first, graph = round_trip_for(AwsElb, "public_ip_address", "health_check_type")
     assert len(first.tags) == 2
 
 
 def test_elb_deletion() -> None:
-    elb, _ = round_trip_for(AwsElb, "public_ip_address")
+    elb, _ = round_trip_for(AwsElb, "public_ip_address", "health_check_type")
 
     def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "delete-load-balancer"
@@ -23,7 +23,7 @@ def test_elb_deletion() -> None:
 
 
 def test_tagging() -> None:
-    elb, _ = round_trip_for(AwsElb, "public_ip_address")
+    elb, _ = round_trip_for(AwsElb, "public_ip_address", "health_check_type")
 
     def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "add-tags"

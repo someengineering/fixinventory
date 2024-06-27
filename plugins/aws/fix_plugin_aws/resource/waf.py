@@ -8,7 +8,7 @@ from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import BaseFirewall, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend, ParseJson, MapDict
 from fixlib.types import Json
 
@@ -797,7 +797,7 @@ class AwsWafLoggingConfiguration:
 
 
 @define(eq=False, slots=False)
-class AwsWafWebACL(AwsResource):
+class AwsWafWebACL(AwsResource, BaseFirewall):
     kind: ClassVar[str] = "aws_waf_web_acl"
     kind_display: ClassVar[str] = "AWS WAF Web ACL"
     kind_description: ClassVar[str] = "An AWS WAF Web ACL (Web Access Control List) is used for monitoring HTTP and HTTPS requests directed to AWS resources, allowing you to control access by permitting or blocking specific requests based on defined criteria."  # fmt: skip
