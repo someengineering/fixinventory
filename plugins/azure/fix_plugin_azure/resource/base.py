@@ -500,7 +500,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
             resources_api_spec = AzureResourceSpec(
                 service="resources",
                 version="2021-04-01",
-                path="/subscriptions/{subscriptionId}/resourceGroups/" + f"{self.safe_name}/resources",
+                path=f"{self.id}/resources",
                 path_parameters=["subscriptionId"],
                 query_parameters=["api-version"],
                 access_path="value",
@@ -514,9 +514,9 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
 
             api_spec = AzureApiSpec(
                 service="network",
-                version="2023-05-01",
+                version="2023-09-01",
                 path=f"{self.id}/providers/Microsoft.Network/virtualNetworkGateways",
-                path_parameters=["subscriptionId"],
+                path_parameters=[],
                 query_parameters=["api-version"],
                 access_path="value",
                 expect_array=True,
@@ -524,8 +524,40 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
             items = graph_builder.client.list(api_spec)
             AzureVirtualNetworkGateway.collect(items, graph_builder)
 
+        def collect_local_network_gateway() -> None:
+            from fix_plugin_azure.resource.network import AzureLocalNetworkGateway
+
+            api_spec = AzureApiSpec(
+                service="network",
+                version="2023-09-01",
+                path=f"{self.id}/providers/Microsoft.Network/localNetworkGateways",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            AzureLocalNetworkGateway.collect(items, graph_builder)
+
+        def collect_network_gateway_connections() -> None:
+            from fix_plugin_azure.resource.network import AzureVirtualNetworkGatewayConnection
+
+            api_spec = AzureApiSpec(
+                service="network",
+                version="2023-09-01",
+                path=f"{self.id}/providers/Microsoft.Network/connections",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            AzureVirtualNetworkGatewayConnection.collect(items, graph_builder)
+
         graph_builder.submit_work(service_name, collect_resources_in_group)
         graph_builder.submit_work(service_name, collect_network_gateways)
+        graph_builder.submit_work(service_name, collect_local_network_gateway)
+        graph_builder.submit_work(service_name, collect_network_gateway_connections)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:
@@ -663,6 +695,7 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
     account_name: Optional[str] = field(default=None, metadata={"description": "The account used to collect this subscription."})  # fmt: skip
 
 
+
 @define(eq=False, slots=False)
 class AzureSubResource:
     kind: ClassVar[str] = "azure_sub_resource"
@@ -722,20 +755,29 @@ class AzureManagementGroup(AzureResource, BaseOrganizationalRoot, BaseOrganizati
     display_name: Optional[str] = field(default=None, metadata={'description': 'The friendly name of the management group.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The AAD Tenant ID associated with the management group. For example, 00000000-0000-0000-0000-000000000000'})  # fmt: skip
 
+
 @define(eq=False, slots=False)
 class AzureManagedIdentity(AzureResource, BaseInstanceProfile):
     kind: ClassVar[str] = "azure_managed_identity"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(service='resources', version='2023-01-31', path='/subscriptions/{subscriptionId}/providers/Microsoft.ManagedIdentity/userAssignedIdentities', path_parameters=['subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="resources",
+        version="2023-01-31",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.ManagedIdentity/userAssignedIdentities",
+        path_parameters=["subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "location": S("location"),
         "name": S("name"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "type": S("type"),
-        "tags": S('tags', default={}),
-        "client_id": S("properties","clientId"),
-        "principal_id": S("properties","principalId"),
-        "tenant_id": S("properties","tenantId")
+        "tags": S("tags", default={}),
+        "client_id": S("properties", "clientId"),
+        "principal_id": S("properties", "principalId"),
+        "tenant_id": S("properties", "tenantId"),
     }
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
@@ -743,7 +785,6 @@ class AzureManagedIdentity(AzureResource, BaseInstanceProfile):
     client_id: Optional[str] = field(default=None, metadata={'description': 'The id of the app associated with the identity. This is a random generated UUID by MSI.'})  # fmt: skip
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The id of the service principal object associated with the created identity.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The id of the tenant which the identity belongs to.'})  # fmt: skip
-
 
 
 @define(eq=False, slots=False)
@@ -981,4 +1022,10 @@ class GraphBuilder:
         )
 
 
-resources: List[Type[MicrosoftResource]] = [AzureResourceGroup, AzureManagementGroup, AzureDNSZone, AzureDNSRecordSet, AzureManagedIdentity]
+resources: List[Type[MicrosoftResource]] = [
+    AzureResourceGroup,
+    AzureManagementGroup,
+    AzureDNSZone,
+    AzureDNSRecordSet,
+    AzureManagedIdentity,
+]

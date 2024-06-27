@@ -29,6 +29,8 @@ from fixlib.baseresources import (
     BaseNetworkQuota,
     BasePeeringConnection,
     BaseRoutingTable,
+    BaseSecurityGroup,
+    BaseSubnet,
     BaseTunnel,
     ModelReference,
     EdgeType,
@@ -3660,6 +3662,7 @@ class AzureIpGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureLoadBalancerProbe(AzureResource, BaseHealthCheck):
     kind: ClassVar[str] = "azure_load_balancer_probe"
+    # Collect via AzureLoadBalancer
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -5347,7 +5350,7 @@ class AzureVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
         "gateway_ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzureVpnGatewayIpConfiguration.mapping),
         "is_routing_preference_internet": S("properties", "isRoutingPreferenceInternet"),
-        "nat_rules": S("properties", "natRules") >> ForallBend(AzureVpnGatewayNatRule.mapping),
+        "wan_gateway_nat_rules": S("properties", "natRules") >> ForallBend(AzureVpnGatewayNatRule.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "virtual_hub": S("properties", "virtualHub", "id"),
         "vpn_gateway_scale_unit": S("properties", "vpnGatewayScaleUnit"),
@@ -5357,7 +5360,7 @@ class AzureVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
     enable_bgp_route_translation_for_nat: Optional[bool] = field(default=None, metadata={'description': 'Enable BGP routes translation for NAT on this VpnGateway.'})  # fmt: skip
     gateway_ip_configurations: Optional[List[AzureVpnGatewayIpConfiguration]] = field(default=None, metadata={'description': 'List of all IPs configured on the gateway.'})  # fmt: skip
     is_routing_preference_internet: Optional[bool] = field(default=None, metadata={'description': 'Enable Routing Preference property for the Public IP Interface of the VpnGateway.'})  # fmt: skip
-    nat_rules: Optional[List[AzureVpnGatewayNatRule]] = field(default=None, metadata={'description': 'List of all the nat Rules associated with the gateway.'})  # fmt: skip
+    wan_gateway_nat_rules: Optional[List[AzureVpnGatewayNatRule]] = field(default=None, metadata={'description': 'List of all the nat Rules associated with the gateway.'})  # fmt: skip
     virtual_hub: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
     vpn_gateway_scale_unit: Optional[int] = field(default=None, metadata={'description': 'The scale unit for this vpn gateway.'})  # fmt: skip
 
@@ -6053,14 +6056,15 @@ class AzureVirtualNetworkGatewayNatRule(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualNetworkGateway(AzureResource):
+class AzureVirtualNetworkGateway(AzureResource, BaseGateway):
     kind: ClassVar[str] = "azure_virtual_network_gateway"
+    # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
         "active_active": S("properties", "activeActive"),
         "admin_state": S("properties", "adminState"),
         "allow_remote_vnet_traffic": S("properties", "allowRemoteVnetTraffic"),
         "allow_virtual_wan_traffic": S("properties", "allowVirtualWanTraffic"),
-        "auto_scale_configuration": S("properties", "autoScaleConfiguration")
+        "gateway_auto_scale_configuration": S("properties", "autoScaleConfiguration")
         >> Bend(AzureVirtualNetworkGatewayAutoScaleConfiguration.mapping),
         "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
         "custom_routes": S("properties", "customRoutes") >> Bend(AzureAddressSpace.mapping),
@@ -6080,10 +6084,10 @@ class AzureVirtualNetworkGateway(AzureResource):
         >> ForallBend(AzureVirtualNetworkGatewayIPConfiguration.mapping),
         "location": S("location"),
         "name": S("name"),
-        "nat_rules": S("properties", "natRules") >> ForallBend(AzureVirtualNetworkGatewayNatRule.mapping),
+        "gateway_nat_rules": S("properties", "natRules") >> ForallBend(AzureVirtualNetworkGatewayNatRule.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
-        "sku": S("properties", "sku") >> Bend(AzureVirtualNetworkGatewaySku.mapping),
+        "network_gateway_sku": S("properties", "sku") >> Bend(AzureVirtualNetworkGatewaySku.mapping),
         "tags": S("tags"),
         "type": S("type"),
         "v_net_extended_location_resource_id": S("properties", "vNetExtendedLocationResourceId"),
@@ -6098,7 +6102,7 @@ class AzureVirtualNetworkGateway(AzureResource):
     admin_state: Optional[str] = field(default=None, metadata={'description': 'Property to indicate if the Express Route Gateway serves traffic when there are multiple Express Route Gateways in the vnet'})  # fmt: skip
     allow_remote_vnet_traffic: Optional[bool] = field(default=None, metadata={'description': 'Configure this gateway to accept traffic from other Azure Virtual Networks. This configuration does not support connectivity to Azure Virtual WAN.'})  # fmt: skip
     allow_virtual_wan_traffic: Optional[bool] = field(default=None, metadata={'description': 'Configures this gateway to accept traffic from remote Virtual WAN networks.'})  # fmt: skip
-    auto_scale_configuration: Optional[AzureVirtualNetworkGatewayAutoScaleConfiguration] = field(default=None, metadata={'description': 'Virtual Network Gateway Autoscale Configuration details'})  # fmt: skip
+    gateway_auto_scale_configuration: Optional[AzureVirtualNetworkGatewayAutoScaleConfiguration] = field(default=None, metadata={'description': 'Virtual Network Gateway Autoscale Configuration details'})  # fmt: skip
     bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
     custom_routes: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
     disable_ip_sec_replay_protection: Optional[bool] = field(default=None, metadata={'description': 'disableIPSecReplayProtection flag.'})  # fmt: skip
@@ -6106,7 +6110,6 @@ class AzureVirtualNetworkGateway(AzureResource):
     enable_bgp_route_translation_for_nat: Optional[bool] = field(default=None, metadata={'description': 'EnableBgpRouteTranslationForNat flag.'})  # fmt: skip
     enable_dns_forwarding: Optional[bool] = field(default=None, metadata={'description': 'Whether dns forwarding is enabled or not.'})  # fmt: skip
     enable_private_ip_address: Optional[bool] = field(default=None, metadata={'description': 'Whether private IP needs to be enabled on this gateway for connections or not.'})  # fmt: skip
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     gateway_default_site: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     gateway_type: Optional[str] = field(default=None, metadata={'description': 'The type of this virtual network gateway.'})  # fmt: skip
@@ -6114,17 +6117,156 @@ class AzureVirtualNetworkGateway(AzureResource):
     inbound_dns_forwarding_endpoint: Optional[str] = field(default=None, metadata={'description': 'The IP address allocated by the gateway to which dns requests can be sent.'})  # fmt: skip
     ip_configurations: Optional[List[AzureVirtualNetworkGatewayIPConfiguration]] = field(default=None, metadata={'description': 'IP configurations for virtual network gateway.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-    name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
-    nat_rules: Optional[List[AzureVirtualNetworkGatewayNatRule]] = field(default=None, metadata={'description': 'NatRules for virtual network gateway.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    gateway_nat_rules: Optional[List[AzureVirtualNetworkGatewayNatRule]] = field(default=None, metadata={'description': 'NatRules for virtual network gateway.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the virtual network gateway resource.'})  # fmt: skip
-    sku: Optional[AzureVirtualNetworkGatewaySku] = field(default=None, metadata={'description': 'VirtualNetworkGatewaySku details.'})  # fmt: skip
+    network_gateway_sku: Optional[AzureVirtualNetworkGatewaySku] = field(default=None, metadata={'description': 'VirtualNetworkGatewaySku details.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     v_net_extended_location_resource_id: Optional[str] = field(default=None, metadata={'description': 'Customer vnet resource id. VirtualNetworkGateway of type local gateway is associated with the customer vnet.'})  # fmt: skip
     virtual_network_gateway_policy_groups: Optional[List[AzureVirtualNetworkGatewayPolicyGroup]] = field(default=None, metadata={'description': 'The reference to the VirtualNetworkGatewayPolicyGroup resource which represents the available VirtualNetworkGatewayPolicyGroup for the gateway.'})  # fmt: skip
     vpn_client_configuration: Optional[AzureVpnClientConfiguration] = field(default=None, metadata={'description': 'VpnClientConfiguration for P2S client.'})  # fmt: skip
     vpn_gateway_generation: Optional[str] = field(default=None, metadata={'description': 'The generation for this VirtualNetworkGateway. Must be None if gatewayType is not VPN.'})  # fmt: skip
     vpn_type: Optional[str] = field(default=None, metadata={'description': 'The type of this virtual network gateway.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureLocalNetworkGateway(AzureResource, BaseGateway):
+    kind: ClassVar[str] = "azure_local_network_gateway"
+    # Collect via AzureResourceGroup
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
+        "etag": S("etag"),
+        "fqdn": S("properties", "fqdn"),
+        "gateway_ip_address": S("properties", "gatewayIpAddress"),
+        "id": S("id"),
+        "local_network_address_space": S("properties", "localNetworkAddressSpace") >> Bend(AzureAddressSpace.mapping),
+        "location": S("location"),
+        "name": S("name"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "resource_guid": S("properties", "resourceGuid"),
+        "tags": S("tags"),
+        "type": S("type"),
+    }
+    bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
+    fqdn: Optional[str] = field(default=None, metadata={"description": "FQDN of local network gateway."})
+    gateway_ip_address: Optional[str] = field(default=None, metadata={'description': 'IP address of local network gateway.'})  # fmt: skip
+    local_network_address_space: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the local network gateway resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+
+@define(eq=False, slots=False)
+class AzureTunnelConnectionHealth:
+    kind: ClassVar[str] = "azure_tunnel_connection_health"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "connection_status": S("connectionStatus"),
+        "egress_bytes_transferred": S("egressBytesTransferred"),
+        "ingress_bytes_transferred": S("ingressBytesTransferred"),
+        "last_connection_established_utc_time": S("lastConnectionEstablishedUtcTime"),
+        "tunnel": S("tunnel"),
+    }
+    connection_status: Optional[str] = field(default=None, metadata={'description': 'Virtual Network Gateway connection status.'})  # fmt: skip
+    egress_bytes_transferred: Optional[int] = field(default=None, metadata={'description': 'The Egress Bytes Transferred in this connection.'})  # fmt: skip
+    ingress_bytes_transferred: Optional[int] = field(default=None, metadata={'description': 'The Ingress Bytes Transferred in this connection.'})  # fmt: skip
+    last_connection_established_utc_time: Optional[str] = field(default=None, metadata={'description': 'The time at which connection was established in Utc format.'})  # fmt: skip
+    tunnel: Optional[str] = field(default=None, metadata={"description": "Tunnel name."})
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewayConnection(AzureResource, BaseTunnel):
+    kind: ClassVar[str] = "azure_virtual_network_gateway_connection"
+    # Collect via AzureResourceGroup
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_virtual_network_gateway", "azure_local_network_gateway"]},
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "authorization_key": S("properties", "authorizationKey"),
+        "connection_mode": S("properties", "connectionMode"),
+        "connection_protocol": S("properties", "connectionProtocol"),
+        "connection_status": S("properties", "connectionStatus"),
+        "connection_type": S("properties", "connectionType"),
+        "dpd_timeout_seconds": S("properties", "dpdTimeoutSeconds"),
+        "egress_bytes_transferred": S("properties", "egressBytesTransferred"),
+        "egress_nat_rules": S("properties") >> S("egressNatRules", default=[]) >> ForallBend(S("id")),
+        "enable_bgp": S("properties", "enableBgp"),
+        "enable_private_link_fast_path": S("properties", "enablePrivateLinkFastPath"),
+        "etag": S("etag"),
+        "express_route_gateway_bypass": S("properties", "expressRouteGatewayBypass"),
+        "gateway_custom_bgp_ip_addresses": S("properties", "gatewayCustomBgpIpAddresses")
+        >> ForallBend(AzureGatewayCustomBgpIpAddressIpConfiguration.mapping),
+        "ingress_bytes_transferred": S("properties", "ingressBytesTransferred"),
+        "ingress_nat_rules": S("properties") >> S("ingressNatRules", default=[]) >> ForallBend(S("id")),
+        "ipsec_policies": S("properties", "ipsecPolicies") >> ForallBend(AzureIpsecPolicy.mapping),
+        "local_network_gateway2": S("properties", "localNetworkGateway2", "id"),
+        "peer": S("properties", "peer", "id"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "resource_guid": S("properties", "resourceGuid"),
+        "routing_weight": S("properties", "routingWeight"),
+        "shared_key": S("properties", "sharedKey"),
+        "traffic_selector_policies": S("properties", "trafficSelectorPolicies")
+        >> ForallBend(AzureTrafficSelectorPolicy.mapping),
+        "tunnel_connection_status": S("properties", "tunnelConnectionStatus")
+        >> ForallBend(AzureTunnelConnectionHealth.mapping),
+        "use_local_azure_ip_address": S("properties", "useLocalAzureIpAddress"),
+        "use_policy_based_traffic_selectors": S("properties", "usePolicyBasedTrafficSelectors"),
+        "virtual_network_gateway1_id": S("properties", "virtualNetworkGateway1", "id"),
+        "virtual_network_gateway2_id": S("properties", "virtualNetworkGateway2", "id"),
+    }
+    authorization_key: Optional[str] = field(default=None, metadata={"description": "The authorizationKey."})
+    connection_mode: Optional[str] = field(default=None, metadata={"description": "Gateway connection type."})
+    connection_protocol: Optional[str] = field(default=None, metadata={"description": "Gateway connection protocol."})
+    connection_status: Optional[str] = field(default=None, metadata={'description': 'Virtual Network Gateway connection status.'})  # fmt: skip
+    connection_type: Optional[str] = field(default=None, metadata={"description": "Gateway connection type."})
+    dpd_timeout_seconds: Optional[int] = field(default=None, metadata={'description': 'The dead peer detection timeout of this connection in seconds.'})  # fmt: skip
+    egress_bytes_transferred: Optional[int] = field(default=None, metadata={'description': 'The egress bytes transferred in this connection.'})  # fmt: skip
+    egress_nat_rules: Optional[List[str]] = field(default=None, metadata={"description": "List of egress NatRules."})
+    enable_bgp: Optional[bool] = field(default=None, metadata={"description": "EnableBgp flag."})
+    enable_private_link_fast_path: Optional[bool] = field(default=None, metadata={'description': 'Bypass the ExpressRoute gateway when accessing private-links. ExpressRoute FastPath (expressRouteGatewayBypass) must be enabled.'})  # fmt: skip
+    express_route_gateway_bypass: Optional[bool] = field(default=None, metadata={'description': 'Bypass ExpressRoute Gateway for data forwarding.'})  # fmt: skip
+    gateway_custom_bgp_ip_addresses: Optional[List[AzureGatewayCustomBgpIpAddressIpConfiguration]] = field(default=None, metadata={'description': 'GatewayCustomBgpIpAddresses to be used for virtual network gateway Connection.'})  # fmt: skip
+    ingress_bytes_transferred: Optional[int] = field(default=None, metadata={'description': 'The ingress bytes transferred in this connection.'})  # fmt: skip
+    ingress_nat_rules: Optional[List[str]] = field(default=None, metadata={"description": "List of ingress NatRules."})
+    ipsec_policies: Optional[List[AzureIpsecPolicy]] = field(default=None, metadata={'description': 'The IPSec Policies to be considered by this connection.'})  # fmt: skip
+    local_network_gateway2: Optional[str] = field(default=None, metadata={'description': 'A common class for general resource information.'})  # fmt: skip
+    peer: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
+    resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the virtual network gateway connection resource.'})  # fmt: skip
+    routing_weight: Optional[int] = field(default=None, metadata={"description": "The routing weight."})
+    shared_key: Optional[str] = field(default=None, metadata={"description": "The IPSec shared key."})
+    traffic_selector_policies: Optional[List[AzureTrafficSelectorPolicy]] = field(default=None, metadata={'description': 'The Traffic Selector Policies to be considered by this connection.'})  # fmt: skip
+    tunnel_connection_status: Optional[List[AzureTunnelConnectionHealth]] = field(default=None, metadata={'description': 'Collection of all tunnels connection health status.'})  # fmt: skip
+    use_local_azure_ip_address: Optional[bool] = field(default=None, metadata={'description': 'Use private local Azure IP for the connection.'})  # fmt: skip
+    use_policy_based_traffic_selectors: Optional[bool] = field(default=None, metadata={'description': 'Enable policy-based traffic selectors.'})  # fmt: skip
+    virtual_network_gateway1_id: Optional[str] = field(default=None, metadata={'description': 'A common class for general resource information.'})  # fmt: skip
+    virtual_network_gateway2_id: Optional[str] = field(default=None, metadata={'description': 'A common class for general resource information.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if virtual_network_gateway1_id := self.virtual_network_gateway1_id:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureVirtualNetworkGateway,
+                id=virtual_network_gateway1_id,
+            )
+        if virtual_network_gateway2_id := self.virtual_network_gateway2_id:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureVirtualNetworkGateway,
+                id=virtual_network_gateway2_id,
+            )
+        if local_network_gateway2_id := self.local_network_gateway2:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureLocalNetworkGateway,
+                id=local_network_gateway2_id,
+            )
 
 
 resources: List[Type[MicrosoftResource]] = [
@@ -6170,5 +6312,8 @@ resources: List[Type[MicrosoftResource]] = [
     AzureVirtualWANVpnConnection,
     AzureVpnServerConfiguration,
     AzureVpnSite,
+    AzureVirtualNetworkGateway,
+    AzureLocalNetworkGateway,
+    AzureVirtualNetworkGatewayConnection,
     AzureWebApplicationFirewallPolicy,
 ]
