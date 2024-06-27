@@ -5853,6 +5853,280 @@ class AzureWebApplicationFirewallPolicy(MicrosoftResource):
     resource_state: Optional[str] = field(default=None, metadata={"description": "Resource status of the policy."})
 
 
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewayAutoScaleBounds:
+    kind: ClassVar[str] = "azure_virtual_network_gateway_auto_scale_bounds"
+    mapping: ClassVar[Dict[str, Bender]] = {"max": S("max"), "min": S("min")}
+    max: Optional[int] = field(default=None, metadata={'description': 'Maximum Scale Units for Autoscale configuration'})  # fmt: skip
+    min: Optional[int] = field(default=None, metadata={'description': 'Minimum scale Units for Autoscale configuration'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewayAutoScaleConfiguration:
+    kind: ClassVar[str] = "azure_virtual_network_gateway_auto_scale_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "bounds": S("bounds") >> Bend(AzureVirtualNetworkGatewayAutoScaleBounds.mapping)
+    }
+    bounds: Optional[AzureVirtualNetworkGatewayAutoScaleBounds] = field(default=None, metadata={"description": ""})
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewayIPConfiguration(AzureSubResource):
+    kind: ClassVar[str] = "azure_virtual_network_gateway_ip_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+        "etag": S("etag"),
+        "name": S("name"),
+        "private_ip_address": S("properties", "privateIPAddress"),
+        "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "public_ip_address": S("properties", "publicIPAddress", "id"),
+        "subnet": S("properties", "subnet", "id"),
+    }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
+    private_ip_address: Optional[str] = field(default=None, metadata={'description': 'Private IP Address for this gateway.'})  # fmt: skip
+    private_ip_allocation_method: Optional[str] = field(default=None, metadata={'description': 'IP address allocation method.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    public_ip_address: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
+    subnet: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewaySku:
+    kind: ClassVar[str] = "azure_virtual_network_gateway_sku"
+    mapping: ClassVar[Dict[str, Bender]] = {"capacity": S("capacity"), "name": S("name"), "tier": S("tier")}
+    capacity: Optional[int] = field(default=None, metadata={"description": "The capacity."})
+    name: Optional[str] = field(default=None, metadata={"description": "Gateway SKU name."})
+    tier: Optional[str] = field(default=None, metadata={"description": "Gateway SKU tier."})
+
+
+@define(eq=False, slots=False)
+class AzureVpnClientRootCertificate(AzureSubResource):
+    kind: ClassVar[str] = "azure_vpn_client_root_certificate"
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+        "etag": S("etag"),
+        "name": S("name"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "public_cert_data": S("properties", "publicCertData"),
+    }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    public_cert_data: Optional[str] = field(default=None, metadata={"description": "The certificate public data."})
+
+
+@define(eq=False, slots=False)
+class AzureVpnClientRevokedCertificate(AzureSubResource):
+    kind: ClassVar[str] = "azure_vpn_client_revoked_certificate"
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+        "etag": S("etag"),
+        "name": S("name"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "thumbprint": S("properties", "thumbprint"),
+    }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    thumbprint: Optional[str] = field(default=None, metadata={'description': 'The revoked VPN client certificate thumbprint.'})  # fmt: skip
+
+
+define(eq=False, slots=False)
+
+
+class AzureVngClientConnectionConfiguration(AzureSubResource):
+    kind: ClassVar[str] = "azure_vng_client_connection_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+        "etag": S("etag"),
+        "name": S("name"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "virtual_network_gateway_policy_groups": S("properties")
+        >> S("virtualNetworkGatewayPolicyGroups", default=[])
+        >> ForallBend(S("id")),
+        "vpn_client_address_pool": S("properties", "vpnClientAddressPool") >> Bend(AzureAddressSpace.mapping),
+    }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    virtual_network_gateway_policy_groups: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to virtualNetworkGatewayPolicyGroups'})  # fmt: skip
+    vpn_client_address_pool: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureVpnClientConfiguration:
+    kind: ClassVar[str] = "azure_vpn_client_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "aad_audience": S("aadAudience"),
+        "aad_issuer": S("aadIssuer"),
+        "aad_tenant": S("aadTenant"),
+        "radius_server_address": S("radiusServerAddress"),
+        "radius_server_secret": S("radiusServerSecret"),
+        "radius_servers": S("radiusServers") >> ForallBend(AzureRadiusServer.mapping),
+        "vng_client_connection_configurations": S("vngClientConnectionConfigurations")
+        >> ForallBend(AzureVngClientConnectionConfiguration.mapping),
+        "vpn_authentication_types": S("vpnAuthenticationTypes"),
+        "vpn_client_address_pool": S("vpnClientAddressPool") >> Bend(AzureAddressSpace.mapping),
+        "vpn_client_ipsec_policies": S("vpnClientIpsecPolicies") >> ForallBend(AzureIpsecPolicy.mapping),
+        "vpn_client_protocols": S("vpnClientProtocols"),
+        "vpn_client_revoked_certificates": S("vpnClientRevokedCertificates")
+        >> ForallBend(AzureVpnClientRevokedCertificate.mapping),
+        "vpn_client_root_certificates": S("vpnClientRootCertificates")
+        >> ForallBend(AzureVpnClientRootCertificate.mapping),
+    }
+    aad_audience: Optional[str] = field(default=None, metadata={'description': 'The AADAudience property of the VirtualNetworkGateway resource for vpn client connection used for AAD authentication.'})  # fmt: skip
+    aad_issuer: Optional[str] = field(default=None, metadata={'description': 'The AADIssuer property of the VirtualNetworkGateway resource for vpn client connection used for AAD authentication.'})  # fmt: skip
+    aad_tenant: Optional[str] = field(default=None, metadata={'description': 'The AADTenant property of the VirtualNetworkGateway resource for vpn client connection used for AAD authentication.'})  # fmt: skip
+    radius_server_address: Optional[str] = field(default=None, metadata={'description': 'The radius server address property of the VirtualNetworkGateway resource for vpn client connection.'})  # fmt: skip
+    radius_server_secret: Optional[str] = field(default=None, metadata={'description': 'The radius secret property of the VirtualNetworkGateway resource for vpn client connection.'})  # fmt: skip
+    radius_servers: Optional[List[AzureRadiusServer]] = field(default=None, metadata={'description': 'The radiusServers property for multiple radius server configuration.'})  # fmt: skip
+    vng_client_connection_configurations: Optional[List[AzureVngClientConnectionConfiguration]] = field(default=None, metadata={'description': 'per ip address pool connection policy for virtual network gateway P2S client.'})  # fmt: skip
+    vpn_authentication_types: Optional[List[str]] = field(default=None, metadata={'description': 'VPN authentication types for the virtual network gateway..'})  # fmt: skip
+    vpn_client_address_pool: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
+    vpn_client_ipsec_policies: Optional[List[AzureIpsecPolicy]] = field(default=None, metadata={'description': 'VpnClientIpsecPolicies for virtual network gateway P2S client.'})  # fmt: skip
+    vpn_client_protocols: Optional[List[str]] = field(default=None, metadata={'description': 'VpnClientProtocols for Virtual network gateway.'})  # fmt: skip
+    vpn_client_revoked_certificates: Optional[List[AzureVpnClientRevokedCertificate]] = field(default=None, metadata={'description': 'VpnClientRevokedCertificate for Virtual network gateway.'})  # fmt: skip
+    vpn_client_root_certificates: Optional[List[AzureVpnClientRootCertificate]] = field(default=None, metadata={'description': 'VpnClientRootCertificate for virtual network gateway.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewayPolicyGroupMember:
+    kind: ClassVar[str] = "azure_virtual_network_gateway_policy_group_member"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "attribute_type": S("attributeType"),
+        "attribute_value": S("attributeValue"),
+        "name": S("name"),
+    }
+    attribute_type: Optional[str] = field(default=None, metadata={'description': 'The Vpn Policy member attribute type.'})  # fmt: skip
+    attribute_value: Optional[str] = field(default=None, metadata={'description': 'The value of Attribute used for this VirtualNetworkGatewayPolicyGroupMember.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={'description': 'Name of the VirtualNetworkGatewayPolicyGroupMember.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewayPolicyGroup(AzureSubResource):
+    kind: ClassVar[str] = "azure_virtual_network_gateway_policy_group"
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+        "etag": S("etag"),
+        "is_default": S("properties", "isDefault"),
+        "name": S("name"),
+        "policy_members": S("properties", "policyMembers")
+        >> ForallBend(AzureVirtualNetworkGatewayPolicyGroupMember.mapping),
+        "priority": S("properties", "priority"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "vng_client_connection_configurations": S("properties")
+        >> S("vngClientConnectionConfigurations", default=[])
+        >> ForallBend(S("id")),
+    }
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    is_default: Optional[bool] = field(default=None, metadata={'description': 'Shows if this is a Default VirtualNetworkGatewayPolicyGroup or not.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
+    policy_members: Optional[List[AzureVirtualNetworkGatewayPolicyGroupMember]] = field(default=None, metadata={'description': 'Multiple PolicyMembers for VirtualNetworkGatewayPolicyGroup.'})  # fmt: skip
+    priority: Optional[int] = field(default=None, metadata={'description': 'Priority for VirtualNetworkGatewayPolicyGroup.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    vng_client_connection_configurations: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to vngClientConnectionConfigurations.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGatewayNatRule(AzureSubResource):
+    kind: ClassVar[str] = "azure_virtual_network_gateway_nat_rule"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="network",
+        version="2024-01-01",
+        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworkGateways/{virtualNetworkGatewayName}/natRules",
+        path_parameters=["subscriptionId", "resourceGroupName", "virtualNetworkGatewayName"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "etag": S("etag"),
+        "external_mappings": S("properties", "externalMappings") >> ForallBend(AzureVpnNatRuleMapping.mapping),
+        "internal_mappings": S("properties", "internalMappings") >> ForallBend(AzureVpnNatRuleMapping.mapping),
+        "ip_configuration_id": S("properties", "ipConfigurationId"),
+        "mode": S("properties", "mode"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    external_mappings: Optional[List[AzureVpnNatRuleMapping]] = field(default=None, metadata={'description': 'The private IP address external mapping for NAT.'})  # fmt: skip
+    internal_mappings: Optional[List[AzureVpnNatRuleMapping]] = field(default=None, metadata={'description': 'The private IP address internal mapping for NAT.'})  # fmt: skip
+    ip_configuration_id: Optional[str] = field(default=None, metadata={'description': 'The IP Configuration ID this NAT rule applies to.'})  # fmt: skip
+    mode: Optional[str] = field(default=None, metadata={"description": "The Source NAT direction of a VPN NAT."})
+
+
+@define(eq=False, slots=False)
+class AzureVirtualNetworkGateway(AzureResource):
+    kind: ClassVar[str] = "azure_virtual_network_gateway"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "active_active": S("properties", "activeActive"),
+        "admin_state": S("properties", "adminState"),
+        "allow_remote_vnet_traffic": S("properties", "allowRemoteVnetTraffic"),
+        "allow_virtual_wan_traffic": S("properties", "allowVirtualWanTraffic"),
+        "auto_scale_configuration": S("properties", "autoScaleConfiguration")
+        >> Bend(AzureVirtualNetworkGatewayAutoScaleConfiguration.mapping),
+        "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
+        "custom_routes": S("properties", "customRoutes") >> Bend(AzureAddressSpace.mapping),
+        "disable_ip_sec_replay_protection": S("properties", "disableIPSecReplayProtection"),
+        "enable_bgp": S("properties", "enableBgp"),
+        "enable_bgp_route_translation_for_nat": S("properties", "enableBgpRouteTranslationForNat"),
+        "enable_dns_forwarding": S("properties", "enableDnsForwarding"),
+        "enable_private_ip_address": S("properties", "enablePrivateIpAddress"),
+        "etag": S("etag"),
+        "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
+        "gateway_default_site": S("properties", "gatewayDefaultSite", "id"),
+        "gateway_type": S("properties", "gatewayType"),
+        "id": S("id"),
+        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
+        "inbound_dns_forwarding_endpoint": S("properties", "inboundDnsForwardingEndpoint"),
+        "ip_configurations": S("properties", "ipConfigurations")
+        >> ForallBend(AzureVirtualNetworkGatewayIPConfiguration.mapping),
+        "location": S("location"),
+        "name": S("name"),
+        "nat_rules": S("properties", "natRules") >> ForallBend(AzureVirtualNetworkGatewayNatRule.mapping),
+        "provisioning_state": S("properties", "provisioningState"),
+        "resource_guid": S("properties", "resourceGuid"),
+        "sku": S("properties", "sku") >> Bend(AzureVirtualNetworkGatewaySku.mapping),
+        "tags": S("tags"),
+        "type": S("type"),
+        "v_net_extended_location_resource_id": S("properties", "vNetExtendedLocationResourceId"),
+        "virtual_network_gateway_policy_groups": S("properties", "virtualNetworkGatewayPolicyGroups")
+        >> ForallBend(AzureVirtualNetworkGatewayPolicyGroup.mapping),
+        "vpn_client_configuration": S("properties", "vpnClientConfiguration")
+        >> Bend(AzureVpnClientConfiguration.mapping),
+        "vpn_gateway_generation": S("properties", "vpnGatewayGeneration"),
+        "vpn_type": S("properties", "vpnType"),
+    }
+    active_active: Optional[bool] = field(default=None, metadata={"description": "ActiveActive flag."})
+    admin_state: Optional[str] = field(default=None, metadata={'description': 'Property to indicate if the Express Route Gateway serves traffic when there are multiple Express Route Gateways in the vnet'})  # fmt: skip
+    allow_remote_vnet_traffic: Optional[bool] = field(default=None, metadata={'description': 'Configure this gateway to accept traffic from other Azure Virtual Networks. This configuration does not support connectivity to Azure Virtual WAN.'})  # fmt: skip
+    allow_virtual_wan_traffic: Optional[bool] = field(default=None, metadata={'description': 'Configures this gateway to accept traffic from remote Virtual WAN networks.'})  # fmt: skip
+    auto_scale_configuration: Optional[AzureVirtualNetworkGatewayAutoScaleConfiguration] = field(default=None, metadata={'description': 'Virtual Network Gateway Autoscale Configuration details'})  # fmt: skip
+    bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
+    custom_routes: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
+    disable_ip_sec_replay_protection: Optional[bool] = field(default=None, metadata={'description': 'disableIPSecReplayProtection flag.'})  # fmt: skip
+    enable_bgp: Optional[bool] = field(default=None, metadata={'description': 'Whether BGP is enabled for this virtual network gateway or not.'})  # fmt: skip
+    enable_bgp_route_translation_for_nat: Optional[bool] = field(default=None, metadata={'description': 'EnableBgpRouteTranslationForNat flag.'})  # fmt: skip
+    enable_dns_forwarding: Optional[bool] = field(default=None, metadata={'description': 'Whether dns forwarding is enabled or not.'})  # fmt: skip
+    enable_private_ip_address: Optional[bool] = field(default=None, metadata={'description': 'Whether private IP needs to be enabled on this gateway for connections or not.'})  # fmt: skip
+    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
+    gateway_default_site: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
+    gateway_type: Optional[str] = field(default=None, metadata={'description': 'The type of this virtual network gateway.'})  # fmt: skip
+    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    inbound_dns_forwarding_endpoint: Optional[str] = field(default=None, metadata={'description': 'The IP address allocated by the gateway to which dns requests can be sent.'})  # fmt: skip
+    ip_configurations: Optional[List[AzureVirtualNetworkGatewayIPConfiguration]] = field(default=None, metadata={'description': 'IP configurations for virtual network gateway.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
+    nat_rules: Optional[List[AzureVirtualNetworkGatewayNatRule]] = field(default=None, metadata={'description': 'NatRules for virtual network gateway.'})  # fmt: skip
+    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the virtual network gateway resource.'})  # fmt: skip
+    sku: Optional[AzureVirtualNetworkGatewaySku] = field(default=None, metadata={'description': 'VirtualNetworkGatewaySku details.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+    v_net_extended_location_resource_id: Optional[str] = field(default=None, metadata={'description': 'Customer vnet resource id. VirtualNetworkGateway of type local gateway is associated with the customer vnet.'})  # fmt: skip
+    virtual_network_gateway_policy_groups: Optional[List[AzureVirtualNetworkGatewayPolicyGroup]] = field(default=None, metadata={'description': 'The reference to the VirtualNetworkGatewayPolicyGroup resource which represents the available VirtualNetworkGatewayPolicyGroup for the gateway.'})  # fmt: skip
+    vpn_client_configuration: Optional[AzureVpnClientConfiguration] = field(default=None, metadata={'description': 'VpnClientConfiguration for P2S client.'})  # fmt: skip
+    vpn_gateway_generation: Optional[str] = field(default=None, metadata={'description': 'The generation for this VirtualNetworkGateway. Must be None if gatewayType is not VPN.'})  # fmt: skip
+    vpn_type: Optional[str] = field(default=None, metadata={'description': 'The type of this virtual network gateway.'})  # fmt: skip
+
+
 resources: List[Type[MicrosoftResource]] = [
     AzureApplicationGateway,
     AzureApplicationGatewayFirewallRuleSet,

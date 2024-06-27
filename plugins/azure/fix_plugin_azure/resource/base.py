@@ -509,7 +509,23 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
 
             self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
 
+        def collect_network_gateways() -> None:
+            from fix_plugin_azure.resource.network import AzureVirtualNetworkGateway
+
+            api_spec = AzureApiSpec(
+                service="network",
+                version="2023-05-01",
+                path=f"{self.id}/providers/Microsoft.Network/virtualNetworkGateways",
+                path_parameters=["subscriptionId"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            AzureVirtualNetworkGateway.collect(items, graph_builder)
+
         graph_builder.submit_work(service_name, collect_resources_in_group)
+        graph_builder.submit_work(service_name, collect_network_gateways)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:
