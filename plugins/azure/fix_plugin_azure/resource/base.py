@@ -16,6 +16,7 @@ from fixlib.baseresources import(
     BaseGroup,
     BaseDNSRecordSet,
     BaseDNSZone,
+    BaseInstanceProfile,
     BaseOrganizationalRoot,
     BaseOrganizationalUnit,
     BaseResource,
@@ -652,7 +653,6 @@ class AzureSubscription(AzureResource, BaseAccount):
         client = AzureClient.create(config, credentials, "global")
         return [cls.from_api(js) for js in client.list(cls.api_spec)]
 
-
 @define(eq=False, slots=False)
 class AzureSubResource:
     kind: ClassVar[str] = "azure_sub_resource"
@@ -711,6 +711,29 @@ class AzureManagementGroup(AzureResource, BaseOrganizationalRoot, BaseOrganizati
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     display_name: Optional[str] = field(default=None, metadata={'description': 'The friendly name of the management group.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The AAD Tenant ID associated with the management group. For example, 00000000-0000-0000-0000-000000000000'})  # fmt: skip
+
+@define(eq=False, slots=False)
+class AzureManagedIdentity(AzureResource, BaseInstanceProfile):
+    kind: ClassVar[str] = "azure_managed_identity"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(service='resources', version='2023-01-31', path='/subscriptions/{subscriptionId}/providers/Microsoft.ManagedIdentity/userAssignedIdentities', path_parameters=['subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "location": S("location"),
+        "name": S("name"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "type": S("type"),
+        "tags": S('tags', default={}),
+        "client_id": S("properties","clientId"),
+        "principal_id": S("properties","principalId"),
+        "tenant_id": S("properties","tenantId")
+    }
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
+    client_id: Optional[str] = field(default=None, metadata={'description': 'The id of the app associated with the identity. This is a random generated UUID by MSI.'})  # fmt: skip
+    principal_id: Optional[str] = field(default=None, metadata={'description': 'The id of the service principal object associated with the created identity.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The id of the tenant which the identity belongs to.'})  # fmt: skip
+
 
 
 @define(eq=False, slots=False)
@@ -949,4 +972,4 @@ class GraphBuilder:
         )
 
 
-resources: List[Type[AzureResource]] = [AzureResourceGroup, AzureManagementGroup, AzureDNSZone, AzureDNSRecordSet]
+resources: List[Type[AzureResource]] = [AzureResourceGroup, AzureManagementGroup, AzureDNSZone, AzureDNSRecordSet, AzureManagedIdentity]
