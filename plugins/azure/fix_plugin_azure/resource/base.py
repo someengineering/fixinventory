@@ -10,7 +10,7 @@ from azure.identity import DefaultAzureCredential
 
 from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, MicrosoftRestSpec
 from fix_plugin_azure.config import AzureConfig
-from fixlib.baseresources import BaseGroup, BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
+from fixlib.baseresources import BaseGroup, BaseOrganizationalRoot, BaseOrganizationalUnit, BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey
@@ -503,6 +503,22 @@ class AzureSystemData:
     last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
     last_modified_by: Optional[str] = field(default=None, metadata={'description': 'The identity that last modified the resource.'})  # fmt: skip
     last_modified_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
+
+@define(eq=False, slots=False)
+class AzureManagementGroup(AzureResource, BaseOrganizationalRoot, BaseOrganizationalUnit):
+    kind: ClassVar[str] = "azure_management_group"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(service='resources', version='2023-04-01', path='/providers/Microsoft.Management/managementGroups', path_parameters=[], query_parameters=['api-version'], access_path=None, expect_array=False)
+    mapping: ClassVar[Dict[str, Bender]] =  {
+        "id": S("id"),
+        "tags": S('tags', default={}),
+        "name": S("name"),
+        "display_name": S("properties","displayName"),
+        "tenant_id": S("properties","tenantId"),
+        "type": S("type")
+    }
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+    display_name: Optional[str] = field(default=None, metadata={'description': 'The friendly name of the management group.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The AAD Tenant ID associated with the management group. For example, 00000000-0000-0000-0000-000000000000'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
