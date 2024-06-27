@@ -22,6 +22,7 @@ from fixlib.baseresources import (
     BaseFirewall,
     BaseIPAddress,
     BaseNetworkInterface,
+    BaseHealthCheck,
     BasePolicy,
     BaseLoadBalancer,
     BaseNetwork,
@@ -3657,6 +3658,37 @@ class AzureIpGroup(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
+class AzureLoadBalancerProbe(AzureResource, BaseHealthCheck):
+    kind: ClassVar[str] = "azure_load_balancer_probe"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "etag": S("etag"),
+        "interval_in_seconds": S("properties", "intervalInSeconds"),
+        "load_balancing_rules_ids": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id")),
+        "no_healthy_backends_behavior": S("properties", "NoHealthyBackendsBehavior"),
+        "number_of_probes": S("properties", "numberOfProbes"),
+        "port": S("properties", "port"),
+        "probe_threshold": S("properties", "probeThreshold"),
+        "protocol": S("properties", "protocol"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "request_path": S("properties", "requestPath"),
+        "check_interval": S("properties", "intervalInSeconds"),
+        "healthy_threshold": S("properties", "probeThreshold"),
+        "unhealthy_threshold": S("properties", "numberOfProbes"),
+    }
+    interval_in_seconds: Optional[int] = field(default=None, metadata={'description': 'The interval, in seconds, for how frequently to probe the endpoint for health status. Typically, the interval is slightly less than half the allocated timeout period (in seconds) which allows two full probes before taking the instance out of rotation. The default value is 15, the minimum value is 5.'})  # fmt: skip
+    load_balancing_rules_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The load balancer rules that use this probe.'})  # fmt: skip
+    no_healthy_backends_behavior: Optional[str] = field(default=None, metadata={'description': 'Determines how new connections are handled by the load balancer when all backend instances are probed down.'})  # fmt: skip
+    number_of_probes: Optional[int] = field(default=None, metadata={'description': 'The number of probes where if no response, will result in stopping further traffic from being delivered to the endpoint. This values allows endpoints to be taken out of rotation faster or slower than the typical times used in Azure.'})  # fmt: skip
+    port: Optional[int] = field(default=None, metadata={'description': 'The port for communicating the probe. Possible values range from 1 to 65535, inclusive.'})  # fmt: skip
+    probe_threshold: Optional[int] = field(default=None, metadata={'description': 'The number of consecutive successful or failed probes in order to allow or deny traffic from being delivered to this endpoint. After failing the number of consecutive probes equal to this value, the endpoint will be taken out of rotation and require the same number of successful consecutive probes to be placed back in rotation.'})  # fmt: skip
+    protocol: Optional[str] = field(default=None, metadata={'description': 'The protocol of the end point. If Tcp is specified, a received ACK is required for the probe to be successful. If Http or Https is specified, a 200 OK response from the specifies URI is required for the probe to be successful.'})  # fmt: skip
+    request_path: Optional[str] = field(default=None, metadata={'description': 'The URI used for requesting health status from the VM. Path is required if a protocol is set to http. Otherwise, it is not allowed. There is no default value.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AzureGatewayLoadBalancerTunnelInterface:
     kind: ClassVar[str] = "azure_gateway_load_balancer_tunnel_interface"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3891,6 +3923,7 @@ class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_virtual_network", "azure_subnet", "azure_managed_cluster"]},
+        "successors": {"default": ["azure_load_balancer_probe"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -3905,7 +3938,7 @@ class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
         "inbound_nat_rules": S("properties", "inboundNatRules") >> ForallBend(AzureInboundNatRule.mapping),
         "load_balancing_rules": S("properties", "loadBalancingRules") >> ForallBend(AzureLoadBalancingRule.mapping),
         "outbound_rules": S("properties", "outboundRules") >> ForallBend(AzureOutboundRule.mapping),
-        "lb_probes": S("properties", "probes") >> ForallBend(AzureProbe.mapping),
+        "_lb_probes_id": S("properties", "probes") >> ForallBend(S("id")),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
@@ -3923,12 +3956,32 @@ class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
     outbound_rules: Optional[List[AzureOutboundRule]] = field(
         default=None, metadata={"description": "The outbound rules."}
     )
-    lb_probes: Optional[List[AzureProbe]] = field(default=None, metadata={'description': 'Collection of probe objects used in the load balancer.'})  # fmt: skip
+    _lb_probes_id: Optional[List[str]] = field(default=None, metadata={'description': 'Collection of probe objects used in the load balancer.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the load balancer resource.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU of a load balancer."})
     aks_public_ip_address: Optional[str] = field(default=None, metadata={"description": "AKS Load Balancer public IP address."})  # fmt: skip
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_lb_probes() -> None:
+            api_spec = AzureApiSpec(
+                service="network",
+                version="2024-01-01",
+                path=f"{self.id}/probes",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+
+            AzureLoadBalancerProbe.collect(items, graph_builder)
+
+        graph_builder.submit_work(service_name, collect_lb_probes)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if lb_probes := self._lb_probes_id:
+            for lb_probe_id in lb_probes:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureLoadBalancerProbe, id=lb_probe_id)
         if vns := self.backends:
             for vn_id in vns:
                 builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id)
@@ -4724,7 +4777,9 @@ class AzureVirtualHub(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_express_route_gateway", "azure_vpn_gateway", "azure_virtual_wan"]},
+        "predecessors": {
+            "default": ["azure_express_route_gateway", "azure_virtual_wan_vpn_gateway", "azure_virtual_wan"]
+        },
         "successors": {"default": ["azure_public_ip_address"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4788,7 +4843,9 @@ class AzureVirtualHub(MicrosoftResource):
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureExpressRouteGateway, id=er_gateway_id
             )
         if vpn_gateway_id := self.vpn_gateway:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureVpnGateway, id=vpn_gateway_id)
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualWANVpnGateway, id=vpn_gateway_id
+            )
         if vw_id := self.virtual_wan:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualWAN, id=vw_id)
         if ip_config_ids := self.ip_configuration_ids:
@@ -5132,9 +5189,9 @@ class AzureVpnSiteLinkConnection(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVpnConnection(AzureResource, BaseTunnel):
-    kind: ClassVar[str] = "azure_vpn_connection"
-    # Collect via AzureVpnGateway
+class AzureVirtualWANVpnConnection(AzureResource, BaseTunnel):
+    kind: ClassVar[str] = "azure_virtual_wan_vpn_connection"
+    # Collect via AzureVirtualWANVpnGateway
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "connection_bandwidth": S("properties", "connectionBandwidth"),
@@ -5265,8 +5322,8 @@ class AzureVpnGatewayNatRule(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVpnGateway(MicrosoftResource, BaseGateway):
-    kind: ClassVar[str] = "azure_vpn_gateway"
+class AzureVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
+    kind: ClassVar[str] = "azure_virtual_wan_vpn_gateway"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -5277,16 +5334,14 @@ class AzureVpnGateway(MicrosoftResource, BaseGateway):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
-            "default": ["azure_vpn_connection"]
-        },
+        "successors": {"default": ["azure_virtual_wan_vpn_connection"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
-        "connections": S("properties", "connections") >> ForallBend(S("id")),
+        "_connections_ids": S("properties", "connections") >> ForallBend(S("id")),
         "enable_bgp_route_translation_for_nat": S("properties", "enableBgpRouteTranslationForNat"),
         "etag": S("etag"),
         "gateway_ip_configurations": S("properties", "ipConfigurations")
@@ -5298,7 +5353,7 @@ class AzureVpnGateway(MicrosoftResource, BaseGateway):
         "vpn_gateway_scale_unit": S("properties", "vpnGatewayScaleUnit"),
     }
     bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
-    connections: Optional[List[str]] = field(default=None, metadata={'description': 'List of all vpn connections to the gateway.'})  # fmt: skip
+    _connections_ids: Optional[List[str]] = field(default=None, metadata={'description': 'List of all vpn connections to the gateway.'})  # fmt: skip
     enable_bgp_route_translation_for_nat: Optional[bool] = field(default=None, metadata={'description': 'Enable BGP routes translation for NAT on this VpnGateway.'})  # fmt: skip
     gateway_ip_configurations: Optional[List[AzureVpnGatewayIpConfiguration]] = field(default=None, metadata={'description': 'List of all IPs configured on the gateway.'})  # fmt: skip
     is_routing_preference_internet: Optional[bool] = field(default=None, metadata={'description': 'Enable Routing Preference property for the Public IP Interface of the VpnGateway.'})  # fmt: skip
@@ -5312,25 +5367,26 @@ class AzureVpnGateway(MicrosoftResource, BaseGateway):
                 service="network",
                 version="2023-09-01",
                 path=f"{self.id}/vpnConnections",
-                path_parameters=["subscriptionId"],
+                path_parameters=[],
                 query_parameters=["api-version"],
                 access_path="value",
                 expect_array=True,
             )
             items = graph_builder.client.list(api_spec)
-            AzureVpnConnection.collect(items, graph_builder)
+            AzureVirtualWANVpnConnection.collect(items, graph_builder)
 
         graph_builder.submit_work(service_name, collect_vpn_connections)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if connections := self.connections:
+        if connections := self._connections_ids:
             for connection_id in connections:
                 builder.add_edge(
                     self,
                     edge_type=EdgeType.default,
-                    clazz=AzureVpnConnection,
+                    clazz=AzureVirtualWANVpnConnection,
                     id=connection_id,
                 )
+
 
 @define(eq=False, slots=False)
 class AzureVpnServerConfigVpnClientRootCertificate:
@@ -5814,6 +5870,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureIpAllocation,
     AzureIpGroup,
     AzureLoadBalancer,
+    AzureLoadBalancerProbe,
     AzureNatGateway,
     AzureNetworkInterface,
     AzureNetworkProfile,
@@ -5835,7 +5892,8 @@ resources: List[Type[MicrosoftResource]] = [
     AzureVirtualNetworkTap,
     AzureVirtualRouter,
     AzureVirtualWAN,
-    AzureVpnGateway,
+    AzureVirtualWANVpnGateway,
+    AzureVirtualWANVpnConnection,
     AzureVpnServerConfiguration,
     AzureVpnSite,
     AzureWebApplicationFirewallPolicy,
