@@ -50,8 +50,8 @@ def is_retryable_exception(e: Exception) -> bool:
 @define
 class AzureApiSpec:
     service: str
-    version: str
     path: str
+    version: Optional[str] = None
     path_parameters: List[str] = []
     query_parameters: List[str] = []
     access_path: Optional[str] = None
@@ -66,6 +66,10 @@ class AzureClient(ABC):
 
     @abstractmethod
     def for_location(self, location: str) -> AzureClient:
+        pass
+
+    @abstractmethod
+    def for_graph_scope(self) -> AzureClient:
         pass
 
     @abstractmethod
@@ -88,9 +92,16 @@ class AzureClient(ABC):
         core_feedback: Optional[CoreFeedback] = None,
         error_accumulator: Optional[ErrorAccumulator] = None,
         resource_group: Optional[str] = None,
+        credential_scope: Optional[List[str]] = None,
     ) -> AzureClient:
         return AzureResourceManagementClient(
-            config, credential, subscription_id, resource_group, core_feedback, error_accumulator
+            config,
+            credential,
+            subscription_id,
+            resource_group,
+            core_feedback,
+            error_accumulator,
+            credential_scope=credential_scope,
         )
 
     create = __create_management_client
@@ -105,6 +116,7 @@ class AzureResourceManagementClient(AzureClient):
         location: Optional[str] = None,
         core_feedback: Optional[CoreFeedback] = None,
         accumulator: Optional[ErrorAccumulator] = None,
+        credential_scope: Optional[List[str]] = None,
     ) -> None:
         self.config = config
         self.credential = credential
@@ -112,7 +124,11 @@ class AzureResourceManagementClient(AzureClient):
         self.location = location
         self.core_feedback = core_feedback
         self.accumulator = accumulator or ErrorAccumulator()
-        self.client = ResourceManagementClient(self.credential, self.subscription_id)
+        self.client = ResourceManagementClient(
+            self.credential,
+            self.subscription_id,
+            credential_scopes=credential_scope or ["https://management.azure.com/.default"],
+        )
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         result = self._list_with_retry(spec, **kwargs)
@@ -219,7 +235,6 @@ class AzureResourceManagementClient(AzureClient):
                 raise
             return None
 
-    # noinspection PyProtectedMember
     def _call(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         ser = Serializer()
 
@@ -244,7 +259,8 @@ class AzureResourceManagementClient(AzureClient):
 
         # Construct parameters
         params = case_insensitive_dict()
-        params["api-version"] = ser.query("api-version", spec.version, "str")  # type: ignore
+        if spec.version is not None:
+            params["api-version"] = ser.query("api-version", spec.version, "str")  # type: ignore
         for param in spec.query_parameters:
             if param not in params:
                 if lookup_map.get(param, None) is not None:
@@ -268,7 +284,7 @@ class AzureResourceManagementClient(AzureClient):
         js: Union[Json, List[Json]] = response.json()
 
         if isinstance(js, dict):
-            if "nextLink" in js or "NextPageLink" in js:
+            if ("nextLink" in js) or ("NextPageLink" in js) or ("@nextLink" in js):
                 js = self._handle_pagination(js, spec, error_map)
             else:
                 if spec.access_path:
@@ -284,7 +300,7 @@ class AzureResourceManagementClient(AzureClient):
             nextlink_jsons.extend(js[spec.access_path])
         else:
             nextlink_jsons.append(js)
-        while nextlink_url := js.get("nextLink") or js.get("NextPageLink"):
+        while nextlink_url := js.get("nextLink") or js.get("NextPageLink") or js.get("@nextLink"):
             response = self._make_request(nextlink_url, {}, {})
             if response.status_code != 200:
                 map_error(status_code=response.status_code, response=response, error_map=error_map)
@@ -309,4 +325,14 @@ class AzureResourceManagementClient(AzureClient):
     def for_location(self, location: str) -> AzureClient:
         return AzureClient.create(
             self.config, self.credential, self.subscription_id, self.core_feedback, self.accumulator, location
+        )
+
+    def for_graph_scope(self) -> AzureClient:
+        return AzureClient.create(
+            self.config,
+            self.credential,
+            self.subscription_id,
+            self.core_feedback,
+            self.accumulator,
+            credential_scope=["https://graph.microsoft.com/.default"],
         )
