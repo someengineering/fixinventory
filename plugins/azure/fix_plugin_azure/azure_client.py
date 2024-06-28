@@ -65,10 +65,6 @@ class AzureClient(ABC):
         pass
 
     @abstractmethod
-    def graph_list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
-        pass
-
-    @abstractmethod
     def for_location(self, location: str) -> AzureClient:
         pass
 
@@ -136,12 +132,6 @@ class AzureResourceManagementClient(AzureClient):
 
     def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         result = self._list_with_retry(spec, **kwargs)
-        if result is None:
-            return []
-        return result  # type: ignore
-
-    def graph_list(self, spec, **kwargs: Any) -> List[Json]:
-        result = self._call(spec, **kwargs)
         if result is None:
             return []
         return result  # type: ignore
