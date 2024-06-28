@@ -45,8 +45,8 @@ def test_collect(
 ) -> None:
     collector = AzureSubscriptionCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
     collector.collect()
-    assert len(collector.graph.nodes) == 299
-    assert len(collector.graph.edges) == 443
+    assert len(collector.graph.nodes) == 306
+    assert len(collector.graph.edges) == 450
 
 
 def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:

@@ -222,12 +222,6 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
             return []
         return result  # type: ignore
 
-    def graph_list(self, spec, **kwargs: Any) -> List[Json]:
-        result = self._call(spec, **kwargs)
-        if result is None:
-            return []
-        return result  # type: ignore
-
     def delete(self, resource_id: str) -> bool:
         try:
             self.resource_management_client.resources.begin_delete_by_id(

@@ -615,7 +615,7 @@ class AzureADGroup(AzureResource, BaseGroup):
         "on_premises_domain_name": S("onPremisesDomainName"),
         "on_premises_last_sync_date_time": S("onPremisesLastSyncDateTime"),
         "on_premises_net_bios_name": S("onPremisesNetBiosName"),
-        "on_premises_provisioning_errors": S("onPremisesProvisioningErrors")
+        "on_premises_provisioning_errors": S("onPremisesProvisioningErrors", default=[])
         >> ForallBend(AzureADProvisioningError.mapping),
         "on_premises_sam_account_name": S("onPremisesSamAccountName"),
         "on_premises_security_identifier": S("onPremisesSecurityIdentifier"),
@@ -628,7 +628,8 @@ class AzureADGroup(AzureResource, BaseGroup):
         "resource_provisioning_options": S("resourceProvisioningOptions"),
         "security_enabled": S("securityEnabled"),
         "security_identifier": S("securityIdentifier"),
-        "service_provisioning_errors": S("serviceProvisioningErrors") >> ForallBend(AzureADProvisioningError.mapping),
+        "service_provisioning_errors": S("serviceProvisioningErrors", default=[])
+        >> ForallBend(AzureADProvisioningError.mapping),
         "theme": S("theme"),
         "unique_name": S("uniqueName"),
         "group_visibility": S("visibility"),
@@ -676,7 +677,7 @@ class AzureADGroup(AzureResource, BaseGroup):
         log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             try:
-                items = builder.client.for_graph_scope().graph_list(spec, **kwargs)
+                items = builder.client.for_graph_scope().list(spec, **kwargs)
                 return cls.collect(items, builder)
             except Exception as e:
                 msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
@@ -728,7 +729,7 @@ class AzureADUser(AzureResource, BaseUser):
         log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             try:
-                items = builder.client.for_graph_scope().graph_list(spec, **kwargs)
+                items = builder.client.for_graph_scope().list(spec, **kwargs)
                 return cls.collect(items, builder)
             except Exception as e:
                 msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
@@ -767,7 +768,7 @@ class AzureADDirectoryRole(AzureResource, BaseRole):
         log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             try:
-                items = builder.client.for_graph_scope().graph_list(spec, **kwargs)
+                items = builder.client.for_graph_scope().list(spec, **kwargs)
                 return cls.collect(items, builder)
             except Exception as e:
                 msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"

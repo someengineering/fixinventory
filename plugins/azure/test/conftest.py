@@ -57,6 +57,9 @@ class StaticFileMicrosoftClient(MicrosoftClient):
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
         return False
 
+    def for_graph_scope(self) -> AzureClient:
+        return self
+
     @property
     def config(self) -> AzureConfig:
         return AzureConfig()
