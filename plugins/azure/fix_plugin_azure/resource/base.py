@@ -670,6 +670,7 @@ class AzureADGroup(AzureResource, BaseGroup):
     unique_name: Optional[str] = field(default=None, metadata={"description": "The unique name of the group."})
     group_visibility: Optional[str] = field(default=None, metadata={"description": "Specifies the group join policy and group content visibility."})
     # fmt: on
+
     @classmethod
     def collect_resources(
         cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
