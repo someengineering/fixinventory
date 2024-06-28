@@ -235,7 +235,7 @@ class AzureResourceManagementClient(AzureClient):
                 raise
             return None
 
-    def _call(self, spec: AzureApiSpec, call_headers: Optional[Dict[str, Any]] = None, **kwargs: Any) -> List[Json]:
+    def _call(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
         ser = Serializer()
 
         error_map = {
@@ -247,10 +247,7 @@ class AzureResourceManagementClient(AzureClient):
         lookup_map = {"subscriptionId": self.subscription_id, "location": self.location, **kwargs}
 
         # Construct headers
-        if call_headers:
-            headers = case_insensitive_dict(**call_headers)
-        else:
-            headers = {}
+        headers = case_insensitive_dict()
 
         # Construct path map
         path_map = case_insensitive_dict()
