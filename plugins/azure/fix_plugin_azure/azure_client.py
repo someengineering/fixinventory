@@ -62,8 +62,8 @@ ErrorMap = {
 @define
 class AzureResourceSpec:
     service: str
-    version: str
     path: str
+    version: Optional[str] = None
     path_parameters: List[str] = []
     query_parameters: List[str] = []
     access_path: Optional[str] = None
@@ -218,6 +218,12 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
 
     def list(self, spec: MicrosoftRestSpec, **kwargs: Any) -> List[Json]:
         result = self._list_with_retry(spec, **kwargs)
+        if result is None:
+            return []
+        return result  # type: ignore
+
+    def graph_list(self, spec, **kwargs: Any) -> List[Json]:
+        result = self._call(spec, **kwargs)
         if result is None:
             return []
         return result  # type: ignore

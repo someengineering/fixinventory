@@ -17,7 +17,9 @@ from fixlib.baseresources import(
     BaseInstanceProfile,
     BaseOrganizationalRoot,
     BaseOrganizationalUnit,
-    BaseResource, BaseRole, BaseUser,
+    BaseResource,
+    BaseRole,
+    BaseUser,
     Cloud,
     EdgeType,
     BaseAccount,
@@ -564,23 +566,29 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
             for resource_id in resource_ids:
                 builder.add_edge(self, edge_type=EdgeType.default, clazz=MicrosoftResource, id=resource_id)
 
+
 @define(eq=False, slots=False)
-class ProvisioningError:
+class AzureADProvisioningError:
+    kind: ClassVar[str] = "azure_ad_provisioning_error"
     mapping: ClassVar[Dict[str, Bender]] = {
         "error_code": S("errorCode"),
         "error_message": S("errorMessage"),
-        "additional_details": S("additionalDetails")
+        "error_detail": S("errorDetail"),
+        "target_object": S("targetObject"),
+        "error_operation": S("operation"),
     }
     error_code: Optional[str] = field(default=None)
     error_message: Optional[str] = field(default=None)
-    additional_details: Optional[str] = field(default=None)
+    error_detail: Optional[str] = field(default=None)
+    target_object: Optional[str] = field(default=None)
+    error_operation: Optional[str] = field(default=None)
+
 
 @define(eq=False, slots=False)
 class AzureADGroup(AzureResource, BaseGroup):
     kind: ClassVar[str] = "azure_ad_group"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="resources",
-        version="",
         path="https://graph.microsoft.com/v1.0/groups",
         path_parameters=[],
         query_parameters=[],
@@ -607,7 +615,8 @@ class AzureADGroup(AzureResource, BaseGroup):
         "on_premises_domain_name": S("onPremisesDomainName"),
         "on_premises_last_sync_date_time": S("onPremisesLastSyncDateTime"),
         "on_premises_net_bios_name": S("onPremisesNetBiosName"),
-        "on_premises_provisioning_errors": S("onPremisesProvisioningErrors") >> Bend(ProvisioningError.mapping),
+        "on_premises_provisioning_errors": S("onPremisesProvisioningErrors")
+        >> ForallBend(AzureADProvisioningError.mapping),
         "on_premises_sam_account_name": S("onPremisesSamAccountName"),
         "on_premises_security_identifier": S("onPremisesSecurityIdentifier"),
         "on_premises_sync_enabled": S("onPremisesSyncEnabled"),
@@ -619,12 +628,13 @@ class AzureADGroup(AzureResource, BaseGroup):
         "resource_provisioning_options": S("resourceProvisioningOptions"),
         "security_enabled": S("securityEnabled"),
         "security_identifier": S("securityIdentifier"),
-        "service_provisioning_errors": S("serviceProvisioningErrors") >> Bend(ProvisioningError.mapping),
+        "service_provisioning_errors": S("serviceProvisioningErrors") >> ForallBend(AzureADProvisioningError.mapping),
         "theme": S("theme"),
         "unique_name": S("uniqueName"),
-        "visibility": S("visibility"),
+        "group_visibility": S("visibility"),
     }
-    
+
+    # fmt: off
     classification: Optional[str] = field(default=None, metadata={"description": "The classification for the group."})
     created_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when the group was created."})
     creation_options: List[str] = field(factory=list, metadata={"description": "Options used to create this group."})
@@ -642,7 +652,7 @@ class AzureADGroup(AzureResource, BaseGroup):
     on_premises_domain_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises domain FQDN, also called dnsDomainName synchronized from the on-premises directory."})
     on_premises_last_sync_date_time: Optional[datetime] = field(default=None, metadata={"description": "Indicates the last time at which the group was synced with the on-premises directory."})
     on_premises_net_bios_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises NetBIOS name synchronized from the on-premises directory."})
-    on_premises_provisioning_errors: List[ProvisioningError] = field(factory=list, metadata={"description": "Errors when using Microsoft synchronization product during provisioning."})
+    on_premises_provisioning_errors: List[AzureADProvisioningError] = field(factory=list, metadata={"description": "Errors when using Microsoft synchronization product during provisioning."})
     on_premises_sam_account_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises SAM account name synchronized from the on-premises directory."})
     on_premises_security_identifier: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises security identifier (SID) for the group that was synchronized from on-premises to the cloud."})
     on_premises_sync_enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether this group is synchronized from an on-premises directory."})
@@ -654,17 +664,32 @@ class AzureADGroup(AzureResource, BaseGroup):
     resource_provisioning_options: List[str] = field(factory=list, metadata={"description": "Specifies the group resources that are provisioned as part of Microsoft 365 group creation."})
     security_enabled: bool = field(default=False, metadata={"description": "Specifies whether the group is a security group."})
     security_identifier: Optional[str] = field(default=None, metadata={"description": "Security identifier of the group, used in Windows scenarios."})
-    service_provisioning_errors: List[ProvisioningError] = field(factory=list, metadata={"description": "Errors published by a federated service describing a non-transient, service-specific error regarding the properties or link from a group object."})
+    service_provisioning_errors: List[AzureADProvisioningError] = field(factory=list, metadata={"description": "Errors published by a federated service describing a non-transient, service-specific error regarding the properties or link from a group object."})
     theme: Optional[str] = field(default=None, metadata={"description": "Specifies a Microsoft 365 group's color theme."})
     unique_name: Optional[str] = field(default=None, metadata={"description": "The unique name of the group."})
-    visibility: Optional[str] = field(default=None, metadata={"description": "Specifies the group join policy and group content visibility."})
+    group_visibility: Optional[str] = field(default=None, metadata={"description": "Specifies the group join policy and group content visibility."})
+    # fmt: on
+    @classmethod
+    def collect_resources(
+        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[AzureResourceType]:
+        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        if spec := cls.api_spec:
+            try:
+                items = builder.client.for_graph_scope().graph_list(spec, **kwargs)
+                return cls.collect(items, builder)
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+        return []
+
 
 @define(eq=False, slots=False)
 class AzureADUser(AzureResource, BaseUser):
     kind: ClassVar[str] = "azure_ad_user"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="resources",
-        version="",
         path="https://graph.microsoft.com/v1.0/users",
         path_parameters=[],
         query_parameters=[],
@@ -686,7 +711,7 @@ class AzureADUser(AzureResource, BaseUser):
     }
 
     business_phones: List[str] = field(factory=list, metadata={"description": "The user's business phone numbers."})
-    display_name: Optional[str] = field(default=None, metadata={"description": "The name displayed in the address book for the user."})
+    display_name: Optional[str] = field(default=None, metadata={"description": "The name displayed in the address book for the user."})  # fmt: skip
     given_name: Optional[str] = field(default=None, metadata={"description": "The user's given name (first name)."})
     job_title: Optional[str] = field(default=None, metadata={"description": "The user's job title."})
     mail: Optional[str] = field(default=None, metadata={"description": "The user's email address."})
@@ -694,14 +719,29 @@ class AzureADUser(AzureResource, BaseUser):
     office_location: Optional[str] = field(default=None, metadata={"description": "The user's office location."})
     preferred_language: Optional[str] = field(default=None, metadata={"description": "The user's preferred language."})
     surname: Optional[str] = field(default=None, metadata={"description": "The user's surname (last name)."})
-    user_principal_name: Optional[str] = field(default=None, metadata={"description": "The user principal name (UPN) of the user."})
+    user_principal_name: Optional[str] = field(default=None, metadata={"description": "The user principal name (UPN) of the user."})  # fmt: skip
+
+    @classmethod
+    def collect_resources(
+        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[AzureResourceType]:
+        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        if spec := cls.api_spec:
+            try:
+                items = builder.client.for_graph_scope().graph_list(spec, **kwargs)
+                return cls.collect(items, builder)
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+        return []
+
 
 @define(eq=False, slots=False)
 class AzureADDirectoryRole(AzureResource, BaseRole):
     kind: ClassVar[str] = "azure_ad_directory_role"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
         service="resources",
-        version="",
         path="https://graph.microsoft.com/v1.0/directoryRoles",
         path_parameters=[],
         query_parameters=[],
@@ -715,10 +755,26 @@ class AzureADDirectoryRole(AzureResource, BaseRole):
         "id": S("id"),
         "role_template_id": S("roleTemplateId"),
     }
-    deleted_datetime: Optional[datetime] = field(default=None, metadata={"description": "Deletion time of the directory role, if applicable."})
+    deleted_datetime: Optional[datetime] = field(default=None, metadata={"description": "Deletion time of the directory role, if applicable."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "Description of the directory role."})
     display_name: Optional[str] = field(default=None, metadata={"description": "Display name of the directory role."})
-    role_template_id: Optional[str] = field(default=None, metadata={"description": "Id of the directory role template."})
+    role_template_id: Optional[str] = field(default=None, metadata={"description": "Id of the directory role template."})  # fmt: skip
+
+    @classmethod
+    def collect_resources(
+        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[AzureResourceType]:
+        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        if spec := cls.api_spec:
+            try:
+                items = builder.client.for_graph_scope().graph_list(spec, **kwargs)
+                return cls.collect(items, builder)
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+        return []
+
 
 @define(eq=False, slots=False)
 class AzureUsageName:
