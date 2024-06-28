@@ -217,7 +217,7 @@ def test_virtual_hub(builder: GraphBuilder) -> None:
 
     resource_types: List[Type[MicrosoftResource]] = [
         AzureExpressRouteGateway,
-        AzureVpnGateway,
+        AzureVirtualWANVpnGateway,
         AzureVirtualWAN,
         AzurePublicIPAddress,
     ]
@@ -225,7 +225,7 @@ def test_virtual_hub(builder: GraphBuilder) -> None:
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureExpressRouteGateway, AzureVirtualHub)) == 1
-    assert len(builder.edges_of(AzureVpnGateway, AzureVirtualHub)) == 1
+    assert len(builder.edges_of(AzureVirtualWANVpnGateway, AzureVirtualHub)) == 1
     assert len(builder.edges_of(AzureVirtualWAN, AzureVirtualHub)) == 1
     assert len(builder.edges_of(AzureVirtualHub, AzurePublicIPAddress)) == 1
 
@@ -246,7 +246,7 @@ def test_virtual_wan(builder: GraphBuilder) -> None:
 
 
 def test_vpn_gateway(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVpnGateway, builder)
+    collected = roundtrip_check(AzureVirtualWANVpnGateway, builder)
     assert len(collected) == 2
 
 

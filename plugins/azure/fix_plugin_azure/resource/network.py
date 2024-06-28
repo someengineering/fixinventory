@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Callable, ClassVar, Dict, Optional, List, Type, Tuple
+from typing import Callable, ClassVar, Dict, Optional, List, Type, Tuple
 
 from attr import define, field
 
@@ -6088,7 +6088,7 @@ class AzureVirtualNetworkGateway(AzureResource, BaseGateway):
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
         "network_gateway_sku": S("properties", "sku") >> Bend(AzureVirtualNetworkGatewaySku.mapping),
-        "tags": S("tags"),
+        "tags": S("tags", default={}),
         "type": S("type"),
         "v_net_extended_location_resource_id": S("properties", "vNetExtendedLocationResourceId"),
         "virtual_network_gateway_policy_groups": S("properties", "virtualNetworkGatewayPolicyGroups")
@@ -6143,7 +6143,7 @@ class AzureLocalNetworkGateway(AzureResource, BaseGateway):
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
-        "tags": S("tags"),
+        "tags": S("tags", default={}),
         "type": S("type"),
     }
     bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})

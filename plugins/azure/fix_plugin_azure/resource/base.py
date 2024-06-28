@@ -342,7 +342,7 @@ class AzureDNSRecordSet(AzureResource, BaseDNSRecordSet):
 class AzureDNSZone(AzureResource, BaseDNSZone):
     kind: ClassVar[str] = "azure_dns_zone"
     api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="dns",
+        service="resources",
         version="2018-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/dnszones",
         path_parameters=["subscriptionId"],
