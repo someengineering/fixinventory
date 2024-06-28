@@ -17,7 +17,7 @@ from fixlib.baseresources import(
     BaseInstanceProfile,
     BaseOrganizationalRoot,
     BaseOrganizationalUnit,
-    BaseResource,
+    BaseResource, BaseRole, BaseUser,
     Cloud,
     EdgeType,
     BaseAccount,
@@ -564,6 +564,161 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
             for resource_id in resource_ids:
                 builder.add_edge(self, edge_type=EdgeType.default, clazz=MicrosoftResource, id=resource_id)
 
+@define(eq=False, slots=False)
+class ProvisioningError:
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "error_code": S("errorCode"),
+        "error_message": S("errorMessage"),
+        "additional_details": S("additionalDetails")
+    }
+    error_code: Optional[str] = field(default=None)
+    error_message: Optional[str] = field(default=None)
+    additional_details: Optional[str] = field(default=None)
+
+@define(eq=False, slots=False)
+class AzureADGroup(AzureResource, BaseGroup):
+    kind: ClassVar[str] = "azure_ad_group"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="resources",
+        version="",
+        path="https://graph.microsoft.com/v1.0/groups",
+        path_parameters=[],
+        query_parameters=[],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "classification": S("classification"),
+        "created_date_time": S("createdDateTime"),
+        "ctime": S("createdDateTime"),
+        "creation_options": S("creationOptions"),
+        "deleted_date_time": S("deletedDateTime"),
+        "description": S("description"),
+        "display_name": S("displayName"),
+        "expiration_date_time": S("expirationDateTime"),
+        "group_types": S("groupTypes"),
+        "id": S("id"),
+        "is_assignable_to_role": S("isAssignableToRole"),
+        "mail": S("mail"),
+        "mail_enabled": S("mailEnabled"),
+        "mail_nickname": S("mailNickname"),
+        "membership_rule": S("membershipRule"),
+        "membership_rule_processing_state": S("membershipRuleProcessingState"),
+        "on_premises_domain_name": S("onPremisesDomainName"),
+        "on_premises_last_sync_date_time": S("onPremisesLastSyncDateTime"),
+        "on_premises_net_bios_name": S("onPremisesNetBiosName"),
+        "on_premises_provisioning_errors": S("onPremisesProvisioningErrors") >> Bend(ProvisioningError.mapping),
+        "on_premises_sam_account_name": S("onPremisesSamAccountName"),
+        "on_premises_security_identifier": S("onPremisesSecurityIdentifier"),
+        "on_premises_sync_enabled": S("onPremisesSyncEnabled"),
+        "preferred_data_location": S("preferredDataLocation"),
+        "preferred_language": S("preferredLanguage"),
+        "proxy_addresses": S("proxyAddresses"),
+        "renewed_date_time": S("renewedDateTime"),
+        "resource_behavior_options": S("resourceBehaviorOptions"),
+        "resource_provisioning_options": S("resourceProvisioningOptions"),
+        "security_enabled": S("securityEnabled"),
+        "security_identifier": S("securityIdentifier"),
+        "service_provisioning_errors": S("serviceProvisioningErrors") >> Bend(ProvisioningError.mapping),
+        "theme": S("theme"),
+        "unique_name": S("uniqueName"),
+        "visibility": S("visibility"),
+    }
+    
+    classification: Optional[str] = field(default=None, metadata={"description": "The classification for the group."})
+    created_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when the group was created."})
+    creation_options: List[str] = field(factory=list, metadata={"description": "Options used to create this group."})
+    deleted_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when the group was deleted."})
+    description: Optional[str] = field(default=None, metadata={"description": "An optional description for the group."})
+    display_name: Optional[str] = field(default=None, metadata={"description": "The display name for the group."})
+    expiration_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when group expires if applicable."})
+    group_types: List[str] = field(factory=list, metadata={"description": "Specifies the group type and its membership."})
+    is_assignable_to_role: Optional[bool] = field(default=None, metadata={"description": "Indicates whether this group can be assigned to an Azure Active Directory role."})
+    mail: Optional[str] = field(default=None, metadata={"description": "The SMTP address for the group."})
+    mail_enabled: bool = field(default=False, metadata={"description": "Specifies whether the group is mail-enabled."})
+    mail_nickname: Optional[str] = field(default=None, metadata={"description": "The mail alias for the group."})
+    membership_rule: Optional[str] = field(default=None, metadata={"description": "The rule that determines members for this group if the group is a dynamic group."})
+    membership_rule_processing_state: Optional[str] = field(default=None, metadata={"description": "Indicates whether the dynamic membership processing is on or paused."})
+    on_premises_domain_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises domain FQDN, also called dnsDomainName synchronized from the on-premises directory."})
+    on_premises_last_sync_date_time: Optional[datetime] = field(default=None, metadata={"description": "Indicates the last time at which the group was synced with the on-premises directory."})
+    on_premises_net_bios_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises NetBIOS name synchronized from the on-premises directory."})
+    on_premises_provisioning_errors: List[ProvisioningError] = field(factory=list, metadata={"description": "Errors when using Microsoft synchronization product during provisioning."})
+    on_premises_sam_account_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises SAM account name synchronized from the on-premises directory."})
+    on_premises_security_identifier: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises security identifier (SID) for the group that was synchronized from on-premises to the cloud."})
+    on_premises_sync_enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether this group is synchronized from an on-premises directory."})
+    preferred_data_location: Optional[str] = field(default=None, metadata={"description": "The preferred data location for the group."})
+    preferred_language: Optional[str] = field(default=None, metadata={"description": "The preferred language for the group."})
+    proxy_addresses: List[str] = field(factory=list, metadata={"description": "Email addresses for the group that direct to the same group mailbox."})
+    renewed_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when the group was last renewed."})
+    resource_behavior_options: List[str] = field(factory=list, metadata={"description": "Specifies the group behaviors that can be set for a Microsoft 365 group."})
+    resource_provisioning_options: List[str] = field(factory=list, metadata={"description": "Specifies the group resources that are provisioned as part of Microsoft 365 group creation."})
+    security_enabled: bool = field(default=False, metadata={"description": "Specifies whether the group is a security group."})
+    security_identifier: Optional[str] = field(default=None, metadata={"description": "Security identifier of the group, used in Windows scenarios."})
+    service_provisioning_errors: List[ProvisioningError] = field(factory=list, metadata={"description": "Errors published by a federated service describing a non-transient, service-specific error regarding the properties or link from a group object."})
+    theme: Optional[str] = field(default=None, metadata={"description": "Specifies a Microsoft 365 group's color theme."})
+    unique_name: Optional[str] = field(default=None, metadata={"description": "The unique name of the group."})
+    visibility: Optional[str] = field(default=None, metadata={"description": "Specifies the group join policy and group content visibility."})
+
+@define(eq=False, slots=False)
+class AzureADUser(AzureResource, BaseUser):
+    kind: ClassVar[str] = "azure_ad_user"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="resources",
+        version="",
+        path="https://graph.microsoft.com/v1.0/users",
+        path_parameters=[],
+        query_parameters=[],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "business_phones": S("businessPhones"),
+        "display_name": S("displayName"),
+        "given_name": S("givenName"),
+        "id": S("id"),
+        "job_title": S("jobTitle"),
+        "mail": S("mail"),
+        "mobile_phone": S("mobilePhone"),
+        "office_location": S("officeLocation"),
+        "preferred_language": S("preferredLanguage"),
+        "surname": S("surname"),
+        "user_principal_name": S("userPrincipalName"),
+    }
+
+    business_phones: List[str] = field(factory=list, metadata={"description": "The user's business phone numbers."})
+    display_name: Optional[str] = field(default=None, metadata={"description": "The name displayed in the address book for the user."})
+    given_name: Optional[str] = field(default=None, metadata={"description": "The user's given name (first name)."})
+    job_title: Optional[str] = field(default=None, metadata={"description": "The user's job title."})
+    mail: Optional[str] = field(default=None, metadata={"description": "The user's email address."})
+    mobile_phone: Optional[str] = field(default=None, metadata={"description": "The user's mobile phone number."})
+    office_location: Optional[str] = field(default=None, metadata={"description": "The user's office location."})
+    preferred_language: Optional[str] = field(default=None, metadata={"description": "The user's preferred language."})
+    surname: Optional[str] = field(default=None, metadata={"description": "The user's surname (last name)."})
+    user_principal_name: Optional[str] = field(default=None, metadata={"description": "The user principal name (UPN) of the user."})
+
+@define(eq=False, slots=False)
+class AzureADDirectoryRole(AzureResource, BaseRole):
+    kind: ClassVar[str] = "azure_ad_directory_role"
+    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+        service="resources",
+        version="",
+        path="https://graph.microsoft.com/v1.0/directoryRoles",
+        path_parameters=[],
+        query_parameters=[],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "deleted_datetime": S("deletedDateTime"),
+        "description": S("description"),
+        "display_name": S("displayName"),
+        "id": S("id"),
+        "role_template_id": S("roleTemplateId"),
+    }
+    deleted_datetime: Optional[datetime] = field(default=None, metadata={"description": "Deletion time of the directory role, if applicable."})
+    description: Optional[str] = field(default=None, metadata={"description": "Description of the directory role."})
+    display_name: Optional[str] = field(default=None, metadata={"description": "Display name of the directory role."})
+    role_template_id: Optional[str] = field(default=None, metadata={"description": "Id of the directory role template."})
 
 @define(eq=False, slots=False)
 class AzureUsageName:
@@ -1028,4 +1183,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureDNSZone,
     AzureDNSRecordSet,
     AzureManagedIdentity,
+    AzureADGroup,
+    AzureADUser,
+    AzureADDirectoryRole,
 ]
