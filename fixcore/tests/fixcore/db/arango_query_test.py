@@ -83,8 +83,7 @@ def test_fulltext_index_query(foo_model: Model, graph_db: GraphDB) -> None:
         return query_str
 
     single_ft_index = (
-        "LET m0=(FOR ft in ns_view SEARCH ANALYZER(PHRASE(ft.flat, @b0), 'delimited') "
-        "SORT BM25(ft) DESC RETURN ft) "
+        "LET m0=(FOR ft in ns_view SEARCH ANALYZER(PHRASE(ft.flat, @b0), 'delimited') RETURN ft) "
         'FOR result in m0 RETURN UNSET(result, ["flat"])'
     )
     assert query_string('"a"') == single_ft_index
@@ -405,7 +404,7 @@ def test_view(foo_model: Model, graph_db: GraphDB) -> None:
                 'LET view0 = (FOR v0 in `ns_view` SEARCH v0.kinds == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
     # read only from view via phrase
     assert_view('"test"',
-                'LET view0 = (FOR v0 in `ns_view` SEARCH ANALYZER(PHRASE(v0.flat, @b0), "delimited") RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+                'LET view0 = (FOR v0 in `ns_view` SEARCH ANALYZER(PHRASE(v0.flat, @b0), "delimited") SORT BM25(v0) DESC RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
     # read only from view via property
     assert_view("name==123",
                 'LET view0 = (FOR v0 in `ns_view` SEARCH v0.name == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
@@ -416,4 +415,4 @@ def test_view(foo_model: Model, graph_db: GraphDB) -> None:
     assert_view("name[*].foo[*].bla=12",
                 'LET view0 = (FOR v0 in `ns_view` SEARCH v0.name.foo.bla == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
     assert_view('is("aws_ec2_instance") and "deleteme" and reported.instance_placement.tenancy == "default"',
-                'LET view0 = (FOR v0 in `ns_view` SEARCH ((v0.kinds == @b0 and ANALYZER(PHRASE(v0.flat, @b1), "delimited")) and v0.reported.instance_placement.tenancy == @b2) RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+                'LET view0 = (FOR v0 in `ns_view` SEARCH ((v0.kinds == @b0 and ANALYZER(PHRASE(v0.flat, @b1), "delimited")) and v0.reported.instance_placement.tenancy == @b2) SORT BM25(v0) DESC RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip

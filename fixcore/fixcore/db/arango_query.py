@@ -142,6 +142,7 @@ def query_view_string(
     part = query.first_part
     crs = ctx.next_crs("v")
     context_in_array = False
+    fulltext_term = False
 
     def flatten_in(value: List[Any]) -> Optional[List[Any]]:
         result = []
@@ -215,6 +216,7 @@ def query_view_string(
 
     def view_term(term: Term) -> Tuple[Optional[str], Term]:
         nonlocal context_in_array
+        nonlocal fulltext_term
         if isinstance(term, MergeTerm):
             sp, pre = view_term(term.pre_filter)
             return (None, term) if sp is None else (sp, evolve(term, pre_filter=pre))
@@ -241,7 +243,7 @@ def query_view_string(
                 sp = f"{crs}.kinds in @{ctx.add_bind_var(term.kinds)}"
             return sp, AllTerm()
         elif isinstance(term, FulltextTerm):
-            # TODO: how can we sort using BM25?
+            fulltext_term = True
             sp = f'ANALYZER(PHRASE({crs}.flat, @{ctx.add_bind_var(term.text)}), "delimited")'
             return sp, AllTerm()
         elif isinstance(term, CombinedTerm):
@@ -255,6 +257,10 @@ def query_view_string(
             return predicate_term(term)
         else:
             return None, term
+
+    # Remove sorting if sort order is already the default: the view is already sorted
+    if part.sort == DefaultSort:
+        query = evolve(query, parts=query.parts[:-1] + [evolve(part, sort=[])])
 
     # rewrite the query by removing all filters that are covered by the view search
     search_part, term = view_term(part.term)
@@ -271,13 +277,11 @@ def query_view_string(
             query = evolve(query, parts=query.parts[:-1] + [part])
 
         nxt = ctx.next_crs("view")
-        qs = f"LET {nxt} = (FOR {crs} in {start_cursor} SEARCH {search_part} RETURN {crs}) "
+        sort = f" SORT BM25({crs}) DESC" if fulltext_term and not part.sort else ""
+        qs = f"LET {nxt} = (FOR {crs} in {start_cursor} SEARCH {search_part}{sort} RETURN {crs}) "
         start_cursor = nxt
     else:
         ctx.bind_vars.clear()
-
-    if part.sort == DefaultSort:  # the view is already sorted
-        query = evolve(query, parts=query.parts[:-1] + [evolve(part, sort=[])])
 
     cursor, query_str = query_string(db, query, query_model, start_cursor, with_edges, ctx)
     return cursor, qs + query_str
@@ -700,10 +704,10 @@ def query_string(
                 nested_distinct = ctx.next_crs("nested_distinct")
                 for_stmt = f"LET {nested_distinct} = ({for_stmt} RETURN DISTINCT {crsr})"
                 crsr = ctx.next_crs()
-                sort_by = sort(crsr, p.sort) if need_sort else " "
+                sort_by = sort(crsr, p) if need_sort else " "
                 for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited}"
             else:
-                sort_by = sort(crsr, p.sort) if need_sort else " "
+                sort_by = sort(crsr, p) if need_sort else " "
                 for_stmt = f"{for_stmt}{sort_by}{limited}"
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             return_stmt = f"RETURN {f_res}"
@@ -817,7 +821,7 @@ def query_string(
             query_part += (
                 f"LET {out} =( FOR {l0crsr} in {in_crsr} "
                 + traversal_filter(clause, l0crsr, 0)
-                + (sort(l0crsr, p.sort) if needs_sort else "")
+                + (sort(l0crsr, p) if needs_sort else "")
                 + limited
                 + f"RETURN {l0crsr}) "
             )
@@ -898,14 +902,17 @@ def query_string(
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
 
-    def sort(cursor: str, so: List[Sort]) -> str:
+    def sort(cursor: str, in_part: Part) -> str:
         def single_sort(single: Sort) -> str:
             prop_name, resolved, _ = prop_name_kind(query_model, single.name)
             order = SortOrder.reverse(single.order) if resolved.simple_kind.reverse_order else single.order
             return f"{cursor}.{prop_name} {order}"
 
-        sorts = ", ".join(single_sort(s) for s in so)
-        return f" SORT {sorts} "
+        if in_part.term.find_term(lambda x: isinstance(x, FulltextTerm)) and in_part.sort == DefaultSort:
+            return f" SORT BM25({cursor}) DESC "
+        else:
+            sorts = ", ".join(single_sort(s) for s in in_part.sort)
+            return f" SORT {sorts} "
 
     def fulltext(ft_part: Term, filter_term: Term) -> Tuple[str, str]:
         # The fulltext index only understands not, combine and fulltext
@@ -929,7 +936,7 @@ def query_string(
         crs = ctx.next_crs()
         doc = f"{db.graph_vertex_name()}_view"
         ftt = ft_term("ft", ft_part)
-        q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') SORT BM25(ft) DESC RETURN ft)"
+        q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') RETURN ft)"
         return q, crs
 
     parts = []
@@ -948,7 +955,7 @@ def query_string(
         query_str += aggregation
         # if the last part has a sort order, we use it here again
         if query.current_part.sort:
-            sort_by = sort("res", query.current_part.sort)
+            sort_by = sort("res", query.current_part)
             query_str += f" LET {nxt} = (FOR res in {resulting_cursor}{sort_by} RETURN res)"
             resulting_cursor = nxt
     else:  # return results
