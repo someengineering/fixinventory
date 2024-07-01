@@ -794,23 +794,12 @@ def migrate_core_config(config: Json) -> Json:
     cfg = config.get(FixCoreRoot) or {}
     adapted = deepcopy(cfg)
 
-    # 2.2 -> 2.3: rename and toggle `analytics_opt_out` -> `usage_metrics`
-    opt_out = value_in_path(cfg, "runtime.analytics_opt_out")
-    usage = value_in_path(cfg, "runtime.usage_metrics")
-    if opt_out is not None and usage is None:
-        set_value_in_path(not opt_out, "runtime.usage_metrics", adapted)
-    del_value_in_path(adapted, "runtime.analytics_opt_out")
-
-    # 3.0 -> 3.1: delete `api.ui_path`
-    del_value_in_path(adapted, "api.ui_path")
-
-    # 3.5 -> 3.6: web_port -> https_port
-    if web_port := value_in_path(cfg, "api.web_port"):
-        set_value_in_path(web_port, "api.https_port", adapted)
-        del_value_in_path(adapted, "api.web_port")
-
-    if value_in_path(cfg, "runtime.plantuml_server") == "http://plantuml.resoto.org:8080":
-        set_value_in_path("https://plantuml.fix.security", "runtime.plantuml_server", adapted)
+    # 4.0 -> 4.1: graph_update -> graph
+    if graph_update := value_in_path(cfg, "graph_update"):
+        log.info("Migrate fix.core config: rename graph_update to graph.")
+        set_value_in_path(graph_update, "graph", adapted)
+        set_value_in_path(True, "graph.use_view", adapted)
+        del_value_in_path(adapted, "graph_update")
 
     return {FixCoreRoot: adapted}
 
