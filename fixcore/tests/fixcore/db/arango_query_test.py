@@ -409,7 +409,7 @@ def test_view(foo_model: Model, graph_db: GraphDB) -> None:
     assert_view("name==123",
                 'LET view0 = (FOR v0 in `ns_view` SEARCH v0.name == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
     # cannot use search but needs filter
-    assert_view("name=~123",
+    assert_view('name=~"123[0-9]+"',
                 'LET filter0 = (FOR m0 in `ns_view` FILTER (m0.name!=null and REGEX_TEST(m0.name, @b0, true))  RETURN m0) FOR result in filter0 RETURN UNSET(result, ["flat"])')  # fmt: skip
     # use search to select the documents, but needs filter for array handling
     assert_view("name[*].foo[*].bla=12",

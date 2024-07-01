@@ -80,6 +80,8 @@ fulltext_delimiter_regexp = re.compile("[" + "".join(re.escape(a) for a in fullt
 
 array_marker = re.compile(r"\[]|\[\*]")
 array_marker_in_path_regexp = re.compile(r"(?:\[]|\[\*])(?=[.])")
+regex_detect_pattern = re.compile(r"(?<!\\)([\[\]().|*+?^$]|\{[0-9]+(?:,[0-9]*)?})")
+regexp_leading_trailing = re.compile(r"(^\^?[.][*])|([.][*][$]?$)")
 # see: cli.py
 DefaultSort = [Sort("reported.kind"), Sort("reported.name"), Sort("reported.id")]
 
@@ -167,11 +169,17 @@ def query_view_string(
             and all(empty_value(v) and not isinstance(v, dict) for v in value)
         )
 
-    def predicate_term(p: Predicate) -> Tuple[Optional[str], Term]:
-        # TODO: check regex to see if we can use like instead of regex
-        if p.op == "=~":  # regex is not supported in the view search
-            return None, p
+    def regexp_like(value: Any) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+        ml = regexp_leading_trailing.sub("", value)
+        ml = ml.replace("%", "\\%").replace("_", "\\_").replace(".*", "%").replace(".", "_")
+        ml = ml[1:] if ml.startswith("^") else "%" + ml
+        ml = ml[0:-1] if ml.endswith("$") else ml + "%"
+        # if maybe_like still contains any regex characters, we cannot use like
+        return None if regex_detect_pattern.search(ml) else ml
 
+    def predicate_term(p: Predicate) -> Tuple[Optional[str], Term]:
         # resolve property name and kind
         prop_name_maybe_arr, prop, _ = prop_name_kind(query_model, p.name)
         prop_name = array_marker.sub("", prop_name_maybe_arr)
@@ -208,6 +216,13 @@ def query_view_string(
             p_term = f"{var_name} {op} @{ctx.add_bind_var(flat_value)}"
         elif isinstance(value, (list, dict)):
             # the view is not able to compare lists or dicts -> we need to filter the results
+            exhaustive = False
+        elif op == "=~" and (rlike := regexp_like(value)):
+            p_term = f"{var_name} LIKE @{ctx.add_bind_var(rlike)}"
+        elif op == "!~" and (rlike := regexp_like(value)):
+            p_term = f"{var_name} NOT LIKE @{ctx.add_bind_var(rlike)}"
+        elif op in ["=~", "!~"]:
+            # the view is not able to handle regex -> we need to filter the results
             exhaustive = False
         else:
             p_term = f"{var_name} {op} @{ctx.add_bind_var(value)}"
