@@ -104,6 +104,7 @@ l1:
                 f"fixcore.api.https_port=null",
                 f"fixcore.api.http_port={http_port}",
                 "fixcore.api.web_hosts=0.0.0.0",
+                "fixcore.graph.use_view=false",
                 "--override-path",
                 str(config_path),
                 *additional_args,

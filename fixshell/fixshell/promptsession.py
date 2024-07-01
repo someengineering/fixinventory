@@ -807,6 +807,7 @@ class PromptSession:
             complete_while_typing=True,
             style=self.style,
             auto_suggest=AutoSuggestFromHistory(),
+            complete_in_thread=True,
         )
 
 

@@ -34,7 +34,7 @@ from fixcore.config.config_handler_service import ConfigHandlerService
 from fixcore.config.core_config_handler import CoreConfigHandler
 from fixcore.console_renderer import ConsoleRenderer, ConsoleColorSystem
 from fixcore.core_config import (
-    GraphUpdateConfig,
+    GraphConfig,
     CoreConfig,
     EditableConfig,
     DatabaseConfig,
@@ -120,20 +120,20 @@ from tests.fixcore.query.template_expander_test import InMemoryTemplateExpander
 
 @fixture
 def default_config() -> CoreConfig:
-    ed = EditableConfig()
+    cfg = empty_config(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
     return CoreConfig(
-        api=ed.api,
-        cli=ed.cli,
-        db=DatabaseConfig(),
-        graph_update=ed.graph_update,
+        api=cfg.api,
+        cli=cfg.cli,
+        db=cfg.db,
+        graph=evolve(cfg.graph, use_view=False),
         # We use this flag explicitly - otherwise it is picked up by env vars
         runtime=RuntimeConfig(usage_metrics=False),
-        workflows=ed.workflows,
+        workflows=cfg.workflows,
         custom_commands=CustomCommandsConfig(),
         snapshots=SnapshotsScheduleConfig(),
         args=parse_args(["--analytics-opt-out"]),
         run=RunConfig(),
-        timeseries=ed.timeseries,
+        timeseries=cfg.timeseries,
     )
 
 
@@ -197,7 +197,7 @@ def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> Standard
 
 @fixture
 async def graph_db(async_db: AsyncArangoDB) -> ArangoGraphDB:
-    graph_db = ArangoGraphDB(async_db, GraphName("ns"), NoAdjust(), GraphUpdateConfig())
+    graph_db = ArangoGraphDB(async_db, GraphName("ns"), NoAdjust(), GraphConfig(use_view=False))
     await graph_db.create_update_schema()
     await model_db(async_db, "ns_model").create_update_schema()
     await async_db.truncate(graph_db.in_progress)
@@ -244,8 +244,8 @@ async def timeseries_db(async_db: AsyncArangoDB, default_config: CoreConfig) -> 
 
 
 @fixture()
-def db_access(graph_db: ArangoGraphDB) -> DbAccess:
-    access = DbAccess(graph_db.db.db, NoEventSender(), NoAdjust(), empty_config())
+def db_access(graph_db: ArangoGraphDB, default_config: CoreConfig) -> DbAccess:
+    access = DbAccess(graph_db.db.db, NoEventSender(), NoAdjust(), default_config)
     return access
 
 
@@ -479,12 +479,11 @@ async def worker(
 
 
 @fixture
-def cert_handler() -> Iterator[CertificateHandler]:
-    config = empty_config()
+def cert_handler(default_config: CoreConfig) -> Iterator[CertificateHandler]:
     ca_key, ca_cert = bootstrap_ca()
     temp = TemporaryDirectory()
-    key, cert = CertificateHandlerWithCA._create_host_certificate(config.api.host_certificate, ca_key, ca_cert)
-    yield CertificateHandlerWithCA(config, ca_key, ca_cert, key, cert, Path(temp.name))
+    key, cert = CertificateHandlerWithCA._create_host_certificate(default_config.api.host_certificate, ca_key, ca_cert)
+    yield CertificateHandlerWithCA(default_config, ca_key, ca_cert, key, cert, Path(temp.name))
     temp.cleanup()
 
 
@@ -514,11 +513,12 @@ async def core_config_handler(
     config_handler: ConfigHandler,
     inspector_service: InspectorService,
     core_config_handler_exits: List[bool],
+    default_config: CoreConfig,
 ) -> CoreConfigHandler:
     def on_exit() -> None:
         core_config_handler_exits.append(True)
 
-    config = empty_config()
+    config = default_config
     sender = InMemoryEventSender()
     return CoreConfigHandler(config, message_bus, task_queue, config_handler, sender, inspector_service, on_exit)
 
@@ -542,17 +542,17 @@ async def dependencies(
     config_handler: ConfigHandler,
     cert_handler: CertificateHandler,
     user_management: UserManagement,
+    default_config: CoreConfig,
 ) -> AsyncIterator[TenantDependencies]:
-    db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), empty_config())
+    db_access = DbAccess(filled_graph_db.db.db, event_sender, NoAdjust(), default_config)
     model_handler = ModelHandlerStatic(foo_model)
-    config = empty_config(["--graphdb-database", "test", "--graphdb-username", "test", "--graphdb-password", "test"])
     deps = TenantDependencies(
         message_bus=message_bus,
         event_sender=event_sender,
         db_access=db_access,
         model_handler=model_handler,
         worker_task_queue=task_queue,
-        config=config,
+        config=default_config,
         template_expander=expander,
         forked_tasks=Queue(),
         config_handler=config_handler,
@@ -789,8 +789,8 @@ async def task_handler(
     cli: CLIService,
     test_workflow: Workflow,
     additional_workflows: List[Workflow],
+    default_config: CoreConfig,
 ) -> AsyncGenerator[TaskHandlerService, None]:
-    config = empty_config()
     task_handler = TaskHandlerService(
         running_task_db,
         job_db,
@@ -800,7 +800,7 @@ async def task_handler(
         graph_merger,
         APScheduler(),
         cli,
-        config,
+        default_config,
     )
     task_handler.task_descriptions = additional_workflows + [test_workflow]
     cli.dependencies.lookup["task_handler"] = task_handler

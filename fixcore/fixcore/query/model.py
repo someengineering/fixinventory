@@ -464,6 +464,28 @@ class ContextTerm(Term):
     def __str__(self) -> str:
         return f"{self.name}.{{{str(self.term)}}}"
 
+    def predicate_term(self) -> Term:
+        """
+        Create a term that eliminates all context terms and replaces them by related predicate terms.
+        Note: This is semantically different and can only be used in specific contexts!
+        """
+
+        def with_context(path: str, term: Term) -> Term:
+            if isinstance(term, ContextTerm):
+                return with_context(f"{path}.{term.name}", term.term)
+            elif isinstance(term, CombinedTerm):
+                return evolve(term, left=with_context(path, term.left), right=with_context(path, term.right))
+            elif isinstance(term, Predicate):
+                return evolve(term, name=f"{path}.{term.name}")
+            elif isinstance(term, NotTerm):
+                return evolve(term, term=with_context(path, term.term))
+            elif isinstance(term, FunctionTerm):
+                return evolve(term, property_path=f"{path}.{term.property_path}")
+            else:
+                return term
+
+        return with_context(self.name, self.term)
+
     def visible_predicates(self) -> List[Predicate]:
         """
         This method is not used to render a query, but to get a list of predicates that are visible in the query.
@@ -1022,14 +1044,14 @@ class Query:
         return evolve(self, aggregate=aggregate)
 
     def set_sort(self, *sort: Sort) -> Query:
-        return self.__change_current_part(lambda p: evolve(p, sort=list(sort)))
+        return self.__adjust_current_part_with_nav(lambda p: evolve(p, sort=list(sort)))
 
     def add_sort(self, *sort: Sort) -> Query:
-        return self.__change_current_part(lambda p: evolve(p, sort=[*p.sort, *sort]))
+        return self.__adjust_current_part_with_nav(lambda p: evolve(p, sort=[*p.sort, *sort]))
 
     def with_limit(self, num: Union[Limit, int]) -> Query:
         limit = num if isinstance(num, Limit) else Limit(0, num)
-        return self.__change_current_part(lambda p: evolve(p, limit=limit))
+        return self.__adjust_current_part_with_nav(lambda p: evolve(p, limit=limit))
 
     def merge_preamble(self, preamble: Dict[str, SimpleValue]) -> Query:
         updated = {**self.preamble, **preamble} if self.preamble else preamble
@@ -1085,7 +1107,7 @@ class Query:
         return self.change_variable(partial(variable_to_relative, section)) if section != PathRoot else self
 
     def tag(self, name: str) -> Query:
-        return self.__change_current_part(lambda p: evolve(p, tag=name))
+        return self.__adjust_current_part_with_nav(lambda p: evolve(p, tag=name))
 
     def is_simple_fulltext_search(self) -> bool:
         return len(self.parts) == 1 and len(self.find_terms(lambda x: isinstance(x, FulltextTerm))) == 1
@@ -1100,7 +1122,17 @@ class Query:
         # remember: the order of parts is reversed
         return self.parts[-1]
 
-    def __change_current_part(self, fn: Callable[[Part], Part]) -> Query:
+    def change_current_part(self, fn: Callable[[Part], Part]) -> Query:
+        parts = self.parts.copy()
+        parts[0] = fn(parts[0])
+        return evolve(self, parts=parts)
+
+    def change_first_part(self, fn: Callable[[Part], Part]) -> Query:
+        parts = self.parts.copy()
+        parts[-1] = fn(parts[-1])
+        return evolve(self, parts=parts)
+
+    def __adjust_current_part_with_nav(self, fn: Callable[[Part], Part]) -> Query:
         parts = self.parts.copy()
         # if navigation is defined: the current part is already defined to the end
         if parts[0].navigation:

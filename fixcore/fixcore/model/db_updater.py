@@ -260,7 +260,7 @@ class GraphMerger(Service):
         self.run_lock = asyncio.Lock()
         self.running_imports: Dict[TaskId, int] = defaultdict(int)
         self.update_queue: asyncio.Queue[GraphUpdateTask] = asyncio.Queue()
-        self.concurrent_updates = asyncio.Semaphore(self.config.graph_update.parallel_imports)
+        self.concurrent_updates = asyncio.Semaphore(self.config.graph.parallel_imports)
         self.handler_task: Optional[Task[Any]] = None
 
     async def __process_item(self, item: GraphUpdateTask) -> Union[GraphUpdate, Exception]:
@@ -279,7 +279,7 @@ class GraphMerger(Service):
             fl = (
                 stream.call(self.update_queue.get)  # type: ignore
                 | pipe.cycle()
-                | pipe.map(self.__process_item, task_limit=self.config.graph_update.parallel_imports)  # type: ignore
+                | pipe.map(self.__process_item, task_limit=self.config.graph.parallel_imports)  # type: ignore
             )
             with suppress(CancelledError):
                 async with fl.stream() as streamer:

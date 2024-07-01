@@ -216,6 +216,7 @@ class HelpCommand(CLICommand):
 
 CLIArg = Tuple[CLICommand, Optional[str]]
 # If no sort is defined in the part, we use this default sort order
+# Note: changing the default sort order should be reflected in the graphdb search view (fix_view)
 DefaultSort = [Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]
 # Default sort order for history searches
 HistorySort = [Sort("/changed_at"), Sort("/reported.kind"), Sort("/reported.name"), Sort("/reported.id")]

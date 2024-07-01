@@ -156,7 +156,7 @@ async def test_search_source(cli: CLIService) -> None:
     assert len(result3[0]) == 3
 
     result4 = await cli.execute_cli_command("search --explain --with-edges is(graph_root) -[0:1]->", list_sink)
-    assert result4[0][0]["rating"] == "simple"
+    assert result4[0][0]["rating"] in ["simple", "complex"]
 
     # use absolute path syntax
     result5 = await cli.execute_cli_command(

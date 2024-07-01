@@ -4,9 +4,9 @@ from fixcore.model.model import Model
 from fixcore.query.query_parser import parse_query
 
 
-def test_tags_rewrite(person_model: Model) -> None:
-    q = rewrite_query(QueryModel(parse_query("reported.tags.foo==bar"), person_model))
-    assert str(q) == '("bar" and reported.tags.foo == "bar")'
+def test_id_rewrite(person_model: Model) -> None:
+    q = rewrite_query(QueryModel(parse_query("id(test) sort foo, bla, bar"), person_model))
+    assert str(q) == 'id("test")'
 
 
 def test_is_rewrite(person_model: Model) -> None:

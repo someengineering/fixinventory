@@ -232,6 +232,7 @@ class DbAccess(Service):
             if db.has_graph(name):
                 log.info(f"Delete graph: {name}")
                 db.delete_view(f"search_{name}", ignore_missing=True)
+                db.delete_view(f"{name}_view", ignore_missing=True)
                 # delete arrangodb graph
                 db.delete_graph(name, drop_collections=True, ignore_missing=True)
                 # delete vertex collections just in case
@@ -266,7 +267,7 @@ class DbAccess(Service):
         else:
             if not no_check and not self.database.has_graph(name):
                 raise NoSuchGraph(name)
-            graph_db = ArangoGraphDB(self.db, name, self.adjust_node, self.config.graph_update)
+            graph_db = ArangoGraphDB(self.db, name, self.adjust_node, self.config.graph)
             event_db = EventGraphDB(graph_db, self.event_sender)
             self.graph_dbs[name] = event_db
             return event_db
@@ -285,7 +286,7 @@ class DbAccess(Service):
         for db in self.graph_dbs.values():
             for update in await db.list_in_progress_updates():
                 created = datetime.fromtimestamp(parse(update["created"]).timestamp(), timezone.utc)
-                if (now - created) > self.config.graph_update.abort_after():
+                if (now - created) > self.config.graph.abort_after():
                     batch_id = update["id"]
                     log.warning(f"Given update is too old: {batch_id}. Will abort the update.")
                     await db.abort_update(batch_id)
