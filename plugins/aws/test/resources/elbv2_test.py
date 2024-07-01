@@ -24,7 +24,7 @@ def test_alb_deletion() -> None:
 
 
 def test_alb_target_group_deletion() -> None:
-    alb, _ = round_trip_for(AwsAlbTargetGroup)
+    alb, _ = round_trip_for(AwsAlbTargetGroup, "health_check_type")
 
     def validate_delete_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "delete-target-group"
@@ -35,7 +35,7 @@ def test_alb_target_group_deletion() -> None:
 
 
 def test_alb_target_groups() -> None:
-    first, graph = round_trip_for(AwsAlbTargetGroup)
+    first, graph = round_trip_for(AwsAlbTargetGroup, "health_check_type")
     assert len(first.tags) == 4
 
 

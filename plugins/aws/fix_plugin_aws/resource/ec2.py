@@ -24,6 +24,8 @@ from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.utils import ToDict, TagsValue
 from fixlib.baseresources import (
     BaseInstance,
+    BaseKeyPair,
+    BaseNetworkAcl,
     EdgeType,
     BaseVolume,
     BaseInstanceType,
@@ -798,7 +800,7 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 
 
 @define(eq=False, slots=False)
-class AwsEc2KeyPair(EC2Taggable, AwsResource):
+class AwsEc2KeyPair(EC2Taggable, AwsResource, BaseKeyPair):
     kind: ClassVar[str] = "aws_ec2_keypair"
     kind_display: ClassVar[str] = "AWS EC2 Keypair"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#KeyPairs:search={name}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:keypair/{name}"}  # fmt: skip
@@ -818,6 +820,7 @@ class AwsEc2KeyPair(EC2Taggable, AwsResource):
         "key_type": S("KeyType"),
         "public_key": S("PublicKey"),
         "ctime": S("CreateTime"),
+        "fingerprint": S("KeyFingerprint"),
     }
     key_fingerprint: Optional[str] = field(default=None)
     key_type: Optional[str] = field(default=None)
@@ -1699,7 +1702,7 @@ class AwsEc2NetworkAclEntry:
 
 
 @define(eq=False, slots=False)
-class AwsEc2NetworkAcl(EC2Taggable, AwsResource):
+class AwsEc2NetworkAcl(EC2Taggable, AwsResource, BaseNetworkAcl):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     kind_display: ClassVar[str] = "AWS EC2 Network ACL"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpc/home?region={region}#NetworkAclDetails:networkAclId={NetworkAclId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:network-acl/{id}"}  # fmt: skip

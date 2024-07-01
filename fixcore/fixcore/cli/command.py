@@ -6184,9 +6184,9 @@ class DbCommand(CLICommand, PreserveOutputFormat):
 class TimeSeriesCommand(CLICommand):
     """
     ```
-    timeseries snapshot --name <time series> <aggregate search>
+    timeseries snapshot --name <time series> [--avg-factor <factor>] <aggregate search>
     timeseries get --name <time series> --start <time> --end <time> --granularity <duration|integer>
-                   --group <group> --filter <var><op><value>
+                   --group <group> --filter <var><op><value> --avg-factor <factor>
     timeseries list
     timeseries downsample
     ```
@@ -6217,7 +6217,8 @@ class TimeSeriesCommand(CLICommand):
     - `--group` - The variable(s) to select in the group. Can be repeated multiple times.
     - `--filter` - The variable(s) to filter. Can be repeated multiple times.
     - `--granularity` - The granularity of the time series. Can be a duration or an integer.
-
+    - `--avg-factor` - Factor used to divide values to compute the average.
+                       This is required for very big numbers to avoid overflow.
 
     ## Examples
 
@@ -6248,6 +6249,7 @@ class TimeSeriesCommand(CLICommand):
             "list": [],
             "snapshot": [
                 ArgInfo("--name", help_text="<time series>."),
+                ArgInfo("--avg-factor", help_text="<avg factor>."),
                 ArgInfo(expects_value=True, value_hint="search"),
             ],
             "get": [
@@ -6258,6 +6260,7 @@ class TimeSeriesCommand(CLICommand):
                 ArgInfo("--filter", expects_value=True, can_occur_multiple_times=True, help_text="<var><op><value>"),
                 ArgInfo("--granularity", expects_value=True, help_text="<duration|integer>"),
                 ArgInfo("--aggregation", expects_value=True, possible_values=["avg", "sum", "min", "max"]),
+                ArgInfo("--avg-factor", help_text="<avg factor>."),
             ],
             "downsample": [],
         }
@@ -6266,13 +6269,16 @@ class TimeSeriesCommand(CLICommand):
         async def snapshot_time_series(part: str) -> AsyncIterator[str]:
             parser = NoExitArgumentParser()
             parser.add_argument("--name", type=str, required=True)
+            parser.add_argument("--avg-factor", type=int)
             parsed, rest = parser.parse_known_args(args_parts_parser.parse(part))
             graph_name = ctx.graph_name
             graph_db = self.dependencies.db_access.get_graph_db(graph_name)
             model = await self.dependencies.model_handler.load_model(graph_name)
             query = await self.dependencies.template_expander.parse_query(" ".join(rest), ctx.section, env=ctx.env)
             query_model = QueryModel(query, model, ctx.env)
-            res = await self.dependencies.db_access.time_series_db.add_entries(parsed.name, query_model, graph_db)
+            res = await self.dependencies.db_access.time_series_db.add_entries(
+                parsed.name, query_model, graph_db, avg_factor=parsed.avg_factor
+            )
             yield f"{res} entries added to time series {parsed.name}."
 
         async def load_time_series(part: str) -> Tuple[CLISourceContext, AsyncIterator[Json]]:
@@ -6290,6 +6296,7 @@ class TimeSeriesCommand(CLICommand):
             parser.add_argument("--filter", type=predicate_term.parse, nargs="*", default=None)
             parser.add_argument("--granularity", type=parse_duration_or_int, default=5)
             parser.add_argument("--aggregation", choices=["avg", "sum", "min", "max"], default="avg")
+            parser.add_argument("--avg-factor", type=int)
             p = parser.parse_args(args_parts_unquoted_parser.parse(part))
             timeout = if_set(ctx.env.get("search_timeout"), duration)
             cursor = await self.dependencies.db_access.time_series_db.load_time_series(
@@ -6301,6 +6308,7 @@ class TimeSeriesCommand(CLICommand):
                 granularity=p.granularity,
                 timeout=timeout,
                 aggregation=p.aggregation,
+                avg_factor=p.avg_factor,
             )
             return CLISourceContext(cursor.count(), cursor.full_count(), cursor.stats()), cursor
 

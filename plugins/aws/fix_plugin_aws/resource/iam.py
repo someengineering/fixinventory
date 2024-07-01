@@ -13,6 +13,7 @@ from fixlib.baseresources import (
     BasePolicy,
     BaseGroup,
     BaseAccessKey,
+    BaseRole,
     BaseUser,
     BaseInstanceProfile,
     EdgeType,
@@ -103,7 +104,7 @@ class AwsIamRoleLastUsed:
 
 
 @define(eq=False, slots=False)
-class AwsIamRole(AwsResource):
+class AwsIamRole(AwsResource, BaseRole):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/roles/details/{RoleName}", "arn_tpl": "arn:{partition}:iam:{region}:{account}:role/{name}"}  # fmt: skip

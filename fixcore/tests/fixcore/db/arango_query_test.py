@@ -387,6 +387,10 @@ def test_load_time_series() -> None:
         "SORT group_slot RETURN {at: group_slot,group: { a: group_a, b: group_b }, v: agg_val}"
     )
     assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": "a", "b4": 3600, "b5": 800}
+    # use avg-factor
+    q, _ = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, avg_factor=1000)
+    assert "slot_avg = AVG(d.v / @b" in q  # factor divides average
+    assert "v: slot_avg * @b" in q  # factor multiplies result
 
 
 def test_view(foo_model: Model, graph_db: GraphDB) -> None:
