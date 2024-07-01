@@ -141,18 +141,10 @@ def test_in_docker() -> None:
 
 
 def test_migration() -> None:
-    cfg1 = migrate_core_config(dict(fixcore=dict(runtime=dict(analytics_opt_out=True))))
-    assert value_in_path(cfg1, "fixcore.runtime.usage_metrics") is False
-    assert value_in_path(cfg1, "fixcore.runtime.analytics_opt_out") is None
-    cfg2 = migrate_core_config(dict(fixcore=dict(runtime=dict(usage_metrics=True))))
-    assert value_in_path(cfg2, "fixcore.runtime.usage_metrics") is True
-    assert value_in_path(cfg1, "fixcore.runtime.analytics_opt_out") is None
-    cfg3 = migrate_core_config(dict(fixcore=dict(runtime=dict(analytics_opt_out=True, usage_metrics=True))))
-    assert value_in_path(cfg3, "fixcore.runtime.usage_metrics") is True
-    assert value_in_path(cfg1, "fixcore.runtime.analytics_opt_out") is None
-    cfg4 = migrate_core_config(dict(fixcore=dict(api=dict(web_port=1234))))
-    assert value_in_path(cfg4, "fixcore.api.https_port") == 1234
-    assert value_in_path(cfg4, "fixcore.api.web_port") is None
+    cfg = migrate_core_config(dict(fixcore=dict(graph_update=dict(abort_after_seconds=1234))))
+    assert value_in_path(cfg, "fixcore.graph.abort_after_seconds") == 1234
+    assert value_in_path(cfg, "fixcore.graph.use_view") == True
+    assert value_in_path(cfg, "fixcore.graph_update.abort_after_seconds") is None
 
 
 def test_migrate_commands() -> None:
