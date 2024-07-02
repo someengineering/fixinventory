@@ -16,3 +16,10 @@ def test_graph_update() -> None:
     gu2 = GraphUpdate(6, 5, 4, 3, 2, 1)
     assert gu1.all_changes() == gu2.all_changes() == 21
     assert gu1 + gu2 == GraphUpdate(7, 7, 7, 7, 7, 7)
+
+
+def test_owner(person_model: Model) -> None:
+    model = QueryModel(Query.by("test"), person_model)
+    assert {a.fqn for a in model.owners("mtime")} == {"Base"}
+    assert {a.fqn for a in model.owners("tags")} == {"Base", "graph_root"}
+    assert {a.fqn for a in model.owners("other_addresses.test.city")} == {"Person"}

@@ -354,13 +354,12 @@ class AzureUsageName:
 class AzureBaseUsage:
     kind: ClassVar[str] = "azure_usage"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name", "value"),
+        "name": S("name", "value"),  # inherited by BaseResource - name already defined there
         "usage_name": S("name") >> Bend(AzureUsageName.mapping),
         "current_value": S("currentValue"),
         "limit": S("limit"),
         "unit": S("unit"),
     }
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
     usage_name: Optional[AzureUsageName] = field(default=None, metadata={"description": "The name of the type of usage."})  # fmt: skip
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
