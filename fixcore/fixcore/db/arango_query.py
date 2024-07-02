@@ -188,7 +188,7 @@ def query_view_string(
 
         # coerce value
         op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
-        if op in ["in", "not in"] and isinstance(p.value, list):
+        if isinstance(p.value, list):
             coerced_list = [prop.kind.coerce(a, array_creation=False) for a in p.value]
             value: JsonElement = coerced_list
             flat_value = flatten_in(coerced_list)
@@ -208,6 +208,8 @@ def query_view_string(
             p_term = f"EXISTS({var_name})"
             if isinstance(flat_value, list) and (non_empty := [v for v in flat_value if not empty_value(v)]):
                 p_term = f"({p_term} OR {var_name} NOT IN @{ctx.add_bind_var(non_empty)})"
+            # in case the property is an array, we need to filter the results since null and [] are not distinguishable
+            exhaustive = not isinstance(prop.kind, ArrayKind)
         elif op == "==" and isinstance(value, list) and flat_value is not None:
             # the view cannot compare lists, but we can use the IN operator - still needs filtering
             p_term = f"{var_name} IN @{ctx.add_bind_var(flat_value)}"

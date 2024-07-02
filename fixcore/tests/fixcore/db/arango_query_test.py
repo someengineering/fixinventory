@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from typing import Tuple, Any
 
 import pytest
 
@@ -16,6 +17,7 @@ from fixcore.db.model import QueryModel
 from fixcore.model.model import Model
 from fixcore.query.model import Query, Sort, P
 from fixcore.query.query_parser import parse_query, predicate_term
+from fixcore.types import Json
 
 
 def test_sort_order_for_synthetic_prop(foo_model: Model, graph_db: GraphDB) -> None:
@@ -393,22 +395,68 @@ def test_load_time_series() -> None:
 
 
 def test_view(foo_model: Model, graph_db: GraphDB) -> None:
-    def assert_view(query: str, expected: str) -> None:
-        q, _ = graph_query(graph_db, QueryModel(parse_query(query), foo_model), consistent=False)
-        assert q == expected
+    def assert_view(query: str, expected: str, **kwargs: Any) -> Tuple[str, Json]:
+        q, bv = graph_query(graph_db, QueryModel(parse_query(query), foo_model), consistent=False)
+        assert expected in q
+        for k, v in kwargs.items():
+            assert bv[k] == v
+        return q, bv
 
     # all reads plain from the view: no search and no filter
     assert_view("all", 'FOR result in `ns_view` RETURN UNSET(result, ["flat"])')
+
     # read only from view
-    assert_view("is(foo)",
-                'LET view0 = (FOR v0 in `ns_view` SEARCH v0.kinds == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+    assert_view("is(foo)", "SEARCH v0.kinds == @b0 RETURN v0)  FOR result in view0")
+
     # read only from view via phrase
     assert_view('"test"',
                 'LET view0 = (FOR v0 in `ns_view` SEARCH ANALYZER(PHRASE(v0.flat, @b0), "delimited") SORT BM25(v0) DESC RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
+
     # read only from view via property
-    assert_view("name==123",
-                'LET view0 = (FOR v0 in `ns_view` SEARCH v0.name == @b0 RETURN v0)  FOR result in view0 RETURN UNSET(result, ["flat"])')  # fmt: skip
-    # cannot use search but needs filter
+    assert_view("name==123", "SEARCH v0.name == @b0 RETURN v0)  FOR result in view0")
+
+    # Handle empty string
+    assert_view("name==null", "SEARCH NOT EXISTS(v0.name) RETURN v0)  FOR result in view0 RETURN")
+
+    # Handle empty string
+    assert_view("name!=null", "SEARCH EXISTS(v0.name) RETURN v0)  FOR result in view0 RETURN")
+
+    # g is of type array. the view cannot distinguish between null and empty array, so we need to filter afterward
+    assert_view("g==null", "SEARCH NOT EXISTS(v0.g) RETURN v0) LET filter0 = (FOR m0 in view0 FILTER m0.g == @b0 ")  # fmt: skip
+
+    # g is of type array. the view cannot distinguish between null and empty array, so we need to filter afterward
+    # Optimisation note: in this case we could remove the filter when in [null, []] is used
+    assert_view("g in [null, []]", "SEARCH NOT EXISTS(v0.g) RETURN v0) LET filter0 = (FOR m0 in view0 FILTER m0.g in @b0  RETURN m0)")  # fmt: skip
+
+    # g is of type array. the view cannot distinguish between null and empty array, so we need to filter afterward
+    assert_view("g not in [null, []]", "SEARCH EXISTS(v0.g) RETURN v0) LET filter0 = (FOR m0 in view0 FILTER (m0.g!=null and m0.g not in @b0)")  # fmt: skip
+
+    # g is of type array. the view cannot distinguish between null and empty array, so we need to filter afterward
+    assert_view("g!=null", "SEARCH EXISTS(v0.g) RETURN v0) LET filter0 = (FOR m0 in view0 FILTER m0.g != @b0")  # fmt: skip
+
+    # < operator needs an exists check
+    assert_view("name<test", "SEARCH (EXISTS(v0.name) and v0.name < @b0) RETURN v0")
+
+    # > operator does not need an existence check
+    assert_view("name>test", "SEARCH v0.name > @b0 RETURN v0")
+    _, bv = assert_view('name in [12, true, false, "test"]', "SEARCH v0.name in @b0 RETURN v0")
+    assert bv["b0"] == ["12", "true", "false", "test"]  # 12, true, false is coerced to string
+
+    # the view is not able to compare arrays -> use view with IN operator and filter afterwards
+    assert_view("g==[1,2,3]", "SEARCH v0.g IN @b0 RETURN v0) LET filter0 = (FOR m0 in view0 FILTER m0.g == @b1  RETURN m0)")  # fmt: skip
+    # asking for a specific element in an array can leverage the view
+    assert_view("g[*]==1", "SEARCH v0.g == @b0 RETURN v0")
+    assert_view("g[*] in [1,2,3]", "SEARCH v0.g in @b0 RETURN v0)  FOR result in view0")
+    assert_view("g[*] not in [1,2,3]", "SEARCH v0.g not in @b0 RETURN v0)  FOR result in view0")
+    # use like instead of regex
+    assert_view('name=~"^123"', "SEARCH v0.name LIKE @b0", b0="123%")
+    assert_view('name=~"^.*123$"', "SEARCH v0.name LIKE @b0", b0="%123")
+    assert_view('name=~".*123$"', "SEARCH v0.name LIKE @b0", b0="%123")
+    assert_view('name=~"^123$"', "SEARCH v0.name LIKE @b0", b0="123")
+    assert_view('name=~"^%1%2%.*3%$"', "SEARCH v0.name LIKE @b0", b0="\\%1\\%2\\%%3\\%")
+    assert_view('name=~"^...$"', "SEARCH v0.name LIKE @b0", b0="___")
+
+    # cannot use like since regex cannot be expressed as glob. needs filter
     assert_view('name=~"123[0-9]+"',
                 'LET filter0 = (FOR m0 in `ns_view` FILTER (m0.name!=null and REGEX_TEST(m0.name, @b0, true))  RETURN m0) FOR result in filter0 RETURN UNSET(result, ["flat"])')  # fmt: skip
     # use search to select the documents, but needs filter for array handling
