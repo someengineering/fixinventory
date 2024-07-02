@@ -1438,7 +1438,9 @@ class ArangoGraphDB(GraphDB):
                             {"field": "reported.id", "direction": "asc"},
                         ],
                         "primarySortCompression": "lz4",
-                        "storedValues": ["_id"],
+                        "storedValues": [  # store the _id field in the view. might be beneficial for traversals
+                            {"fields": ["_id"], "compression": "lz4"},
+                        ],
                         "inBackground": True,  # note: this setting only applies when the view is created
                     },
                 )
