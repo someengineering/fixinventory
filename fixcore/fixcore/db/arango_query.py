@@ -817,7 +817,8 @@ def query_string(
                 inner = traversal_filter(cl.with_clause, for_crsr, depth + 1) if cl.with_clause else ""
                 edge_type_traversals = f", {direction} ".join(f"`{db.edge_collection(et)}`" for et in nav.edge_types)
                 return (
-                    f"LET {let_crs} = (FOR {for_crsr} IN {nav.start}..{nav.until} {direction} {in_crs} "
+                    # suggested by jsteemann: use crs._id instead of crs (stored in the view and more efficient)
+                    f"LET {let_crs} = (FOR {for_crsr} IN {nav.start}..{nav.until} {direction} {in_crs}._id "
                     f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
                     f"{pre_string} FILTER {filter_clause}{post_string} "
                     # for all possible predicates, it is enough to limit the list by num + 1
@@ -865,7 +866,8 @@ def query_string(
 
             query_part += (
                 f"LET {out} =({outer_for}"
-                f"FOR {out_crsr}{link_str} IN {start}..{until} {dir_bound} {graph_cursor} "
+                # suggested by jsteemann: use crs._id instead of crs (stored in the view and more efficient)
+                f"FOR {out_crsr}{link_str} IN {start}..{until} {dir_bound} {graph_cursor}._id "
                 f"`{db.edge_collection(edge_type)}` OPTIONS {{ bfs: true, {unique} }} "
                 f"RETURN DISTINCT {inout_result}) "
             )
