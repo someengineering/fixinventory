@@ -935,7 +935,6 @@ class ComplexKind(Kind):
         self.__resolved_direct_props: Dict[str, Tuple[Property, Kind]] = {}
         self.__resolved_bases: Dict[str, ComplexKind] = {}
         self.__all_props: List[Property] = list(self.properties)
-        self.__hierarchy_fqn: Set[str] = {fqn}
         self.__resolved_hierarchy: Dict[str, ComplexKind] = {fqn: self}
         self.__property_by_path: List[ResolvedPropertyPath] = []
         self.__synthetic_props: List[ResolvedPropertyPath] = []
@@ -1004,7 +1003,6 @@ class ComplexKind(Kind):
                         self.__resolved_props.update(base.__resolved_props)
                         self.__all_props = base.__all_props + self.__all_props
                         self.__prop_by_name = {prop.name: prop for prop in self.__all_props}
-                        self.__hierarchy_fqn.update(base.__hierarchy_fqn)
                         self.__resolved_hierarchy.update(base.__resolved_hierarchy)
 
             # property path -> kind
@@ -1063,13 +1061,13 @@ class ComplexKind(Kind):
         return not self.bases or (len(self.bases) == 1 and self.bases[0] == self.fqn)
 
     def kind_hierarchy(self) -> Set[str]:
-        return self.__hierarchy_fqn
+        return set(self.__resolved_hierarchy.keys())
 
     def resolved_hierarchy(self) -> Dict[str, ComplexKind]:
         return self.__resolved_hierarchy
 
     def is_a(self, kind: str) -> bool:
-        return kind in self.__hierarchy_fqn
+        return kind in self.__resolved_hierarchy
 
     def resolved_property_paths(self) -> List[ResolvedPropertyPath]:
         return self.__property_by_path
