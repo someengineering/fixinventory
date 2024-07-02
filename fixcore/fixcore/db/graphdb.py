@@ -223,7 +223,9 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False, **kwargs: Any) -> Tuple[str, Json]:
+    async def to_query(
+        self, query_model: QueryModel, *, with_edges: bool = False, consistent: Optional[bool] = None
+    ) -> Tuple[str, Json]:
         pass
 
     @abstractmethod
@@ -1268,9 +1270,11 @@ class ArangoGraphDB(GraphDB):
             pass
         await self.delete_marked_update(batch_id)
 
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False, **kwargs: Any) -> Tuple[str, Json]:
+    async def to_query(
+        self, query_model: QueryModel, *, with_edges: bool = False, consistent: Optional[bool] = None
+    ) -> Tuple[str, Json]:
         return arango_query.graph_query(
-            self, query_model, with_edges, consistent=kwargs.get("consistent") or not self.config.use_view
+            self, query_model, with_edges, consistent=consistent or not self.config.use_view
         )
 
     async def insert_genesis_data(self) -> None:
@@ -1865,8 +1869,10 @@ class EventGraphDB(GraphDB):
         await self.real.wipe()
         await self.event_sender.core_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
 
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False, **kwargs: Any) -> Tuple[str, Json]:
-        return await self.real.to_query(query_model, with_edges, **kwargs)
+    async def to_query(
+        self, query_model: QueryModel, *, with_edges: bool = False, consistent: Optional[bool] = None
+    ) -> Tuple[str, Json]:
+        return await self.real.to_query(query_model, with_edges=with_edges, consistent=consistent)
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()

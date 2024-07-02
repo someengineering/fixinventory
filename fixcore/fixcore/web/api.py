@@ -1149,7 +1149,8 @@ class Api(Service):
     async def raw(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
         with_edges = request.query.get("edges") is not None
-        query, bind_vars = await graph_db.to_query(query_model, with_edges, **request.query)
+        consistent = if_set(request.query.get("consistent"), lambda x: x.lower() == "true")
+        query, bind_vars = await graph_db.to_query(query_model, with_edges=with_edges, consistent=consistent)
         return web.json_response({"query": query, "bind_vars": bind_vars})
 
     async def explain(self, request: Request, deps: TenantDependencies) -> StreamResponse:
