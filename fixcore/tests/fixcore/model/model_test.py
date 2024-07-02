@@ -338,10 +338,12 @@ def test_property_path_on_model(person_model: Model) -> None:
 
 
 def test_owned_path(person_model: Model) -> None:
+    assert {a.fqn for a in person_model.owners_by_path("name")} == {"Person", "graph_root"}
     assert {a.fqn for a in person_model.owners_by_path("city")} == {"Address"}
     assert {a.fqn for a in person_model.owners_by_path("list")} == {"Base"}
     assert {a.fqn for a in person_model.owners_by_path("mtime")} == {"Base"}
     assert {a.fqn for a in person_model.owners_by_path("test")} == {"any_foo"}
+    assert len(person_model.owners_by_path("does_not_exist")) == 0
 
 
 def test_metadata_on_update(person_model: Model) -> None:
