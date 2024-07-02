@@ -37,8 +37,10 @@ def add_is_term(query_model: QueryModel) -> Query:
                 for res in query_model.owners(pred.name):
                     if res.fqn not in predefined_kinds_by_name:
                         kinds.add(res.fqn)
-        kinds.discard("resource")  # all resources have this base kind - ignore it
-        return IsTerm(kinds=sorted(kinds)).and_term(term) if kinds else term
+        if not kinds or "resource" in kinds:  # all resources have this base kind - ignore it
+            return term
+        else:
+            return IsTerm(kinds=sorted(kinds)).and_term(term)
 
     def change_term(term: Term) -> Term:
         if isinstance(term, CombinedTerm) and term.op == "or":
