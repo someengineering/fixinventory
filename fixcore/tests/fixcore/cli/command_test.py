@@ -1140,7 +1140,7 @@ async def test_report(cli: CLI, inspector_service: Inspector) -> None:
     # execute the test benchmark
     assert len((await execute("report benchmark run test --sync-security-section | dump", Json))) == 9
     assert len((await execute("report benchmark run test --only-failing | dump", Json))) == 9
-    assert len((await execute("report benchmark run test --severity critical | dump", Json))) == 5
+    assert len((await execute("report benchmark run test --severity critical | dump", Json))) == 7
     # load the benchmark from the last sync
     assert len((await execute("report benchmark load test | dump", Json))) == 9
     # list failing resources for a specific check

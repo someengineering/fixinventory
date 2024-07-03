@@ -5087,7 +5087,7 @@ class ReportCommand(CLICommand, EntityProvider):
         return "report"
 
     def args_info(self) -> ArgsInfo:
-        run_args = [
+        load_args = [
             ArgInfo("--accounts", True, help_text="Space delimited list of accounts"),
             ArgInfo(
                 "--severity",
@@ -5097,6 +5097,8 @@ class ReportCommand(CLICommand, EntityProvider):
             ),
             ArgInfo("--only-failing", False, help_text="Filter only failing checks."),
             ArgInfo("--only-check-results", False, help_text="Only dump results."),
+        ]
+        run_args = load_args + [
             ArgInfo("--sync-security-section", False, help_text="Sync security section."),
             ArgInfo("--run-id", False, help_text="Identifier for this specific run."),
         ]
@@ -5105,6 +5107,7 @@ class ReportCommand(CLICommand, EntityProvider):
                 "list": [],
                 "run": [ArgInfo(None, help_text="<benchmark-id>"), *run_args],
                 "show": [ArgInfo(None, help_text="<benchmark-id>")],
+                "load": [ArgInfo(None, help_text="<benchmark-id>"), *load_args],
             },
             "checks": {
                 "list": [],
