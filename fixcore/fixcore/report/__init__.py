@@ -298,7 +298,6 @@ class CheckCollectionResult:
                 c.filter_result(filter_failed, failed_for_account)
                 for c in self.children
                 if (not filter_failed or c.has_failed())
-                and (c.checks or c.children)
                 and (failed_for_account is None or c.has_failed_for_account(failed_for_account))
             ],
         )

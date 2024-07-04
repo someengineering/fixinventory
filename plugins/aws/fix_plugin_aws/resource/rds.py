@@ -464,7 +464,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     rds_db_subnet_group: Optional[AwsRdsDBSubnetGroup] = field(default=None)
     rds_preferred_maintenance_window: Optional[str] = field(default=None)
     rds_pending_modified_values: Optional[AwsRdsPendingModifiedValues] = field(default=None)
-    rds_latest_restorable_time: Optional[datetime] = field(default=None)
+    rds_latest_restorable_time: Optional[datetime] = field(default=None, metadata=dict(ignore_history=True))
     rds_multi_az: Optional[bool] = field(default=None)
     rds_auto_minor_version_upgrade: Optional[bool] = field(default=None)
     rds_read_replica_source_db_instance_identifier: Optional[str] = field(default=None)
