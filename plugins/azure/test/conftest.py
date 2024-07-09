@@ -12,7 +12,7 @@ from azure.identity import DefaultAzureCredential
 from pytest import fixture
 
 from fix_plugin_azure.config import AzureConfig
-from fix_plugin_azure.azure_client import AzureClient, AzureApiSpec
+from fix_plugin_azure.azure_client import AzureClient, AzureApiSpec, AzureRestSpec
 from fix_plugin_azure.resource.base import GraphBuilder, AzureSubscription, AzureResourceType, AzureLocation
 from fixlib.baseresources import Cloud
 from fixlib.core.actions import CoreFeedback
@@ -22,7 +22,8 @@ from fixlib.types import Json
 
 
 class StaticFileAzureClient(AzureClient):
-    def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
+    def list(self, spec: AzureRestSpec, **kwargs: Any) -> List[Json]:
+        assert isinstance(spec, AzureApiSpec)
         query_start_index = spec.path.find("?")
         spec_path = spec.path[:query_start_index] if query_start_index != -1 else spec.path
         splitted_path = spec_path.rsplit("/")
@@ -107,7 +108,7 @@ def builder(
     builder = GraphBuilder(
         graph=Graph(),
         cloud=Cloud(id="azure"),
-        subscription=azure_subscription,
+        account=azure_subscription,
         client=azure_client,
         executor=executor_queue,
         core_feedback=core_feedback,

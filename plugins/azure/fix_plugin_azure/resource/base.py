@@ -6,20 +6,19 @@ from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
 from attr import define, field
-from azure.core.utils import CaseInsensitiveDict
 from azure.identity import DefaultAzureCredential
 
-from fix_plugin_azure.azure_client import AzureApiSpec, AzureClient
-from fix_plugin_azure.config import AzureConfig, AzureCredentials
-from fixlib.utils import utc
+from fix_plugin_azure.azure_client import AzureApiSpec, AzureClient, AzureRestSpec
+from fix_plugin_azure.config import AzureConfig
 from fixlib.baseresources import BaseGroup, BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
+from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey
 from fixlib.json_bender import Bender, bend, S, ForallBend, Bend
-from fixlib.threading import ExecutorQueue
 from fixlib.lock import RWLock
+from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
-from fixlib.config import current_config
+from fixlib.utils import utc
 
 log = logging.getLogger("fix.plugins.azure")
 service_name = "azure_base"
@@ -47,7 +46,7 @@ class AzureResource(BaseResource):
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
-    api_spec: ClassVar[Optional[AzureApiSpec]] = None
+    api_spec: ClassVar[Optional[AzureRestSpec]] = None
     # Check if we want to create provider link. Default is True
     _is_provider_link: bool = True
     # Azure common properties
@@ -160,7 +159,7 @@ class AzureResource(BaseResource):
         cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
     ) -> List[AzureResourceType]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             try:
                 items = builder.client.list(spec, **kwargs)
@@ -207,7 +206,7 @@ class AzureResource(BaseResource):
         return cls.from_json(mapped)
 
     @classmethod
-    def called_collect_apis(cls) -> List[AzureApiSpec]:
+    def called_collect_apis(cls) -> List[AzureRestSpec]:
         # The default implementation will return the defined api_spec if defined, otherwise an empty list.
         # In case your resource needs more than this api call, please override this method and return the proper list.
         if spec := cls.api_spec:
@@ -216,7 +215,7 @@ class AzureResource(BaseResource):
             return []
 
     @classmethod
-    def called_mutator_apis(cls) -> List[AzureApiSpec]:
+    def called_mutator_apis(cls) -> List[AzureRestSpec]:
         return []
 
 
@@ -471,11 +470,6 @@ class AzureSubscription(AzureResource, BaseAccount):
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The subscription tenant id."})
     account_name: Optional[str] = field(default=None, metadata={"description": "The account used to collect this subscription."})  # fmt: skip
 
-    @classmethod
-    def list_subscriptions(cls, config: AzureConfig, credentials: AzureCredentials) -> List[AzureSubscription]:
-        client = AzureClient.create(config, credentials, "global")
-        return [cls.from_api(js) for js in client.list(cls.api_spec)]
-
 
 @define(eq=False, slots=False)
 class AzureSubResource:
@@ -531,26 +525,26 @@ class GraphBuilder:
         self,
         graph: Graph,
         cloud: Cloud,
-        subscription: AzureSubscription,
+        account: BaseAccount,
         client: AzureClient,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
         config: AzureConfig,
-        location_lookup: Optional[Dict[str, AzureLocation]] = None,
-        location: Optional[AzureLocation] = None,
+        location_lookup: Optional[Dict[str, BaseRegion]] = None,
+        location: Optional[BaseRegion] = None,
         graph_access_lock: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
-        self.subscription = subscription
+        self.account = account
         self.client = client
         self.executor = executor
         self.core_feedback = core_feedback
         self.location_lookup = location_lookup or {}
         self.location = location
         self.graph_access_lock = graph_access_lock or RWLock()
-        self.name = f"Azure:{subscription.name}"
+        self.name = f"Azure:{account.name}"
         self.config = config
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
@@ -631,7 +625,7 @@ class GraphBuilder:
     def add_node(self, node: AzureResourceType, source: Optional[Json] = None) -> Optional[AzureResourceType]:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
-        node._account = self.subscription
+        node._account = self.account
 
         last_edge_key: Optional[EdgeKey] = None  # indicates if this node has been connected
 
@@ -651,7 +645,7 @@ class GraphBuilder:
                     node._region = location  # TODO: how to handle multiple locations?
         elif last_edge_key is None:
             # add edge from subscription to resource
-            last_edge_key = self.add_edge(self.subscription, node=node)
+            last_edge_key = self.add_edge(self.account, node=node)
 
         # create provider link
         if node._metadata.get("provider_link") is None and node._is_provider_link:
@@ -727,16 +721,11 @@ class GraphBuilder:
                 if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
             ]
 
-    def fetch_locations(self) -> List[AzureLocation]:
-        locations = AzureLocation.collect_resources(self)
-        self.location_lookup = CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
-        return locations
-
-    def with_location(self, location: AzureLocation) -> GraphBuilder:
+    def with_location(self, location: BaseRegion) -> GraphBuilder:
         return GraphBuilder(
             graph=self.graph,
             cloud=self.cloud,
-            subscription=self.subscription,
+            account=self.account,
             client=self.client.for_location(location.safe_name),
             executor=self.executor,
             core_feedback=self.core_feedback,
@@ -744,6 +733,7 @@ class GraphBuilder:
             location=location,
             graph_access_lock=self.graph_access_lock,
             config=self.config,
+            last_run_started_at=self.last_run_started_at,
         )
 
 

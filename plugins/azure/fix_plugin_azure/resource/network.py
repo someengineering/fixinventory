@@ -2512,7 +2512,7 @@ class AzurePrivateLinkService(AzureResource):
         >> ForallBend(AzureLinkServicePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
-        "visibility": S("properties", "visibility") >> Bend(AzureResourceSet.mapping),
+        "link_visibility": S("properties", "visibility") >> Bend(AzureResourceSet.mapping),
     }
     alias: Optional[str] = field(default=None, metadata={"description": "The alias of the private link service."})
     auto_approval: Optional[AzureResourceSet] = field(default=None, metadata={'description': 'The auto-approval list of the private link service.'})  # fmt: skip
@@ -2524,7 +2524,7 @@ class AzurePrivateLinkService(AzureResource):
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     link_service_private_endpoint_connections: Optional[List[AzureLinkServicePrivateEndpointConnection]] = field(default=None, metadata={'description': 'An array of list about connections to the private endpoint.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
-    visibility: Optional[AzureResourceSet] = field(default=None, metadata={'description': 'The visibility list of the private link service.'})  # fmt: skip
+    link_visibility: Optional[AzureResourceSet] = field(default=None, metadata={'description': 'The visibility list of the private link service.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

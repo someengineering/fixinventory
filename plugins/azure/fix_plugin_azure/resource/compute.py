@@ -955,7 +955,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
     def collect_resources(
         cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
     ) -> List[AzureResourceType]:
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
         product_names = {"Standard SSD Managed Disks", "Premium SSD Managed Disks", "Standard HDD Managed Disks"}
         sku_items = []
         for product_name in product_names:
@@ -1095,7 +1095,7 @@ class AzureDisk(AzureResource, BaseVolume):
     def collect_resources(
         cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
     ) -> List[AzureResourceType]:
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             items = builder.client.list(spec, **kwargs)
             collected = cls.collect(items, builder)
