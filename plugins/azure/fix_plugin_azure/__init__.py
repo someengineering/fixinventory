@@ -9,7 +9,7 @@ from fix_plugin_azure.azure_client import AzureClient
 from fix_plugin_azure.collector import (
     AzureSubscriptionCollector,
     MicrosoftGraphOrganizationCollector,
-    AzureBaseCollector,
+    MicrosoftBaseCollector,
 )
 from fix_plugin_azure.config import AzureConfig, AzureAccountConfig, AzureCredentials
 from fix_plugin_azure.resource.base import AzureSubscription, AzureResource
@@ -139,7 +139,7 @@ def collect_account_proxy(collector_arg: AzureCollectorArg, queue: multiprocessi
     collector_initializer()
     kind, config, cloud, account, account_config, core_feedback, task_data, max_resources = collector_arg
     log.info(f"Start collecting {kind}: {account.id}")
-    abc: AzureBaseCollector
+    abc: MicrosoftBaseCollector
     if kind == AzureCollectorKind.subscription:
         abc = AzureSubscriptionCollector(
             config, cloud, account, account_config.credentials(), core_feedback, task_data, max_resources

@@ -55,7 +55,7 @@ subscription_resources: List[Type[AzureResource]] = (
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
 
-class AzureBaseCollector:
+class MicrosoftBaseCollector:
     def __init__(
         self,
         config: AzureConfig,
@@ -226,7 +226,7 @@ class AzureBaseCollector:
         nodes_to_delte.clear()
 
 
-class AzureSubscriptionCollector(AzureBaseCollector):
+class AzureSubscriptionCollector(MicrosoftBaseCollector):
     def __init__(
         self,
         config: AzureConfig,
@@ -256,7 +256,7 @@ class AzureSubscriptionCollector(AzureBaseCollector):
         return CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
 
 
-class MicrosoftGraphOrganizationCollector(AzureBaseCollector):
+class MicrosoftGraphOrganizationCollector(MicrosoftBaseCollector):
     def __init__(
         self,
         config: AzureConfig,
