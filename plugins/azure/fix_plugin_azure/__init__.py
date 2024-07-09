@@ -101,7 +101,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
             )
             for name, ac in account_configs.items()
             for org in list_all(MicrosoftGraphOrganization, config, ac.credentials())
-            if ac.collect_organizations
+            if ac.collect_microsoft_graph
         }
         args = list(subscription_args.values()) + list(organization_args.values())
 
@@ -139,21 +139,21 @@ def collect_account_proxy(collector_arg: AzureCollectorArg, queue: multiprocessi
     collector_initializer()
     kind, config, cloud, account, account_config, core_feedback, task_data, max_resources = collector_arg
     log.info(f"Start collecting {kind}: {account.id}")
-    abc: MicrosoftBaseCollector
+    mbc: MicrosoftBaseCollector
     if kind == AzureCollectorKind.subscription:
-        abc = AzureSubscriptionCollector(
+        mbc = AzureSubscriptionCollector(
             config, cloud, account, account_config.credentials(), core_feedback, task_data, max_resources
         )
     elif kind == AzureCollectorKind.microsoft_graph:
-        abc = MicrosoftGraphOrganizationCollector(
+        mbc = MicrosoftGraphOrganizationCollector(
             config, cloud, account, account_config.credentials(), core_feedback, task_data, max_resources
         )
     else:
         queue.put((collector_arg.account, None))  # signal done
         raise ValueError(f"Invalid collector kind {kind}")
     try:
-        abc.collect()
-        queue.put((collector_arg.account, abc.graph))
+        mbc.collect()
+        queue.put((collector_arg.account, mbc.graph))
     except Exception as e:
         log.exception(f"Error collecting account {account.id}: {e}. Give up.")
         queue.put((collector_arg.account, None))  # signal done

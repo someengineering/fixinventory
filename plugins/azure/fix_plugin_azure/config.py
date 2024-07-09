@@ -30,7 +30,7 @@ class AzureAccountConfig:
     exclude_subscriptions: Optional[List[str]] = field(
         default=None, metadata={"description": "Subscriptions to exclude"}
     )
-    collect_organizations: Optional[bool] = field(
+    collect_microsoft_graph: Optional[bool] = field(
         default=True, metadata={"description": "Collect Microsoft Graph Organizations"}
     )
 
