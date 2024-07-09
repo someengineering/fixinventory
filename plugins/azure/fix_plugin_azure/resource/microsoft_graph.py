@@ -7,9 +7,10 @@ from attr import define, field
 
 from fix_plugin_aws.utils import ToDict
 from fix_plugin_azure.azure_client import AzureRestApiSpec, AzureRestSpec
-from fix_plugin_azure.resource.base import AzureResource
-from fixlib.baseresources import BaseRole, BaseAccount, BaseRegion
-from fixlib.json_bender import Bender, S, ForallBend, Bend, F
+from fix_plugin_azure.resource.base import AzureResource, GraphBuilder
+from fixlib.baseresources import BaseRole, BaseAccount, BaseRegion, ModelReference
+from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict
+from fixlib.types import Json
 
 
 @define(eq=False, slots=False)
@@ -245,34 +246,48 @@ class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
         "graph",
         "https://graph.microsoft.com/beta/roleManagement/directory/roleDefinitions",
         parameters={
-            "$select": "allowedPrincipalTypes,description,displayName,id,isBuiltIn,isEnabled,isPrivileged,resourceScopes,rolePermissions,templateId,version"
+            "$expand": "inheritsPermissionsFrom($select=id)",
+            "$select": "allowedPrincipalTypes,description,displayName,id,isBuiltIn,isEnabled,isPrivileged,resourceScopes,rolePermissions,templateId,version",
         },
         access_path="value",
     )
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["microsoft_graph_role"]}}
+
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
         "id": S("id"),
         "name": S("displayName"),
         "allowed_principal_types": S("allowedPrincipalTypes"),
+        "assignment_mode": S("assignmentMode"),
+        "role_categories": S("categories"),
         "description": S("description"),
         "display_name": S("displayName"),
         "is_built_in": S("isBuiltIn"),
         "is_enabled": S("isEnabled"),
         "is_privileged": S("isPrivileged"),
         "resource_scopes": S("resourceScopes"),
+        "rich_description": S("richDescription"),
         "role_permissions": S("rolePermissions") >> ForallBend(MicrosoftGraphUnifiedRolePermission.mapping),
         "template_id": S("templateId"),
         "version": S("version"),
     }
     allowed_principal_types: Optional[str] = field(default=None, metadata={'description': 'Types of principals that can be assigned the role. Read-only. The possible values are: user, servicePrincipal, group, unknownFutureValue. This is a multi-valued enumeration that can contain up to three values as a comma-separated string. For example, user, group. Supports $filter (eq).'})  # fmt: skip
+    assignment_mode: Optional[str] = field(default=None, metadata={'description': 'Indicates the assignment mode for the role.'})  # fmt: skip
+    role_categories: Optional[str] = field(default=None, metadata={'description': 'Categories of the role.'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={'description': 'The description for the unifiedRoleDefinition. Read-only when isBuiltIn is true.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={'description': 'The display name for the unifiedRoleDefinition. Read-only when isBuiltIn is true. Required. Supports $filter (eq and startsWith).'})  # fmt: skip
     is_built_in: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating if the unifiedRoleDefinition is part of the default set included with the product or custom. Read-only. Supports $filter (eq).'})  # fmt: skip
     is_enabled: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating if the role is enabled for assignment. If false the role is not available for assignment. Read-only when isBuiltIn is true.'})  # fmt: skip
     is_privileged: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating if the role is privileged. Microsoft Entra ID defines a role as privileged if it contains at least one sensitive resource action in the rolePermissions and allowedResourceActions objects. Applies only for actions in the microsoft.directory resource namespace. Read-only. Supports $filter (eq).'})  # fmt: skip
     resource_scopes: Optional[List[str]] = field(default=None, metadata={'description': 'List of scopes permissions granted by the role definition apply to. Currently only / is supported. Read-only when isBuiltIn is true. DO NOT USE. This will be deprecated soon. Attach scope to role assignment.'})  # fmt: skip
+    rich_description: Optional[str] = field(default=None, metadata={'description': 'The description for the unifiedRoleDefinition. Read-only when isBuiltIn is true.'})  # fmt: skip
     role_permissions: Optional[List[MicrosoftGraphUnifiedRolePermission]] = field(default=None, metadata={'description': 'List of permissions included in the role. Read-only when isBuiltIn is true. Required.'})  # fmt: skip
     template_id: Optional[str] = field(default=None, metadata={'description': 'Custom template identifier that can be set when isBuiltIn is false. This identifier is typically used if one needs an identifier to be the same across different directories. Read-only when isBuiltIn is true.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={'description': 'Indicates the version of the unifiedRoleDefinition object. Read-only when isBuiltIn is true.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for src in source.get("inheritsPermissionsFrom", []):
+            if sid := src.get("id"):
+                builder.add_edge(self, reverse=True, clazz=MicrosoftGraphRole, id=sid)
 
 
 @define(eq=False, slots=False)
@@ -500,17 +515,18 @@ class MicrosoftGraphVerifiedDomain:
 
 
 @define(eq=False, slots=False)
-class MicrosoftGraphEnterpriseApplication(MicrosoftGraphEntity):
-    kind: ClassVar[str] = "microsoft_graph_enterprise_application"
+class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
+    kind: ClassVar[str] = "microsoft_graph_service_principal"
     api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/serviceprincipals",
         parameters={
-            "$expand": "transitiveMemberOf($select=id,roleTemplateId)",  # only look at roles
+            "$expand": "memberOf($select=id,roleTemplateId)",  # only look at roles
             "$select": "accountEnabled,addIns,alternativeNames,appDescription,appDisplayName,appId,appOwnerOrganizationId,appRoleAssignmentRequired,appRoles,applicationTemplateId,customSecurityAttributes,deletedDateTime,description,disabledByMicrosoftStatus,displayName,errorUrl,homepage,id,info,keyCredentials,loginUrl,logoutUrl,notes,notificationEmailAddresses,passwordCredentials,passwordSingleSignOnSettings,preferredSingleSignOnMode,preferredTokenSigningKeyEndDateTime,preferredTokenSigningKeyThumbprint,publishedPermissionScopes,publisherName,replyUrls,samlMetadataUrl,samlSingleSignOnSettings,servicePrincipalNames,servicePrincipalType,signInAudience,tags,tokenEncryptionKeyId,verifiedPublisher",
         },
         access_path="value",
     )
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["microsoft_graph_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
         "id": S("id"),
         "name": S("displayName"),
@@ -597,6 +613,11 @@ class MicrosoftGraphEnterpriseApplication(MicrosoftGraphEntity):
     token_encryption_key_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the keyId of a public key from the keyCredentials collection. When configured, Microsoft Entra ID issues tokens for this application encrypted using the key specified by this property. The application code that receives the encrypted token must use the matching private key to decrypt the token before it can be used for the signed-in user.'})  # fmt: skip
     verified_publisher: Optional[MicrosoftGraphVerifiedPublisher] = field(default=None, metadata={'description': 'Specifies the verified publisher of the application that s linked to this service principal.'})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for member in source.get("memberOf", []):
+            if member.get("@odata.type") == "#microsoft.graph.directoryRole" and (rid := member.get("roleTemplateId")):
+                builder.add_edge(self, clazz=MicrosoftGraphRole, template_id=rid)
+
 
 @define(eq=False, slots=False)
 class MicrosoftGraphDevice(MicrosoftGraphEntity):
@@ -605,11 +626,12 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
         "graph",
         "https://graph.microsoft.com/v1.0/devices",
         parameters={
-            "$expand": "transitiveMemberOf($select=id,roleTemplateId)",  # only look at roles
+            "$expand": "memberOf($select=id,roleTemplateId)",  # only look at roles
             "$select": "accountEnabled,alternativeSecurityIds,approximateLastSignInDateTime,complianceExpirationDateTime,deletedDateTime,deviceCategory,deviceId,deviceMetadata,deviceOwnership,deviceVersion,displayName,domainName,enrollmentProfileName,enrollmentType,extensionAttributes,hostnames,id,isCompliant,isManaged,isManagementRestricted,isRooted,kind,managementType,manufacturer,mdmAppId,model,name,onPremisesLastSyncDateTime,onPremisesSecurityIdentifier,onPremisesSyncEnabled,operatingSystem,operatingSystemVersion,physicalIds,platform,profileType,registrationDateTime,status,systemLabels,trustType",
         },
         access_path="value",
     )
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["microsoft_graph_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -688,6 +710,11 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
     system_labels: Optional[List[str]] = field(default=None, metadata={'description': 'List of labels applied to the device by the system. Supports $filter (/$count eq 0, /$count ne 0).'})  # fmt: skip
     trust_type: Optional[str] = field(default=None, metadata={'description': 'Type of trust for the joined device. Read-only. Possible values: Workplace (indicates bring your own personal devices), AzureAd (Cloud only joined devices), ServerAd (on-premises domain joined devices joined to Microsoft Entra ID). For more information, see Introduction to device management in Microsoft Entra ID.'})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for member in source.get("memberOf", []):
+            if member.get("@odata.type") == "#microsoft.graph.directoryRole" and (rid := member.get("roleTemplateId")):
+                builder.add_edge(self, clazz=MicrosoftGraphRole, template_id=rid)
+
 
 @define(eq=False, slots=False)
 class MicrosoftGraphUser(MicrosoftGraphEntity):
@@ -696,11 +723,12 @@ class MicrosoftGraphUser(MicrosoftGraphEntity):
         "graph",
         "https://graph.microsoft.com/v1.0/users",
         parameters={
-            "$expand": "transitiveMemberOf($select=id,roleTemplateId)",  # only look at roles
+            "$expand": "memberOf($select=id,roleTemplateId)",  # only look at roles
             "$select": "accountEnabled,ageGroup,assignedLicenses,assignedPlans,authorizationInfo,businessPhones,city,cloudRealtimeCommunicationInfo,companyName,consentProvidedForMinor,country,createdDateTime,creationType,customSecurityAttributes,deletedDateTime,department,deviceKeys,displayName,employeeHireDate,employeeId,employeeLeaveDateTime,employeeOrgData,employeeType,externalUserState,externalUserStateChangeDateTime,faxNumber,givenName,id,identities,imAddresses,infoCatalogs,isManagementRestricted,isResourceAccount,jobTitle,lastPasswordChangeDateTime,legalAgeGroupClassification,licenseAssignmentStates,mail,mailNickname,mobilePhone,officeLocation,onPremisesDistinguishedName,onPremisesDomainName,onPremisesExtensionAttributes,onPremisesImmutableId,onPremisesLastSyncDateTime,onPremisesProvisioningErrors,onPremisesSamAccountName,onPremisesSecurityIdentifier,onPremisesSipInfo,onPremisesSyncEnabled,onPremisesUserPrincipalName,otherMails,passwordPolicies,passwordProfile,postalCode,preferredDataLocation,preferredLanguage,provisionedPlans,proxyAddresses,refreshTokensValidFromDateTime,securityIdentifier,serviceProvisioningErrors,showInAddressList,signInSessionsValidFromDateTime,state,streetAddress,surname,usageLocation,userPrincipalName,userType",
         },
         access_path="value",
     )
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["microsoft_graph_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
         "id": S("id"),
         "name": S("displayName"),
@@ -849,6 +877,11 @@ class MicrosoftGraphUser(MicrosoftGraphEntity):
     user_principal_name: Optional[str] = field(default=None, metadata={'description': 'The user principal name (UPN) of the user. The UPN is an Internet-style sign-in name for the user based on the Internet standard RFC 822. By convention, this should map to the user s email name. The general format is alias@domain, where the domain must be present in the tenant s verified domain collection. This property is required when a user is created. The verified domains for the tenant can be accessed from the verifiedDomains property of organization.NOTE: This property can t contain accent characters. Only the following characters are allowed A - Z, a - z, 0 - 9, . - _ ! # ^ ~. For the complete list of allowed characters, see username policies. Supports $filter (eq, ne, not, ge, le, in, startsWith, endsWith) and $orderby.'})  # fmt: skip
     user_type: Optional[str] = field(default=None, metadata={'description': 'A String value that can be used to classify user types in your directory. The possible values are Member and Guest. Supports $filter (eq, ne, not, in, and eq on null values). NOTE: For more information about the permissions for member and guest users, see What are the default user permissions in Microsoft Entra ID?'})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for member in source.get("memberOf", []):
+            if member.get("@odata.type") == "#microsoft.graph.directoryRole" and (rid := member.get("roleTemplateId")):
+                builder.add_edge(self, clazz=MicrosoftGraphRole, template_id=rid)
+
 
 @define(eq=False, slots=False)
 class MicrosoftGraphGroup(MicrosoftGraphEntity):
@@ -857,11 +890,16 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity):
         "graph",
         "https://graph.microsoft.com/v1.0/groups",
         parameters={
-            "$expand": "memberOf($select=id)",  # will select: users, groups, devices and enterprise applications
+            "$expand": "transitiveMembers($select=id)",  # will select: users, groups, devices and enterprise applications
             "$select": "accessType,assignedLabels,assignedLicenses,classification,createdByAppId,createdDateTime,deletedDateTime,description,displayName,expirationDateTime,groupTypes,id,infoCatalogs,isAssignableToRole,isFavorite,isManagementRestricted,licenseProcessingState,mail,mailEnabled,mailNickname,membershipRule,membershipRuleProcessingState,membershipRuleProcessingStatus,onPremisesDomainName,onPremisesLastSyncDateTime,onPremisesNetBiosName,onPremisesProvisioningErrors,onPremisesSamAccountName,onPremisesSecurityIdentifier,onPremisesSyncEnabled,organizationId,preferredDataLocation,preferredLanguage,proxyAddresses,renewedDateTime,resourceBehaviorOptions,resourceProvisioningOptions,securityEnabled,securityIdentifier,serviceProvisioningErrors,theme,uniqueName,unseenConversationsCount,unseenMessagesCount,visibility,writebackConfiguration",
         },
         access_path="value",
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": ["microsoft_graph_device", "microsoft_graph_service_principal", "microsoft_graph_user"]
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
         "id": S("id"),
         "name": S("displayName"),
@@ -913,6 +951,7 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity):
         "visibility": S("visibility"),
         "writeback_configuration": S("writebackConfiguration")
         >> Bend(MicrosoftGraphGroupWritebackConfiguration.mapping),
+        "_transitive_members": S("transitiveMembers") >> MapDict(S("id"), S("@odata.type")),
     }
     access_type: Optional[str] = field(default=None, metadata={'description': 'Indicates the type of access to the group. Possible values are none, private, secret, and public.'})  # fmt: skip
     assigned_labels: Optional[List[MicrosoftGraphAssignedLabel]] = field(default=None, metadata={'description': 'The list of sensitivity label pairs (label ID, label name) associated with a Microsoft 365 group. Returned only on $select.'})  # fmt: skip
@@ -958,6 +997,29 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity):
     unseen_messages_count: Optional[int] = field(default=None, metadata={'description': 'Count of new posts that have been delivered to the group s conversations since the signed-in user s last visit to the group. Returned only on $select.'})  # fmt: skip
     visibility: Optional[str] = field(default=None, metadata={'description': 'Specifies the group join policy and group content visibility for groups. Possible values are: Private, Public, or HiddenMembership. HiddenMembership can be set only for Microsoft 365 groups when the groups are created. It can t be updated later. Other values of visibility can be updated after group creation. If visibility value isn t specified during group creation on Microsoft Graph, a security group is created as Private by default, and Microsoft 365 group is Public. Groups assignable to roles are always Private. To learn more, see group visibility options. Returned by default. Nullable.'})  # fmt: skip
     writeback_configuration: Optional[MicrosoftGraphGroupWritebackConfiguration] = field(default=None, metadata={'description': 'Specifies whether or not a group is configured to write back group object properties to on-premises Active Directory. These properties are used when group writeback is configured in the Microsoft Entra Connect sync client.'})  # fmt: skip
+    _transitive_members: Optional[Dict[str, str]] = None
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        groups = {n.id: n for n in builder.nodes(MicrosoftGraphGroup)}
+        visited = set()
+        dependant = {}
+
+        def add_transitive(gp: MicrosoftGraphGroup) -> None:
+            if gp.id not in visited and gp._transitive_members:
+                visited.add(gp.id)
+                for mid, mtype in gp._transitive_members.items():
+                    if mtype == "#microsoft.graph.group":
+                        if g := groups.get(mid):
+                            add_transitive(g)
+                    else:
+                        dependant[mid] = mtype
+
+        # walk all transitive members and collect all dependant nodes
+        add_transitive(self)
+        # create an edge to all transitively dependant node
+        for mid, mtype in dependant.items():
+            if clazz := KindLookup.get(mtype):
+                builder.add_edge(self, clazz=clazz, id=mid)
 
 
 @define(eq=False, slots=False)
@@ -1036,13 +1098,20 @@ class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
 
 
 @define(eq=False, slots=False)
-class MicrosoftGraphOrganizationRoot(BaseRegion):
+class MicrosoftGraphOrganizationRoot(MicrosoftGraphEntity, BaseRegion):
     kind: ClassVar[str] = "microsoft_graph_organization_root"
+
+
+KindLookup = {
+    "#microsoft.graph.user": MicrosoftGraphUser,
+    "#microsoft.graph.group": MicrosoftGraphGroup,
+    "#microsoft.graph.role": MicrosoftGraphRole,
+}
 
 
 resources: List[Type[AzureResource]] = [
     MicrosoftGraphDevice,
-    MicrosoftGraphEnterpriseApplication,
+    MicrosoftGraphServicePrincipal,
     MicrosoftGraphGroup,
     MicrosoftGraphRole,
     MicrosoftGraphUser,
