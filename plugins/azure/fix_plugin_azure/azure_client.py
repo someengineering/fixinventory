@@ -126,13 +126,11 @@ class AzureRestApiSpec:
             self.scope = f"{ps.scheme}://{ps.netloc}/.default"
 
     def request(self, _: "AzureResourceManagementClient", **__: Any) -> HttpRequest:
-        # params = "?" + urlencode(self.parameters, quote_via=quote_plus) if self.parameters else ""
         return HttpRequest(method="GET", url=self.url, params=self.parameters, headers=self.headers)
 
     def response(self, client: "AzureResourceManagementClient", request: HttpRequest) -> HttpResponse:
         tkn = client.token_cache.token(self.scope)
         # parameters already encoded into the URL
-        log.info(f"Requesting Azure API: {request.url}")
         request.headers.update({"Authorization": f"Bearer {tkn}"})
         response = requests.get(request.url, headers=request.headers)
         result = RestRequestsTransportResponse(internal_response=response, request=request)  # type: ignore

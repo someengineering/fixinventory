@@ -28,7 +28,7 @@ T = TypeVar("T", bound=AzureResource)
 
 class AzureCollectorKind(Enum):
     subscription = "subscription"
-    organization = "organization"
+    microsoft_graph = "microsoft_graph"
 
 
 AzureCollectorArg = namedtuple(
@@ -90,7 +90,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
         microsoft_graph = Cloud(id="microsoft-graph")
         organization_args = {
             org.id: AzureCollectorArg(
-                AzureCollectorKind.organization,
+                AzureCollectorKind.microsoft_graph,
                 config,
                 microsoft_graph,
                 org,
@@ -144,7 +144,7 @@ def collect_account_proxy(collector_arg: AzureCollectorArg, queue: multiprocessi
         abc = AzureSubscriptionCollector(
             config, cloud, account, account_config.credentials(), core_feedback, task_data, max_resources
         )
-    elif kind == AzureCollectorKind.organization:
+    elif kind == AzureCollectorKind.microsoft_graph:
         abc = MicrosoftGraphOrganizationCollector(
             config, cloud, account, account_config.credentials(), core_feedback, task_data, max_resources
         )

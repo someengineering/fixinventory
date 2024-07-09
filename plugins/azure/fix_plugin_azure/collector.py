@@ -280,4 +280,6 @@ class MicrosoftGraphOrganizationCollector(MicrosoftBaseCollector):
         )
 
     def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
-        return {"organization_root": builder.add_node(MicrosoftGraphOrganizationRoot(id="organization_root"))}
+        root = MicrosoftGraphOrganizationRoot(id="organization_root")
+        builder.add_node(root)
+        return {"organization_root": root}
