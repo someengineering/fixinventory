@@ -24,10 +24,16 @@ simple_type_map = {
     "number": "float",
 }
 
+# denylist: specific properties require a SPO license or have other restrictions
 forbidden_props = {
-    # denylist: specific properties require a SPO license or have other restrictions
-    "user": set('aboutMe,preferredName,print,mySite,skills,schools,responsibilities,mailboxSettings,deviceEnrollmentLimit,pastProjects,signInActivity,birthday,hireDate,interests,isLicenseReconciliationNeeded'.split(",")),  # fmt: skip
-    "group": set('allowExternalSenders,autoSubscribeNewMembers,hasMembersWithLicenseErrors,hideFromAddressLists,hideFromOutlookClients,isArchived,isSubscribedByMail,unseenCount'.split(",")),  # fmt: skip
+    "user": set(
+        "aboutMe,preferredName,print,mySite,skills,schools,responsibilities,mailboxSettings,deviceEnrollmentLimit,"
+        "pastProjects,signInActivity,birthday,hireDate,interests,isLicenseReconciliationNeeded".split(",")
+    ),
+    "group": set(
+        "allowExternalSenders,autoSubscribeNewMembers,hasMembersWithLicenseErrors,hideFromAddressLists,"
+        "hideFromOutlookClients,isArchived,isSubscribedByMail,unseenCount".split(",")
+    ),
 }
 
 
@@ -56,7 +62,7 @@ class MSGraphProperty:
 
     @property
     def is_nav_prop(self) -> bool:
-        return self.definition.get("x-ms-navigationProperty") == True
+        return self.definition.get("x-ms-navigationProperty") is True
 
     @property
     def is_any(self) -> bool:
@@ -147,8 +153,8 @@ class MSGraphClassModel:
                     for prop in base_clazz.sorted_props():
                         yield prop
                     yield from base_props(base_clazz)
-        return sorted(self.sorted_props() + list(base_props(self)), key=lambda p: p.name)
 
+        return sorted(self.sorted_props() + list(base_props(self)), key=lambda p: p.name)
 
     def to_class(self) -> str:
         bases = [self.model.type_name(b) for b in self.base_classes]
@@ -164,7 +170,7 @@ class MSGraphClassModel:
         base_mappings: Dict[str, str] = {}
         for bp in ["id", "tags", "name", "ctime", "mtime", "atime"]:
             if bp not in base_mappings:
-                if bp=="id":
+                if bp == "id":
                     base_mappings[bp] = 'S("id")'
                 else:
                     base_mappings[bp] = "K(None)"

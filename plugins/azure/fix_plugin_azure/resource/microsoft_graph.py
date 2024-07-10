@@ -5,7 +5,6 @@ from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
-from fix_plugin_aws.utils import ToDict
 from fix_plugin_azure.azure_client import AzureRestApiSpec, AzureRestSpec
 from fix_plugin_azure.resource.base import AzureResource, GraphBuilder
 from fixlib.baseresources import BaseRole, BaseAccount, BaseRegion, ModelReference
@@ -437,7 +436,7 @@ class MicrosoftGraphAddIn:
     kind: ClassVar[str] = "microsoft_graph_add_in"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
-        "properties": S("properties") >> ToDict(key="key", value="value"),
+        "properties": S("properties") >> MapDict(S("key"), S("value")),
         "type": S("type"),
     }
     id: Optional[str] = field(default=None, metadata={"description": "The unique identifier for the addIn object."})
