@@ -5,20 +5,21 @@ from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
-from fix_plugin_azure.azure_client import AzureRestApiSpec, AzureRestSpec
-from fix_plugin_azure.resource.base import AzureResource, GraphBuilder
+from fix_plugin_azure.azure_client import RestApiSpec, MicrosoftRestSpec
+from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
 from fixlib.baseresources import BaseRole, BaseAccount, BaseRegion, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict
 from fixlib.types import Json
 
 
 @define(eq=False, slots=False)
-class MicrosoftGraphEntity(AzureResource):
+class MicrosoftGraphEntity(MicrosoftResource):
     kind: ClassVar[str] = "microsoft_graph_entity"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "deleted_date_time": S("deletedDateTime"),
     }
+    _is_provider_link: ClassVar[bool] = False
     deleted_date_time: Optional[datetime] = field(default=None, metadata={'description': 'Date and time when this object was deleted. Always null when the object hasn\'t been deleted.'})  # fmt: skip
 
 
@@ -241,7 +242,7 @@ class MicrosoftGraphAssignedPlan:
 @define(eq=False, slots=False)
 class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
     kind: ClassVar[str] = "microsoft_graph_role"
-    api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec(
+    api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/beta/roleManagement/directory/roleDefinitions",
         parameters={
@@ -516,7 +517,7 @@ class MicrosoftGraphVerifiedDomain:
 @define(eq=False, slots=False)
 class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_service_principal"
-    api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec(
+    api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/serviceprincipals",
         parameters={
@@ -621,7 +622,7 @@ class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
 @define(eq=False, slots=False)
 class MicrosoftGraphDevice(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_device"
-    api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec(
+    api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/devices",
         parameters={
@@ -718,7 +719,7 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
 @define(eq=False, slots=False)
 class MicrosoftGraphUser(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_user"
-    api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec(
+    api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/users",
         parameters={
@@ -885,7 +886,7 @@ class MicrosoftGraphUser(MicrosoftGraphEntity):
 @define(eq=False, slots=False)
 class MicrosoftGraphGroup(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_group"
-    api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec(
+    api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/groups",
         parameters={
@@ -1024,7 +1025,7 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity):
 @define(eq=False, slots=False)
 class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
     kind: ClassVar[str] = "microsoft_graph_organization"
-    api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec(
+    api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/organization",
         parameters={
@@ -1108,7 +1109,7 @@ KindLookup = {
 }
 
 
-resources: List[Type[AzureResource]] = [
+resources: List[Type[MicrosoftResource]] = [
     MicrosoftGraphDevice,
     MicrosoftGraphServicePrincipal,
     MicrosoftGraphGroup,

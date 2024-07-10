@@ -1,18 +1,19 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
-from fix_plugin_azure.azure_client import AzureApiSpec
+from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
-    AzureResource,
+    MicrosoftResource,
     AzureSystemData,
     GraphBuilder,
     AzureExtendedLocation,
     AzureUserAssignedIdentity,
     AzurePrincipalClient,
     AzureManagedServiceIdentity,
+    MicrosoftResource,
 )
 from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnapshot, EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
@@ -82,9 +83,9 @@ class AzureFleetHubProfile:
 
 
 @define(eq=False, slots=False)
-class AzureFleet(AzureResource):
+class AzureFleet(MicrosoftResource):
     kind: ClassVar[str] = "azure_fleet"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-15-preview",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/fleets",
@@ -116,7 +117,7 @@ class AzureFleet(AzureResource):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_fleets() -> None:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="containerservice",
                 version="2023-10-15",
                 path=f"{self.id}/members",
@@ -773,9 +774,9 @@ class AzureServiceMeshProfile:
 
 
 @define(eq=False, slots=False)
-class AzureManagedCluster(AzureResource, BaseManagedKubernetesClusterProvider):
+class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
     kind: ClassVar[str] = "azure_managed_cluster"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/managedClusters",
@@ -959,9 +960,9 @@ class AzureOSOptionProperty:
 
 
 @define(eq=False, slots=False)
-class AzureManagedClusterSnapshot(AzureResource, BaseSnapshot):
+class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_managed_cluster_snapshot"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/snapshots",
@@ -1014,4 +1015,4 @@ class AzureManagedClusterSnapshot(AzureResource, BaseSnapshot):
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureManagedCluster, id=cluster_id)
 
 
-resources: List[Type[AzureResource]] = [AzureManagedCluster, AzureFleet, AzureManagedClusterSnapshot]
+resources: List[Type[MicrosoftResource]] = [AzureManagedCluster, AzureFleet, AzureManagedClusterSnapshot]

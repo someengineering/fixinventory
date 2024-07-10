@@ -5,14 +5,14 @@ from datetime import datetime, timezone
 from typing import Any, Optional, Type, List, Dict
 
 from azure.core.utils import CaseInsensitiveDict
-from fix_plugin_azure.azure_client import AzureClient, AzureRestApiSpec
+from fix_plugin_azure.azure_client import MicrosoftClient, RestApiSpec
 from fix_plugin_azure.config import AzureConfig, AzureCredentials
 from fix_plugin_azure.resource.base import (
     AzureLocation,
     AzureSubscription,
     GraphBuilder,
-    AzureResource,
     resources as base_resources,
+    MicrosoftResource,
 )
 from fix_plugin_azure.resource.compute import (
     AzureVirtualMachineSize,
@@ -43,13 +43,13 @@ from fixlib.types import Json
 log = logging.getLogger("fix.plugin.azure")
 
 
-def resource_with_params(clazz: Type[AzureResource], param: str) -> bool:
-    if clazz.api_spec is None or isinstance(clazz.api_spec, AzureRestApiSpec):
+def resource_with_params(clazz: Type[MicrosoftResource], param: str) -> bool:
+    if clazz.api_spec is None or isinstance(clazz.api_spec, RestApiSpec):
         return False
     return param in clazz.api_spec.path_parameters
 
 
-subscription_resources: List[Type[AzureResource]] = (
+subscription_resources: List[Type[MicrosoftResource]] = (
     base_resources + compute_resources + network_resources + aks_resources + storage_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
@@ -63,8 +63,8 @@ class MicrosoftBaseCollector:
         account: BaseAccount,
         credentials: AzureCredentials,
         core_feedback: CoreFeedback,
-        global_resources: List[Type[AzureResource]],
-        regional_resources: List[Type[AzureResource]],
+        global_resources: List[Type[MicrosoftResource]],
+        regional_resources: List[Type[MicrosoftResource]],
         task_data: Optional[Json] = None,
         max_resources_per_account: Optional[int] = None,
     ):
@@ -90,7 +90,7 @@ class MicrosoftBaseCollector:
             self.core_feedback.progress_done(self.account.id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
             error_accumulator = ErrorAccumulator()
-            client = AzureClient.create(
+            client = MicrosoftClient.create(
                 self.config,
                 self.credentials,
                 self.account.id,
@@ -130,7 +130,7 @@ class MicrosoftBaseCollector:
             # connect nodes
             log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
-                if isinstance(node, AzureResource):
+                if isinstance(node, MicrosoftResource):
                     node.connect_in_graph(builder, data.get("source", {}))
                 elif isinstance(node, (GraphRoot, Cloud)):
                     pass
@@ -143,7 +143,7 @@ class MicrosoftBaseCollector:
 
             # post process nodes
             for node, data in list(self.graph.nodes(data=True)):
-                if isinstance(node, AzureResource):
+                if isinstance(node, MicrosoftResource):
                     node.after_collect(builder, data.get("source", {}))
 
             # delete unnecessary nodes after all work is completed
@@ -154,9 +154,9 @@ class MicrosoftBaseCollector:
             log.info(f"[Azure:{self.account.safe_name}] Collecting resources done.")
 
     def collect_resource_list(
-        self, name: str, builder: GraphBuilder, resources: List[Type[AzureResource]]
+        self, name: str, builder: GraphBuilder, resources: List[Type[MicrosoftResource]]
     ) -> Future[None]:
-        def collect_resource(clazz: Type[AzureResource]) -> None:
+        def collect_resource(clazz: Type[MicrosoftResource]) -> None:
             log.info(f"[Azure:{self.account.id}:{name}] start collecting: {clazz.kind}")
             clazz.collect_resources(builder)
             log.info(f"[Azure:{self.account.id}:{name}] finished collecting: {clazz.kind}")

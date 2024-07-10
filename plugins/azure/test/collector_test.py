@@ -5,10 +5,10 @@ from typing import List, Type
 
 from conftest import connect_resources
 
-from fix_plugin_azure.azure_client import AzureClient
+from fix_plugin_azure.azure_client import MicrosoftClient
 from fix_plugin_azure.collector import AzureSubscriptionCollector
 from fix_plugin_azure.config import AzureCredentials, AzureConfig
-from fix_plugin_azure.resource.base import AzureResource, AzureSubscription, GraphBuilder
+from fix_plugin_azure.resource.base import MicrosoftResource, AzureSubscription, GraphBuilder
 from fix_plugin_azure.resource.compute import (
     AzureDiskTypePricing,
     AzureVirtualMachine,
@@ -41,7 +41,7 @@ def test_collect(
     azure_subscription: AzureSubscription,
     credentials: AzureCredentials,
     core_feedback: CoreFeedback,
-    azure_client: AzureClient,
+    azure_client: MicrosoftClient,
 ) -> None:
     collector = AzureSubscriptionCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
     collector.collect()
@@ -85,7 +85,7 @@ def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> N
 
     collector = collector_with_graph(builder.graph, credentials)
 
-    resource_types: List[Type[AzureResource]] = [
+    resource_types: List[Type[MicrosoftResource]] = [
         AzureVirtualMachine,
         AzureDisk,
     ]

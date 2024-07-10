@@ -3,16 +3,17 @@ from typing import Callable, ClassVar, Dict, Optional, List, Type, Tuple
 
 from attr import define, field
 
-from fix_plugin_azure.azure_client import AzureApiSpec
+from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
-    AzureResource,
+    MicrosoftResource,
     GraphBuilder,
     AzureSubResource,
     AzureSku,
     AzureExtendedLocation,
     AzurePrivateLinkServiceConnectionState,
     AzureManagedServiceIdentity,
+    MicrosoftResource,
 )
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
 from fix_plugin_azure.utils import rgetattr
@@ -969,9 +970,9 @@ class AzureApplicationGatewayGlobalConfiguration:
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGateway(AzureResource, BaseGateway):
+class AzureApplicationGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_application_gateway"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/applicationGateways",
@@ -1129,9 +1130,9 @@ class AzureApplicationGatewayFirewallRuleGroup:
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayFirewallRuleSet(AzureResource):
+class AzureApplicationGatewayFirewallRuleSet(MicrosoftResource):
     kind: ClassVar[str] = "azure_application_gateway_firewall_rule_set"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/applicationGatewayAvailableWafRuleSets",
@@ -1150,11 +1151,11 @@ class AzureApplicationGatewayFirewallRuleSet(AzureResource):
         "rule_set_version": S("properties", "ruleSetVersion"),
         "tiers": S("properties", "tiers"),
     }
+    _is_provider_link: ClassVar[bool] = False
     rule_groups: Optional[List[AzureApplicationGatewayFirewallRuleGroup]] = field(default=None, metadata={'description': 'The rule groups of the web application firewall rule set.'})  # fmt: skip
     rule_set_type: Optional[str] = field(default=None, metadata={'description': 'The type of the web application firewall rule set.'})  # fmt: skip
     rule_set_version: Optional[str] = field(default=None, metadata={'description': 'The version of the web application firewall rule set type.'})  # fmt: skip
     tiers: Optional[List[str]] = field(default=None, metadata={'description': 'Tier of an application gateway that support the rule set.'})  # fmt: skip
-    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
@@ -1355,9 +1356,9 @@ class AzureFirewallSku:
 
 
 @define(eq=False, slots=False)
-class AzureFirewall(AzureResource, BaseFirewall):
+class AzureFirewall(MicrosoftResource, BaseFirewall):
     kind: ClassVar[str] = "azure_firewall"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/azureFirewalls",
@@ -1449,9 +1450,9 @@ class AzureIpRules:
 
 
 @define(eq=False, slots=False)
-class AzureBastionHost(AzureResource):
+class AzureBastionHost(MicrosoftResource):
     kind: ClassVar[str] = "azure_bastion_host"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/bastionHosts",
@@ -1510,9 +1511,9 @@ class AzureBastionHost(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureCustomIpPrefix(AzureResource):
+class AzureCustomIpPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_custom_ip_prefix"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/customIpPrefixes",
@@ -1561,9 +1562,9 @@ class AzureCustomIpPrefix(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureDdosProtectionPlan(AzureResource):
+class AzureDdosProtectionPlan(MicrosoftResource):
     kind: ClassVar[str] = "azure_ddos_protection_plan"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/ddosProtectionPlans",
@@ -1762,9 +1763,9 @@ class AzureFlowLog:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkSecurityGroup(AzureResource, BaseSecurityGroup):
+class AzureNetworkSecurityGroup(MicrosoftResource, BaseSecurityGroup):
     kind: ClassVar[str] = "azure_network_security_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkSecurityGroups",
@@ -1960,9 +1961,9 @@ class AzureIpTag:
 
 
 @define(eq=False, slots=False)
-class AzureNatGateway(AzureResource):
+class AzureNatGateway(MicrosoftResource):
     kind: ClassVar[str] = "azure_nat_gateway"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/natGateways",
@@ -1999,9 +2000,9 @@ class AzureNatGateway(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzurePublicIPAddress(AzureResource, BaseIPAddress):
+class AzurePublicIPAddress(MicrosoftResource, BaseIPAddress):
     kind: ClassVar[str] = "azure_public_ip_address"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/publicIPAddresses",
@@ -2168,7 +2169,7 @@ class AzureDelegation(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureSubnet(AzureResource, BaseSubnet):
+class AzureSubnet(MicrosoftResource, BaseSubnet):
     kind: ClassVar[str] = "azure_subnet"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2279,9 +2280,9 @@ class AzureFrontendIPConfiguration(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualNetworkTap(AzureResource):
+class AzureVirtualNetworkTap(MicrosoftResource):
     kind: ClassVar[str] = "azure_virtual_network_tap"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworkTaps",
@@ -2480,9 +2481,9 @@ class AzureResourceSet:
 
 
 @define(eq=False, slots=False)
-class AzurePrivateLinkService(AzureResource):
+class AzurePrivateLinkService(MicrosoftResource):
     kind: ClassVar[str] = "azure_private_link_service"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/privateLinkServices",
@@ -2528,9 +2529,9 @@ class AzurePrivateLinkService(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkInterface(AzureResource, BaseNetworkInterface):
+class AzureNetworkInterface(MicrosoftResource, BaseNetworkInterface):
     kind: ClassVar[str] = "azure_network_interface"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces",
@@ -2635,9 +2636,9 @@ class AzureNetworkInterface(AzureResource, BaseNetworkInterface):
 
 
 @define(eq=False, slots=False)
-class AzureDscpConfiguration(AzureResource):
+class AzureDscpConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_dscp_configuration"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/dscpConfigurations",
@@ -2915,9 +2916,9 @@ class AzureExpressRouteCircuitServiceProviderProperties:
 
 
 @define(eq=False, slots=False)
-class AzureExpressRouteCircuit(AzureResource):
+class AzureExpressRouteCircuit(MicrosoftResource):
     kind: ClassVar[str] = "azure_express_route_circuit"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/expressRouteCircuits",
@@ -3039,9 +3040,9 @@ class AzureExpressRouteCrossConnectionPeering(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureExpressRouteCrossConnection(AzureResource):
+class AzureExpressRouteCrossConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_express_route_cross_connection"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/expressRouteCrossConnections",
@@ -3183,9 +3184,9 @@ class AzureExpressRouteConnection(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureExpressRouteGateway(AzureResource, BaseGateway):
+class AzureExpressRouteGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_express_route_gateway"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/expressRouteGateways",
@@ -3257,9 +3258,9 @@ class AzureExpressRouteLink(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureExpressRoutePort(AzureResource):
+class AzureExpressRoutePort(MicrosoftResource):
     kind: ClassVar[str] = "azure_express_route_port"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/ExpressRoutePorts",
@@ -3310,9 +3311,9 @@ class AzureExpressRoutePortsLocationBandwidths:
 
 
 @define(eq=False, slots=False)
-class AzureExpressRoutePortsLocation(AzureResource):
+class AzureExpressRoutePortsLocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_express_route_ports_location"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/ExpressRoutePortsLocations",
@@ -3494,9 +3495,9 @@ class AzureFirewallPolicyTransportSecurity:
 
 
 @define(eq=False, slots=False)
-class AzureFirewallPolicy(AzureResource, BasePolicy):
+class AzureFirewallPolicy(MicrosoftResource, BasePolicy):
     kind: ClassVar[str] = "azure_firewall_policy"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/firewallPolicies",
@@ -3550,9 +3551,9 @@ class AzureFirewallPolicy(AzureResource, BasePolicy):
 
 
 @define(eq=False, slots=False)
-class AzureIpAllocation(AzureResource):
+class AzureIpAllocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_ip_allocation"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/IpAllocations",
@@ -3593,9 +3594,9 @@ class AzureIpAllocation(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureIpGroup(AzureResource):
+class AzureIpGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_ip_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/ipGroups",
@@ -3867,9 +3868,9 @@ class AzureOutboundRule(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureLoadBalancer(AzureResource, BaseLoadBalancer):
+class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
     kind: ClassVar[str] = "azure_load_balancer"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/loadBalancers",
@@ -4040,9 +4041,9 @@ class AzureContainerNetworkInterface(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkProfile(AzureResource):
+class AzureNetworkProfile(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_profile"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkProfiles",
@@ -4169,9 +4170,9 @@ class AzurePartnerManagedResourceProperties:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkVirtualAppliance(AzureResource):
+class AzureNetworkVirtualAppliance(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkVirtualAppliances",
@@ -4290,9 +4291,9 @@ class AzureNetworkVirtualApplianceSkuInstances:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkVirtualApplianceSku(AzureResource):
+class AzureNetworkVirtualApplianceSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance_sku"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-04-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkVirtualApplianceSkus",
@@ -4311,16 +4312,16 @@ class AzureNetworkVirtualApplianceSku(AzureResource):
         "etag": S("etag"),
         "vendor": S("properties", "vendor"),
     }
+    _is_provider_link: ClassVar[bool] = False
     available_scale_units: Optional[List[AzureNetworkVirtualApplianceSkuInstances]] = field(default=None, metadata={'description': 'The list of scale units available.'})  # fmt: skip
     available_versions: Optional[List[str]] = field(default=None, metadata={'description': 'Available Network Virtual Appliance versions.'})  # fmt: skip
     vendor: Optional[str] = field(default=None, metadata={"description": "Network Virtual Appliance Sku vendor."})
-    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
-class AzureNetworkWatcher(AzureResource):
+class AzureNetworkWatcher(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_watcher"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkWatchers",
@@ -4467,9 +4468,9 @@ class AzureVpnClientConnectionHealth:
 
 
 @define(eq=False, slots=False)
-class AzureP2SVpnGateway(AzureResource, BaseGateway):
+class AzureP2SVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_p2_s_vpn_gateway"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/p2svpnGateways",
@@ -4511,9 +4512,9 @@ class AzureP2SVpnGateway(AzureResource, BaseGateway):
 
 
 @define(eq=False, slots=False)
-class AzurePublicIPPrefix(AzureResource):
+class AzurePublicIPPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_public_ip_prefix"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/publicIPPrefixes",
@@ -4575,9 +4576,9 @@ class AzureRouteFilterRule(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureRouteFilter(AzureResource):
+class AzureRouteFilter(MicrosoftResource):
     kind: ClassVar[str] = "azure_route_filter"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/routeFilters",
@@ -4602,9 +4603,9 @@ class AzureRouteFilter(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureSecurityPartnerProvider(AzureResource):
+class AzureSecurityPartnerProvider(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_partner_provider"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/securityPartnerProviders",
@@ -4629,9 +4630,9 @@ class AzureSecurityPartnerProvider(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkUsage(AzureResource, AzureBaseUsage, BaseNetworkQuota):
+class AzureNetworkUsage(MicrosoftResource, AzureBaseUsage, BaseNetworkQuota):
     kind: ClassVar[str] = "azure_network_usage"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/locations/{location}/usages",
@@ -4701,9 +4702,9 @@ class AzureVirtualHubRouteTableV2(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualHub(AzureResource):
+class AzureVirtualHub(MicrosoftResource):
     kind: ClassVar[str] = "azure_virtual_hub"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualHubs",
@@ -4883,9 +4884,9 @@ class AzureVirtualNetworkPeering(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualNetwork(AzureResource, BaseNetwork):
+class AzureVirtualNetwork(MicrosoftResource, BaseNetwork):
     kind: ClassVar[str] = "azure_virtual_network"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks",
@@ -4938,7 +4939,7 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_subnets() -> None:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="network",
                 version="2023-05-01",
                 path=f"{self.id}/subnets",
@@ -4960,9 +4961,9 @@ class AzureVirtualNetwork(AzureResource, BaseNetwork):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualRouter(AzureResource):
+class AzureVirtualRouter(MicrosoftResource):
     kind: ClassVar[str] = "azure_virtual_router"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualRouters",
@@ -4991,9 +4992,9 @@ class AzureVirtualRouter(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualWAN(AzureResource):
+class AzureVirtualWAN(MicrosoftResource):
     kind: ClassVar[str] = "azure_virtual_wan"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualWans",
@@ -5253,9 +5254,9 @@ class AzureVpnGatewayNatRule(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVpnGateway(AzureResource, BaseGateway):
+class AzureVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_vpn_gateway"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/vpnGateways",
@@ -5349,9 +5350,9 @@ class AzureAadAuthenticationParameters:
 
 
 @define(eq=False, slots=False)
-class AzureVpnServerConfiguration(AzureResource):
+class AzureVpnServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_vpn_server_configuration"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/vpnServerConfigurations",
@@ -5475,9 +5476,9 @@ class AzureO365PolicyProperties:
 
 
 @define(eq=False, slots=False)
-class AzureVpnSite(AzureResource, BasePeeringConnection):
+class AzureVpnSite(MicrosoftResource, BasePeeringConnection):
     kind: ClassVar[str] = "azure_vpn_site"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/vpnSites",
@@ -5721,9 +5722,9 @@ class AzureManagedRulesDefinition:
 
 
 @define(eq=False, slots=False)
-class AzureWebApplicationFirewallPolicy(AzureResource):
+class AzureWebApplicationFirewallPolicy(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_application_firewall_policy"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
@@ -5755,7 +5756,7 @@ class AzureWebApplicationFirewallPolicy(AzureResource):
     resource_state: Optional[str] = field(default=None, metadata={"description": "Resource status of the policy."})
 
 
-resources: List[Type[AzureResource]] = [
+resources: List[Type[MicrosoftResource]] = [
     AzureApplicationGateway,
     AzureApplicationGatewayFirewallRuleSet,
     AzureFirewall,

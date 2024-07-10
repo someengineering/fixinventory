@@ -9,7 +9,7 @@ from azure.core.exceptions import (
 
 from attr import define, field
 
-from fix_plugin_azure.azure_client import AzureApiSpec
+from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import GraphBuilder
 from fix_plugin_azure.utils import MetricNormalization
 from fixlib.baseresources import BaseResource
@@ -215,7 +215,7 @@ class AzureMetricData:
         result: Dict[AzureMetricQuery, AzureMetricData] = {}
 
         # Define API specifications for querying Azure metrics
-        api_spec = AzureApiSpec(
+        api_spec = AzureResourceSpec(
             service="metric",
             version="2019-07-01",
             path="",
@@ -266,7 +266,7 @@ class AzureMetricData:
     def _query_for_single(
         builder: GraphBuilder,
         query: AzureMetricQuery,
-        api_spec: AzureApiSpec,
+        api_spec: AzureResourceSpec,
         timespan: str,
         interval: str,
     ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":

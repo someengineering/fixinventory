@@ -60,7 +60,7 @@ ErrorMap = {
 
 
 @define
-class AzureApiSpec:
+class AzureResourceSpec:
     service: str
     version: str
     path: str
@@ -70,7 +70,7 @@ class AzureApiSpec:
     expect_array: bool = False
     expected_error_codes: List[str] = field(factory=list)
 
-    def request(self, client: "AzureResourceManagementClient", **kwargs: Any) -> HttpRequest:
+    def request(self, client: "MicrosoftResourceManagementClient", **kwargs: Any) -> HttpRequest:
         ser = Serializer()
         # Construct lookup map used to fill query and path parameters
         lookup_map = {"subscriptionId": client.subscription_id, "location": client.location, **kwargs}
@@ -100,7 +100,7 @@ class AzureApiSpec:
         url = client.resource_management_client._client.format_url(path)  # pylint: disable=protected-access
         return HttpRequest(method="GET", url=url, params=params)
 
-    def response(self, client: "AzureResourceManagementClient", request: HttpRequest) -> HttpResponse:
+    def response(self, client: "MicrosoftResourceManagementClient", request: HttpRequest) -> HttpResponse:
         pipeline_response = client.resource_management_client._client._pipeline.run(request, stream=False)
         return cast(HttpResponse, pipeline_response.http_response)
 
@@ -110,7 +110,7 @@ class AzureApiSpec:
 
 
 @define
-class AzureRestApiSpec:
+class RestApiSpec:
     service: str
     url: str
     scope: str = ""  # if not provided, will be inferred from the URL: <scheme>://<netloc>/.default
@@ -125,10 +125,10 @@ class AzureRestApiSpec:
             ps = urlparse(self.url)
             self.scope = f"{ps.scheme}://{ps.netloc}/.default"
 
-    def request(self, _: "AzureResourceManagementClient", **__: Any) -> HttpRequest:
+    def request(self, _: "MicrosoftResourceManagementClient", **__: Any) -> HttpRequest:
         return HttpRequest(method="GET", url=self.url, params=self.parameters, headers=self.headers)
 
-    def response(self, client: "AzureResourceManagementClient", request: HttpRequest) -> HttpResponse:
+    def response(self, client: "MicrosoftResourceManagementClient", request: HttpRequest) -> HttpResponse:
         tkn = client.token_cache.token(self.scope)
         # parameters already encoded into the URL
         request.headers.update({"Authorization": f"Bearer {tkn}"})
@@ -142,7 +142,7 @@ class AzureRestApiSpec:
         return self.url
 
 
-AzureRestSpec = Union[AzureApiSpec, AzureRestApiSpec]
+MicrosoftRestSpec = Union[AzureResourceSpec, RestApiSpec]
 
 
 class CredentialsTokenCache:
@@ -158,13 +158,13 @@ class CredentialsTokenCache:
         return self.__token(scope, int(time.time() / self.ttl_seconds))
 
 
-class AzureClient(ABC):
+class MicrosoftClient(ABC):
     @abstractmethod
-    def list(self, spec: AzureRestSpec, **kwargs: Any) -> List[Json]:
+    def list(self, spec: MicrosoftRestSpec, **kwargs: Any) -> List[Json]:
         pass
 
     @abstractmethod
-    def for_location(self, location: str) -> AzureClient:
+    def for_location(self, location: str) -> MicrosoftClient:
         pass
 
     @abstractmethod
@@ -188,15 +188,15 @@ class AzureClient(ABC):
         core_feedback: Optional[CoreFeedback] = None,
         error_accumulator: Optional[ErrorAccumulator] = None,
         token_cache: Optional[CredentialsTokenCache] = None,
-    ) -> AzureClient:
-        return AzureResourceManagementClient(
+    ) -> MicrosoftClient:
+        return MicrosoftResourceManagementClient(
             config, credential, subscription_id, location, core_feedback, error_accumulator, token_cache
         )
 
     create = __create_management_client
 
 
-class AzureResourceManagementClient(AzureClient):
+class MicrosoftResourceManagementClient(MicrosoftClient):
     def __init__(
         self,
         config: AzureConfig,
@@ -216,7 +216,7 @@ class AzureResourceManagementClient(AzureClient):
         self.accumulator = accumulator or ErrorAccumulator()
         self.resource_management_client = ResourceManagementClient(self.credential, self.subscription_id)
 
-    def list(self, spec: AzureRestSpec, **kwargs: Any) -> List[Json]:
+    def list(self, spec: MicrosoftRestSpec, **kwargs: Any) -> List[Json]:
         result = self._list_with_retry(spec, **kwargs)
         if result is None:
             return []
@@ -300,7 +300,7 @@ class AzureResourceManagementClient(AzureClient):
         wait_exponential_max=60000,
         retry_on_exception=is_retryable_exception,
     )
-    def _list_with_retry(self, spec: AzureRestSpec, **kwargs: Any) -> Optional[List[Json]]:
+    def _list_with_retry(self, spec: MicrosoftRestSpec, **kwargs: Any) -> Optional[List[Json]]:
         try:
             result = self._call(spec, **kwargs)
             if result is None:
@@ -334,7 +334,7 @@ class AzureResourceManagementClient(AzureClient):
             return None
 
     # noinspection PyProtectedMember
-    def _call(self, spec: AzureRestSpec, **kwargs: Any) -> JsonElement:
+    def _call(self, spec: MicrosoftRestSpec, **kwargs: Any) -> JsonElement:
         # Walk all pages if necessary
         next_page_request: Optional[HttpRequest] = spec.request(self, **kwargs)
         result: Union[None, Json, List[Json]] = None
@@ -369,8 +369,8 @@ class AzureResourceManagementClient(AzureClient):
 
         return result
 
-    def for_location(self, location: str) -> AzureClient:
-        return AzureClient.create(
+    def for_location(self, location: str) -> MicrosoftClient:
+        return MicrosoftClient.create(
             self.config,
             self.credential,
             self.subscription_id,

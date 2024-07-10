@@ -1,5 +1,5 @@
 from conftest import roundtrip_check, connect_resources
-from fix_plugin_azure.resource.base import GraphBuilder, AzureResource
+from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
 from fix_plugin_azure.resource.compute import *
 from fix_plugin_azure.resource.network import (
     AzureLoadBalancer,
@@ -14,7 +14,7 @@ def test_availability_sets(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureAvailabilitySet, builder)
     assert len(collected) == 4
 
-    resource_types: List[Type[AzureResource]] = [AzureProximityPlacementGroup, AzureVirtualMachine]
+    resource_types: List[Type[MicrosoftResource]] = [AzureProximityPlacementGroup, AzureVirtualMachine]
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureAvailabilitySet, AzureProximityPlacementGroup)) == 2
@@ -25,7 +25,7 @@ def test_capacity_reservation_group(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureCapacityReservationGroup, builder)
     assert len(collected) == 2
 
-    resource_type: List[Type[AzureResource]] = [AzureVirtualMachine]
+    resource_type: List[Type[MicrosoftResource]] = [AzureVirtualMachine]
     connect_resources(builder, resource_type)
 
     assert len(builder.edges_of(AzureCapacityReservationGroup, AzureVirtualMachine)) == 2
@@ -45,7 +45,7 @@ def test_disks(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDisk, builder, all_props=True)
     assert len(collected) == 3
 
-    resource_types: List[Type[AzureResource]] = [AzureDiskAccess, AzureDiskEncryptionSet]
+    resource_types: List[Type[MicrosoftResource]] = [AzureDiskAccess, AzureDiskEncryptionSet]
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureDiskAccess, AzureDisk)) == 2
@@ -68,7 +68,7 @@ def test_disk_type(builder: GraphBuilder) -> None:
 
     roundtrip_check(AzureDisk, builder)
 
-    resource_types: List[Type[AzureResource]] = [AzureDisk]
+    resource_types: List[Type[MicrosoftResource]] = [AzureDisk]
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureDisk, AzureDiskType)) == 2
@@ -98,7 +98,7 @@ def test_placement_group(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureProximityPlacementGroup, builder)
     assert len(collected) == 1
 
-    resource_types: List[Type[AzureResource]] = [AzureVirtualMachineScaleSet]
+    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualMachineScaleSet]
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureProximityPlacementGroup, AzureVirtualMachineScaleSet)) == 1
@@ -108,7 +108,7 @@ def test_restore_point_collection(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureRestorePointCollection, builder)
     assert len(collected) == 2
 
-    resource_type: List[Type[AzureResource]] = [AzureVirtualMachine]
+    resource_type: List[Type[MicrosoftResource]] = [AzureVirtualMachine]
     connect_resources(builder, resource_type)
 
     assert len(builder.edges_of(AzureRestorePointCollection, AzureVirtualMachine)) == 2
@@ -123,7 +123,7 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachine, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[AzureResource]] = [
+    resource_types: List[Type[MicrosoftResource]] = [
         AzureProximityPlacementGroup,
         AzureImage,
         AzureDisk,
@@ -153,7 +153,7 @@ def test_virtual_machine_scale_set(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineScaleSet, builder)
     assert len(collected) == 1
 
-    resource_types: List[Type[AzureResource]] = [
+    resource_types: List[Type[MicrosoftResource]] = [
         AzureLoadBalancer,
     ]
     connect_resources(builder, resource_types)
@@ -165,7 +165,7 @@ def test_virtual_machine_size(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSize, builder)
     assert len(collected) == 12
 
-    resource_types: List[Type[AzureResource]] = [
+    resource_types: List[Type[MicrosoftResource]] = [
         AzureVirtualMachine,
     ]
     connect_resources(builder, resource_types)
@@ -183,7 +183,7 @@ def test_snapshot(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSnapshot, builder)
     assert len(collected) == 2
 
-    resource_type: List[Type[AzureResource]] = [AzureDisk]
+    resource_type: List[Type[MicrosoftResource]] = [AzureDisk]
     connect_resources(builder, resource_type)
 
     assert len(builder.edges_of(AzureDisk, AzureVirtualMachineSnapshot)) == 1

@@ -5,14 +5,14 @@ from concurrent.futures import as_completed, ThreadPoolExecutor
 from enum import Enum
 from typing import Optional, Tuple, Any, List, TypeVar, Type
 
-from fix_plugin_azure.azure_client import AzureClient
+from fix_plugin_azure.azure_client import MicrosoftClient
 from fix_plugin_azure.collector import (
     AzureSubscriptionCollector,
     MicrosoftGraphOrganizationCollector,
     MicrosoftBaseCollector,
 )
 from fix_plugin_azure.config import AzureConfig, AzureAccountConfig, AzureCredentials
-from fix_plugin_azure.resource.base import AzureSubscription, AzureResource
+from fix_plugin_azure.resource.base import AzureSubscription, MicrosoftResource
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphOrganization
 from fixlib.baseplugin import BaseCollectorPlugin
 from fixlib.baseresources import Cloud, BaseAccount
@@ -23,7 +23,7 @@ from fixlib.graph import Graph, MaxNodesExceeded
 from fixlib.proc import collector_initializer
 
 log = logging.getLogger("fix.plugin.azure")
-T = TypeVar("T", bound=AzureResource)
+T = TypeVar("T", bound=MicrosoftResource)
 
 
 class AzureCollectorKind(Enum):
@@ -131,7 +131,7 @@ class AzureCollectorPlugin(BaseCollectorPlugin):
 def list_all(resource: Type[T], config: AzureConfig, credentials: AzureCredentials) -> List[T]:
     if resource.api_spec is None:
         return []
-    client = AzureClient.create(config, credentials, "global")
+    client = MicrosoftClient.create(config, credentials, "global")
     return [resource.from_api(js) for js in client.list(resource.api_spec)]
 
 
