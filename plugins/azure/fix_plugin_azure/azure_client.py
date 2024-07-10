@@ -132,7 +132,7 @@ class AzureRestApiSpec:
         tkn = client.token_cache.token(self.scope)
         # parameters already encoded into the URL
         request.headers.update({"Authorization": f"Bearer {tkn}"})
-        response = requests.get(request.url, headers=request.headers)
+        response = requests.get(request.url, headers=request.headers, timeout=120)
         result = RestRequestsTransportResponse(internal_response=response, request=request)  # type: ignore
         result.read()  # explicit read required
         return result
