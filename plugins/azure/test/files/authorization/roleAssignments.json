@@ -1,0 +1,61 @@
+{
+    "value" : [
+        {
+            "condition": null,
+            "conditionVersion": null,
+            "createdBy": "00000000-0000-0000-0000-000000000000",
+            "createdOn": "2024-06-17T16:40:22.978349+00:00",
+            "delegatedManagedIdentityResourceId": null,
+            "description": null,
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleAssignments/00000000-0000-0000-0000-000000000000",
+            "name": "00000000-0000-0000-0000-000000000000",
+            "principalId": "acd326f8-9cef-48a9-9fd4-3dc64bbd5f79",
+            "principalName": "89227a33-4b4a-4609-afcf-d9c25b0e0d18",
+            "principalType": "ServicePrincipal",
+            "roleDefinitionId": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/00000000-0000-0000-0000-000000000000",
+            "roleDefinitionName": "Reader",
+            "scope": "/subscriptions/00000000-0000-0000-0000-000000000000",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "updatedBy": "00000000-0000-0000-0000-000000000000",
+            "updatedOn": "2024-06-17T16:40:22.978349+00:00"
+        },
+        {
+            "condition": null,
+            "conditionVersion": null,
+            "createdBy": "00000000-0000-0000-0000-000000000000",
+            "createdOn": "2024-06-18T16:35:53.340128+00:00",
+            "delegatedManagedIdentityResourceId": null,
+            "description": null,
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleAssignments/00000000-0000-0000-0000-000000000000",
+            "name": "00000000-0000-0000-0000-000000000000",
+            "principalId": "e6cab645-59d1-4290-9f99-b743d00590bc",
+            "principalName": "8ee9f772-a733-4c61-a540-9654ac957534",
+            "principalType": "ServicePrincipal",
+            "roleDefinitionId": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/00000000-0000-0000-0000-000000000000",
+            "roleDefinitionName": "Reader",
+            "scope": "/subscriptions/00000000-0000-0000-0000-000000000000",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "updatedBy": "00000000-0000-0000-0000-000000000000",
+            "updatedOn": "2024-06-18T16:35:53.340128+00:00"
+        },
+        {
+            "condition": null,
+            "conditionVersion": null,
+            "createdBy": "a3548796-5f09-484c-80c9-f6ffdeb3299e",
+            "createdOn": "2024-07-10T10:30:04.305259+00:00",
+            "delegatedManagedIdentityResourceId": null,
+            "description": null,
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleAssignments/c81526e3-8913-416f-a14e-0859f7f220cd",
+            "name": "c81526e3-8913-416f-a14e-0859f7f220cd",
+            "principalId": "00000000-0000-0000-0000-000000000000",
+            "principalName": "00000000-0000-0000-0000-000000000000",
+            "principalType": "ServicePrincipal",
+            "roleDefinitionId": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+            "roleDefinitionName": "Contributor",
+            "scope": "/subscriptions/00000000-0000-0000-0000-000000000000",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "updatedBy": "00000000-0000-0000-0000-000000000000",
+            "updatedOn": "2024-07-10T10:30:04.305259+00:00"
+        }
+    ]
+}
