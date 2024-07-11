@@ -1,60 +1,50 @@
 {
     "value": [
         {
-            "assignableScopes": ["/"],
-            "createdBy": null,
-            "createdOn": "2024-07-10T17:34:56.610160+00:00",
-            "description": "Grants read/write access to container groups provided by Azure Container Instances",
-            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/00000000-0000-0000-0000-000000000000",
-            "name": "00000000-0000-0000-0000-000000000000",
-            "permissions": [
-                {
-                    "actions": [
-                        "Microsoft.ContainerInstance/containerGroups/*",
-                        "Microsoft.Resources/deployments/*",
-                        "Microsoft.Authorization/*/read",
-                        "Microsoft.Insights/alertRules/*",
-                        "Microsoft.Resources/subscriptions/resourceGroups/read"
-                    ],
-                    "condition": null,
-                    "conditionVersion": null,
-                    "dataActions": [],
-                    "notActions": [],
-                    "notDataActions": []
-                }
-            ],
-            "roleName": "Azure Container Instances Contributor Role",
-            "roleType": "BuiltInRole",
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleDefinitions/reader",
             "type": "Microsoft.Authorization/roleDefinitions",
-            "updatedBy": null,
-            "updatedOn": "2024-07-10T17:34:56.610160+00:00"
+            "name": "reader",
+            "properties": {
+                "roleName": "Reader",
+                "description": "Can view all resources, but does not allow for any form of modification or deletion.",
+                "type": "BuiltInRole",
+                "permissions": [
+                    {
+                        "actions": [
+                            "*/read"
+                        ],
+                        "notActions": []
+                    }
+                ],
+                "assignableScopes": [
+                    "/subscriptions/00000000-0000-0000-0000-000000000001"
+                ]
+            }
         },
         {
-            "assignableScopes": ["/"],
-            "createdBy": null,
-            "createdOn": "2024-07-11T08:23:57.628378+00:00",
-            "description": "Read connectors and their associated resources, such as impacts and insights.",
-            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/00000000-0000-0000-0000-000000000001",
-            "name": "00000000-0000-0000-0000-000000000001",
-            "permissions": [
-                {
-                    "actions": [
-                        "Microsoft.Impact/Connectors/Read",
-                        "Microsoft.Impact/WorkloadImpacts/Read",
-                        "Microsoft.Impact/WorkloadImpacts/Insights/Read"
-                    ],
-                    "condition": null,
-                    "conditionVersion": null,
-                    "dataActions": [],
-                    "notActions": [],
-                    "notDataActions": []
-                }
-            ],
-            "roleName": "Connector Reader",
-            "roleType": "BuiltInRole",
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleDefinitions/contributor",
             "type": "Microsoft.Authorization/roleDefinitions",
-            "updatedBy": null,
-            "updatedOn": "2024-07-11T08:23:57.628378+00:00"
+            "name": "contributor",
+            "properties": {
+                "roleName": "Contributor",
+                "description": "Can manage all resources (except access to them), including deleting and modifying them.",
+                "type": "BuiltInRole",
+                "permissions": [
+                    {
+                        "actions": [
+                            "*"
+                        ],
+                        "notActions": [
+                            "Microsoft.Authorization/*/Delete",
+                            "Microsoft.Authorization/*/Write",
+                            "Microsoft.Authorization/*/Action"
+                        ]
+                    }
+                ],
+                "assignableScopes": [
+                    "/subscriptions/00000000-0000-0000-0000-000000000001"
+                ]
+            }
         }
     ]
 }

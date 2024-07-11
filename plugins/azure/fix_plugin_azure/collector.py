@@ -7,6 +7,7 @@ from typing import Any, Optional, Type, List, Dict
 from azure.core.utils import CaseInsensitiveDict
 from fix_plugin_azure.azure_client import MicrosoftClient, RestApiSpec
 from fix_plugin_azure.config import AzureConfig, AzureCredentials
+from fix_plugin_azure.resource.authorization import resources as authorization_resources
 from fix_plugin_azure.resource.base import (
     AzureLocation,
     AzureSubscription,
@@ -50,7 +51,7 @@ def resource_with_params(clazz: Type[MicrosoftResource], param: str) -> bool:
 
 
 subscription_resources: List[Type[MicrosoftResource]] = (
-    base_resources + compute_resources + network_resources + aks_resources + storage_resources
+    base_resources + authorization_resources + compute_resources + network_resources + aks_resources + storage_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
