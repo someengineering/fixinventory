@@ -597,7 +597,7 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"network"}), key=lambda x: x.name)}
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"authorization"}), key=lambda x: x.name)}
     models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":
