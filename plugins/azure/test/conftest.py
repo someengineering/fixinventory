@@ -12,8 +12,8 @@ from azure.identity import DefaultAzureCredential
 from pytest import fixture
 
 from fix_plugin_azure.config import AzureConfig
-from fix_plugin_azure.azure_client import AzureClient, AzureApiSpec
-from fix_plugin_azure.resource.base import GraphBuilder, AzureSubscription, AzureResourceType, AzureLocation
+from fix_plugin_azure.azure_client import MicrosoftClient, AzureResourceSpec, MicrosoftRestSpec
+from fix_plugin_azure.resource.base import GraphBuilder, AzureSubscription, MicrosoftResourceType, AzureLocation
 from fixlib.baseresources import Cloud
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
@@ -21,8 +21,9 @@ from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
 
 
-class StaticFileAzureClient(AzureClient):
-    def list(self, spec: AzureApiSpec, **kwargs: Any) -> List[Json]:
+class StaticFileMicrosoftClient(MicrosoftClient):
+    def list(self, spec: MicrosoftRestSpec, **kwargs: Any) -> List[Json]:
+        assert isinstance(spec, AzureResourceSpec)
         query_start_index = spec.path.find("?")
         spec_path = spec.path[:query_start_index] if query_start_index != -1 else spec.path
         splitted_path = spec_path.rsplit("/")
@@ -41,10 +42,10 @@ class StaticFileAzureClient(AzureClient):
                 return [js]
 
     @staticmethod
-    def create(*args: Any, **kwargs: Any) -> StaticFileAzureClient:
-        return StaticFileAzureClient()
+    def create(*args: Any, **kwargs: Any) -> StaticFileMicrosoftClient:
+        return StaticFileMicrosoftClient()
 
-    def for_location(self, location: str) -> AzureClient:
+    def for_location(self, location: str) -> MicrosoftClient:
         return self
 
     def delete(self, resource_id: str) -> bool:
@@ -84,11 +85,11 @@ def credentials() -> DefaultAzureCredential:
 
 
 @fixture
-def azure_client() -> Iterator[AzureClient]:
-    original = AzureClient.create
-    AzureClient.create = StaticFileAzureClient.create
-    yield StaticFileAzureClient()
-    AzureClient.create = original
+def azure_client() -> Iterator[MicrosoftClient]:
+    original = MicrosoftClient.create
+    MicrosoftClient.create = StaticFileMicrosoftClient.create
+    yield StaticFileMicrosoftClient()
+    MicrosoftClient.create = original
 
 
 @fixture
@@ -100,14 +101,14 @@ def core_feedback() -> CoreFeedback:
 def builder(
     executor_queue: ExecutorQueue,
     azure_subscription: AzureSubscription,
-    azure_client: AzureClient,
+    azure_client: MicrosoftClient,
     core_feedback: CoreFeedback,
     config: AzureConfig,
 ) -> GraphBuilder:
     builder = GraphBuilder(
         graph=Graph(),
         cloud=Cloud(id="azure"),
-        subscription=azure_subscription,
+        account=azure_subscription,
         client=azure_client,
         executor=executor_queue,
         core_feedback=core_feedback,
@@ -120,7 +121,7 @@ def builder(
     return builder
 
 
-def all_props_set(obj: AzureResourceType, ignore_props: Optional[Set[str]] = None) -> None:
+def all_props_set(obj: MicrosoftResourceType, ignore_props: Optional[Set[str]] = None) -> None:
     for field in fields(type(obj)):
         prop = field.name
         if not prop.startswith("_") and prop not in {
@@ -139,12 +140,12 @@ def all_props_set(obj: AzureResourceType, ignore_props: Optional[Set[str]] = Non
 
 
 def roundtrip_check(
-    resource_clazz: Type[AzureResourceType],
+    resource_clazz: Type[MicrosoftResourceType],
     builder: GraphBuilder,
     *,
     all_props: bool = False,
     check_correct_ser: bool = True,
-) -> List[AzureResourceType]:
+) -> List[MicrosoftResourceType]:
     resources = resource_clazz.collect_resources(builder)
     assert len(resources) > 0
     if all_props:
@@ -164,8 +165,8 @@ def roundtrip_check(
 
 def connect_resources(
     builder: GraphBuilder,
-    collect_resources: Optional[List[Type[AzureResourceType]]] = None,
-    filter_class: Optional[Type[AzureResourceType]] = None,
+    collect_resources: Optional[List[Type[MicrosoftResourceType]]] = None,
+    filter_class: Optional[Type[MicrosoftResourceType]] = None,
 ) -> None:
     # collect all defined resource kinds before we can connect them
     for resource_kind in collect_resources or []:

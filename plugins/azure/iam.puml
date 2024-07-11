@@ -1,0 +1,89 @@
+
+@startuml
+hide empty members
+
+package MicrosoftGraph {
+    package Organization {
+        class Group
+        class User
+        class Device
+        class ServicePrincipal
+        class DirectoryRole {
+          + permissions: string[]
+        }
+        class Application
+        class ManagedIdentity
+        class ConditionalAccessPolicy {
+          + grants
+          + denies
+        }
+        note bottom of ServicePrincipal
+          "Instantiates" an application per organization
+          Also means: there can be a principal without
+          application in case of multi tenant apps.
+        end note
+        note left of ConditionalAccessPolicy
+        grants or denies specific things
+        based on principal, location, device, etc.
+        Example:
+        "Enforce MFA from Untrusted Locations"
+        end note
+        class NamedLocation
+
+        <> Principal
+        Principal ..> User
+        Principal ..> ServicePrincipal
+        Principal ..> Group
+        Principal ..> ManagedIdentity
+
+        ConditionalAccessPolicy --> Principal
+        ConditionalAccessPolicy --> NamedLocation
+        ConditionalAccessPolicy --> Application
+
+        Group -> Group
+        Group --> User
+        Group ---> Device
+        Group --> ServicePrincipal
+        User --> DirectoryRole
+        ServicePrincipal --> DirectoryRole
+        Device --> DirectoryRole
+        Application <-- ServicePrincipal
+
+    }
+}
+
+package Azure {
+    class ManagementGroup
+    package Subscription {
+        class RoleAssignment
+        class ResourcePolicy
+        class Role {
+            + permissions: string[]
+        }
+        class ResourceGroup
+        class Resource
+
+        <> Scope
+        RoleAssignment -----> Principal
+        RoleAssignment ---> Scope
+        ResourcePolicy ---> Scope
+        Role <-- RoleAssignment
+        Subscription <.. Scope
+        ResourceGroup <.. Scope
+        Resource <.. Scope
+        ManagementGroup <.. Scope
+
+        note top of ResourcePolicy
+          No reference to any Principal
+          Generic rules that apply to all resources.
+          Example:
+          do not allow vms with more than 8 cores
+        end note
+    }
+    ManagementGroup --> ManagementGroup
+    Subscription <-- ManagementGroup
+    ResourceGroup *--> Resource
+
+}
+
+@enduml

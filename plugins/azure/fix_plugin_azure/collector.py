@@ -1,22 +1,30 @@
 import logging
+from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor, Future
-from typing import Any, Optional, Type, Set, List
 from datetime import datetime, timezone
+from typing import Any, Optional, Type, List, Dict
 
+from azure.core.utils import CaseInsensitiveDict
+from fix_plugin_azure.azure_client import MicrosoftClient, RestApiSpec
 from fix_plugin_azure.config import AzureConfig, AzureCredentials
-from fix_plugin_azure.azure_client import AzureClient
+from fix_plugin_azure.resource.base import (
+    AzureLocation,
+    AzureSubscription,
+    GraphBuilder,
+    resources as base_resources,
+    MicrosoftResource,
+)
 from fix_plugin_azure.resource.compute import (
     AzureVirtualMachineSize,
     AzureDiskType,
     AzureDiskTypePricing,
     resources as compute_resources,
 )
-from fix_plugin_azure.resource.base import (
-    AzureLocation,
-    AzureSubscription,
-    GraphBuilder,
-    AzureResource,
-    resources as base_resources,
+from fix_plugin_azure.resource.containerservice import resources as aks_resources
+from fix_plugin_azure.resource.microsoft_graph import (
+    MicrosoftGraphOrganization,
+    resources as graph_resources,
+    MicrosoftGraphOrganizationRoot,
 )
 from fix_plugin_azure.resource.network import (
     AzureExpressRoutePortsLocation,
@@ -25,8 +33,7 @@ from fix_plugin_azure.resource.network import (
     resources as network_resources,
 )
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
-from fix_plugin_azure.resource.containerservice import resources as aks_resources
-from fixlib.baseresources import Cloud, GraphRoot
+from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
 from fixlib.json import value_in_path
@@ -36,51 +43,57 @@ from fixlib.types import Json
 log = logging.getLogger("fix.plugin.azure")
 
 
-def resource_with_params(clazz: Type[AzureResource], params: Set[str], includes_all: bool = False) -> bool:
-    if clazz.api_spec is None:
+def resource_with_params(clazz: Type[MicrosoftResource], param: str) -> bool:
+    if clazz.api_spec is None or isinstance(clazz.api_spec, RestApiSpec):
         return False
-    cp = set(clazz.api_spec.path_parameters)
-    return cp.issubset(params) and (not includes_all or params.issubset(cp))
+    return param in clazz.api_spec.path_parameters
 
 
-all_resources: List[Type[AzureResource]] = (
+subscription_resources: List[Type[MicrosoftResource]] = (
     base_resources + compute_resources + network_resources + aks_resources + storage_resources
 )
-global_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId"})]
-regional_resources = [r for r in all_resources if resource_with_params(r, {"subscriptionId", "location"}, True)]
+all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
 
-class AzureSubscriptionCollector:
+class MicrosoftBaseCollector:
     def __init__(
         self,
         config: AzureConfig,
         cloud: Cloud,
-        subscription: AzureSubscription,
+        account: BaseAccount,
         credentials: AzureCredentials,
         core_feedback: CoreFeedback,
+        global_resources: List[Type[MicrosoftResource]],
+        regional_resources: List[Type[MicrosoftResource]],
         task_data: Optional[Json] = None,
         max_resources_per_account: Optional[int] = None,
     ):
         self.config = config
         self.cloud = cloud
-        self.subscription = subscription
+        self.account = account
         self.credentials = credentials
         self.core_feedback = core_feedback
-        self.graph = Graph(root=subscription, max_nodes=max_resources_per_account)
+        self.global_resources = global_resources
+        self.regional_resources = regional_resources
+        self.graph = Graph(root=account, max_nodes=max_resources_per_account)
         self.task_data = task_data
+
+    @abstractmethod
+    def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
+        pass
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
-            thread_name_prefix=f"azure_{self.subscription.subscription_id}",
+            thread_name_prefix=f"azure_{self.account.id}",
             max_workers=self.config.resource_pool_size,
         ) as executor:
-            self.core_feedback.progress_done(self.subscription.subscription_id, 0, 1, context=[self.cloud.id])
+            self.core_feedback.progress_done(self.account.id, 0, 1, context=[self.cloud.id])
             queue = ExecutorQueue(executor, "azure_collector")
             error_accumulator = ErrorAccumulator()
-            client = AzureClient.create(
+            client = MicrosoftClient.create(
                 self.config,
                 self.credentials,
-                self.subscription.subscription_id,
+                self.account.id,
                 core_feedback=self.core_feedback,
                 error_accumulator=error_accumulator,
             )
@@ -97,7 +110,7 @@ class AzureSubscriptionCollector:
             builder = GraphBuilder(
                 self.graph,
                 self.cloud,
-                self.subscription,
+                self.account,
                 client,
                 queue,
                 self.core_feedback,
@@ -105,18 +118,19 @@ class AzureSubscriptionCollector:
                 last_run_started_at=last_run,
             )
             # collect all locations
-            locations = builder.fetch_locations()
+            locations = self.locations(builder)
+            builder.location_lookup = locations
             # collect all global resources
-            self.collect_resource_list("subscription", builder, global_resources)
+            self.collect_resource_list("subscription", builder, self.global_resources)
             # collect all regional resources
-            for location in locations:
-                self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
+            for location in locations.values():
+                self.collect_resource_list(location.safe_name, builder.with_location(location), self.regional_resources)
             # wait for all work to finish
             queue.wait_for_submitted_work()
             # connect nodes
-            log.info(f"[Azure:{self.subscription.safe_name}] Connect resources and create edges.")
+            log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
-                if isinstance(node, AzureResource):
+                if isinstance(node, MicrosoftResource):
                     node.connect_in_graph(builder, data.get("source", {}))
                 elif isinstance(node, (GraphRoot, Cloud)):
                     pass
@@ -129,29 +143,29 @@ class AzureSubscriptionCollector:
 
             # post process nodes
             for node, data in list(self.graph.nodes(data=True)):
-                if isinstance(node, AzureResource):
+                if isinstance(node, MicrosoftResource):
                     node.after_collect(builder, data.get("source", {}))
 
             # delete unnecessary nodes after all work is completed
             self.after_collect_filter()
             # report all accumulated errors
             error_accumulator.report_all(self.core_feedback)
-            self.core_feedback.progress_done(self.subscription.subscription_id, 1, 1, context=[self.cloud.id])
-            log.info(f"[Azure:{self.subscription.safe_name}] Collecting resources done.")
+            self.core_feedback.progress_done(self.account.id, 1, 1, context=[self.cloud.id])
+            log.info(f"[Azure:{self.account.safe_name}] Collecting resources done.")
 
     def collect_resource_list(
-        self, name: str, builder: GraphBuilder, resources: List[Type[AzureResource]]
+        self, name: str, builder: GraphBuilder, resources: List[Type[MicrosoftResource]]
     ) -> Future[None]:
-        def collect_resource(clazz: Type[AzureResource]) -> None:
-            log.info(f"[Azure:{self.subscription.subscription_id}:{name}] start collecting: {clazz.kind}")
+        def collect_resource(clazz: Type[MicrosoftResource]) -> None:
+            log.info(f"[Azure:{self.account.id}:{name}] start collecting: {clazz.kind}")
             clazz.collect_resources(builder)
-            log.info(f"[Azure:{self.subscription.subscription_id}:{name}] finished collecting: {clazz.kind}")
+            log.info(f"[Azure:{self.account.id}:{name}] finished collecting: {clazz.kind}")
 
         def work_done(_: Future[None]) -> None:
-            self.core_feedback.progress_done(name, 1, 1, context=[self.cloud.id, self.subscription.subscription_id])
+            self.core_feedback.progress_done(name, 1, 1, context=[self.cloud.id, self.account.id])
 
         group_futures = []
-        self.core_feedback.progress_done(name, 0, 1, context=[self.cloud.id, self.subscription.subscription_id])
+        self.core_feedback.progress_done(name, 0, 1, context=[self.cloud.id, self.account.id])
         for resource_type in resources:
             group_futures.append(builder.submit_work("azure_all", collect_resource, resource_type))
         all_done = GatherFutures.all(group_futures)
@@ -210,3 +224,62 @@ class AzureSubscriptionCollector:
             removed.add(node)
             self.graph.remove_node(node)
         nodes_to_delte.clear()
+
+
+class AzureSubscriptionCollector(MicrosoftBaseCollector):
+    def __init__(
+        self,
+        config: AzureConfig,
+        cloud: Cloud,
+        subscription: AzureSubscription,
+        credentials: AzureCredentials,
+        core_feedback: CoreFeedback,
+        task_data: Optional[Json] = None,
+        max_resources_per_account: Optional[int] = None,
+    ):
+        regional_resources = [r for r in subscription_resources if resource_with_params(r, "location")]
+        global_resources = list(set(subscription_resources) - set(regional_resources))
+        super().__init__(
+            config,
+            cloud,
+            subscription,
+            credentials,
+            core_feedback,
+            global_resources,
+            regional_resources,
+            task_data=task_data,
+            max_resources_per_account=max_resources_per_account,
+        )
+
+    def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
+        locations = AzureLocation.collect_resources(builder)
+        return CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
+
+
+class MicrosoftGraphOrganizationCollector(MicrosoftBaseCollector):
+    def __init__(
+        self,
+        config: AzureConfig,
+        cloud: Cloud,
+        organization: MicrosoftGraphOrganization,
+        credentials: AzureCredentials,
+        core_feedback: CoreFeedback,
+        task_data: Optional[Json] = None,
+        max_resources_per_account: Optional[int] = None,
+    ):
+        super().__init__(
+            config,
+            cloud,
+            organization,
+            credentials,
+            core_feedback,
+            [],
+            graph_resources,  # treat all resources as regional resources, attached to the organization root
+            task_data=task_data,
+            max_resources_per_account=max_resources_per_account,
+        )
+
+    def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
+        root = MicrosoftGraphOrganizationRoot(id="organization_root")
+        builder.add_node(root)
+        return {"organization_root": root}

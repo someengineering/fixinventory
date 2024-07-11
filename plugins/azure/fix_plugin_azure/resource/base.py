@@ -6,26 +6,25 @@ from datetime import datetime, timedelta
 from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
 
 from attr import define, field
-from azure.core.utils import CaseInsensitiveDict
 from azure.identity import DefaultAzureCredential
 
-from fix_plugin_azure.azure_client import AzureApiSpec, AzureClient
-from fix_plugin_azure.config import AzureConfig, AzureCredentials
-from fixlib.utils import utc
+from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, MicrosoftRestSpec
+from fix_plugin_azure.config import AzureConfig
 from fixlib.baseresources import BaseGroup, BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
+from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey
 from fixlib.json_bender import Bender, bend, S, ForallBend, Bend
-from fixlib.threading import ExecutorQueue
 from fixlib.lock import RWLock
+from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
-from fixlib.config import current_config
+from fixlib.utils import utc
 
 log = logging.getLogger("fix.plugins.azure")
 service_name = "azure_base"
 
 
-def get_client(subscription_id: str) -> AzureClient:
+def get_client(subscription_id: str) -> MicrosoftClient:
     config = current_config()
     azure_config = cast(AzureConfig, config.azure)
     #  Taking credentials from the config if access through the environment cannot be provided
@@ -36,20 +35,20 @@ def get_client(subscription_id: str) -> AzureClient:
         # in environments with a high number of parallel futures. This helps to avoid timeouts
         # during the credential acquisition process.
         credential = DefaultAzureCredential(process_timeout=300)
-    return AzureClient.create(config=azure_config, credential=credential, subscription_id=subscription_id)
+    return MicrosoftClient.create(config=azure_config, credential=credential, subscription_id=subscription_id)
 
 
 T = TypeVar("T")
 
 
-class AzureResource(BaseResource):
-    kind: ClassVar[str] = "azure_resource"
+class MicrosoftResource(BaseResource):
+    kind: ClassVar[str] = "microsoft_resource"
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
-    api_spec: ClassVar[Optional[AzureApiSpec]] = None
+    api_spec: ClassVar[Optional[MicrosoftRestSpec]] = None
     # Check if we want to create provider link. Default is True
-    _is_provider_link: bool = True
+    _is_provider_link: ClassVar[bool] = True
     # Azure common properties
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
@@ -150,17 +149,17 @@ class AzureResource(BaseResource):
 
     @classmethod
     def collect_usage_metrics(
-        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+        cls: Type[MicrosoftResourceType], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
     ) -> None:
         # Default behavior: do nothing
         pass
 
     @classmethod
     def collect_resources(
-        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[AzureResourceType]:
+        cls: Type[MicrosoftResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[MicrosoftResourceType]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             try:
                 items = builder.client.list(spec, **kwargs)
@@ -180,16 +179,16 @@ class AzureResource(BaseResource):
 
     @classmethod
     def collect(
-        cls: Type[AzureResourceType],
+        cls: Type[MicrosoftResourceType],
         raw: List[Json],
         builder: GraphBuilder,
-    ) -> List[AzureResourceType]:
+    ) -> List[MicrosoftResourceType]:
         # Default behavior: iterate over json snippets and for each:
         # - bend the json
         # - transform the result into a resource
         # - add the resource to the graph
         # In case additional work needs to be done, override this method.
-        result: List[AzureResourceType] = []
+        result: List[MicrosoftResourceType] = []
         for js in raw:
             # map from api
             instance = cls.from_api(js)
@@ -202,12 +201,12 @@ class AzureResource(BaseResource):
         return result
 
     @classmethod
-    def from_api(cls: Type[AzureResourceType], json: Json) -> AzureResourceType:
+    def from_api(cls: Type[MicrosoftResourceType], json: Json) -> MicrosoftResourceType:
         mapped = bend(cls.mapping, json)
         return cls.from_json(mapped)
 
     @classmethod
-    def called_collect_apis(cls) -> List[AzureApiSpec]:
+    def called_collect_apis(cls) -> List[MicrosoftRestSpec]:
         # The default implementation will return the defined api_spec if defined, otherwise an empty list.
         # In case your resource needs more than this api call, please override this method and return the proper list.
         if spec := cls.api_spec:
@@ -216,11 +215,11 @@ class AzureResource(BaseResource):
             return []
 
     @classmethod
-    def called_mutator_apis(cls) -> List[AzureApiSpec]:
+    def called_mutator_apis(cls) -> List[MicrosoftRestSpec]:
         return []
 
 
-AzureResourceType = TypeVar("AzureResourceType", bound=AzureResource)
+MicrosoftResourceType = TypeVar("MicrosoftResourceType", bound=MicrosoftResource)
 
 
 @define(eq=False, slots=False)
@@ -266,9 +265,9 @@ class AzureAvailabilityZoneMappings:
 
 
 @define(eq=False, slots=False)
-class AzureLocation(AzureResource, BaseRegion):
+class AzureLocation(MicrosoftResource, BaseRegion):
     kind: ClassVar[str] = "azure_location"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",
         path="/subscriptions/{subscriptionId}/locations",
@@ -296,9 +295,9 @@ class AzureLocation(AzureResource, BaseRegion):
 
 
 @define(eq=False, slots=False)
-class AzureResourceGroup(AzureResource, BaseGroup):
+class AzureResourceGroup(MicrosoftResource, BaseGroup):
     kind: ClassVar[str] = "azure_resource_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-09-01",
         path="/subscriptions/{subscriptionId}/resourcegroups",
@@ -308,7 +307,7 @@ class AzureResourceGroup(AzureResource, BaseGroup):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_resource"]},
+        "successors": {"default": ["microsoft_resource"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -322,7 +321,7 @@ class AzureResourceGroup(AzureResource, BaseGroup):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_resources_in_group() -> None:
-            resources_api_spec = AzureApiSpec(
+            resources_api_spec = AzureResourceSpec(
                 service="resources",
                 version="2021-04-01",
                 path="/subscriptions/{subscriptionId}/resourceGroups/" + f"{self.safe_name}/resources",
@@ -339,7 +338,7 @@ class AzureResourceGroup(AzureResource, BaseGroup):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:
             for resource_id in resource_ids:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureResource, id=resource_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=MicrosoftResource, id=resource_id)
 
 
 @define(eq=False, slots=False)
@@ -440,9 +439,9 @@ class AzureSubscriptionPolicies:
 
 
 @define(eq=False, slots=False)
-class AzureSubscription(AzureResource, BaseAccount):
+class AzureSubscription(MicrosoftResource, BaseAccount):
     kind: ClassVar[str] = "azure_subscription"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",
         path="/subscriptions",
@@ -470,11 +469,6 @@ class AzureSubscription(AzureResource, BaseAccount):
     subscription_policies: Optional[AzureSubscriptionPolicies] = field(default=None, metadata={'description': 'Subscription policies.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The subscription tenant id."})
     account_name: Optional[str] = field(default=None, metadata={"description": "The account used to collect this subscription."})  # fmt: skip
-
-    @classmethod
-    def list_subscriptions(cls, config: AzureConfig, credentials: AzureCredentials) -> List[AzureSubscription]:
-        client = AzureClient.create(config, credentials, "global")
-        return [cls.from_api(js) for js in client.list(cls.api_spec)]
 
 
 @define(eq=False, slots=False)
@@ -531,26 +525,26 @@ class GraphBuilder:
         self,
         graph: Graph,
         cloud: Cloud,
-        subscription: AzureSubscription,
-        client: AzureClient,
+        account: BaseAccount,
+        client: MicrosoftClient,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
         config: AzureConfig,
-        location_lookup: Optional[Dict[str, AzureLocation]] = None,
-        location: Optional[AzureLocation] = None,
+        location_lookup: Optional[Dict[str, BaseRegion]] = None,
+        location: Optional[BaseRegion] = None,
         graph_access_lock: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
-        self.subscription = subscription
+        self.account = account
         self.client = client
         self.executor = executor
         self.core_feedback = core_feedback
         self.location_lookup = location_lookup or {}
         self.location = location
         self.graph_access_lock = graph_access_lock or RWLock()
-        self.name = f"Azure:{subscription.name}"
+        self.name = f"Azure:{account.name}"
         self.config = config
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
@@ -589,15 +583,15 @@ class GraphBuilder:
 
     def node(
         self,
-        clazz: Optional[Type[AzureResourceType]] = None,
+        clazz: Optional[Type[MicrosoftResourceType]] = None,
         filter_fn: Optional[Callable[[Any], bool]] = None,
         **node: Any,
-    ) -> Optional[AzureResourceType]:
+    ) -> Optional[MicrosoftResourceType]:
         """
         Returns first node on the graph that is of given `clazz`
         and/or conforms to the `filter` and matches attributes given in `**node`.
         """
-        if isinstance(nd := node.get("node"), AzureResource):
+        if isinstance(nd := node.get("node"), MicrosoftResource):
             return nd  # type: ignore
         with self.graph_access_lock.read_access:
             for n in self.graph:
@@ -609,16 +603,16 @@ class GraphBuilder:
 
     def nodes(
         self,
-        clazz: Optional[Type[AzureResourceType]] = None,
+        clazz: Optional[Type[MicrosoftResourceType]] = None,
         filter: Optional[Callable[[Any], bool]] = None,
         **node: Any,
-    ) -> List[AzureResourceType]:
+    ) -> List[MicrosoftResourceType]:
         """
         Returns list of all nodes on the graph that are of given `clazz`
         and/or conform to the `filter` and match attributes given in `**node`.
         """
-        result: List[AzureResourceType] = []
-        if isinstance(nd := node.get("node"), AzureResource):
+        result: List[MicrosoftResourceType] = []
+        if isinstance(nd := node.get("node"), MicrosoftResource):
             result.append(nd)  # type: ignore
         with self.graph_access_lock.read_access:
             for n in self.graph:
@@ -628,10 +622,10 @@ class GraphBuilder:
                     result.append(n)
         return result
 
-    def add_node(self, node: AzureResourceType, source: Optional[Json] = None) -> Optional[AzureResourceType]:
+    def add_node(self, node: MicrosoftResourceType, source: Optional[Json] = None) -> Optional[MicrosoftResourceType]:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
-        node._account = self.subscription
+        node._account = self.account
 
         last_edge_key: Optional[EdgeKey] = None  # indicates if this node has been connected
 
@@ -651,7 +645,7 @@ class GraphBuilder:
                     node._region = location  # TODO: how to handle multiple locations?
         elif last_edge_key is None:
             # add edge from subscription to resource
-            last_edge_key = self.add_edge(self.subscription, node=node)
+            last_edge_key = self.add_edge(self.account, node=node)
 
         # create provider link
         if node._metadata.get("provider_link") is None and node._is_provider_link:
@@ -677,7 +671,7 @@ class GraphBuilder:
         Creates edge between `from_node` and another node using `GraphBuilder.node(filter, **to_node)`.
         """
         to_n = self.node(filter_fn=filter_fn, **to_node)
-        if isinstance(from_node, AzureResource) and isinstance(to_n, AzureResource):
+        if isinstance(from_node, MicrosoftResource) and isinstance(to_n, MicrosoftResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [{edge_type}]")
             with self.graph_access_lock.write_access:
@@ -695,7 +689,7 @@ class GraphBuilder:
         """
         Creates edges between `from_node` and all nodes found with `GraphBuilder.nodes(filter, **to_node)`.
         """
-        node: Type[AzureResource]
+        node: Type[MicrosoftResource]
         for node in self.nodes(filter=filter_fn, **to_nodes):
             self.add_edge(from_node, edge_type, reverse, node=node)
 
@@ -703,7 +697,7 @@ class GraphBuilder:
         self, from_node: BaseResource, reverse: bool = False, delete_same_as_default: bool = False, **to_node: Any
     ) -> None:
         to_n = self.node(**to_node)
-        if isinstance(from_node, AzureResource) and isinstance(to_n, AzureResource):
+        if isinstance(from_node, MicrosoftResource) and isinstance(to_n, MicrosoftResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             log.debug(f"{self.name}: add edge: {start} -> {end} [default]")
             with self.graph_access_lock.write_access:
@@ -713,12 +707,15 @@ class GraphBuilder:
                 log.debug(f"{self.name}: add edge: {end} -> {start} [delete]")
                 self.graph.add_edge(end, start, edge_type=EdgeType.delete)
 
-    def resources_of(self, resource_type: Type[AzureResourceType]) -> List[AzureResourceType]:
+    def resources_of(self, resource_type: Type[MicrosoftResourceType]) -> List[MicrosoftResourceType]:
         with self.graph_access_lock.read_access:
             return [n for n in self.graph.nodes if isinstance(n, resource_type)]
 
     def edges_of(
-        self, from_type: Type[AzureResource], to_type: Type[AzureResource], edge_type: EdgeType = EdgeType.default
+        self,
+        from_type: Type[MicrosoftResource],
+        to_type: Type[MicrosoftResource],
+        edge_type: EdgeType = EdgeType.default,
     ) -> List[EdgeKey]:
         with self.graph_access_lock.read_access:
             return [
@@ -727,16 +724,11 @@ class GraphBuilder:
                 if isinstance(from_node, from_type) and isinstance(to_node, to_type) and key.edge_type == edge_type
             ]
 
-    def fetch_locations(self) -> List[AzureLocation]:
-        locations = AzureLocation.collect_resources(self)
-        self.location_lookup = CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
-        return locations
-
-    def with_location(self, location: AzureLocation) -> GraphBuilder:
+    def with_location(self, location: BaseRegion) -> GraphBuilder:
         return GraphBuilder(
             graph=self.graph,
             cloud=self.cloud,
-            subscription=self.subscription,
+            account=self.account,
             client=self.client.for_location(location.safe_name),
             executor=self.executor,
             core_feedback=self.core_feedback,
@@ -744,7 +736,8 @@ class GraphBuilder:
             location=location,
             graph_access_lock=self.graph_access_lock,
             config=self.config,
+            last_run_started_at=self.last_run_started_at,
         )
 
 
-resources: List[Type[AzureResource]] = [AzureResourceGroup]
+resources: List[Type[MicrosoftResource]] = [AzureResourceGroup]

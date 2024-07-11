@@ -1,21 +1,23 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 from typing import ClassVar, Optional, Dict, List, Type
+
 from attr import define, field
-from fix_plugin_azure.azure_client import AzureApiSpec
+
+from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
-    AzureResource,
-    AzureResourceType,
+    MicrosoftResource,
+    MicrosoftResourceType,
     GraphBuilder,
     AzureExtendedLocation,
     AzureUserAssignedIdentity,
     AzurePrivateLinkServiceConnectionState,
     AzureSku,
+    MicrosoftResource,
 )
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.utils import MetricNormalization
-
 from fixlib.baseresources import (
     BaseBucket,
     BaseNetworkShare,
@@ -130,7 +132,7 @@ class AzureImmutableStorageWithVersioning:
 
 
 @define(eq=False, slots=False)
-class AzureBlobContainer(AzureResource, BaseBucket):
+class AzureBlobContainer(MicrosoftResource, BaseBucket):
     kind: ClassVar[str] = "azure_blob_container"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -182,9 +184,9 @@ class AzureBlobContainer(AzureResource, BaseBucket):
 
 
 @define(eq=False, slots=False)
-class AzureStorageAccountDeleted(AzureResource):
+class AzureStorageAccountDeleted(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_account_deleted"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Storage/deletedAccounts",
@@ -237,7 +239,7 @@ class AzureSignedIdentifier:
 
 
 @define(eq=False, slots=False)
-class AzureFileShare(AzureResource, BaseNetworkShare):
+class AzureFileShare(MicrosoftResource, BaseNetworkShare):
     kind: ClassVar[str] = "azure_file_share"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -288,7 +290,7 @@ class AzureFileShare(AzureResource, BaseNetworkShare):
 
 
 @define(eq=False, slots=False)
-class AzureQueue(AzureResource, BaseQueue):
+class AzureQueue(MicrosoftResource, BaseQueue):
     kind: ClassVar[str] = "azure_queue"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -376,9 +378,9 @@ class AzureRestriction:
 
 
 @define(eq=False, slots=False)
-class AzureStorageSku(AzureResource):
+class AzureStorageSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_sku"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Storage/skus",
@@ -398,6 +400,7 @@ class AzureStorageSku(AzureResource):
         "sku_restrictions": S("restrictions") >> ForallBend(AzureRestriction.mapping),
         "tier": S("tier"),
     }
+    _is_provider_link: ClassVar[bool] = False
     sku_capabilities: Optional[List[AzureSKUCapability]] = field(default=None, metadata={'description': 'The capability information in the specified SKU, including file encryption, network ACLs, change notification, etc.'})  # fmt: skip
     resource_kind: Optional[str] = field(
         default=None, metadata={"description": "Indicates the type of storage account."}
@@ -406,7 +409,6 @@ class AzureStorageSku(AzureResource):
     resource_type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource, usually it is storageAccounts .'})  # fmt: skip
     sku_restrictions: Optional[List[AzureRestriction]] = field(default=None, metadata={'description': 'The restrictions because of which SKU cannot be used. This is empty if there are no restrictions.'})  # fmt: skip
     tier: Optional[str] = field(default=None, metadata={"description": "The SKU tier. This is based on the SKU name."})
-    _is_provider_link: bool = False
 
 
 @define(eq=False, slots=False)
@@ -782,9 +784,9 @@ class AzureStorageAccountSkuConversionStatus:
 
 
 @define(eq=False, slots=False)
-class AzureStorageAccount(AzureResource):
+class AzureStorageAccount(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_account"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Storage/storageAccounts",
@@ -915,10 +917,10 @@ class AzureStorageAccount(AzureResource):
         account_id: str,
         service_type: str,
         resource_type: str,
-        class_instance: AzureResource,
+        class_instance: MicrosoftResource,
     ) -> None:
         path = f"{account_id}/{service_type}/default/{resource_type}"
-        api_spec = AzureApiSpec(
+        api_spec = AzureResourceSpec(
             service="storage",
             version="2023-01-01",
             path=path,
@@ -994,7 +996,7 @@ class AzureStorageAccount(AzureResource):
 
     @classmethod
     def collect_usage_metrics(
-        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+        cls: Type[MicrosoftResource], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
     ) -> None:
         accounts = {storage_acc.id: storage_acc for storage_acc in collected_resources}
         queries = []
@@ -1119,9 +1121,9 @@ class AzureStorageAccount(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureStorageAccountUsage(AzureResource, AzureBaseUsage):
+class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_storage_account_usage"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Storage/locations/{location}/usages",
@@ -1134,7 +1136,7 @@ class AzureStorageAccountUsage(AzureResource, AzureBaseUsage):
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("name", "value"),
     }
-    _is_provider_link: bool = False
+    _is_provider_link: ClassVar[bool] = False
 
 
 @define(eq=False, slots=False)
@@ -1162,7 +1164,7 @@ class AzureTableSignedIdentifier:
 
 
 @define(eq=False, slots=False)
-class AzureTable(AzureResource):
+class AzureTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_table"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1176,7 +1178,7 @@ class AzureTable(AzureResource):
     table_name: Optional[str] = field(default=None, metadata={"description": "Table name under the specified account"})
 
 
-resources: List[Type[AzureResource]] = [
+resources: List[Type[MicrosoftResource]] = [
     AzureStorageAccountDeleted,
     AzureStorageSku,
     AzureFileShare,

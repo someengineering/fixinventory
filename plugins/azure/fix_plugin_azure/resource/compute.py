@@ -1,13 +1,13 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
 
-from fix_plugin_azure.azure_client import AzureApiSpec
+from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
-    AzureResource,
-    AzureResourceType,
+    MicrosoftResource,
+    MicrosoftResourceType,
     GraphBuilder,
     AzureSubResource,
     AzureSystemData,
@@ -15,6 +15,7 @@ from fix_plugin_azure.resource.base import (
     AzureExtendedLocation,
     AzurePrincipalClient,
     AzurePrivateLinkServiceConnectionState,
+    MicrosoftResource,
 )
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.resource.network import (
@@ -24,8 +25,6 @@ from fix_plugin_azure.resource.network import (
     AzureLoadBalancer,
 )
 from fix_plugin_azure.utils import MetricNormalization, rgetvalue
-from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F
-from fixlib.types import Json
 from fixlib.baseresources import (
     BaseInstance,
     BaseKeyPair,
@@ -41,6 +40,8 @@ from fixlib.baseresources import (
     ModelReference,
     EdgeType,
 )
+from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F
+from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
 service_name = "azure_compute"
@@ -64,9 +65,9 @@ class AzureInstanceViewStatus:
 
 
 @define(eq=False, slots=False)
-class AzureAvailabilitySet(AzureResource):
+class AzureAvailabilitySet(MicrosoftResource):
     kind: ClassVar[str] = "azure_availability_set"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/availabilitySets",
@@ -116,9 +117,9 @@ class AzureCapacityReservationGroupInstanceView:
 
 
 @define(eq=False, slots=False)
-class AzureCapacityReservationGroup(AzureResource):
+class AzureCapacityReservationGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_capacity_reservation_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/capacityReservationGroups",
@@ -289,9 +290,9 @@ class AzureCloudServiceExtensionProfile:
 
 
 @define(eq=False, slots=False)
-class AzureCloudService(AzureResource):
+class AzureCloudService(MicrosoftResource):
     kind: ClassVar[str] = "azure_cloud_service"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2022-09-04",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/cloudServices",
@@ -392,9 +393,9 @@ class AzureDedicatedHostGroupInstanceView:
 
 
 @define(eq=False, slots=False)
-class AzureDedicatedHostGroup(AzureResource):
+class AzureDedicatedHostGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_dedicated_host_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/hostGroups",
@@ -755,9 +756,9 @@ class AzurePricingOffers:
 
 
 @define(eq=False, slots=False)
-class AzureDiskTypePricing(AzureResource):
+class AzureDiskTypePricing(MicrosoftResource):
     kind: ClassVar[str] = "azure_disk_type_pricing"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="",
         path="https://azure.microsoft.com/api/v2/pricing/managed-disks/calculator/",
@@ -777,10 +778,10 @@ class AzureDiskTypePricing(AzureResource):
 
 
 @define(eq=False, slots=False)
-class AzureDiskType(AzureResource, BaseVolumeType):
+class AzureDiskType(MicrosoftResource, BaseVolumeType):
     kind: ClassVar[str] = "azure_disk_type"
     # Define api spec to collect as regional resources
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-01-preview",
         path="",
@@ -811,6 +812,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
         "volume_throughput": S("maxThroughput").or_else(S("volume_throughput")),
         "location": S("armRegionName"),
     }
+    _is_provider_link: ClassVar[bool] = False
     full_name: Optional[str] = None
     product_name: Optional[str] = None
     tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
@@ -823,7 +825,6 @@ class AzureDiskType(AzureResource, BaseVolumeType):
     iops_price: Optional[float] = None
     size_price: Optional[float] = None
     throughput_price: Optional[float] = None
-    _is_provider_link: bool = False
 
     def after_collect(self, builder: GraphBuilder, source: Json) -> None:
         location = self.location
@@ -928,7 +929,7 @@ class AzureDiskType(AzureResource, BaseVolumeType):
         return premium_ssd_v2_object
 
     @staticmethod
-    def create_unique_disk_sizes(collected_disks: List[AzureResourceType], builder: GraphBuilder) -> None:
+    def create_unique_disk_sizes(collected_disks: List[MicrosoftResourceType], builder: GraphBuilder) -> None:
         disk_sizes: List[Json] = []
         seen_hashes = set()  # Set to keep track of unique hashes
         for disk in collected_disks:
@@ -953,13 +954,13 @@ class AzureDiskType(AzureResource, BaseVolumeType):
 
     @classmethod
     def collect_resources(
-        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[AzureResourceType]:
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        cls: Type[MicrosoftResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[MicrosoftResourceType]:
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
         product_names = {"Standard SSD Managed Disks", "Premium SSD Managed Disks", "Standard HDD Managed Disks"}
         sku_items = []
         for product_name in product_names:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="compute",
                 version="2023-01-01-preview",
                 path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq "
@@ -988,9 +989,9 @@ VolumeStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AzureDisk(AzureResource, BaseVolume):
+class AzureDisk(MicrosoftResource, BaseVolume):
     kind: ClassVar[str] = "azure_disk"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/disks",
@@ -1093,9 +1094,9 @@ class AzureDisk(AzureResource, BaseVolume):
 
     @classmethod
     def collect_resources(
-        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[AzureResourceType]:
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
+        cls: Type[MicrosoftResourceType], builder: GraphBuilder, **kwargs: Any
+    ) -> List[MicrosoftResourceType]:
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
             items = builder.client.list(spec, **kwargs)
             collected = cls.collect(items, builder)
@@ -1111,7 +1112,7 @@ class AzureDisk(AzureResource, BaseVolume):
 
     @classmethod
     def collect_usage_metrics(
-        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+        cls: Type[MicrosoftResource], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
     ) -> None:
         volumes = {volume.id: volume for volume in collected_resources if volume}
         queries = []
@@ -1235,9 +1236,9 @@ class AzureDiskAccessPrivateEndpointConnection:
 
 
 @define(eq=False, slots=False)
-class AzureDiskAccess(AzureResource):
+class AzureDiskAccess(MicrosoftResource):
     kind: ClassVar[str] = "azure_disk_access"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/diskAccesses",
@@ -1320,9 +1321,9 @@ class AzureApiError:
 
 
 @define(eq=False, slots=False)
-class AzureDiskEncryptionSet(AzureResource):
+class AzureDiskEncryptionSet(MicrosoftResource):
     kind: ClassVar[str] = "azure_disk_encryption_set"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/diskEncryptionSets",
@@ -1418,9 +1419,9 @@ class AzureSharingStatus:
 
 
 @define(eq=False, slots=False)
-class AzureGallery(AzureResource):
+class AzureGallery(MicrosoftResource):
     kind: ClassVar[str] = "azure_gallery"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2022-03-03",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/galleries",
@@ -1490,9 +1491,9 @@ class AzureImageStorageProfile:
 
 
 @define(eq=False, slots=False)
-class AzureImage(AzureResource):
+class AzureImage(MicrosoftResource):
     kind: ClassVar[str] = "azure_image"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/images",
@@ -1534,9 +1535,9 @@ class AzureVmSizes:
 
 
 @define(eq=False, slots=False)
-class AzureProximityPlacementGroup(AzureResource):
+class AzureProximityPlacementGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_proximity_placement_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/proximityPlacementGroups",
@@ -2058,9 +2059,9 @@ class AzureRestorePoint(AzureProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzureRestorePointCollection(AzureResource):
+class AzureRestorePointCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_restore_point_collection"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/restorePointCollections",
@@ -2107,9 +2108,9 @@ class AzureCopyCompletionError:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineSnapshot(AzureResource, BaseSnapshot):
+class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_virtual_machine_snapshot"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/snapshots",
@@ -2191,9 +2192,9 @@ class AzureVirtualMachineSnapshot(AzureResource, BaseSnapshot):
 
 
 @define(eq=False, slots=False)
-class AzureSshPublicKeyResource(AzureResource, BaseKeyPair):
+class AzureSshPublicKeyResource(MicrosoftResource, BaseKeyPair):
     kind: ClassVar[str] = "azure_ssh_public_key_resource"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/sshPublicKeys",
@@ -2827,7 +2828,7 @@ InstanceStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineBase(AzureResource, BaseInstance):
+class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
     kind: ClassVar[str] = "azure_virtual_machine_base"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2918,7 +2919,7 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_instance_status() -> None:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="compute",
                 version="2022-03-01",
                 path=self.id,
@@ -2948,7 +2949,7 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
 
     @classmethod
     def collect_usage_metrics(
-        cls: Type[AzureResource], builder: GraphBuilder, collected_resources: List[AzureResourceType]
+        cls: Type[MicrosoftResource], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
     ) -> None:
         virtual_machines = {vm.id: vm for vm in collected_resources if vm}
         queries = []
@@ -3086,7 +3087,7 @@ class AzureVirtualMachineBase(AzureResource, BaseInstance):
 @define(eq=False, slots=False)
 class AzureVirtualMachine(AzureVirtualMachineBase):
     kind: ClassVar[str] = "azure_virtual_machine"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines",
@@ -3534,9 +3535,9 @@ class AzureVirtualMachineScaleSetIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
+class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "azure_virtual_machine_scale_set"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachineScaleSets",
@@ -3606,7 +3607,7 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_vmss_instances() -> None:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="compute",
                 version="2023-09-01",
                 path=f"{self.id}/virtualMachines",
@@ -3658,9 +3659,9 @@ class AzureVirtualMachineScaleSet(AzureResource, BaseAutoScalingGroup):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
+class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_virtual_machine_size"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
@@ -3682,20 +3683,20 @@ class AzureVirtualMachineSize(AzureResource, BaseInstanceType):
         "instance_cores": S("numberOfCores"),
         "instance_memory": S("memoryInMB") >> F(lambda x: int(x) / 1024),
     }
+    _is_provider_link: ClassVar[bool] = False
     max_data_disk_count: Optional[int] = field(default=None, metadata={'description': 'The maximum number of data disks that can be attached to the virtual machine size.'})  # fmt: skip
     memory_in_mb: Optional[int] = field(default=None, metadata={'description': 'The amount of memory, in mb, supported by the virtual machine size.'})  # fmt: skip
     number_of_cores: Optional[int] = field(default=None, metadata={'description': 'The number of cores supported by the virtual machine size. For constrained vcpu capable vm sizes, this number represents the total vcpus of quota that the vm uses. For accurate vcpu count, please refer to https://docs. Microsoft. Com/azure/virtual-machines/constrained-vcpu or https://docs. Microsoft. Com/rest/api/compute/resourceskus/list.'})  # fmt: skip
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-    _is_provider_link: bool = False
 
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.location = graph_builder.location.name if graph_builder.location else ""
 
     def after_collect(self, builder: GraphBuilder, source: Json) -> None:
         if (location := self.location) and (sku_name := self.name):
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="compute",
                 version="2023-01-01-preview",
                 path=f"https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Virtual Machines' and armSkuName eq '{sku_name}' and armRegionName eq '{location}' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
@@ -3717,7 +3718,7 @@ class AzureVirtualMachineScaleSetInstance(AzureVirtualMachineBase):
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_instance"
 
 
-resources: List[Type[AzureResource]] = [
+resources: List[Type[MicrosoftResource]] = [
     AzureAvailabilitySet,
     AzureCapacityReservationGroup,
     AzureCloudService,
