@@ -9,6 +9,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     AzureSubscription,
 )
+from fixlib.baseresources import BaseRole
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend
 from fixlib.types import Json
@@ -187,7 +188,7 @@ class AzurePermission:
 
 
 @define(eq=False, slots=False)
-class AzureRoleDefinition(MicrosoftResource):
+class AzureRoleDefinition(MicrosoftResource, BaseRole):
     kind: ClassVar[str] = "azure_role_definition"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="authorization",
