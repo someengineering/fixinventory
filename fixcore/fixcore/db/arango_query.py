@@ -15,7 +15,7 @@ from fixcore.db.arango_query_rewrite import rewrite_query
 from fixcore.db.arangodb_functions import as_arangodb_function
 from fixcore.db.model import QueryModel
 from fixcore.model.graph_access import Section, Direction
-from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath
+from fixcore.model.model import SyntheticProperty, ResolvedPropertyPath, ArrayKind
 from fixcore.model.resolve_in_graph import GraphResolver
 from fixcore.query.model import (
     Predicate,
@@ -43,7 +43,8 @@ from fixcore.query.model import (
     ContextTerm,
     WithUsage,
 )
-from fixcore.util import set_value_in_path, exist, utc_str
+from fixcore.types import JsonElement
+from fixcore.util import set_value_in_path, exist, utc_str, combine_optional
 from fixlib.durations import duration_str
 
 log = logging.getLogger(__name__)
@@ -79,6 +80,10 @@ fulltext_delimiter_regexp = re.compile("[" + "".join(re.escape(a) for a in fullt
 
 array_marker = re.compile(r"\[]|\[\*]")
 array_marker_in_path_regexp = re.compile(r"(?:\[]|\[\*])(?=[.])")
+regex_detect_pattern = re.compile(r"(?<!\\)([\[\]().|*+?^$]|\{[0-9]+(?:,[0-9]*)?})")
+regexp_leading_trailing = re.compile(r"(^\^?[.][*])|([.][*][$]?$)")
+# see: cli.py
+DefaultSort = [Sort("reported.kind"), Sort("reported.name"), Sort("reported.id")]
 
 
 class ArangoQueryContext:
@@ -103,19 +108,224 @@ class ArangoQueryContext:
         return bvn
 
 
-def to_query(
-    db: Any,
-    query_model: QueryModel,
-    with_edges: bool = False,
-    from_collection: Optional[str] = None,
-    id_column: str = "_key",
+def graph_query(
+    db: Any, query_model: QueryModel, with_edges: bool = False, *, consistent: Optional[bool] = None
 ) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = rewrite_query(query_model)
-    start = from_collection or f"`{db.graph_vertex_name()}`"
-    cursor, query_str = query_string(db, query, query_model, start, with_edges, ctx, id_column=id_column)
+    start = f"`{db.graph_vertex_name()}`" if consistent else f"`{db.graph_vertex_name()}_view`"
+    cursor, query_str = (
+        query_string(db, query, query_model, start, with_edges, ctx)
+        if consistent
+        else query_view_string(db, query, query_model, start, with_edges, ctx)
+    )
+    last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
+    final = f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""".strip()
+    return final, ctx.bind_vars
+
+
+def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
+    ctx = ArangoQueryContext()
+    query = rewrite_query(query_model)
+    start = f"`{db.name}_node_history`"
+    cursor, query_str = query_string(db, query, query_model, start, False, ctx, id_column="id")
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
+
+
+def query_view_string(
+    db: Any,
+    query: Query,
+    query_model: QueryModel,
+    start_cursor: str,
+    with_edges: bool,
+    ctx: ArangoQueryContext,
+) -> Tuple[str, str]:
+    part = query.first_part
+    crs = ctx.next_crs("v")
+    context_in_array = False
+    fulltext_term = False
+
+    def flatten_in(value: List[Any]) -> Optional[List[Any]]:
+        result = []
+        for v in value:
+            if isinstance(v, dict):
+                return None
+            elif isinstance(v, list):
+                if (fv := flatten_in(v)) is None:
+                    return None
+                result.extend(fv)
+            else:
+                result.append(v)
+        return result
+
+    def empty_value(value: Any) -> bool:
+        return not value if isinstance(value, list) else value is None
+
+    def empty_and_simple(value: Any) -> bool:
+        return empty_value(value) or (
+            isinstance(value, list)
+            and any(empty_value(v) for v in value)
+            and all(empty_value(v) and not isinstance(v, dict) for v in value)
+        )
+
+    def regexp_like(value: Any) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+        ml = regexp_leading_trailing.sub("", value)
+        ml = ml.replace("%", "\\%").replace("_", "\\_").replace(".*", "%").replace(".", "_")
+        ml = ml[1:] if ml.startswith("^") else "%" + ml
+        ml = ml[0:-1] if ml.endswith("$") else ml + "%"
+        # if maybe_like still contains any regex characters, we cannot use like
+        return None if regex_detect_pattern.search(ml) else ml
+
+    def predicate_term(p: Predicate) -> Tuple[Optional[str], Term]:
+        # resolve property name and kind
+        prop_name_maybe_arr, prop, _ = prop_name_kind(query_model, p.name)
+        prop_name = array_marker.sub("", prop_name_maybe_arr)
+        var_name = f"{crs}.{prop_name}"
+        exhaustive = True  # mark if this predicate is backed by the view exhaustively
+
+        # coerce value
+        op = lgt_ops[p.op] if prop.simple_kind.reverse_order and p.op in lgt_ops else p.op
+        if isinstance(p.value, list):
+            coerced_list = [prop.kind.coerce(a, array_creation=False) for a in p.value]
+            value: JsonElement = coerced_list
+            flat_value = flatten_in(coerced_list)
+        else:
+            value = prop.kind.coerce(p.value, array_creation=False)
+            flat_value = None
+
+        # handle special cases
+        p_term: Optional[str] = None
+        if (op == "==" and empty_value(value)) or (op == "in" and empty_and_simple(value)):
+            p_term = f"NOT EXISTS({var_name})"
+            if isinstance(flat_value, list) and (non_empty := [v for v in flat_value if not empty_value(v)]):
+                p_term = f"({p_term} OR {var_name} IN @{ctx.add_bind_var(non_empty)})"
+            # in case the property is an array, we need to filter the results since null and [] are not distinguishable
+            exhaustive = not isinstance(prop.kind, ArrayKind)
+        elif (op == "!=" and empty_value(value)) or (op == "not in" and empty_and_simple(value)):
+            p_term = f"EXISTS({var_name})"
+            if isinstance(flat_value, list) and (non_empty := [v for v in flat_value if not empty_value(v)]):
+                p_term = f"({p_term} OR {var_name} NOT IN @{ctx.add_bind_var(non_empty)})"
+            # in case the property is an array, we need to filter the results since null and [] are not distinguishable
+            exhaustive = not isinstance(prop.kind, ArrayKind)
+        elif op == "==" and isinstance(value, list) and flat_value is not None:
+            # the view cannot compare lists, but we can use the IN operator - still needs filtering
+            p_term = f"{var_name} IN @{ctx.add_bind_var(flat_value)}"
+            exhaustive = False
+        elif op in ["in", "not in"] and flat_value is not None:
+            p_term = f"{var_name} {op} @{ctx.add_bind_var(flat_value)}"
+        elif isinstance(value, (list, dict)):
+            # the view is not able to compare lists or dicts -> we need to filter the results
+            exhaustive = False
+        elif op == "=~" and (rlike := regexp_like(value)):
+            p_term = f"{var_name} LIKE @{ctx.add_bind_var(rlike)}"
+        elif op == "!~" and (rlike := regexp_like(value)):
+            p_term = f"{var_name} NOT LIKE @{ctx.add_bind_var(rlike)}"
+        elif op in ["=~", "!~"]:
+            # the view is not able to handle regex -> we need to filter the results
+            exhaustive = False
+        else:
+            p_term = f"{var_name} {op} @{ctx.add_bind_var(value)}"
+            p_term = f"(EXISTS({var_name}) and {p_term})" if op in arangodb_matches_null_ops else p_term
+        return p_term, AllTerm() if exhaustive else p
+
+    def view_term(term: Term) -> Tuple[Optional[str], Term]:
+        nonlocal context_in_array
+        nonlocal fulltext_term
+        if isinstance(term, MergeTerm):
+            sp, pre = view_term(term.pre_filter)
+            return (None, term) if sp is None else (sp, evolve(term, pre_filter=pre))
+        elif isinstance(term, NotTerm):
+            sp, nt = view_term(term.term)
+            return (None, term) if sp is None else (f"NOT ({sp})", NotTerm(nt))
+        elif isinstance(term, ContextTerm):
+            # context terms cannot be handled by the view search exhaustively
+            # we filter the list down as much as possible, but leave the context term untouched
+            is_array_context = bool(array_marker.search(term.name))
+            context_in_array = context_in_array or is_array_context
+            sp, ct = view_term(term.predicate_term())
+            return sp, term if is_array_context else ct
+        elif isinstance(term, IdTerm):
+            if len(term.ids) == 1:
+                sp = f"{crs}._key == @{ctx.add_bind_var(term.ids[0])}"
+            else:
+                sp = f"{crs}._key in @{ctx.add_bind_var(term.ids)}"
+            return sp, AllTerm()
+        elif isinstance(term, IsTerm):
+            if len(term.kinds) == 1:
+                sp = f"{crs}.kinds == @{ctx.add_bind_var(term.kinds[0])}"
+            else:
+                sp = f"{crs}.kinds in @{ctx.add_bind_var(term.kinds)}"
+            return sp, AllTerm()
+        elif isinstance(term, FulltextTerm):
+            fulltext_term = True
+            sp = f'ANALYZER(PHRASE({crs}.flat, @{ctx.add_bind_var(term.text)}), "delimited")'
+            return sp, AllTerm()
+        elif isinstance(term, CombinedTerm):
+            lsp, lt = view_term(term.left)
+            rsp, rt = view_term(term.right)
+            # OR: if any side cannot filter anything, the combined term cannot filter anything
+            if lsp is None or rsp is None and term.op == "or":
+                return None, term
+            return combine_optional(lsp, rsp, lambda ll, rr: f"({ll} {term.op} {rr})"), lt.combine(term.op, rt)
+        elif isinstance(term, Predicate):
+            return predicate_term(term)
+        else:
+            return None, term
+
+    # Remove sorting if sort order is already the default: the view is already sorted
+    if part.sort == DefaultSort:
+        query = evolve(query, parts=query.parts[:-1] + [evolve(part, sort=[])])
+
+    # rewrite the query by removing all filters that are covered by the view search
+    search_part, term = view_term(part.term)
+    qs = ""
+    if search_part:
+        # remove possibly unused bind vars
+        for bv in list(ctx.bind_vars):
+            if f"@{bv}" not in search_part:
+                ctx.bind_vars.pop(bv)
+
+        # This query needs to unfold arrays to filter properties in context. Apply all filters.
+        if not context_in_array:
+            part = evolve(part, term=term)
+            query = evolve(query, parts=query.parts[:-1] + [part])
+
+        nxt = ctx.next_crs("view")
+        sort = f" SORT BM25({crs}) DESC" if fulltext_term and not part.sort else ""
+        qs = f"LET {nxt} = (FOR {crs} in {start_cursor} SEARCH {search_part}{sort} RETURN {crs}) "
+        start_cursor = nxt
+    else:
+        ctx.bind_vars.clear()
+
+    cursor, query_str = query_string(db, query, query_model, start_cursor, with_edges, ctx)
+    return cursor, qs + query_str
+
+
+def prop_name_kind(
+    query_model: QueryModel, path: str, context_path: Optional[str] = None
+) -> Tuple[str, ResolvedPropertyPath, Optional[str]]:  # prop_name, prop, merge_name
+    local_path = f"{context_path}.{path}" if context_path else path
+    resolved, merge_name = query_model.prop_kind(local_path)
+
+    def synthetic_path(synth: SyntheticProperty) -> str:
+        before, after = local_path.rsplit(resolved.prop.name, 1)
+        return f'{before}{".".join(synth.path)}{after}'
+
+    def escape_part(path_part: str) -> str:
+        return f"`{path_part}`" if path_part.lower() in escape_aql_parts else path_part
+
+    prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else local_path
+
+    # remove the context from the path
+    if context_path and prop_name.startswith(context_path):
+        prop_name = prop_name[len(context_path) + 1 :]
+    # make sure the path does not contain any aql keywords
+    prop_name = ".".join(escape_part(pn) for pn in prop_name.split("."))
+
+    return prop_name, resolved, merge_name
 
 
 def query_string(
@@ -133,30 +343,21 @@ def query_string(
     query_parts = query.parts[::-1]
     model = query_model.model
 
-    def prop_name_kind(
-        path: str, context_path: Optional[str] = None
-    ) -> Tuple[str, ResolvedPropertyPath, Optional[str]]:  # prop_name, prop, merge_name
-        local_path = f"{context_path}.{path}" if context_path else path
-        resolved, merge_name = query_model.prop_kind(local_path)
-
-        def synthetic_path(synth: SyntheticProperty) -> str:
-            before, after = local_path.rsplit(resolved.prop.name, 1)
-            return f'{before}{".".join(synth.path)}{after}'
-
-        def escape_part(path_part: str) -> str:
-            return f"`{path_part}`" if path_part.lower() in escape_aql_parts else path_part
-
-        prop_name = synthetic_path(resolved.prop.synthetic) if resolved.prop.synthetic else local_path
-
-        # remove the context from the path
-        if context_path and prop_name.startswith(context_path):
-            prop_name = prop_name[len(context_path) + 1 :]
-        # make sure the path does not contain any aql keywords
-        prop_name = ".".join(escape_part(pn) for pn in prop_name.split("."))
-
-        return prop_name, resolved, merge_name
-
     def aggregate(in_cursor: str, a: Aggregate) -> Tuple[str, str]:
+        # shortcut for simple count queries
+        if (
+            not a.group_by
+            and len(a.group_func) == 1
+            and a.group_func[0].function == "sum"
+            and a.group_func[0].name == 1
+        ):
+            crs = ctx.next_crs("agg")
+            as_name = a.group_func[0].get_as_name()
+            return (
+                "aggregated",
+                f"LET aggregated = (FOR {crs} in {in_cursor} "
+                f"COLLECT WITH COUNT INTO agg_count RETURN {{{as_name}: agg_count}})",
+            )
         cursor_lookup: Dict[Tuple[str, ...], str] = {}
         nested_function_lookup: Dict[AggregateFunction, str] = {}
         nested = {name for agg in a.group_by for name in agg.all_names() if array_marker.search(name)}
@@ -284,7 +485,7 @@ def query_string(
             extra = " any "
             path = p.name.replace("[]", "[*]")
 
-        prop_name, prop, _ = prop_name_kind(path, context_path)
+        prop_name, prop, _ = prop_name_kind(query_model, path, context_path)
 
         # nested prop access needs to be unfolded via separate for loops: a.b[*].c[*].d
         ars = [a.lstrip(".") for a in array_marker_in_path_regexp.split(prop_name)]
@@ -502,7 +703,8 @@ def query_string(
         last_part = len(query.parts) == (part_idx + 1)
 
         def filter_statement(current_cursor: str, part_term: Term, limit: Optional[Limit]) -> str:
-            if isinstance(part_term, AllTerm) and limit is None and not p.sort:
+            need_sort = p.sort and not query.aggregate
+            if isinstance(part_term, AllTerm) and limit is None and not need_sort:
                 return current_cursor
             nonlocal query_part, filtered_out
             crsr = ctx.next_crs()
@@ -512,16 +714,17 @@ def query_string(
             pre, term_string, post = term(crsr, part_term)
             pre_string = " " + pre if pre else ""
             post_string = f" AND ({post})" if post else ""
-            for_stmt = f"FOR {crsr} in {current_cursor}{pre_string} FILTER {term_string}{post_string}"
+            filter_string = "" if part_term.is_all and not post_string else f" FILTER {term_string}{post_string}"
+            for_stmt = f"FOR {crsr} in {current_cursor}{pre_string}{filter_string}"
             # in case nested properties get unfolded, we need to make the list distinct again
             if pre:
                 nested_distinct = ctx.next_crs("nested_distinct")
                 for_stmt = f"LET {nested_distinct} = ({for_stmt} RETURN DISTINCT {crsr})"
                 crsr = ctx.next_crs()
-                sort_by = sort(crsr, p.sort) if p.sort else " "
+                sort_by = sort(crsr, p) if need_sort else " "
                 for_stmt = f"{for_stmt} FOR {crsr} in {nested_distinct}{sort_by}{limited}"
             else:
-                sort_by = sort(crsr, p.sort) if p.sort else " "
+                sort_by = sort(crsr, p) if need_sort else " "
                 for_stmt = f"{for_stmt}{sort_by}{limited}"
             f_res = f'MERGE({crsr}, {{metadata:MERGE({md}, {{"query_tag": "{p.tag}"}})}})' if p.tag else crsr
             return_stmt = f"RETURN {f_res}"
@@ -616,7 +819,8 @@ def query_string(
                 inner = traversal_filter(cl.with_clause, for_crsr, depth + 1) if cl.with_clause else ""
                 edge_type_traversals = f", {direction} ".join(f"`{db.edge_collection(et)}`" for et in nav.edge_types)
                 return (
-                    f"LET {let_crs} = (FOR {for_crsr} IN {nav.start}..{nav.until} {direction} {in_crs} "
+                    # suggested by jsteemann: use crs._id instead of crs (stored in the view and more efficient)
+                    f"LET {let_crs} = (FOR {for_crsr} IN {nav.start}..{nav.until} {direction} {in_crs}._id "
                     f"{edge_type_traversals} OPTIONS {{ bfs: true, {unique} }} "
                     f"{pre_string} FILTER {filter_clause}{post_string} "
                     # for all possible predicates, it is enough to limit the list by num + 1
@@ -631,11 +835,11 @@ def query_string(
             out = ctx.next_crs()
             l0crsr = ctx.next_crs()
             limited = f" LIMIT {limit.offset}, {limit.length} " if limit else " "
-            needs_sort = p.sort and query.aggregate is not None
+            needs_sort = p.sort and not query.aggregate
             query_part += (
                 f"LET {out} =( FOR {l0crsr} in {in_crsr} "
                 + traversal_filter(clause, l0crsr, 0)
-                + (sort(l0crsr, p.sort) if needs_sort else "")
+                + (sort(l0crsr, p) if needs_sort else "")
                 + limited
                 + f"RETURN {l0crsr}) "
             )
@@ -664,7 +868,8 @@ def query_string(
 
             query_part += (
                 f"LET {out} =({outer_for}"
-                f"FOR {out_crsr}{link_str} IN {start}..{until} {dir_bound} {graph_cursor} "
+                # suggested by jsteemann: use crs._id instead of crs (stored in the view and more efficient)
+                f"FOR {out_crsr}{link_str} IN {start}..{until} {dir_bound} {graph_cursor}._id "
                 f"`{db.edge_collection(edge_type)}` OPTIONS {{ bfs: true, {unique} }} "
                 f"RETURN DISTINCT {inout_result}) "
             )
@@ -716,14 +921,17 @@ def query_string(
         cursor = navigation(cursor, p.navigation) if p.navigation else cursor
         return p, cursor, filtered_out, query_part
 
-    def sort(cursor: str, so: List[Sort]) -> str:
+    def sort(cursor: str, in_part: Part) -> str:
         def single_sort(single: Sort) -> str:
-            prop_name, resolved, _ = prop_name_kind(single.name)
+            prop_name, resolved, _ = prop_name_kind(query_model, single.name)
             order = SortOrder.reverse(single.order) if resolved.simple_kind.reverse_order else single.order
             return f"{cursor}.{prop_name} {order}"
 
-        sorts = ", ".join(single_sort(s) for s in so)
-        return f" SORT {sorts} "
+        if in_part.term.find_term(lambda x: isinstance(x, FulltextTerm)) and in_part.sort == DefaultSort:
+            return f" SORT BM25({cursor}) DESC "
+        else:
+            sorts = ", ".join(single_sort(s) for s in in_part.sort)
+            return f" SORT {sorts} "
 
     def fulltext(ft_part: Term, filter_term: Term) -> Tuple[str, str]:
         # The fulltext index only understands not, combine and fulltext
@@ -745,9 +953,9 @@ def query_string(
         # Since fulltext filtering is handled separately, we replace the remaining filter term in the first part
         query_parts[0] = evolve(query_parts[0], term=filter_term)
         crs = ctx.next_crs()
-        doc = f"search_{db.graph_vertex_name()}"
+        doc = f"{db.graph_vertex_name()}_view"
         ftt = ft_term("ft", ft_part)
-        q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') SORT BM25(ft) DESC RETURN ft)"
+        q = f"LET {crs}=(FOR ft in {doc} SEARCH ANALYZER({ftt}, 'delimited') RETURN ft)"
         return q, crs
 
     parts = []
@@ -766,7 +974,7 @@ def query_string(
         query_str += aggregation
         # if the last part has a sort order, we use it here again
         if query.current_part.sort:
-            sort_by = sort("res", query.current_part.sort)
+            sort_by = sort("res", query.current_part)
             query_str += f" LET {nxt} = (FOR res in {resulting_cursor}{sort_by} RETURN res)"
             resulting_cursor = nxt
     else:  # return results
@@ -929,7 +1137,7 @@ def load_time_series(
 
 
 async def query_cost(graph_db: Any, model: QueryModel, with_edges: bool) -> EstimatedSearchCost:
-    q_string, bind = to_query(graph_db, model, with_edges=with_edges)
+    q_string, bind = graph_query(graph_db, model, with_edges=with_edges)
     nr_nodes = await graph_db.db.count(graph_db.vertex_name)
     plan = await graph_db.db.explain(query=q_string, bind_vars=bind)
     full_collection_scan = exist(lambda node: node["type"] == "EnumerateCollectionNode", plan["nodes"])

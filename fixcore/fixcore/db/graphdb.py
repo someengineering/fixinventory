@@ -35,7 +35,7 @@ from networkx import MultiDiGraph
 
 from fixcore.analytics import CoreEvent, AnalyticsEventSender
 from fixcore.async_extensions import run_async
-from fixcore.core_config import GraphUpdateConfig
+from fixcore.core_config import GraphConfig
 from fixcore.db import arango_query, EstimatedSearchCost
 from fixcore.db.arango_query import fulltext_delimiter
 from fixcore.db.async_arangodb import AsyncArangoDB, AsyncArangoTransactionDB, AsyncArangoDBBase, AsyncCursorContext
@@ -200,7 +200,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def search_graph_gen(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         pass
 
@@ -210,7 +210,7 @@ class GraphDB(ABC):
 
     @abstractmethod
     async def search_aggregation(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         pass
 
@@ -223,7 +223,9 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
+    async def to_query(
+        self, query_model: QueryModel, *, with_edges: bool = False, consistent: Optional[bool] = None
+    ) -> Tuple[str, Json]:
         pass
 
     @abstractmethod
@@ -252,7 +254,13 @@ class GraphDB(ABC):
 
 
 class ArangoGraphDB(GraphDB):
-    def __init__(self, db: AsyncArangoDB, name: GraphName, adjust_node: AdjustNode, config: GraphUpdateConfig) -> None:
+    def __init__(
+        self,
+        db: AsyncArangoDB,
+        name: GraphName,
+        adjust_node: AdjustNode,
+        config: GraphConfig,
+    ) -> None:
         super().__init__()
         self._name = name
         self.node_adjuster = adjust_node
@@ -711,7 +719,7 @@ class ArangoGraphDB(GraphDB):
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
-        q_string, bind = await self.to_query(query)
+        q_string, bind = await self.to_query(query, consistent=kwargs.get("consistent"))
         return await self.db.aql_cursor(
             query=q_string,
             trafo=None if kwargs.get("no_trafo") else self.document_to_instance_fn(query.model, query),
@@ -747,7 +755,7 @@ class ArangoGraphDB(GraphDB):
         if before:
             term = term.and_term(P.single("changed_at").lt(utc_str(before)))
         query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
-        q_string, bind = arango_query.to_query(self, query, from_collection=self.node_history, id_column="id")
+        q_string, bind = arango_query.history_query(self, query)
         trafo = (
             None
             if query.query.aggregate
@@ -770,10 +778,10 @@ class ArangoGraphDB(GraphDB):
         )
 
     async def search_graph_gen(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
         assert query.query.aggregate is None, "Given query is an aggregation function. Use the appropriate endpoint!"
-        query_string, bind = await self.to_query(query, with_edges=True)
+        query_string, bind = await self.to_query(query, with_edges=True, consistent=kwargs.get("consistent"))
         return await self.db.aql_cursor(
             query=query_string,
             trafo=self.document_to_instance_fn(query.model, query),
@@ -797,9 +805,9 @@ class ArangoGraphDB(GraphDB):
             return graph
 
     async def search_aggregation(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
-        q_string, bind = await self.to_query(query)
+        q_string, bind = await self.to_query(query, consistent=kwargs.get("consistent"))
         assert query.query.aggregate is not None, "Given query has no aggregation section"
         return await self.db.aql_cursor(
             query=q_string,
@@ -1262,8 +1270,12 @@ class ArangoGraphDB(GraphDB):
             pass
         await self.delete_marked_update(batch_id)
 
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
-        return arango_query.to_query(self, query_model, with_edges)
+    async def to_query(
+        self, query_model: QueryModel, *, with_edges: bool = False, consistent: Optional[bool] = None
+    ) -> Tuple[str, Json]:
+        return arango_query.graph_query(
+            self, query_model, with_edges, consistent=consistent or not self.config.use_view
+        )
 
     async def insert_genesis_data(self) -> None:
         root_data = {"kind": "graph_root", "name": "root"}
@@ -1377,8 +1389,8 @@ class ArangoGraphDB(GraphDB):
             return db.collection(name) if await db.has_collection(name) else await db.create_collection(name)
 
         async def create_update_views(nodes: VertexCollection) -> None:
-            name = f"search_{nodes.name}"
-            prop = "flat"  # only the flat property is indexes
+            name = f"{nodes.name}_view"
+            prop = "flat"  # this property holds all values flattened
 
             # make sure the delimited analyzer exists
             try:
@@ -1401,13 +1413,38 @@ class ArangoGraphDB(GraphDB):
                 )
 
             views = {view["name"]: view for view in await db.views()}
+            # TODO: remove the view if it exists
+            if False and f"search_{nodes.name}" in views:  # pylint: disable=condition-evals-to-constant
+                await db.delete_view(name)
             if name not in views:
                 await db.create_view(
                     name,
                     "arangosearch",
                     {
-                        "links": {nodes.name: {"fields": {prop: {"analyzers": ["delimited"]}}}},
-                        "primarySort": [{"field": prop, "direction": "desc"}],
+                        "writebufferSizeMax": 128 * 1024 * 1024,  # 128MiB, default is 32MiB
+                        "links": {
+                            nodes.name: {
+                                # this analyzer does not change the original value and is used for all props except flat
+                                "analyzers": ["identity"],
+                                # use above pipeline to process this prop for fulltext searches
+                                "fields": {prop: {"analyzers": ["delimited"]}},
+                                # include all fields in the view, using the identity analyzer
+                                "includeAllFields": True,
+                                # we want to ask for the existence of a field, so we need to store id information
+                                "storeValues": "id",
+                                # the position of the array should be ignored
+                                "trackListPositions": False,
+                            }
+                        },
+                        "primarySort": [  # reflect the default sort order of the CLI (see DefaultSort)
+                            {"field": "reported.kind", "direction": "asc"},
+                            {"field": "reported.name", "direction": "asc"},
+                            {"field": "reported.id", "direction": "asc"},
+                        ],
+                        "primarySortCompression": "lz4",
+                        "storedValues": [  # store the _id field in the view. might be beneficial for traversals
+                            {"fields": ["_id"], "compression": "lz4"},
+                        ],
                         "inBackground": True,  # note: this setting only applies when the view is created
                     },
                 )
@@ -1813,14 +1850,14 @@ class EventGraphDB(GraphDB):
         return await self.real.search_history(query, changes, before, after, with_count, timeout, **kwargs)
 
     async def search_graph_gen(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
-        return await self.real.search_graph_gen(query, with_count, timeout)
+        return await self.real.search_graph_gen(query, with_count, timeout, **kwargs)
 
     async def search_aggregation(
-        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None
+        self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
     ) -> AsyncCursorContext:
-        return await self.real.search_aggregation(query, with_count, timeout)
+        return await self.real.search_aggregation(query, with_count, timeout, **kwargs)
 
     async def search_graph(self, query: QueryModel) -> MultiDiGraph:
         return await self.real.search_graph(query)
@@ -1832,8 +1869,10 @@ class EventGraphDB(GraphDB):
         await self.real.wipe()
         await self.event_sender.core_event(CoreEvent.GraphDBWiped, {"graph": self.graph_name})
 
-    async def to_query(self, query_model: QueryModel, with_edges: bool = False) -> Tuple[str, Json]:
-        return await self.real.to_query(query_model, with_edges)
+    async def to_query(
+        self, query_model: QueryModel, *, with_edges: bool = False, consistent: Optional[bool] = None
+    ) -> Tuple[str, Json]:
+        return await self.real.to_query(query_model, with_edges=with_edges, consistent=consistent)
 
     async def create_update_schema(self) -> None:
         await self.real.create_update_schema()

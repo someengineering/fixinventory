@@ -8,13 +8,13 @@ from fixcore.model.model import predefined_kinds_by_name
 from fixcore.query.model import (
     Query,
     Predicate,
-    FulltextTerm,
     Term,
     ContextTerm,
     MergeTerm,
     CombinedTerm,
     IsTerm,
     NotTerm,
+    IdTerm,
 )
 
 
@@ -70,20 +70,18 @@ def add_is_term(query_model: QueryModel) -> Query:
 
     part = query_model.query.first_part
     part = evolve(part, term=change_term(part.term))
-    return evolve(query_model.query, parts=query_model.query.parts[:-1] + [part])
+    return query_model.query.change_first_part(lambda _: part)
 
 
 def rewrite_query(
     query_model: QueryModel,
 ) -> Query:
     q = query_model.query
-    p = q.first_part
 
-    #  check for single tags predicate. use fulltext index: tags.foo==bar --> "bar" and tags.foo==bar
-    if isinstance(p.term, Predicate) and p.term.name.startswith("reported.tags.") and p.term.op in ("==", "in"):
-        value = " ".join(p.term.value) if isinstance(p.term.value, list) else str(p.term.value)
-        part = evolve(p, term=FulltextTerm(value).and_term(p.term))
-        return evolve(q, parts=q.parts[:-1] + [part])
+    #  remove sort if id is used
+    if isinstance(q.current_part.term, IdTerm):
+        q = q.change_current_part(lambda p: evolve(p, sort=[]))
+        query_model = evolve(query_model, query=q)
 
     # try to add an IsTerm if not already provided
     q = add_is_term(query_model)

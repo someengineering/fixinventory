@@ -578,6 +578,10 @@ class AsyncArangoDBBase:
         log.info(f"Create view {name}")
         return await run_async(self.db.create_view, name, view_type, properties)  # type: ignore
 
+    async def delete_view(self, name: str, ignore_missing: bool = True) -> None:
+        log.info(f"Create view {name}")
+        await run_async(self.db.delete_view, name, ignore_missing)
+
 
 class AsyncArangoDB(AsyncArangoDBBase):
     def __init__(self, db: StandardDatabase):

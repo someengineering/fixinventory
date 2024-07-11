@@ -27,11 +27,6 @@ from fixcore.types import Json
 from fixcore.util import value_in_path
 
 
-def test_parse_empty(default_config: CoreConfig) -> None:
-    result = parse_config(parse_args(["--analytics-opt-out"]), {}, lambda: None)
-    assert result == default_config
-
-
 def test_parse_broken(config_json: Json) -> None:
     # config_json is a valid parsable config
     cfg = deepcopy(config_json)
@@ -58,7 +53,7 @@ def test_parse_broken(config_json: Json) -> None:
     # other config values are still unchanged
     assert parsed_json["cli"] == config_json["fixcore"]["cli"]
     assert parsed_json["runtime"] == config_json["fixcore"]["runtime"]
-    assert parsed_json["graph_update"] == config_json["fixcore"]["graph_update"]
+    assert parsed_json["graph"] == config_json["fixcore"]["graph"]
 
 
 def test_read_config(config_json: Json) -> None:
@@ -146,18 +141,10 @@ def test_in_docker() -> None:
 
 
 def test_migration() -> None:
-    cfg1 = migrate_core_config(dict(fixcore=dict(runtime=dict(analytics_opt_out=True))))
-    assert value_in_path(cfg1, "fixcore.runtime.usage_metrics") is False
-    assert value_in_path(cfg1, "fixcore.runtime.analytics_opt_out") is None
-    cfg2 = migrate_core_config(dict(fixcore=dict(runtime=dict(usage_metrics=True))))
-    assert value_in_path(cfg2, "fixcore.runtime.usage_metrics") is True
-    assert value_in_path(cfg1, "fixcore.runtime.analytics_opt_out") is None
-    cfg3 = migrate_core_config(dict(fixcore=dict(runtime=dict(analytics_opt_out=True, usage_metrics=True))))
-    assert value_in_path(cfg3, "fixcore.runtime.usage_metrics") is True
-    assert value_in_path(cfg1, "fixcore.runtime.analytics_opt_out") is None
-    cfg4 = migrate_core_config(dict(fixcore=dict(api=dict(web_port=1234))))
-    assert value_in_path(cfg4, "fixcore.api.https_port") == 1234
-    assert value_in_path(cfg4, "fixcore.api.web_port") is None
+    cfg = migrate_core_config(dict(fixcore=dict(graph_update=dict(abort_after_seconds=1234))))
+    assert value_in_path(cfg, "fixcore.graph.abort_after_seconds") == 1234
+    assert value_in_path(cfg, "fixcore.graph.use_view") == True
+    assert value_in_path(cfg, "fixcore.graph_update.abort_after_seconds") is None
 
 
 def test_migrate_commands() -> None:
@@ -206,12 +193,13 @@ def config_json() -> Json:
                     }
                 ],
             },
-            "graph_update": {
+            "graph": {
                 "abort_after_seconds": 1234,
                 "merge_max_wait_time_seconds": 4321,
                 "keep_history": True,
                 "keep_history_for_days": 180,
                 "parallel_imports": 5,
+                "use_view": True,
             },
             "runtime": {
                 "usage_metrics": False,
