@@ -183,7 +183,9 @@ class AzureRoleAssignment(MicrosoftResource):
 
         # principal: collected via ms graph -> create a deferred edge
         if (pt := self.principal_type) and (pt_kind := self.kind_lookup.get(pt)) and (pid := self.principal_id):
-            builder.add_deferred_edge(from_node=self, to_node=BySearchCriteria(f'is({pt_kind}) and id=="{pid}"'))
+            builder.add_deferred_edge(
+                from_node=self, to_node=BySearchCriteria(f'is({pt_kind}) and reported.id=="{pid}"')
+            )
 
 
 @define(eq=False, slots=False)
