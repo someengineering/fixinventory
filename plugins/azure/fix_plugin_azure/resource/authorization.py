@@ -76,7 +76,8 @@ class AzureDenyAssignment(MicrosoftResource):
         "do_not_apply_to_child_scopes": S("properties", "doNotApplyToChildScopes"),
         "exclude_principals": S("properties", "excludePrincipals") >> ForallBend(AzurePrincipal.mapping),
         "is_system_protected": S("properties", "isSystemProtected"),
-        "permissions": S("properties", "permissions") >> ForallBend(AzureDenyAssignmentPermission.mapping),
+        "deny_assignment_permissions": S("properties", "permissions")
+        >> ForallBend(AzureDenyAssignmentPermission.mapping),
         "principals": S("properties", "principals") >> ForallBend(AzurePrincipal.mapping),
         "scope": S("properties", "scope"),
         "updated_by": S("properties", "updatedBy"),
@@ -208,7 +209,7 @@ class AzureRoleDefinition(MicrosoftResource, BaseRole):
         "created_by": S("properties", "createdBy"),
         "created_on": S("properties", "createdOn"),
         "description": S("properties", "description"),
-        "permissions": S("properties", "permissions") >> ForallBend(AzurePermission.mapping),
+        "azure_role_permissions": S("properties", "permissions") >> ForallBend(AzurePermission.mapping),
         "role_name": S("properties", "roleName"),
         "updated_by": S("properties", "updatedBy"),
         "updated_on": S("properties", "updatedOn"),
@@ -217,7 +218,7 @@ class AzureRoleDefinition(MicrosoftResource, BaseRole):
     created_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who created the assignment'})  # fmt: skip
     created_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was created"})
     description: Optional[str] = field(default=None, metadata={"description": "The role definition description."})
-    permissions: Optional[List[AzurePermission]] = field(default=None, metadata={'description': 'Role definition permissions.'})  # fmt: skip
+    azure_role_permissions: Optional[List[AzurePermission]] = field(default=None, metadata={'description': 'Role definition permissions.'})  # fmt: skip
     role_name: Optional[str] = field(default=None, metadata={"description": "The role name."})
     updated_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who updated the assignment'})  # fmt: skip
     updated_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was updated"})
