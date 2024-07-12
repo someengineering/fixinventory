@@ -1107,7 +1107,7 @@ KindLookup = {
     "#microsoft.graph.group": MicrosoftGraphGroup,
     "#microsoft.graph.role": MicrosoftGraphRole,
 }
-MicrosoftGraphPrincipalTypes = [
+MicrosoftGraphPrincipalTypes: List[Type[MicrosoftGraphEntity]] = [
     MicrosoftGraphUser,
     MicrosoftGraphDevice,
     MicrosoftGraphServicePrincipal,
