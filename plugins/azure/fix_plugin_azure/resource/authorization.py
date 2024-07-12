@@ -9,7 +9,14 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     AzureSubscription,
 )
-from fixlib.baseresources import BaseRole
+from fix_plugin_azure.resource.microsoft_graph import (
+    MicrosoftGraphUser,
+    MicrosoftGraphDevice,
+    MicrosoftGraphServicePrincipal,
+    MicrosoftGraphGroup,
+    MicrosoftGraphPrincipalTypes,
+)
+from fixlib.baseresources import BaseRole, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend
 from fixlib.types import Json
@@ -111,6 +118,21 @@ class AzureRoleAssignment(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    kind_lookup: ClassVar[Dict[str, str]] = {
+        "User": MicrosoftGraphUser.kind,
+        "Device": MicrosoftGraphDevice.kind,
+        "ServicePrincipal": MicrosoftGraphServicePrincipal.kind,
+        "Group": MicrosoftGraphGroup.kind,
+        "Subscription": "azure_subscription",
+        "ResourceGroup": "azure_resource_group",
+        "Resource": "azure_resource",
+    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_role_definition", *(p.kind for p in MicrosoftGraphPrincipalTypes)]},
+        "predecessors": {
+            "default": ["azure_role_definition", "azure_subscription", "azure_resource_group", "azure_resource"]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -129,15 +151,6 @@ class AzureRoleAssignment(MicrosoftResource):
         "scope": S("properties", "scope"),
         "updated_by": S("properties", "updatedBy"),
         "updated_on": S("properties", "updatedOn"),
-    }
-    kind_lookup: ClassVar[Dict[str, str]] = {
-        "User": "microsoft_graph_user",
-        "Device": "microsoft_graph_device",
-        "ServicePrincipal": "microsoft_graph_service_principal",
-        "Group": "microsoft_graph_group",
-        "Subscription": "azure_subscription",
-        "ResourceGroup": "azure_resource_group",
-        "Resource": "azure_resource",
     }
 
     condition: Optional[str] = field(default=None, metadata={'description': 'The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase foo_storage_container '})  # fmt: skip
@@ -194,7 +207,7 @@ class AzureRoleDefinition(MicrosoftResource, BaseRole):
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="authorization",
         version="2022-04-01",
-        path="/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions",
         path_parameters=["subscriptionId"],
         query_parameters=["api-version"],
         access_path="value",

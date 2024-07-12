@@ -65,7 +65,7 @@ package Azure {
 
         <> Scope
         RoleAssignment -----> Principal
-        RoleAssignment ---> Scope
+        RoleAssignment <--- Scope
         ResourcePolicy ---> Scope
         RoleDefinition <-- RoleAssignment
         Subscription <.. Scope
