@@ -1,5 +1,6 @@
 import asyncio
 from datetime import timedelta
+from typing import List
 
 import pytest
 
@@ -26,10 +27,10 @@ async def test_handler_invocation(
     subscription_handler: SubscriptionHandler,
     message_bus: MessageBus,
 ) -> None:
-    merge_called: asyncio.Future[TaskId] = asyncio.get_event_loop().create_future()
+    merge_called: asyncio.Future[List[TaskId]] = asyncio.get_event_loop().create_future()
 
-    def mocked_merge(task_id: TaskId) -> None:
-        merge_called.set_result(task_id)
+    def mocked_merge(task_ids: List[TaskId]) -> None:
+        merge_called.set_result(task_ids)
 
     # monkey patching the merge_deferred_edges method
     # use setattr here, since assignment does not work in mypy https://github.com/python/mypy/issues/2427
@@ -43,7 +44,7 @@ async def test_handler_invocation(
 
     await message_bus.emit(Action(merge_deferred_edges, task_id, merge_deferred_edges))
 
-    assert await merge_called == task_id
+    assert await merge_called == [task_id]
 
 
 @pytest.mark.asyncio
