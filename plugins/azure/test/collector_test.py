@@ -3,6 +3,8 @@ import json
 from queue import Queue
 from typing import List, Type
 
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphOrganization
+
 from conftest import connect_resources
 
 from fix_plugin_azure.azure_client import MicrosoftClient
@@ -43,12 +45,16 @@ def test_collect(
     core_feedback: CoreFeedback,
     azure_client: MicrosoftClient,
 ) -> None:
-    subscription_collector = AzureSubscriptionCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
+    subscription_collector = AzureSubscriptionCollector(
+        config, Cloud(id="azure"), azure_subscription, credentials, core_feedback
+    )
     subscription_collector.collect()
     assert len(subscription_collector.graph.nodes) == 299
     assert len(subscription_collector.graph.edges) == 443
 
-    graph_collector = MicrosoftGraphOrganizationCollector(config, Cloud(id="azure"), azure_subscription, credentials, core_feedback)
+    graph_collector = MicrosoftGraphOrganizationCollector(
+        config, Cloud(id="azure"), MicrosoftGraphOrganization(id="test", name="test"), credentials, core_feedback
+    )
     graph_collector.collect()
 
     assert len(graph_collector.graph.nodes) == 7
