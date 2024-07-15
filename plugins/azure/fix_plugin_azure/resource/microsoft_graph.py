@@ -7,7 +7,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import RestApiSpec, MicrosoftRestSpec
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
-from fixlib.baseresources import BaseGroup, BaseRole, BaseAccount, BaseRegion, ModelReference, BaseUser
+from fixlib.baseresources import BaseAccessKey, BaseGroup, BaseRole, BaseAccount, BaseRegion, ModelReference, BaseUser
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict
 from fixlib.types import Json
 
@@ -515,7 +515,7 @@ class MicrosoftGraphVerifiedDomain:
 
 
 @define(eq=False, slots=False)
-class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
+class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity, BaseAccessKey):
     kind: ClassVar[str] = "microsoft_graph_service_principal"
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
@@ -573,6 +573,7 @@ class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
         "sign_in_audience": S("signInAudience"),
         "token_encryption_key_id": S("tokenEncryptionKeyId"),
         "verified_publisher": S("verifiedPublisher") >> Bend(MicrosoftGraphVerifiedPublisher.mapping),
+        "access_key_status": S("disabledByMicrosoftStatus"),
     }
     account_enabled: Optional[bool] = field(default=None, metadata={'description': 'true if the service principal account is enabled; otherwise, false. If set to false, then no users are able to sign in to this app, even if they re assigned to it. Supports $filter (eq, ne, not, in).'})  # fmt: skip
     add_ins: Optional[List[MicrosoftGraphAddIn]] = field(default=None, metadata={'description': 'Defines custom behavior that a consuming service can use to call an app in specific contexts. For example, applications that can render file streams may set the addIns property for its FileHandler functionality. This lets services like Microsoft 365 call the application in the context of a document the user is working on.'})  # fmt: skip
