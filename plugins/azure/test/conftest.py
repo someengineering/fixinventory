@@ -12,7 +12,7 @@ from azure.identity import DefaultAzureCredential
 from pytest import fixture
 
 from fix_plugin_azure.config import AzureConfig
-from fix_plugin_azure.azure_client import MicrosoftClient, AzureResourceSpec, MicrosoftRestSpec
+from fix_plugin_azure.azure_client import MicrosoftClient, AzureResourceSpec, MicrosoftRestSpec, RestApiSpec
 from fix_plugin_azure.resource.base import GraphBuilder, AzureSubscription, MicrosoftResourceType, AzureLocation
 from fixlib.baseresources import Cloud
 from fixlib.core.actions import CoreFeedback
@@ -23,23 +23,37 @@ from fixlib.types import Json
 
 class StaticFileMicrosoftClient(MicrosoftClient):
     def list(self, spec: MicrosoftRestSpec, **kwargs: Any) -> List[Json]:
-        assert isinstance(spec, AzureResourceSpec)
-        query_start_index = spec.path.find("?")
-        spec_path = spec.path[:query_start_index] if query_start_index != -1 else spec.path
-        splitted_path = spec_path.rsplit("/")
+        assert isinstance(spec, (AzureResourceSpec, RestApiSpec))
+        if isinstance(spec, AzureResourceSpec):
+            query_start_index = spec.path.find("?")
+            spec_path = spec.path[:query_start_index] if query_start_index != -1 else spec.path
+            splitted_path = spec_path.rsplit("/")
 
-        last = splitted_path[-1] if splitted_path[-1] != "" else splitted_path[-2]
+            last = splitted_path[-1] if splitted_path[-1] != "" else splitted_path[-2]
 
-        path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
-        with open(path) as f:
-            js = json.load(f)
+            path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
+            with open(path) as f:
+                js = json.load(f)
 
-            if spec.expect_array:
-                js = js[spec.access_path]
-            if spec.expect_array and isinstance(js, list):
-                return js
-            else:
-                return [js]
+                if spec.expect_array:
+                    js = js[spec.access_path]
+                if spec.expect_array and isinstance(js, list):
+                    return js
+                else:
+                    return [js]
+        else:
+            last = spec.url.rsplit("/", maxsplit=1)[1]
+
+            path = os.path.dirname(__file__) + f"/files/{spec.service}/{last}.json"
+            with open(path) as f:
+                js = json.load(f)
+
+                if spec.expect_array:
+                    js = js[spec.access_path]
+                if spec.expect_array and isinstance(js, list):
+                    return js
+                else:
+                    return [js]
 
     @staticmethod
     def create(*args: Any, **kwargs: Any) -> StaticFileMicrosoftClient:
@@ -56,9 +70,6 @@ class StaticFileMicrosoftClient(MicrosoftClient):
 
     def update_resource_tag(self, tag_name: str, tag_value: str, resource_id: str) -> bool:
         return False
-
-    def for_graph_scope(self) -> AzureClient:
-        return self
 
     @property
     def config(self) -> AzureConfig:
