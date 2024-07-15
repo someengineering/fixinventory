@@ -252,10 +252,7 @@ class Api(Service):
                 # maintain the graph
                 web.patch(prefix + "/graph/{graph_id}/nodes", require(self.update_nodes, r, w)),
                 web.post(prefix + "/graph/{graph_id}/merge", require(self.merge_graph, r, w)),
-                web.post(
-                    prefix + "/graph/{graph_id}/merge/deferred_edges/{task_id}",
-                    require(self.merge_deferred_edges, r, w),
-                ),
+                web.post(prefix + "/graph/{graph_id}/merge/deferred_edges", require(self.merge_deferred_edges, r, w)),
                 web.post(prefix + "/graph/{graph_id}/batch/merge", require(self.update_merge_graph_batch, r, w)),
                 web.get(prefix + "/graph/{graph_id}/batch", require(self.list_batches, r, w)),
                 web.post(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.commit_batch, r, w)),
@@ -1080,9 +1077,10 @@ class Api(Service):
         return web.json_response(root)
 
     async def merge_deferred_edges(self, request: Request, deps: TenantDependencies) -> StreamResponse:
-        task_id = TaskId(request.match_info.get("task_id", ""))
+        task_ids = await request.json()
+        assert isinstance(task_ids, list), "Expected a list of task ids"
         deferred_edges_handler = deps.service(ServiceNames.merge_deferred_edges_handler, MergeDeferredEdgesHandler)
-        processed, updated, deleted = await deferred_edges_handler.merge_deferred_edges(task_id)
+        processed, updated, deleted = await deferred_edges_handler.merge_deferred_edges(task_ids)
         return await single_result(request, {"processed": processed, "updated": updated, "deleted": deleted})
 
     async def merge_graph(self, request: Request, deps: TenantDependencies) -> StreamResponse:
