@@ -78,7 +78,7 @@ class ServiceNames:
     infra_apps_runtime = "infra_apps_runtime"
     inspector = "inspector"
     jwt_signing_key_holder = "jwt_signing_key_holder"
-    merge_outer_edges_handler = "merge_outer_edges_handler"
+    merge_deferred_edges_handler = "merge_deferred_edges_handler"
     message_bus = "message_bus"
     model_handler = "model_handler"
     scheduler = "scheduler"

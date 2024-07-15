@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import pytest
 
-from fixcore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
+from fixcore.action_handlers.merge_deferred_edge_handler import MergeDeferredEdgesHandler, merge_deferred_edges
 from fixcore.db.db_access import DbAccess
 from fixcore.db.deferredouteredgedb import DeferredOuterEdges
 from fixcore.db.graphdb import ArangoGraphDB
@@ -19,12 +19,10 @@ from fixcore.types import Json
 from fixcore.util import utc
 from tests.fixcore.db.graphdb_test import Foo, Bla, BaseResource
 
-merge_outer_edges = "merge_outer_edges"
-
 
 @pytest.mark.asyncio
 async def test_handler_invocation(
-    merge_handler: MergeOuterEdgesHandler,
+    merge_handler: MergeDeferredEdgesHandler,
     subscription_handler: SubscriptionHandler,
     message_bus: MessageBus,
 ) -> None:
@@ -33,24 +31,24 @@ async def test_handler_invocation(
     def mocked_merge(task_id: TaskId) -> None:
         merge_called.set_result(task_id)
 
-    # monkey patching the merge_outer_edges method
+    # monkey patching the merge_deferred_edges method
     # use setattr here, since assignment does not work in mypy https://github.com/python/mypy/issues/2427
-    setattr(merge_handler, "merge_outer_edges", mocked_merge)
+    setattr(merge_handler, "merge_deferred_edges", mocked_merge)
 
-    subscribers = await subscription_handler.list_subscriber_for(merge_outer_edges)
+    subscribers = await subscription_handler.list_subscriber_for(merge_deferred_edges)
 
     assert subscribers[0].id == "fixcore"
 
     task_id = TaskId("test_task_1")
 
-    await message_bus.emit(Action(merge_outer_edges, task_id, merge_outer_edges))
+    await message_bus.emit(Action(merge_deferred_edges, task_id, merge_deferred_edges))
 
     assert await merge_called == task_id
 
 
 @pytest.mark.asyncio
-async def test_merge_outer_edges(
-    merge_handler: MergeOuterEdgesHandler, graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess
+async def test_merge_deferred_edges(
+    merge_handler: MergeDeferredEdgesHandler, graph_db: ArangoGraphDB, foo_model: Model, db_access: DbAccess
 ) -> None:
     now = utc()
 
@@ -68,7 +66,7 @@ async def test_merge_outer_edges(
     await db_access.deferred_outer_edge_db.update(
         DeferredOuterEdges("t0", "c0", TaskId("task123"), now, graph_db.name, [e1])
     )
-    await merge_handler.merge_outer_edges(TaskId("task123"))
+    await merge_handler.merge_deferred_edges(TaskId("task123"))
 
     graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
     assert graph.has_edge("id1", "id2")
@@ -82,7 +80,7 @@ async def test_merge_outer_edges(
     await db_access.deferred_outer_edge_db.update(
         DeferredOuterEdges("t1", "c1", TaskId("task456"), new_now, graph_db.name, [e2])
     )
-    await merge_handler.merge_outer_edges(TaskId("task456"))
+    await merge_handler.merge_deferred_edges(TaskId("task456"))
 
     graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
     assert not graph.has_edge("id1", "id2")
@@ -96,7 +94,8 @@ async def test_merge_outer_edges(
     await db_access.deferred_outer_edge_db.update(
         DeferredOuterEdges("t2", "c4", TaskId("task789"), new_now_2, graph_db.name, [e2])
     )
-    updated, deleted = await merge_handler.merge_outer_edges(TaskId("task789"))
+    processed, updated, deleted = await merge_handler.merge_deferred_edges(TaskId("task789"))
+    assert processed == 1
     # here we also implicitly test that the timestamp was updated, because otherwise the edge
     # would have an old timestamp and would be deleted
     assert updated == 1
