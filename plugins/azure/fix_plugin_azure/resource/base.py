@@ -12,8 +12,6 @@ from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, Mi
 from fix_plugin_azure.config import AzureConfig
 from fixlib.baseresources import (
     BaseGroup,
-    BaseDNSRecordSet,
-    BaseDNSZone,
     BaseInstanceProfile,
     BaseOrganizationalRoot,
     BaseOrganizationalUnit,
@@ -233,169 +231,6 @@ class MicrosoftResource(BaseResource):
 
 
 MicrosoftResourceType = TypeVar("MicrosoftResourceType", bound=MicrosoftResource)
-
-
-@define(eq=False, slots=False)
-class AzureMxRecord:
-    kind: ClassVar[str] = "azure_mx_record"
-    mapping: ClassVar[Dict[str, Bender]] = {"exchange": S("exchange"), "preference": S("preference")}
-    exchange: Optional[str] = field(default=None, metadata={'description': 'The domain name of the mail host for this MX record.'})  # fmt: skip
-    preference: Optional[int] = field(default=None, metadata={'description': 'The preference value for this MX record.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureSrvRecord:
-    kind: ClassVar[str] = "azure_srv_record"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "port": S("port"),
-        "priority": S("priority"),
-        "target": S("target"),
-        "weight": S("weight"),
-    }
-    port: Optional[int] = field(default=None, metadata={"description": "The port value for this SRV record."})
-    priority: Optional[int] = field(default=None, metadata={"description": "The priority value for this SRV record."})
-    target: Optional[str] = field(default=None, metadata={'description': 'The target domain name for this SRV record.'})  # fmt: skip
-    weight: Optional[int] = field(default=None, metadata={"description": "The weight value for this SRV record."})
-
-
-@define(eq=False, slots=False)
-class AzureTxtRecord:
-    kind: ClassVar[str] = "azure_txt_record"
-    mapping: ClassVar[Dict[str, Bender]] = {"value": S("value")}
-    value: Optional[List[str]] = field(default=None, metadata={"description": "The text value of this TXT record."})
-
-
-@define(eq=False, slots=False)
-class AzureSoaRecord:
-    kind: ClassVar[str] = "azure_soa_record"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "email": S("email"),
-        "expire_time": S("expireTime"),
-        "host": S("host"),
-        "minimum_ttl": S("minimumTTL"),
-        "refresh_time": S("refreshTime"),
-        "retry_time": S("retryTime"),
-        "serial_number": S("serialNumber"),
-    }
-    email: Optional[str] = field(default=None, metadata={"description": "The email contact for this SOA record."})
-    expire_time: Optional[int] = field(default=None, metadata={"description": "The expire time for this SOA record."})
-    host: Optional[str] = field(default=None, metadata={'description': 'The domain name of the authoritative name server for this SOA record.'})  # fmt: skip
-    minimum_ttl: Optional[int] = field(default=None, metadata={'description': 'The minimum value for this SOA record. By convention this is used to determine the negative caching duration.'})  # fmt: skip
-    refresh_time: Optional[int] = field(default=None, metadata={'description': 'The refresh value for this SOA record.'})  # fmt: skip
-    retry_time: Optional[int] = field(default=None, metadata={"description": "The retry time for this SOA record."})
-    serial_number: Optional[int] = field(default=None, metadata={'description': 'The serial number for this SOA record.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureCaaRecord:
-    kind: ClassVar[str] = "azure_caa_record"
-    mapping: ClassVar[Dict[str, Bender]] = {"flags": S("flags"), "tag": S("tag"), "value": S("value")}
-    flags: Optional[int] = field(default=None, metadata={'description': 'The flags for this CAA record as an integer between 0 and 255.'})  # fmt: skip
-    tag: Optional[str] = field(default=None, metadata={"description": "The tag for this CAA record."})
-    value: Optional[str] = field(default=None, metadata={"description": "The value for this CAA record."})
-
-
-@define(eq=False, slots=False)
-class AzureDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
-    kind: ClassVar[str] = "azure_dns_record_set"
-    reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_dns_zone"]},
-    }
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "a_records": S("properties") >> S("ARecords", default=[]) >> ForallBend(S("ipv4Address")),
-        "aaaa_records": S("properties") >> S("AAAARecords", default=[]) >> ForallBend(S("ipv6Address")),
-        "caa_records": S("properties", "caaRecords") >> ForallBend(AzureCaaRecord.mapping),
-        "cname_record": S("properties", "CNAMERecord", "cname"),
-        "etag": S("etag"),
-        "fqdn": S("properties", "fqdn"),
-        "record_set_metadata": S("properties", "metadata"),
-        "mx_records": S("properties", "MXRecords") >> ForallBend(AzureMxRecord.mapping),
-        "ns_records": S("properties") >> S("NSRecords", default=[]) >> ForallBend(S("nsdname")),
-        "provisioning_state": S("properties", "provisioningState"),
-        "ptr_records": S("properties") >> S("PTRRecords", default=[]) >> ForallBend(S("ptrdname")),
-        "soa_record": S("properties", "SOARecord") >> Bend(AzureSoaRecord.mapping),
-        "srv_records": S("properties", "SRVRecords") >> ForallBend(AzureSrvRecord.mapping),
-        "target_resource": S("properties", "targetResource", "id"),
-        "ttl": S("properties", "TTL"),
-        "txt_records": S("properties", "TXTRecords") >> ForallBend(AzureTxtRecord.mapping),
-    }
-    a_records: Optional[List[str]] = field(default=None, metadata={'description': 'The list of A records in the record set.'})  # fmt: skip
-    aaaa_records: Optional[List[str]] = field(default=None, metadata={'description': 'The list of AAAA records in the record set.'})  # fmt: skip
-    caa_records: Optional[List[AzureCaaRecord]] = field(default=None, metadata={'description': 'The list of CAA records in the record set.'})  # fmt: skip
-    cname_record: Optional[str] = field(default=None, metadata={"description": "A CNAME record."})
-    fqdn: Optional[str] = field(default=None, metadata={'description': 'Fully qualified domain name of the record set.'})  # fmt: skip
-    record_set_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The metadata attached to the record set.'})  # fmt: skip
-    mx_records: Optional[List[AzureMxRecord]] = field(default=None, metadata={'description': 'The list of MX records in the record set.'})  # fmt: skip
-    ns_records: Optional[List[str]] = field(default=None, metadata={'description': 'The list of NS records in the record set.'})  # fmt: skip
-    ptr_records: Optional[List[str]] = field(default=None, metadata={'description': 'The list of PTR records in the record set.'})  # fmt: skip
-    soa_record: Optional[AzureSoaRecord] = field(default=None, metadata={"description": "An SOA record."})
-    srv_records: Optional[List[AzureSrvRecord]] = field(default=None, metadata={'description': 'The list of SRV records in the record set.'})  # fmt: skip
-    target_resource: Optional[str] = field(default=None, metadata={"description": "A reference to a another resource"})
-    ttl: Optional[int] = field(default=None, metadata={'description': 'The TTL (time-to-live) of the records in the record set.'})  # fmt: skip
-    txt_records: Optional[List[AzureTxtRecord]] = field(default=None, metadata={'description': 'The list of TXT records in the record set.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureDNSZone(MicrosoftResource, BaseDNSZone):
-    kind: ClassVar[str] = "azure_dns_zone"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="resources",
-        version="2018-05-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/dnszones",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "etag": S("etag"),
-        "max_number_of_record_sets": S("properties", "maxNumberOfRecordSets"),
-        "max_number_of_records_per_record_set": S("properties", "maxNumberOfRecordsPerRecordSet"),
-        "name_servers": S("properties", "nameServers"),
-        "number_of_record_sets": S("properties", "numberOfRecordSets"),
-        "registration_virtual_networks": S("properties")
-        >> S("registrationVirtualNetworks", default=[])
-        >> ForallBend(S("id")),
-        "resolution_virtual_networks": S("properties")
-        >> S("resolutionVirtualNetworks", default=[])
-        >> ForallBend(S("id")),
-        "zone_type": S("properties", "zoneType"),
-    }
-    max_number_of_record_sets: Optional[int] = field(default=None, metadata={'description': 'The maximum number of record sets that can be created in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
-    max_number_of_records_per_record_set: Optional[int] = field(default=None, metadata={'description': 'The maximum number of records per record set that can be created in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
-    name_servers: Optional[List[str]] = field(default=None, metadata={'description': 'The name servers for this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
-    number_of_record_sets: Optional[int] = field(default=None, metadata={'description': 'The current number of record sets in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
-    registration_virtual_networks: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to virtual networks that register hostnames in this DNS zone. This is a only when ZoneType is Private.'})  # fmt: skip
-    resolution_virtual_networks: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to virtual networks that resolve records in this DNS zone. This is a only when ZoneType is Private.'})  # fmt: skip
-    zone_type: Optional[str] = field(default=None, metadata={'description': 'The type of this DNS zone (Public or Private).'})  # fmt: skip
-
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        def collect_record_sets() -> None:
-            api_spec = AzureResourceSpec(
-                service="resources",
-                version="2018-05-01",
-                path=f"{self.id}/recordsets",
-                path_parameters=[],
-                query_parameters=["api-version"],
-                access_path="value",
-                expect_array=True,
-            )
-            items = graph_builder.client.list(api_spec)
-
-            record_sets = AzureDNSRecordSet.collect(items, graph_builder)
-            for record_set in record_sets:
-                dns_zone_id = "/".join(record_set.id.split("/")[:-2])
-                graph_builder.add_edge(
-                    record_set, edge_type=EdgeType.default, reverse=True, clazz=AzureDNSZone, id=dns_zone_id
-                )
-
-        graph_builder.submit_work(service_name, collect_record_sets)
 
 
 @define(eq=False, slots=False)
@@ -1024,7 +859,5 @@ class GraphBuilder:
 resources: List[Type[MicrosoftResource]] = [
     AzureResourceGroup,
     AzureManagementGroup,
-    AzureDNSZone,
-    AzureDNSRecordSet,
     AzureManagedIdentity,
 ]

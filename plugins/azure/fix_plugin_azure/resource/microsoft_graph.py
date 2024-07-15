@@ -7,7 +7,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import RestApiSpec, MicrosoftRestSpec
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
-from fixlib.baseresources import BaseAccessKey, BaseGroup, BaseRole, BaseAccount, BaseRegion, ModelReference, BaseUser
+from fixlib.baseresources import BaseGroup, BaseRole, BaseAccount, BaseRegion, ModelReference, BaseUser
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict
 from fixlib.types import Json
 
@@ -515,7 +515,7 @@ class MicrosoftGraphVerifiedDomain:
 
 
 @define(eq=False, slots=False)
-class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity, BaseAccessKey):
+class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_service_principal"
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
