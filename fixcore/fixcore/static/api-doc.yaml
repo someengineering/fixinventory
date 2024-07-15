@@ -355,6 +355,9 @@ paths:
               schema:
                 type: object
                 properties:
+                  processed:
+                    type: integer
+                    description: Number of processed edges
                   updated:
                     type: integer
                     description: Number of updated edges

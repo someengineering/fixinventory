@@ -81,22 +81,16 @@ class MergeDeferredEdgesHandler(Service):
                     if from_id and to_id:
                         edges.append((from_id, to_id, edge.edge_type))
 
+            # apply edges in graph
             updated, deleted = await graph_db.update_deferred_edges(edges, first.created_at)
-
-            log.info(
-                f"MergeOuterEdgesHandler: updated {updated}/{len(edges)},"
-                f"  deleted {deleted} edges in task id {task_id}"
-            )
-
+            # delete processed edges
+            await deferred_outer_edge_db.delete_for_task(task_id)
+            log.info(f"Task{task_id}: {len(edges)} edges: {updated} updated, {deleted} deleted.")
             return processed, updated, deleted
         else:
             log.info(f"MergeOuterEdgesHandler: no pending edges for task id {task_id} found.")
 
             return 0, 0, 0
-
-    async def mark_done(self, task_id: TaskId) -> None:
-        deferred_outer_edge_db = self.db_access.deferred_outer_edge_db
-        await deferred_outer_edge_db.delete_for_task(task_id)
 
     async def __handle_events(self, subscription_done: Future[None]) -> None:
         async with self.message_bus.subscribe(subscriber_id, [merge_deferred_edges]) as events:
@@ -105,7 +99,6 @@ class MergeDeferredEdgesHandler(Service):
                 event = await events.get()
                 if isinstance(event, Action) and event.message_type == merge_deferred_edges:
                     await self.merge_deferred_edges(event.task_id)
-                    await self.mark_done(event.task_id)
                     await self.task_handler_service.handle_action_done(event.done(subscriber_id))
 
     async def start(self) -> None:
