@@ -7,7 +7,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import RestApiSpec, MicrosoftRestSpec
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
-from fixlib.baseresources import BaseRole, BaseAccount, BaseRegion, ModelReference
+from fixlib.baseresources import BaseGroup, BaseRole, BaseAccount, BaseRegion, ModelReference, BaseUser
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict
 from fixlib.types import Json
 
@@ -717,7 +717,7 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
 
 
 @define(eq=False, slots=False)
-class MicrosoftGraphUser(MicrosoftGraphEntity):
+class MicrosoftGraphUser(MicrosoftGraphEntity, BaseUser):
     kind: ClassVar[str] = "microsoft_graph_user"
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
@@ -884,7 +884,7 @@ class MicrosoftGraphUser(MicrosoftGraphEntity):
 
 
 @define(eq=False, slots=False)
-class MicrosoftGraphGroup(MicrosoftGraphEntity):
+class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
     kind: ClassVar[str] = "microsoft_graph_group"
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",

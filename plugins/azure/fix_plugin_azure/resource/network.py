@@ -13,7 +13,6 @@ from fix_plugin_azure.resource.base import (
     AzureExtendedLocation,
     AzurePrivateLinkServiceConnectionState,
     AzureManagedServiceIdentity,
-    MicrosoftResource,
 )
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
 from fix_plugin_azure.utils import rgetattr
@@ -1835,9 +1834,9 @@ class AzureRoute(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureRouteTable(AzureResource, BaseRoutingTable):
+class AzureRouteTable(MicrosoftResource, BaseRoutingTable):
     kind: ClassVar[str] = "azure_route_table"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-09-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/routeTables",
@@ -3660,7 +3659,7 @@ class AzureIpGroup(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureLoadBalancerProbe(AzureResource, BaseHealthCheck):
+class AzureLoadBalancerProbe(MicrosoftResource, BaseHealthCheck):
     kind: ClassVar[str] = "azure_load_balancer_probe"
     # Collect via AzureLoadBalancer
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3966,7 +3965,7 @@ class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_lb_probes() -> None:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="network",
                 version="2024-01-01",
                 path=f"{self.id}/probes",
@@ -5192,7 +5191,7 @@ class AzureVpnSiteLinkConnection(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualWANVpnConnection(AzureResource, BaseTunnel):
+class AzureVirtualWANVpnConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_virtual_wan_vpn_connection"
     # Collect via AzureVirtualWANVpnGateway
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -5366,7 +5365,7 @@ class AzureVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_vpn_connections() -> None:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="network",
                 version="2023-09-01",
                 path=f"{self.id}/vpnConnections",
@@ -6030,7 +6029,7 @@ class AzureVirtualNetworkGatewayPolicyGroup(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureVirtualNetworkGatewayNatRule(AzureSubResource):
     kind: ClassVar[str] = "azure_virtual_network_gateway_nat_rule"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2024-01-01",
         path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworkGateways/{virtualNetworkGatewayName}/natRules",
@@ -6056,7 +6055,7 @@ class AzureVirtualNetworkGatewayNatRule(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualNetworkGateway(AzureResource, BaseGateway):
+class AzureVirtualNetworkGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_virtual_network_gateway"
     # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -6129,7 +6128,7 @@ class AzureVirtualNetworkGateway(AzureResource, BaseGateway):
 
 
 @define(eq=False, slots=False)
-class AzureLocalNetworkGateway(AzureResource, BaseGateway):
+class AzureLocalNetworkGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_local_network_gateway"
     # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -6173,7 +6172,7 @@ class AzureTunnelConnectionHealth:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualNetworkGatewayConnection(AzureResource, BaseTunnel):
+class AzureVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_virtual_network_gateway_connection"
     # Collect via AzureResourceGroup
     reference_kinds: ClassVar[ModelReference] = {

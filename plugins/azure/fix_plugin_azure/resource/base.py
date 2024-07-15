@@ -10,7 +10,7 @@ from azure.identity import DefaultAzureCredential
 
 from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, MicrosoftRestSpec
 from fix_plugin_azure.config import AzureConfig
-from fixlib.baseresources import(
+from fixlib.baseresources import (
     BaseGroup,
     BaseDNSRecordSet,
     BaseDNSZone,
@@ -18,8 +18,6 @@ from fixlib.baseresources import(
     BaseOrganizationalRoot,
     BaseOrganizationalUnit,
     BaseResource,
-    BaseRole,
-    BaseUser,
     Cloud,
     EdgeType,
     BaseAccount,
@@ -298,7 +296,7 @@ class AzureCaaRecord:
 
 
 @define(eq=False, slots=False)
-class AzureDNSRecordSet(AzureResource, BaseDNSRecordSet):
+class AzureDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "azure_dns_record_set"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_dns_zone"]},
@@ -341,9 +339,9 @@ class AzureDNSRecordSet(AzureResource, BaseDNSRecordSet):
 
 
 @define(eq=False, slots=False)
-class AzureDNSZone(AzureResource, BaseDNSZone):
+class AzureDNSZone(MicrosoftResource, BaseDNSZone):
     kind: ClassVar[str] = "azure_dns_zone"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2018-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Network/dnszones",
@@ -379,7 +377,7 @@ class AzureDNSZone(AzureResource, BaseDNSZone):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_record_sets() -> None:
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="resources",
                 version="2018-05-01",
                 path=f"{self.id}/recordsets",
@@ -514,7 +512,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
         def collect_network_gateways() -> None:
             from fix_plugin_azure.resource.network import AzureVirtualNetworkGateway
 
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="network",
                 version="2023-09-01",
                 path=f"{self.id}/providers/Microsoft.Network/virtualNetworkGateways",
@@ -529,7 +527,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
         def collect_local_network_gateway() -> None:
             from fix_plugin_azure.resource.network import AzureLocalNetworkGateway
 
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="network",
                 version="2023-09-01",
                 path=f"{self.id}/providers/Microsoft.Network/localNetworkGateways",
@@ -544,7 +542,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
         def collect_network_gateway_connections() -> None:
             from fix_plugin_azure.resource.network import AzureVirtualNetworkGatewayConnection
 
-            api_spec = AzureApiSpec(
+            api_spec = AzureResourceSpec(
                 service="network",
                 version="2023-09-01",
                 path=f"{self.id}/providers/Microsoft.Network/connections",
@@ -565,217 +563,6 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
         if resource_ids := self._resource_ids_in_group:
             for resource_id in resource_ids:
                 builder.add_edge(self, edge_type=EdgeType.default, clazz=MicrosoftResource, id=resource_id)
-
-
-@define(eq=False, slots=False)
-class AzureADProvisioningError:
-    kind: ClassVar[str] = "azure_ad_provisioning_error"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "error_code": S("errorCode"),
-        "error_message": S("errorMessage"),
-        "error_detail": S("errorDetail"),
-        "target_object": S("targetObject"),
-        "error_operation": S("operation"),
-    }
-    error_code: Optional[str] = field(default=None)
-    error_message: Optional[str] = field(default=None)
-    error_detail: Optional[str] = field(default=None)
-    target_object: Optional[str] = field(default=None)
-    error_operation: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AzureADGroup(AzureResource, BaseGroup):
-    kind: ClassVar[str] = "azure_ad_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="resources",
-        path="https://graph.microsoft.com/v1.0/groups",
-        path_parameters=[],
-        query_parameters=[],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "classification": S("classification"),
-        "created_date_time": S("createdDateTime"),
-        "ctime": S("createdDateTime"),
-        "creation_options": S("creationOptions"),
-        "deleted_date_time": S("deletedDateTime"),
-        "description": S("description"),
-        "display_name": S("displayName"),
-        "expiration_date_time": S("expirationDateTime"),
-        "group_types": S("groupTypes"),
-        "id": S("id"),
-        "is_assignable_to_role": S("isAssignableToRole"),
-        "mail": S("mail"),
-        "mail_enabled": S("mailEnabled"),
-        "mail_nickname": S("mailNickname"),
-        "membership_rule": S("membershipRule"),
-        "membership_rule_processing_state": S("membershipRuleProcessingState"),
-        "on_premises_domain_name": S("onPremisesDomainName"),
-        "on_premises_last_sync_date_time": S("onPremisesLastSyncDateTime"),
-        "on_premises_net_bios_name": S("onPremisesNetBiosName"),
-        "on_premises_provisioning_errors": S("onPremisesProvisioningErrors", default=[])
-        >> ForallBend(AzureADProvisioningError.mapping),
-        "on_premises_sam_account_name": S("onPremisesSamAccountName"),
-        "on_premises_security_identifier": S("onPremisesSecurityIdentifier"),
-        "on_premises_sync_enabled": S("onPremisesSyncEnabled"),
-        "preferred_data_location": S("preferredDataLocation"),
-        "preferred_language": S("preferredLanguage"),
-        "proxy_addresses": S("proxyAddresses"),
-        "renewed_date_time": S("renewedDateTime"),
-        "resource_behavior_options": S("resourceBehaviorOptions"),
-        "resource_provisioning_options": S("resourceProvisioningOptions"),
-        "security_enabled": S("securityEnabled"),
-        "security_identifier": S("securityIdentifier"),
-        "service_provisioning_errors": S("serviceProvisioningErrors", default=[])
-        >> ForallBend(AzureADProvisioningError.mapping),
-        "theme": S("theme"),
-        "unique_name": S("uniqueName"),
-        "group_visibility": S("visibility"),
-    }
-
-    # fmt: off
-    classification: Optional[str] = field(default=None, metadata={"description": "The classification for the group."})
-    created_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when the group was created."})
-    creation_options: List[str] = field(factory=list, metadata={"description": "Options used to create this group."})
-    deleted_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when the group was deleted."})
-    description: Optional[str] = field(default=None, metadata={"description": "An optional description for the group."})
-    display_name: Optional[str] = field(default=None, metadata={"description": "The display name for the group."})
-    expiration_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when group expires if applicable."})
-    group_types: List[str] = field(factory=list, metadata={"description": "Specifies the group type and its membership."})
-    is_assignable_to_role: Optional[bool] = field(default=None, metadata={"description": "Indicates whether this group can be assigned to an Azure Active Directory role."})
-    mail: Optional[str] = field(default=None, metadata={"description": "The SMTP address for the group."})
-    mail_enabled: bool = field(default=False, metadata={"description": "Specifies whether the group is mail-enabled."})
-    mail_nickname: Optional[str] = field(default=None, metadata={"description": "The mail alias for the group."})
-    membership_rule: Optional[str] = field(default=None, metadata={"description": "The rule that determines members for this group if the group is a dynamic group."})
-    membership_rule_processing_state: Optional[str] = field(default=None, metadata={"description": "Indicates whether the dynamic membership processing is on or paused."})
-    on_premises_domain_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises domain FQDN, also called dnsDomainName synchronized from the on-premises directory."})
-    on_premises_last_sync_date_time: Optional[datetime] = field(default=None, metadata={"description": "Indicates the last time at which the group was synced with the on-premises directory."})
-    on_premises_net_bios_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises NetBIOS name synchronized from the on-premises directory."})
-    on_premises_provisioning_errors: List[AzureADProvisioningError] = field(factory=list, metadata={"description": "Errors when using Microsoft synchronization product during provisioning."})
-    on_premises_sam_account_name: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises SAM account name synchronized from the on-premises directory."})
-    on_premises_security_identifier: Optional[str] = field(default=None, metadata={"description": "Contains the on-premises security identifier (SID) for the group that was synchronized from on-premises to the cloud."})
-    on_premises_sync_enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether this group is synchronized from an on-premises directory."})
-    preferred_data_location: Optional[str] = field(default=None, metadata={"description": "The preferred data location for the group."})
-    preferred_language: Optional[str] = field(default=None, metadata={"description": "The preferred language for the group."})
-    proxy_addresses: List[str] = field(factory=list, metadata={"description": "Email addresses for the group that direct to the same group mailbox."})
-    renewed_date_time: Optional[datetime] = field(default=None, metadata={"description": "Timestamp of when the group was last renewed."})
-    resource_behavior_options: List[str] = field(factory=list, metadata={"description": "Specifies the group behaviors that can be set for a Microsoft 365 group."})
-    resource_provisioning_options: List[str] = field(factory=list, metadata={"description": "Specifies the group resources that are provisioned as part of Microsoft 365 group creation."})
-    security_enabled: bool = field(default=False, metadata={"description": "Specifies whether the group is a security group."})
-    security_identifier: Optional[str] = field(default=None, metadata={"description": "Security identifier of the group, used in Windows scenarios."})
-    service_provisioning_errors: List[AzureADProvisioningError] = field(factory=list, metadata={"description": "Errors published by a federated service describing a non-transient, service-specific error regarding the properties or link from a group object."})
-    theme: Optional[str] = field(default=None, metadata={"description": "Specifies a Microsoft 365 group's color theme."})
-    unique_name: Optional[str] = field(default=None, metadata={"description": "The unique name of the group."})
-    group_visibility: Optional[str] = field(default=None, metadata={"description": "Specifies the group join policy and group content visibility."})
-    # fmt: on
-
-    @classmethod
-    def collect_resources(
-        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[AzureResourceType]:
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
-        if spec := cls.api_spec:
-            try:
-                items = builder.client.for_graph_scope().list(spec, **kwargs)
-                return cls.collect(items, builder)
-            except Exception as e:
-                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
-                builder.core_feedback.info(msg, log)
-                raise
-        return []
-
-
-@define(eq=False, slots=False)
-class AzureADUser(AzureResource, BaseUser):
-    kind: ClassVar[str] = "azure_ad_user"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="resources",
-        path="https://graph.microsoft.com/v1.0/users",
-        path_parameters=[],
-        query_parameters=[],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "business_phones": S("businessPhones"),
-        "display_name": S("displayName"),
-        "given_name": S("givenName"),
-        "id": S("id"),
-        "job_title": S("jobTitle"),
-        "mail": S("mail"),
-        "mobile_phone": S("mobilePhone"),
-        "office_location": S("officeLocation"),
-        "preferred_language": S("preferredLanguage"),
-        "surname": S("surname"),
-        "user_principal_name": S("userPrincipalName"),
-    }
-
-    business_phones: List[str] = field(factory=list, metadata={"description": "The user's business phone numbers."})
-    display_name: Optional[str] = field(default=None, metadata={"description": "The name displayed in the address book for the user."})  # fmt: skip
-    given_name: Optional[str] = field(default=None, metadata={"description": "The user's given name (first name)."})
-    job_title: Optional[str] = field(default=None, metadata={"description": "The user's job title."})
-    mail: Optional[str] = field(default=None, metadata={"description": "The user's email address."})
-    mobile_phone: Optional[str] = field(default=None, metadata={"description": "The user's mobile phone number."})
-    office_location: Optional[str] = field(default=None, metadata={"description": "The user's office location."})
-    preferred_language: Optional[str] = field(default=None, metadata={"description": "The user's preferred language."})
-    surname: Optional[str] = field(default=None, metadata={"description": "The user's surname (last name)."})
-    user_principal_name: Optional[str] = field(default=None, metadata={"description": "The user principal name (UPN) of the user."})  # fmt: skip
-
-    @classmethod
-    def collect_resources(
-        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[AzureResourceType]:
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
-        if spec := cls.api_spec:
-            try:
-                items = builder.client.for_graph_scope().list(spec, **kwargs)
-                return cls.collect(items, builder)
-            except Exception as e:
-                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
-                builder.core_feedback.info(msg, log)
-                raise
-        return []
-
-
-@define(eq=False, slots=False)
-class AzureADDirectoryRole(AzureResource, BaseRole):
-    kind: ClassVar[str] = "azure_ad_directory_role"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
-        service="resources",
-        path="https://graph.microsoft.com/v1.0/directoryRoles",
-        path_parameters=[],
-        query_parameters=[],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "deleted_datetime": S("deletedDateTime"),
-        "description": S("description"),
-        "display_name": S("displayName"),
-        "id": S("id"),
-        "role_template_id": S("roleTemplateId"),
-    }
-    deleted_datetime: Optional[datetime] = field(default=None, metadata={"description": "Deletion time of the directory role, if applicable."})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={"description": "Description of the directory role."})
-    display_name: Optional[str] = field(default=None, metadata={"description": "Display name of the directory role."})
-    role_template_id: Optional[str] = field(default=None, metadata={"description": "Id of the directory role template."})  # fmt: skip
-
-    @classmethod
-    def collect_resources(
-        cls: Type[AzureResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[AzureResourceType]:
-        log.debug(f"[Azure:{builder.subscription.id}] Collecting {cls.__name__} with ({kwargs})")
-        if spec := cls.api_spec:
-            try:
-                items = builder.client.for_graph_scope().list(spec, **kwargs)
-                return cls.collect(items, builder)
-            except Exception as e:
-                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
-                builder.core_feedback.info(msg, log)
-                raise
-        return []
 
 
 @define(eq=False, slots=False)
@@ -908,7 +695,6 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
     account_name: Optional[str] = field(default=None, metadata={"description": "The account used to collect this subscription."})  # fmt: skip
 
 
-
 @define(eq=False, slots=False)
 class AzureSubResource:
     kind: ClassVar[str] = "azure_sub_resource"
@@ -944,9 +730,9 @@ class AzureSystemData:
 
 
 @define(eq=False, slots=False)
-class AzureManagementGroup(AzureResource, BaseOrganizationalRoot, BaseOrganizationalUnit):
+class AzureManagementGroup(MicrosoftResource, BaseOrganizationalRoot, BaseOrganizationalUnit):
     kind: ClassVar[str] = "azure_management_group"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2023-04-01",
         path="/providers/Microsoft.Management/managementGroups",
@@ -970,9 +756,9 @@ class AzureManagementGroup(AzureResource, BaseOrganizationalRoot, BaseOrganizati
 
 
 @define(eq=False, slots=False)
-class AzureManagedIdentity(AzureResource, BaseInstanceProfile):
+class AzureManagedIdentity(MicrosoftResource, BaseInstanceProfile):
     kind: ClassVar[str] = "azure_managed_identity"
-    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec(
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2023-01-31",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.ManagedIdentity/userAssignedIdentities",
@@ -1241,7 +1027,4 @@ resources: List[Type[MicrosoftResource]] = [
     AzureDNSZone,
     AzureDNSRecordSet,
     AzureManagedIdentity,
-    AzureADGroup,
-    AzureADUser,
-    AzureADDirectoryRole,
 ]
