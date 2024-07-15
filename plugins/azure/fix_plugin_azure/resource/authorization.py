@@ -217,7 +217,7 @@ class AzureRoleDefinition(MicrosoftResource, BaseRole):
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
-        "name": S("name"),
+        "name": S("properties", "roleName"),
         "ctime": S("properties", "createdOn"),
         "mtime": S("properties", "updatedOn"),
         "assignable_scopes": S("properties", "assignableScopes"),
