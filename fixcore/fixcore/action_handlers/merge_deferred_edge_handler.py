@@ -1,3 +1,5 @@
+from attr import frozen
+
 from fixcore.db.model import QueryModel
 from fixcore.message_bus import MessageBus, Action
 import logging
@@ -24,6 +26,13 @@ subscriber_id = SubscriberId("fixcore")
 merge_deferred_edges = "merge_deferred_edges"
 
 
+@frozen
+class DeferredMergeResult:
+    processed: int
+    updated: int
+    deleted: int
+
+
 class MergeDeferredEdgesHandler(Service):
     def __init__(
         self,
@@ -42,7 +51,7 @@ class MergeDeferredEdgesHandler(Service):
         self.db_access = db_access
         self.model_handler = model_handler
 
-    async def merge_deferred_edges(self, task_ids: List[TaskId]) -> Tuple[int, int, int]:
+    async def merge_deferred_edges(self, task_ids: List[TaskId]) -> DeferredMergeResult:
         deferred_outer_edge_db = self.db_access.deferred_outer_edge_db
         pending_edges = []
         for task_id in task_ids:
@@ -89,10 +98,10 @@ class MergeDeferredEdgesHandler(Service):
             for task_id in task_ids:
                 await deferred_outer_edge_db.delete_for_task(task_id)
             log.info(f"DeferredEdges: {len(edges)} edges: {updated} updated, {deleted} deleted. ({task_ids})")
-            return processed, updated, deleted
+            return DeferredMergeResult(processed, updated, deleted)
         else:
             log.info(f"MergeOuterEdgesHandler: no pending edges found. ({task_ids})")
-            return 0, 0, 0
+            return DeferredMergeResult(0, 0, 0)
 
     async def __handle_events(self, subscription_done: Future[None]) -> None:
         async with self.message_bus.subscribe(subscriber_id, [merge_deferred_edges]) as events:

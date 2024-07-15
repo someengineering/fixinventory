@@ -1080,8 +1080,8 @@ class Api(Service):
         task_ids = await request.json()
         assert isinstance(task_ids, list), "Expected a list of task ids"
         deferred_edges_handler = deps.service(ServiceNames.merge_deferred_edges_handler, MergeDeferredEdgesHandler)
-        processed, updated, deleted = await deferred_edges_handler.merge_deferred_edges(task_ids)
-        return await single_result(request, {"processed": processed, "updated": updated, "deleted": deleted})
+        r = await deferred_edges_handler.merge_deferred_edges(task_ids)
+        return await single_result(request, {"processed": r.processed, "updated": r.updated, "deleted": r.deleted})
 
     async def merge_graph(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "fix"))

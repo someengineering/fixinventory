@@ -95,12 +95,12 @@ async def test_merge_deferred_edges(
     await db_access.deferred_outer_edge_db.update(
         DeferredOuterEdges("t2", "c4", TaskId("task789"), new_now_2, graph_db.name, [e2])
     )
-    processed, updated, deleted = await merge_handler.merge_deferred_edges([TaskId("task789")])
-    assert processed == 1
+    r = await merge_handler.merge_deferred_edges([TaskId("task789")])
+    assert r.processed == 1
     # here we also implicitly test that the timestamp was updated, because otherwise the edge
     # would have an old timestamp and would be deleted
-    assert updated == 1
-    assert deleted == 0
+    assert r.updated == 1
+    assert r.deleted == 0
     graph = await graph_db.search_graph(QueryModel(parse_query("is(graph_root) -default[0:]->"), foo_model))
     assert not graph.has_edge("id1", "id2")
     assert graph.has_edge("id2", "id1")
