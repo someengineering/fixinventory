@@ -610,12 +610,17 @@ class TaskHandlerService(TaskHandler, Service):
                 trigger.append(TimeTrigger(wf_config.schedule))
             return Workflow(uid=name, name=name, steps=steps, triggers=trigger, on_surpass=TaskSurpassBehaviour.Wait)
 
-        collect_steps = [
+        pre_collect = [
             Step("pre_collect", PerformAction("pre_collect"), timedelta(seconds=10)),
             Step("collect", PerformAction("collect"), timedelta(seconds=10)),
             Step("wait_for_graph_merged", WaitForCollectDone(), timedelta(minutes=10)),
-            Step("merge_outer_edges", PerformAction("merge_outer_edges"), timedelta(seconds=10)),
-            Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10)),
+        ]
+        post_collect = [Step("post_collect", PerformAction("post_collect"), timedelta(seconds=10))]
+        collect_steps = pre_collect + post_collect
+        collect_with_merge = [
+            *pre_collect,
+            Step("merge_deferred_edges", PerformAction("merge_deferred_edges"), timedelta(seconds=10)),
+            *post_collect,  # deferred edges are merged before post_collect
         ]
         cleanup_steps = [
             Step("pre_cleanup_plan", PerformAction("pre_cleanup_plan"), timedelta(seconds=10)),
@@ -634,7 +639,7 @@ class TaskHandlerService(TaskHandler, Service):
             workflow(TaskDescriptorId("collect"), collect_steps + metrics_steps),
             workflow(TaskDescriptorId("cleanup"), cleanup_steps + metrics_steps),
             workflow(TaskDescriptorId("metrics"), metrics_steps),
-            workflow(TaskDescriptorId("collect_and_cleanup"), collect_steps + cleanup_steps + metrics_steps),
+            workflow(TaskDescriptorId("collect_and_cleanup"), collect_with_merge + cleanup_steps + metrics_steps),
         ]
 
     # endregion
