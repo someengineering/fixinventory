@@ -58,6 +58,7 @@ from dateutil import parser as date_parser
 from multidict import MultiDict
 from networkx.readwrite import cytoscape_data
 
+from fixcore.action_handlers.merge_deferred_edge_handler import MergeDeferredEdgesHandler
 from fixcore.analytics import AnalyticsEvent
 from fixcore.cli.command import alias_names
 from fixcore.cli.model import (
@@ -74,7 +75,7 @@ from fixcore.config import ConfigValidation, ConfigEntity
 from fixcore.console_renderer import ConsoleColorSystem, ConsoleRenderer
 from fixcore.db.graphdb import GraphDB, HistoryChange
 from fixcore.db.model import QueryModel
-from fixcore.dependencies import Dependencies, TenantDependencies
+from fixcore.dependencies import Dependencies, TenantDependencies, ServiceNames
 from fixcore.dependencies import TenantDependencyProvider
 from fixcore.error import NotFoundError, NotEnoughPermissions
 from fixcore.ids import (
@@ -251,6 +252,7 @@ class Api(Service):
                 # maintain the graph
                 web.patch(prefix + "/graph/{graph_id}/nodes", require(self.update_nodes, r, w)),
                 web.post(prefix + "/graph/{graph_id}/merge", require(self.merge_graph, r, w)),
+                web.post(prefix + "/graph/{graph_id}/merge/deferred_edges", require(self.merge_deferred_edges, r, w)),
                 web.post(prefix + "/graph/{graph_id}/batch/merge", require(self.update_merge_graph_batch, r, w)),
                 web.get(prefix + "/graph/{graph_id}/batch", require(self.list_batches, r, w)),
                 web.post(prefix + "/graph/{graph_id}/batch/{batch_id}", require(self.commit_batch, r, w)),
@@ -1073,6 +1075,13 @@ class Api(Service):
         model = await deps.model_handler.load_model(graph_name)
         root = await graph.get_node(model, NodeId("root"))
         return web.json_response(root)
+
+    async def merge_deferred_edges(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        task_ids = await request.json()
+        assert isinstance(task_ids, list), "Expected a list of task ids"
+        deferred_edges_handler = deps.service(ServiceNames.merge_deferred_edges_handler, MergeDeferredEdgesHandler)
+        r = await deferred_edges_handler.merge_deferred_edges(task_ids)
+        return await single_result(request, {"processed": r.processed, "updated": r.updated, "deleted": r.deleted})
 
     async def merge_graph(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_id = GraphName(request.match_info.get("graph_id", "fix"))
