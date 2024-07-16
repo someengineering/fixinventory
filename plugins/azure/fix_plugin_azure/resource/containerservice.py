@@ -128,18 +128,14 @@ class AzureFleet(MicrosoftResource):
             items: List[Json] = graph_builder.client.list(api_spec)
             if not items:
                 return
-            item: Json = next(iter(items), {})
-
-            try:
-                self.cluster_resource_id = item["properties"]["clusterResourceId"]
-            except KeyError as e:
-                log.warning(f"An error occured while setting cluster_resource_id: {e}")
+            for item in items:
+                try:
+                    cluster_id = item["properties"]["clusterResourceId"]
+                    graph_builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
+                except KeyError as e:
+                    log.warning(f"An error occured while setting cluster_resource_id: {e}")
 
         graph_builder.submit_work(service, collect_fleets)
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if cluster_id := self.cluster_resource_id:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
 
 
 @define(eq=False, slots=False)
