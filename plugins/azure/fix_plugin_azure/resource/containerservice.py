@@ -112,6 +112,9 @@ class AzureFleet(MicrosoftResource):
     hub_profile: Optional[AzureFleetHubProfile] = field(default=None, metadata={'description': 'The FleetHubProfile configures the fleet hub.'})  # fmt: skip
     azure_fleet_identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     resource_group: Optional[str] = field(default=None, metadata={"description": "Resource group name"})
+    _cluster_resource_ids: Optional[List[str]] = field(
+        default=None, metadata={"description": "Reference to the cluster IDs"}
+    )
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_fleets() -> None:
@@ -127,14 +130,17 @@ class AzureFleet(MicrosoftResource):
             items: List[Json] = graph_builder.client.list(api_spec)
             if not items:
                 return
-            for item in items:
-                try:
-                    cluster_id = item["properties"]["clusterResourceId"]
-                    graph_builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
-                except KeyError as e:
-                    log.warning(f"An error occured while taking cluster id: {e}")
+            try:
+                self._cluster_resource_ids = [item["properties"]["clusterResourceId"] for item in items]
+            except KeyError as e:
+                log.warning(f"An error occured while taking cluster id: {e}")
 
         graph_builder.submit_work(service, collect_fleets)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if cluster_ids := self._cluster_resource_ids:
+            for cluster_id in cluster_ids:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
 
 
 @define(eq=False, slots=False)
