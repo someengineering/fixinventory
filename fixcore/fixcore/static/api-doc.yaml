@@ -334,6 +334,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GraphUpdate"
+  /graph/{graph_id}/merge/deferred_edges:
+    post:
+      summary: "Merge deferred edges by a given task id"
+      description: |
+        All existing deferred edges will be replaced by the definition of all deferred edges of the given task ids.
+        We might be able to track deferred edges more specifically in the future.
+      tags:
+        - graph_management
+      parameters:
+        - $ref: "#/components/parameters/graph_id"
+      requestBody:
+        description: "The task ids to merge."
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        "200":
+          description: "Return a summary of actions that has been applied."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  processed:
+                    type: integer
+                    description: Number of processed edges
+                  updated:
+                    type: integer
+                    description: Number of updated edges
+                  deleted:
+                    type: integer
+                    description: Number of deleted edges
   /graph/{graph_id}/batch/merge:
     post:
       summary: "Merge a given graph with the existing graph under marked merge nodes as batch update."

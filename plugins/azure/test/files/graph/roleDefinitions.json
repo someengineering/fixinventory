@@ -1,0 +1,91 @@
+{
+    "@odata.context": "https://graph.microsoft.com/beta/$metadata#roleManagement/directory/roleDefinitions",
+    "value": [
+        {
+            "id": "729827e3-9c14-49f7-bb1b-9608f156bbb8",
+            "description": "Can reset passwords for non-administrators and Helpdesk Administrators.",
+            "displayName": "Helpdesk Administrator",
+            "isBuiltIn": true,
+            "isEnabled": true,
+            "isPrivileged": true,
+            "templateId": "729827e3-9c14-49f7-bb1b-9608f156bbb8",
+            "version": "1",
+            "rolePermissions": [
+                {
+                    "allowedResourceActions": [
+                        "microsoft.directory/users/invalidateAllRefreshTokens",
+                        "microsoft.directory/users/bitLockerRecoveryKeys/read",
+                        "microsoft.directory/users/password/update",
+                        "microsoft.azure.serviceHealth/allEntities/allTasks",
+                        "microsoft.azure.supportTickets/allEntities/allTasks",
+                        "microsoft.office365.webPortal/allEntities/standard/read",
+                        "microsoft.office365.serviceHealth/allEntities/allTasks",
+                        "microsoft.office365.supportTickets/allEntities/allTasks"
+                    ],
+                    "condition": null
+                }
+            ],
+            "inheritsPermissionsFrom": [
+                {
+                    "id": "88d8e3e3-8f55-4a1e-953a-9b9898b8876b"
+                }
+            ]
+        },
+        {
+            "id": "f023fd81-a637-4b56-95fd-791ac0226033",
+            "description": "Can read service health information and manage support tickets.",
+            "displayName": "Service Support Administrator",
+            "isBuiltIn": true,
+            "isEnabled": true,
+            "isPrivileged": false,
+            "templateId": "f023fd81-a637-4b56-95fd-791ac0226033",
+            "version": "1",
+            "rolePermissions": [
+                {
+                    "allowedResourceActions": [
+                        "microsoft.azure.serviceHealth/allEntities/allTasks",
+                        "microsoft.azure.supportTickets/allEntities/allTasks",
+                        "microsoft.office365.webPortal/allEntities/standard/read",
+                        "microsoft.office365.serviceHealth/allEntities/allTasks",
+                        "microsoft.office365.supportTickets/allEntities/allTasks"
+                    ],
+                    "condition": null
+                }
+            ],
+            "inheritsPermissionsFrom": [
+                {
+                    "id": "88d8e3e3-8f55-4a1e-953a-9b9898b8876b"
+                }
+            ]
+        },
+        {
+            "id": "b0f54661-2d74-4c50-afa3-1ec803f12efe",
+            "description": "Can perform common billing related tasks like updating payment information.",
+            "displayName": "Billing Administrator",
+            "isBuiltIn": true,
+            "isEnabled": true,
+            "isPrivileged": false,
+            "templateId": "b0f54661-2d74-4c50-afa3-1ec803f12efe",
+            "version": "1",
+            "rolePermissions": [
+                {
+                    "allowedResourceActions": [
+                        "microsoft.directory/organization/basic/update",
+                        "microsoft.azure.serviceHealth/allEntities/allTasks",
+                        "microsoft.azure.supportTickets/allEntities/allTasks",
+                        "microsoft.commerce.billing/allEntities/allTasks",
+                        "microsoft.office365.webPortal/allEntities/standard/read",
+                        "microsoft.office365.serviceHealth/allEntities/allTasks",
+                        "microsoft.office365.supportTickets/allEntities/allTasks"
+                    ],
+                    "condition": null
+                }
+            ],
+            "inheritsPermissionsFrom": [
+                {
+                    "id": "88d8e3e3-8f55-4a1e-953a-9b9898b8876b"
+                }
+            ]
+        }
+    ]
+}

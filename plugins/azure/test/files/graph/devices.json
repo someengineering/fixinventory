@@ -1,0 +1,13 @@
+{
+    "value": [
+        {
+            "accountEnabled": true,
+            "deviceId": "00000000-0000-0000-0000-000000000000",
+            "deviceVersion": 1,
+            "displayName": "contoso_Android",
+            "Manufacturer": "Google",
+            "Model": "Pixel 3a",
+            "operatingSystemVersion": "10.0"
+        }
+    ]
+}

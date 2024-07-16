@@ -18,7 +18,7 @@ from attrs import evolve
 from urllib3.exceptions import HTTPWarning
 
 from fixcore import version
-from fixcore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
+from fixcore.action_handlers.merge_deferred_edge_handler import MergeDeferredEdgesHandler
 from fixcore.analytics import CoreEvent, NoEventSender
 from fixcore.analytics.posthog import PostHogEventSender
 from fixcore.analytics.recurrent_events import emit_recurrent_events
@@ -228,8 +228,8 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     )
     deps.add(ServiceNames.graph_manager, GraphManager(db, config, core_config_handler, task_handler))
     deps.add(
-        ServiceNames.merge_outer_edges_handler,
-        MergeOuterEdgesHandler(message_bus, subscriptions, task_handler, db, model),
+        ServiceNames.merge_deferred_edges_handler,
+        MergeDeferredEdgesHandler(message_bus, subscriptions, task_handler, db, model),
     )
     deps.add(
         ServiceNames.event_emitter_periodic,

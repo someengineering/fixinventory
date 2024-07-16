@@ -22,7 +22,7 @@ from attr import evolve
 from pytest import fixture
 from rich.console import Console
 
-from fixcore.action_handlers.merge_outer_edge_handler import MergeOuterEdgesHandler
+from fixcore.action_handlers.merge_deferred_edge_handler import MergeDeferredEdgesHandler
 from fixcore.analytics import AnalyticsEventSender, InMemoryEventSender, NoEventSender
 from fixcore.cli.cli import CLIService
 from fixcore.cli.command import (
@@ -843,9 +843,9 @@ async def merge_handler(
     task_handler: TaskHandlerService,
     db_access: DbAccess,
     foo_model: Model,
-) -> AsyncGenerator[MergeOuterEdgesHandler, None]:
+) -> AsyncGenerator[MergeDeferredEdgesHandler, None]:
     model_handler = ModelHandlerStatic(foo_model)
-    handler = MergeOuterEdgesHandler(message_bus, subscription_handler, task_handler, db_access, model_handler)
+    handler = MergeDeferredEdgesHandler(message_bus, subscription_handler, task_handler, db_access, model_handler)
     await handler.start()
     yield handler
     await handler.stop()
