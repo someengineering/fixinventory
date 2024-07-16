@@ -13,7 +13,6 @@ from fix_plugin_azure.resource.base import (
     AzureUserAssignedIdentity,
     AzurePrincipalClient,
     AzureManagedServiceIdentity,
-    MicrosoftResource,
 )
 from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnapshot, EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend

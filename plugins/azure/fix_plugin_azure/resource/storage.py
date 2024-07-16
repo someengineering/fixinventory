@@ -14,7 +14,6 @@ from fix_plugin_azure.resource.base import (
     AzureUserAssignedIdentity,
     AzurePrivateLinkServiceConnectionState,
     AzureSku,
-    MicrosoftResource,
 )
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.utils import MetricNormalization

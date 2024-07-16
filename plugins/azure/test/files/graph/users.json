@@ -1,0 +1,33 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users",
+    "value": [
+        {
+            "businessPhones": [],
+            "displayName": "Conf Room Adams",
+            "givenName": null,
+            "jobTitle": null,
+            "mail": "Adams@contoso.com",
+            "mobilePhone": null,
+            "officeLocation": null,
+            "preferredLanguage": null,
+            "surname": null,
+            "userPrincipalName": "Adams@contoso.com",
+            "id": "6ea91a8d-e32e-41a1-b7bd-d2d185eed0e0"
+        },
+        {
+            "businessPhones": [
+                "425-555-0100"
+            ],
+            "displayName": "MOD Administrator",
+            "givenName": "MOD",
+            "jobTitle": null,
+            "mail": null,
+            "mobilePhone": "425-555-0101",
+            "officeLocation": null,
+            "preferredLanguage": "en-US",
+            "surname": "Administrator",
+            "userPrincipalName": "admin@contoso.com",
+            "id": "4562bcc8-c436-4f95-b7c0-4f8ce89dca5e"
+        }
+    ]
+}

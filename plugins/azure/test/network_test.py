@@ -131,13 +131,14 @@ def test_load_balancer(builder: GraphBuilder) -> None:
     ]
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork, AzureManagedCluster]
+    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork, AzureManagedCluster, AzureLoadBalancerProbe]
     roundtrip_check(AzurePublicIPAddress, builder)
     connect_resources(builder, resource_types)
 
     assert collected[0].aks_public_ip_address == "41.85.154.247"
     assert len(builder.edges_of(AzureVirtualNetwork, AzureLoadBalancer)) == 1
     assert len(builder.edges_of(AzureManagedCluster, AzureLoadBalancer)) == 1
+    assert len(builder.edges_of(AzureLoadBalancer, AzureLoadBalancerProbe)) == 2
 
 
 def test_network_profile(builder: GraphBuilder) -> None:
@@ -217,7 +218,7 @@ def test_virtual_hub(builder: GraphBuilder) -> None:
 
     resource_types: List[Type[MicrosoftResource]] = [
         AzureExpressRouteGateway,
-        AzureVpnGateway,
+        AzureVirtualWANVpnGateway,
         AzureVirtualWAN,
         AzurePublicIPAddress,
     ]
@@ -225,7 +226,7 @@ def test_virtual_hub(builder: GraphBuilder) -> None:
     connect_resources(builder, resource_types)
 
     assert len(builder.edges_of(AzureExpressRouteGateway, AzureVirtualHub)) == 1
-    assert len(builder.edges_of(AzureVpnGateway, AzureVirtualHub)) == 1
+    assert len(builder.edges_of(AzureVirtualWANVpnGateway, AzureVirtualHub)) == 1
     assert len(builder.edges_of(AzureVirtualWAN, AzureVirtualHub)) == 1
     assert len(builder.edges_of(AzureVirtualHub, AzurePublicIPAddress)) == 1
 
@@ -246,8 +247,15 @@ def test_virtual_wan(builder: GraphBuilder) -> None:
 
 
 def test_vpn_gateway(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVpnGateway, builder)
+    collected = roundtrip_check(AzureVirtualWANVpnGateway, builder)
     assert len(collected) == 2
+
+    resource_types: List[Type[MicrosoftResource]] = [
+        AzureVirtualWANVpnConnection,
+    ]
+    connect_resources(builder, resource_types)
+
+    assert len(builder.edges_of(AzureVirtualWANVpnGateway, AzureVirtualWANVpnConnection)) == 2
 
 
 def test_vpn_server_configuration(builder: GraphBuilder) -> None:

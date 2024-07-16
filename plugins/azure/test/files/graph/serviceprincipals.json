@@ -1,0 +1,41 @@
+{
+    "accountEnabled": true,
+    "addIns": [],
+    "alternativeNames": [
+        "http://contoso/a7770d29-4321-41a6-b863-ca11d6639448"
+    ],
+    "appDisplayName": "My app",
+    "appId": "appId-value",
+    "appOwnerOrganizationId": "65415bb1-9267-4313-bbf5-ae259732ee12",
+    "appRoleAssignmentRequired": true,
+    "appRoles": [],
+    "disabledByMicrosoftStatus": null,
+    "displayName": "My app instance in tenant",
+    "endpoints": [],
+    "homepage": null,
+    "id": "00af5dfb-85da-4b41-a677-0c6b86dd34f8",
+    "verifiedPublisher": {
+        "displayName": "publisher_contoso",
+        "verifiedPublisherId": "9999999",
+        "addedDateTime": "2021-04-24T17:49:44Z"
+    },
+    "info": {
+        "termsOfServiceUrl": null,
+        "supportUrl": null,
+        "privacyStatementUrl": null,
+        "marketingUrl": null,
+        "logoUrl": null
+    },
+    "keyCredentials": [],
+    "logoutUrl": null,
+    "oauth2PermissionScopes": [],
+    "passwordCredentials": [],
+    "publisherName": null,
+    "replyUrls": [],
+    "resourceSpecificApplicationPermissions": [],
+    "servicePrincipalNames": [],
+    "servicePrincipalType": null,
+    "signInAudience": "AzureADandPersonalMicrosoftAccount",
+    "tags": [],
+    "tokenEncryptionKeyId": null
+}

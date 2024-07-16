@@ -10,7 +10,15 @@ from azure.identity import DefaultAzureCredential
 
 from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, MicrosoftRestSpec
 from fix_plugin_azure.config import AzureConfig
-from fixlib.baseresources import BaseGroup, BaseResource, Cloud, EdgeType, BaseAccount, BaseRegion, ModelReference
+from fixlib.baseresources import (
+    BaseGroup,
+    BaseResource,
+    Cloud,
+    EdgeType,
+    BaseAccount,
+    BaseRegion,
+    ModelReference,
+)
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey
@@ -324,7 +332,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
             resources_api_spec = AzureResourceSpec(
                 service="resources",
                 version="2021-04-01",
-                path="/subscriptions/{subscriptionId}/resourceGroups/" + f"{self.safe_name}/resources",
+                path=f"{self.id}/resources",
                 path_parameters=["subscriptionId"],
                 query_parameters=["api-version"],
                 access_path="value",
@@ -333,7 +341,55 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
 
             self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
 
+        def collect_network_gateways() -> None:
+            from fix_plugin_azure.resource.network import AzureVirtualNetworkGateway
+
+            api_spec = AzureResourceSpec(
+                service="network",
+                version="2023-09-01",
+                path=f"{self.id}/providers/Microsoft.Network/virtualNetworkGateways",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            AzureVirtualNetworkGateway.collect(items, graph_builder)
+
+        def collect_local_network_gateway() -> None:
+            from fix_plugin_azure.resource.network import AzureLocalNetworkGateway
+
+            api_spec = AzureResourceSpec(
+                service="network",
+                version="2023-09-01",
+                path=f"{self.id}/providers/Microsoft.Network/localNetworkGateways",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            AzureLocalNetworkGateway.collect(items, graph_builder)
+
+        def collect_network_gateway_connections() -> None:
+            from fix_plugin_azure.resource.network import AzureVirtualNetworkGatewayConnection
+
+            api_spec = AzureResourceSpec(
+                service="network",
+                version="2023-09-01",
+                path=f"{self.id}/providers/Microsoft.Network/connections",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            AzureVirtualNetworkGatewayConnection.collect(items, graph_builder)
+
         graph_builder.submit_work(service_name, collect_resources_in_group)
+        graph_builder.submit_work(service_name, collect_network_gateways)
+        graph_builder.submit_work(service_name, collect_local_network_gateway)
+        graph_builder.submit_work(service_name, collect_network_gateway_connections)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if resource_ids := self._resource_ids_in_group:
@@ -740,4 +796,6 @@ class GraphBuilder:
         )
 
 
-resources: List[Type[MicrosoftResource]] = [AzureResourceGroup]
+resources: List[Type[MicrosoftResource]] = [
+    AzureResourceGroup,
+]
