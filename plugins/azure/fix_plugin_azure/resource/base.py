@@ -12,8 +12,6 @@ from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, Mi
 from fix_plugin_azure.config import AzureConfig
 from fixlib.baseresources import (
     BaseGroup,
-    BaseOrganizationalRoot,
-    BaseOrganizationalUnit,
     BaseResource,
     Cloud,
     EdgeType,
@@ -564,32 +562,6 @@ class AzureSystemData:
 
 
 @define(eq=False, slots=False)
-class AzureManagementGroup(MicrosoftResource, BaseOrganizationalRoot, BaseOrganizationalUnit):
-    kind: ClassVar[str] = "azure_management_group"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="resources",
-        version="2023-04-01",
-        path="/providers/Microsoft.Management/managementGroups",
-        path_parameters=[],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-        expected_error_codes=["AuthorizationFailed"],
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "display_name": S("properties", "displayName"),
-        "tenant_id": S("properties", "tenantId"),
-        "type": S("type"),
-    }
-    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
-    display_name: Optional[str] = field(default=None, metadata={'description': 'The friendly name of the management group.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The AAD Tenant ID associated with the management group. For example, 00000000-0000-0000-0000-000000000000'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureSku:
     kind: ClassVar[str] = "azure_sku"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -826,5 +798,4 @@ class GraphBuilder:
 
 resources: List[Type[MicrosoftResource]] = [
     AzureResourceGroup,
-    AzureManagementGroup,
 ]
