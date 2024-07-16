@@ -2,7 +2,7 @@
     "value": [
         {
             "name": "prlb",
-            "id": "/subscriptions/subid/resourceGroups/testrg/providers/Microsoft.Network/loadBalancers/lb/probes/prlb",
+            "id": "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/loadBalancers/lb/probes/prlb",
             "etag": "W/\"00000000-0000-0000-0000-000000000000\"",
             "type": "Microsoft.Network/loadBalancers/probes",
             "properties": {

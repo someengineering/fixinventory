@@ -63,7 +63,7 @@ ErrorMap = {
 class AzureResourceSpec:
     service: str
     path: str
-    version: Optional[str] = None
+    version: str
     path_parameters: List[str] = []
     query_parameters: List[str] = []
     access_path: Optional[str] = None

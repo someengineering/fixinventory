@@ -189,3 +189,5 @@ def connect_resources(
     for node, data in list(builder.graph.nodes(data=True)):
         if not filter_class or isinstance(node, filter_class):
             node.connect_in_graph(builder, data.get("source", {}))
+
+    builder.executor.wait_for_submitted_work()

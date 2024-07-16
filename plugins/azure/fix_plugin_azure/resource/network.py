@@ -3978,14 +3978,14 @@ class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
             )
             items = graph_builder.client.list(api_spec)
 
-            AzureLoadBalancerProbe.collect(items, graph_builder)
+            lb_probes = AzureLoadBalancerProbe.collect(items, graph_builder)
+
+            for lb_probe in lb_probes:
+                graph_builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureLoadBalancerProbe, id=lb_probe.id)
 
         graph_builder.submit_work(service_name, collect_lb_probes)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if lb_probes := self._lb_probes_id:
-            for lb_probe_id in lb_probes:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureLoadBalancerProbe, id=lb_probe_id)
         if vns := self.backends:
             for vn_id in vns:
                 builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureVirtualNetwork, id=vn_id)
@@ -5377,19 +5377,17 @@ class AzureVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
                 expect_array=True,
             )
             items = graph_builder.client.list(api_spec)
-            AzureVirtualWANVpnConnection.collect(items, graph_builder)
+            vpn_connections = AzureVirtualWANVpnConnection.collect(items, graph_builder)
 
-        graph_builder.submit_work(service_name, collect_vpn_connections)
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if connections := self._connections_ids:
-            for connection_id in connections:
-                builder.add_edge(
+            for vpn_connection in vpn_connections:
+                graph_builder.add_edge(
                     self,
                     edge_type=EdgeType.default,
                     clazz=AzureVirtualWANVpnConnection,
-                    id=connection_id,
+                    id=vpn_connection.id,
                 )
+
+        graph_builder.submit_work(service_name, collect_vpn_connections)
 
 
 @define(eq=False, slots=False)
