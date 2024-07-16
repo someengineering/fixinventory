@@ -112,7 +112,6 @@ class AzureFleet(MicrosoftResource):
     hub_profile: Optional[AzureFleetHubProfile] = field(default=None, metadata={'description': 'The FleetHubProfile configures the fleet hub.'})  # fmt: skip
     azure_fleet_identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     resource_group: Optional[str] = field(default=None, metadata={"description": "Resource group name"})
-    cluster_resource_id: Optional[str] = field(default=None, metadata={"description": "Reference to the cluster ID"})
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_fleets() -> None:
@@ -133,7 +132,7 @@ class AzureFleet(MicrosoftResource):
                     cluster_id = item["properties"]["clusterResourceId"]
                     graph_builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
                 except KeyError as e:
-                    log.warning(f"An error occured while setting cluster_resource_id: {e}")
+                    log.warning(f"An error occured while taking cluster id: {e}")
 
         graph_builder.submit_work(service, collect_fleets)
 
