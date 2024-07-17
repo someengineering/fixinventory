@@ -52,7 +52,13 @@ def resource_with_params(clazz: Type[MicrosoftResource], param: str) -> bool:
 
 
 subscription_resources: List[Type[MicrosoftResource]] = (
-    base_resources + authorization_resources + compute_resources + network_resources + aks_resources + security_resources + storage_resources
+    base_resources
+    + authorization_resources
+    + compute_resources
+    + network_resources
+    + aks_resources
+    + security_resources
+    + storage_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
