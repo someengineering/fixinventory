@@ -10,6 +10,7 @@ from azure.identity import DefaultAzureCredential
 
 from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, MicrosoftRestSpec
 from fix_plugin_azure.config import AzureConfig
+from fix_plugin_azure.utils import case_insensitive_eq
 from fixlib.baseresources import (
     BaseGroup,
     BaseResource,
@@ -653,7 +654,9 @@ class GraphBuilder:
             for n in self.graph:
                 if clazz and not isinstance(n, clazz):
                     continue
-                if (filter_fn(n) if filter_fn else True) and all(getattr(n, k, None) == v for k, v in node.items()):
+                if (filter_fn(n) if filter_fn else True) and all(
+                    case_insensitive_eq(getattr(n, k, None), v) for k, v in node.items()
+                ):
                     return n  # type: ignore
         return None
 

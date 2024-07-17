@@ -37,6 +37,13 @@ def identity(x: T) -> T:
     return x
 
 
+def case_insensitive_eq(left: T, right: T) -> bool:
+    if isinstance(left, str) and isinstance(right, str):
+        return left.lower() == right.lower()
+    else:
+        return left == right
+
+
 @frozen(kw_only=True)
 class MetricNormalization:
     metric_name: MetricName

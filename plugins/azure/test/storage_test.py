@@ -1,6 +1,6 @@
 from conftest import roundtrip_check
 from fix_plugin_azure.resource.base import GraphBuilder
-from fix_plugin_azure.resource.storage import *
+from fix_plugin_azure.resource.storage import AzureStorageAccount, AzureStorageAccountDeleted
 
 
 def test_deleted_account(builder: GraphBuilder) -> None:

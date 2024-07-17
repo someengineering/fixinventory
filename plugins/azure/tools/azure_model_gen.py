@@ -12,6 +12,8 @@ from prance import ResolvingParser
 from prance.util.resolver import RefResolver
 from prance.util.url import ResolutionError
 
+from fixlib.json import value_in_path
+
 Json = Dict[str, Any]
 
 
@@ -310,17 +312,23 @@ def class_method(
                             is_complex=True,
                         )
                     )
-            elif "additionalProperties" in prop_shape:
+            elif prop_shape.get("additionalProperties") is True:
+                for ref in ["full_ref.$ref", "$ref"]:
+                    if ref := value_in_path(prop_shape, ref):
+                        add_prop(AzureProperty(prop, prop_name, ref, prop_shape.get("description", "")))
+                        add_types(class_method(spec, ref, model, result))
+
+            elif isinstance(add_props := prop_shape.get("additionalProperties"), dict):
                 extractor: Optional[str] = None
-                if simple := simple_shape(prop_shape["additionalProperties"]):
+                if simple := simple_shape(add_props):
                     pt = simple
-                elif simple_path := complex_simple_shape(prop_shape["additionalProperties"]):
+                elif simple_path := complex_simple_shape(add_props):
                     pn, pt = simple_path
                     prop_name = [prop_name, pn]
                     extractor = f'S("{name}") >> MapDict(value_bender=S("{pn}"))'
                 else:
-                    add_types(class_method(spec, prop_shape["additionalProperties"], model, result))
-                    pt = "Azure" + type_name(prop_shape["additionalProperties"])
+                    add_types(class_method(spec, add_props, model, result))
+                    pt = "Azure" + type_name(add_props)
                 add_prop(
                     AzureProperty(
                         prop, prop_name, f"Dict[str, {pt}]", prop_shape.get("description", ""), extractor=extractor
@@ -432,15 +440,18 @@ class AzureModel:
             for child in part.iterdir():
                 if specs := is_spec_dir(child):
                     spec_dir = specs.get("stable") or specs.get("preview")
-                    sub_dir = sorted(d for d in spec_dir.iterdir() if d.is_dir())
-                    version_path = sub_dir[-1]
-                    for file in version_path.iterdir():
-                        if file.is_file() and file.name.endswith(".json"):
-                            parsed = ResolvingRefParser(str(file))
-                            for aspec in AzureRestSpec.parse_spec(
-                                service, version_path.name, parsed.specification, file
-                            ):
-                                yield aspec
+                    sub_dir = sorted((d for d in spec_dir.iterdir() if d.is_dir()), reverse=True)
+                    spec_by_version = {}
+                    for version_path in sub_dir:
+                        for file in version_path.iterdir():
+                            if file.is_file() and file.name.endswith(".json") and file.name not in spec_by_version:
+                                spec_by_version[file.name] = version_path
+
+                    for file_name, version_path in spec_by_version.items():
+                        file = version_path / file_name
+                        parsed = ResolvingRefParser(str(file))
+                        for aspec in AzureRestSpec.parse_spec(service, version_path.name, parsed.specification, file):
+                            yield aspec
                 elif child.is_dir():
                     yield from walk_dir(service, child)
 
@@ -606,7 +617,7 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"authorization"}), key=lambda x: x.name)}
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"security"}), key=lambda x: x.name)}
     models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":
