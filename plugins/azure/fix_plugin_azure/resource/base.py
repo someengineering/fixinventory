@@ -10,6 +10,7 @@ from azure.identity import DefaultAzureCredential
 
 from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, MicrosoftRestSpec
 from fix_plugin_azure.config import AzureConfig
+from fix_plugin_azure.utils import case_insensitive_eq
 from fixlib.baseresources import (
     BaseGroup,
     BaseResource,
@@ -22,7 +23,7 @@ from fixlib.baseresources import (
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey
-from fixlib.json_bender import Bender, bend, S, ForallBend, Bend
+from fixlib.json_bender import Bender, bend, S, ForallBend, Bend, Lower
 from fixlib.lock import RWLock
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
@@ -233,7 +234,11 @@ MicrosoftResourceType = TypeVar("MicrosoftResourceType", bound=MicrosoftResource
 @define(eq=False, slots=False)
 class AzurePairedRegion:
     kind: ClassVar[str] = "azure_paired_region"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "subscription_id": S("subscriptionId")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id") >> Lower,
+        "name": S("name"),
+        "subscription_id": S("subscriptionId") >> Lower,
+    }
     id: Optional[str] = field(default=None, metadata={'description': 'The fully qualified id of the location. For example, /subscriptions/8d65815f-a5b6-402f-9298-045155da7d74/locations/westus.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "The name of the paired region."})
     subscription_id: Optional[str] = field(default=None, metadata={"description": "The subscription id."})
@@ -285,7 +290,7 @@ class AzureLocation(MicrosoftResource, BaseRegion):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "availability_zone_mappings": S("availabilityZoneMappings")
@@ -293,7 +298,7 @@ class AzureLocation(MicrosoftResource, BaseRegion):
         "display_name": S("displayName"),
         "location_metadata": S("metadata") >> Bend(AzureLocationMetadata.mapping),
         "regional_display_name": S("regionalDisplayName"),
-        "subscription_id": S("subscriptionId"),
+        "subscription_id": S("subscriptionId") >> Lower,
     }
     availability_zone_mappings: Optional[List[AzureAvailabilityZoneMappings]] = field(default=None, metadata={'description': 'The availability zone mappings for this region.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The display name of the location."})
@@ -318,7 +323,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
         "successors": {"default": ["microsoft_resource"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "managed_by": S("managedBy"),
@@ -339,7 +344,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
                 expect_array=True,
             )
 
-            self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
+            self._resource_ids_in_group = [r["id"].lower() for r in graph_builder.client.list(resources_api_spec)]
 
         def collect_network_gateways() -> None:
             from fix_plugin_azure.resource.network import AzureVirtualNetworkGateway
@@ -434,10 +439,10 @@ class AzureExtendedLocation:
 class AzureUserAssignedIdentity:
     kind: ClassVar[str] = "azure_user_assigned_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "client_id": S("clientId"),
-        "principal_id": S("principalId"),
-        "object_id": S("objectId"),
-        "resource_id": S("resourceId"),
+        "client_id": S("clientId") >> Lower,
+        "principal_id": S("principalId") >> Lower,
+        "object_id": S("objectId") >> Lower,
+        "resource_id": S("resourceId") >> Lower,
     }
     client_id: Optional[str] = field(default=None, metadata={"description": "The client ID of the identity."})
     principal_id: Optional[str] = field(default=None, metadata={"description": "The principal ID of the identity."})
@@ -448,7 +453,10 @@ class AzureUserAssignedIdentity:
 @define(eq=False, slots=False)
 class AzurePrincipalClient:
     kind: ClassVar[str] = "azure_principal_client"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "client_id": S("clientId") >> Lower,
+        "principal_id": S("principalId") >> Lower,
+    }
     client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of user assigned identity.'})  # fmt: skip
 
@@ -457,8 +465,8 @@ class AzurePrincipalClient:
 class AzureManagedServiceIdentity:
     kind: ClassVar[str] = "azure_managed_service_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
+        "principal_id": S("principalId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
         "type": S("type"),
         "user_assigned_identities": S("userAssignedIdentities"),
     }
@@ -485,8 +493,8 @@ class AzurePrivateLinkServiceConnectionState:
 class AzureSubscriptionPolicies:
     kind: ClassVar[str] = "azure_subscription_policies"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "location_placement_id": S("locationPlacementId"),
-        "quota_id": S("quotaId"),
+        "location_placement_id": S("locationPlacementId") >> Lower,
+        "quota_id": S("quotaId") >> Lower,
         "spending_limit": S("spendingLimit"),
     }
     location_placement_id: Optional[str] = field(default=None, metadata={'description': 'The subscription location placement id. The id indicates which regions are visible for a subscription. For example, a subscription with a location placement id of public_2014-09-01 has access to azure public regions.'})  # fmt: skip
@@ -507,15 +515,15 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("subscriptionId"),
+        "id": S("subscriptionId") >> Lower,
         "tags": S("tags", default={}),
         "authorization_source": S("authorizationSource"),
         "display_name": S("displayName"),
-        "managed_by_tenants": S("managedByTenants", default=[]) >> ForallBend(S("tenantId")),
+        "managed_by_tenants": S("managedByTenants", default=[]) >> ForallBend(S("tenantId") >> Lower),
         "state": S("state"),
-        "subscription_id": S("subscriptionId"),
+        "subscription_id": S("subscriptionId") >> Lower,
         "subscription_policies": S("subscriptionPolicies") >> Bend(AzureSubscriptionPolicies.mapping),
-        "tenant_id": S("tenantId"),
+        "tenant_id": S("tenantId") >> Lower,
     }
     authorization_source: Optional[str] = field(default=None, metadata={'description': 'The authorization source of the request. Valid values are one or more combinations of legacy, rolebased, bypassed, direct and management. For example, legacy, rolebased.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The subscription display name."})
@@ -530,14 +538,19 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
 @define(eq=False, slots=False)
 class AzureSubResource:
     kind: ClassVar[str] = "azure_sub_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id") >> Lower}
     id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
 
 
 @define(eq=False, slots=False)
 class AzureChildResource:
     kind: ClassVar[str] = "azure_child_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"etag": S("etag"), "id": S("id"), "name": S("name"), "type": S("type")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "etag": S("etag"),
+        "id": S("id") >> Lower,
+        "name": S("name"),
+        "type": S("type"),
+    }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
@@ -653,7 +666,9 @@ class GraphBuilder:
             for n in self.graph:
                 if clazz and not isinstance(n, clazz):
                     continue
-                if (filter_fn(n) if filter_fn else True) and all(getattr(n, k, None) == v for k, v in node.items()):
+                if (filter_fn(n) if filter_fn else True) and all(
+                    case_insensitive_eq(getattr(n, k, None), v) for k, v in node.items()
+                ):
                     return n  # type: ignore
         return None
 

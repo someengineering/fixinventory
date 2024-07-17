@@ -39,7 +39,7 @@ from fixlib.baseresources import (
     ModelReference,
     EdgeType,
 )
-from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F
+from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F, Lower
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -79,15 +79,17 @@ class AzureAvailabilitySet(MicrosoftResource):
         "successors": {"default": ["azure_proximity_placement_group", "azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "platform_update_domain_count": S("properties", "platformUpdateDomainCount"),
-        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
+        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id") >> Lower,
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "statuses": S("properties", "statuses") >> ForallBend(AzureInstanceViewStatus.mapping),
-        "virtual_machines_availability": S("properties") >> S("virtualMachines", default=[]) >> ForallBend(S("id")),
+        "virtual_machines_availability": S("properties")
+        >> S("virtualMachines", default=[])
+        >> ForallBend(S("id") >> Lower),
     }
     platform_fault_domain_count: Optional[int] = field(default=None, metadata={"description": "Fault domain count."})
     platform_update_domain_count: Optional[int] = field(default=None, metadata={"description": "Update domain count."})
@@ -103,7 +105,7 @@ class AzureAvailabilitySet(MicrosoftResource):
             )
         if virtual_machines := self.virtual_machines_availability:
             for vm_id in virtual_machines:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id.lower())
 
 
 @define(eq=False, slots=False)
@@ -131,15 +133,17 @@ class AzureCapacityReservationGroup(MicrosoftResource):
         "successors": {"default": ["azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
-        "capacity_reservations": S("properties") >> S("capacityReservations", default=[]) >> ForallBend(S("id")),
+        "capacity_reservations": S("properties")
+        >> S("capacityReservations", default=[])
+        >> ForallBend(S("id") >> Lower),
         "reservation_group_instance_view": S("properties", "instanceView")
         >> Bend(AzureCapacityReservationGroupInstanceView.mapping),
         "virtual_machines_associated": S("properties")
         >> S("virtualMachinesAssociated", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
     }
     capacity_reservations: Optional[List[str]] = field(default=None, metadata={'description': 'A list of all capacity reservation resource ids that belong to capacity reservation group.'})  # fmt: skip
     reservation_group_instance_view: Optional[AzureCapacityReservationGroupInstanceView] = field(default=None, metadata={'description': ''})  # fmt: skip
@@ -184,7 +188,7 @@ class AzureCloudServiceRoleProfile:
 class AzureCloudServiceVaultSecretGroup:
     kind: ClassVar[str] = "azure_cloud_service_vault_secret_group"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "source_vault": S("sourceVault", "id"),
+        "source_vault": S("sourceVault", "id") >> Lower,
         "vault_certificates": S("vaultCertificates", default=[]) >> ForallBend(S("certificateUrl")),
     }
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
@@ -206,8 +210,8 @@ class AzureLoadBalancerFrontendIpConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "private_ip_address": S("properties", "privateIPAddress"),
-        "public_ip_address": S("properties", "publicIPAddress", "id"),
-        "subnet": S("properties", "subnet", "id"),
+        "public_ip_address": S("properties", "publicIPAddress", "id") >> Lower,
+        "subnet": S("properties", "subnet", "id") >> Lower,
     }
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within the set of frontend ip configurations used by the load balancer. This name can be used to access the resource.'})  # fmt: skip
     private_ip_address: Optional[str] = field(default=None, metadata={'description': 'The virtual network private ip address of the ip configuration.'})  # fmt: skip
@@ -221,7 +225,7 @@ class AzureLoadBalancerConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "frontend_ip_configurations": S("properties", "frontendIpConfigurations")
         >> ForallBend(AzureLoadBalancerFrontendIpConfiguration.mapping),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "name": S("name"),
     }
     frontend_ip_configurations: Optional[List[AzureLoadBalancerFrontendIpConfiguration]] = field(default=None, metadata={'description': 'Specifies the frontend ip to be used for the load balancer. Only ipv4 frontend ip address is supported. Each load balancer configuration must have exactly one frontend ip configuration.'})  # fmt: skip
@@ -236,7 +240,7 @@ class AzureCloudServiceNetworkProfile:
         "load_balancer_configurations": S("loadBalancerConfigurations")
         >> ForallBend(AzureLoadBalancerConfiguration.mapping),
         "slot_type": S("slotType"),
-        "swappable_cloud_service": S("swappableCloudService", "id"),
+        "swappable_cloud_service": S("swappableCloudService", "id") >> Lower,
     }
     load_balancer_configurations: Optional[List[AzureLoadBalancerConfiguration]] = field(default=None, metadata={'description': 'List of load balancer configurations. Cloud service can have up to two load balancer configurations, corresponding to a public load balancer and an internal load balancer.'})  # fmt: skip
     slot_type: Optional[str] = field(default=None, metadata={'description': 'Slot type for the cloud service. Possible values are **production** **staging** if not specified, the default value is production.'})  # fmt: skip
@@ -246,7 +250,10 @@ class AzureCloudServiceNetworkProfile:
 @define(eq=False, slots=False)
 class AzureCloudServiceVaultAndSecretReference:
     kind: ClassVar[str] = "azure_cloud_service_vault_and_secret_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {"secret_url": S("secretUrl"), "source_vault": S("sourceVault", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "secret_url": S("secretUrl"),
+        "source_vault": S("sourceVault", "id") >> Lower,
+    }
     secret_url: Optional[str] = field(default=None, metadata={'description': 'Secret url which contains the protected settings of the extension.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
 
@@ -301,7 +308,7 @@ class AzureCloudService(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "allow_model_override": S("properties", "allowModelOverride"),
@@ -316,7 +323,7 @@ class AzureCloudService(MicrosoftResource):
         "role_profile": S("properties", "roleProfile") >> Bend(AzureCloudServiceRoleProfile.mapping),
         "start_cloud_service": S("properties", "startCloudService"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "unique_id": S("properties", "uniqueId"),
+        "unique_id": S("properties", "uniqueId") >> Lower,
         "upgrade_mode": S("properties", "upgradeMode"),
     }
     allow_model_override: Optional[bool] = field(default=None, metadata={'description': '(optional) indicates whether the role sku properties (roleprofile. Roles. Sku) specified in the model/template should override the role instance count and vm size specified in the. Cscfg and. Csdef respectively. The default value is `false`.'})  # fmt: skip
@@ -336,7 +343,7 @@ class AzureCloudService(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureContainerServiceServicePrincipalProfile:
     kind: ClassVar[str] = "azure_container_service_service_principal_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "secret": S("secret")}
+    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId") >> Lower, "secret": S("secret")}
     client_id: Optional[str] = field(default=None, metadata={"description": "The id for the service principal."})
     secret: Optional[str] = field(default=None, metadata={'description': 'The secret password associated with the service principal.'})  # fmt: skip
 
@@ -404,11 +411,11 @@ class AzureDedicatedHostGroup(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ultra_ssd_enabled": S("properties", "additionalCapabilities", "ultraSSDEnabled"),
-        "hosts": S("properties") >> S("hosts", default=[]) >> ForallBend(S("id")),
+        "hosts": S("properties") >> S("hosts", default=[]) >> ForallBend(S("id") >> Lower),
         "host_group_instance_view": S("properties", "instanceView")
         >> Bend(AzureDedicatedHostGroupInstanceView.mapping),
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
@@ -463,10 +470,10 @@ class AzureSupportedCapabilities:
 class AzureImageDiskReference:
     kind: ClassVar[str] = "azure_image_disk_reference"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "community_gallery_image_id": S("communityGalleryImageId"),
-        "id": S("id"),
+        "community_gallery_image_id": S("communityGalleryImageId") >> Lower,
+        "id": S("id") >> Lower,
         "lun": S("lun"),
-        "shared_gallery_image_id": S("sharedGalleryImageId"),
+        "shared_gallery_image_id": S("sharedGalleryImageId") >> Lower,
     }
     community_gallery_image_id: Optional[str] = field(default=None, metadata={'description': 'A relative uri containing a community azure compute gallery image reference.'})  # fmt: skip
     id: Optional[str] = field(default=None, metadata={'description': 'A relative uri containing either a platform image repository, user image, or azure compute gallery image reference.'})  # fmt: skip
@@ -484,10 +491,10 @@ class AzureCreationData:
         "logical_sector_size": S("logicalSectorSize"),
         "performance_plus": S("performancePlus"),
         "security_data_uri": S("securityDataUri"),
-        "source_resource_id": S("sourceResourceId"),
-        "source_unique_id": S("sourceUniqueId"),
+        "source_resource_id": S("sourceResourceId") >> Lower,
+        "source_unique_id": S("sourceUniqueId") >> Lower,
         "source_uri": S("sourceUri"),
-        "storage_account_id": S("storageAccountId"),
+        "storage_account_id": S("storageAccountId") >> Lower,
         "upload_size_bytes": S("uploadSizeBytes"),
     }
     create_option: Optional[str] = field(default=None, metadata={'description': 'This enumerates the possible sources of a disk s creation.'})  # fmt: skip
@@ -506,7 +513,10 @@ class AzureCreationData:
 @define(eq=False, slots=False)
 class AzureKeyVaultAndSecretReference:
     kind: ClassVar[str] = "azure_key_vault_and_secret_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {"secret_url": S("secretUrl"), "source_vault": S("sourceVault", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "secret_url": S("secretUrl"),
+        "source_vault": S("sourceVault", "id") >> Lower,
+    }
     secret_url: Optional[str] = field(default=None, metadata={'description': 'Url pointing to a key or secret in keyvault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={'description': 'The vault id is an azure resource manager resource id in the form /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Keyvault/vaults/{vaultname}.'})  # fmt: skip
 
@@ -514,7 +524,7 @@ class AzureKeyVaultAndSecretReference:
 @define(eq=False, slots=False)
 class AzureKeyVaultAndKeyReference:
     kind: ClassVar[str] = "azure_key_vault_and_key_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id") >> Lower}
     key_url: Optional[str] = field(default=None, metadata={'description': 'Url pointing to a key or secret in keyvault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={'description': 'The vault id is an azure resource manager resource id in the form /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Keyvault/vaults/{vaultname}.'})  # fmt: skip
 
@@ -546,7 +556,10 @@ class AzureEncryptionSettingsCollection:
 @define(eq=False, slots=False)
 class AzureEncryption:
     kind: ClassVar[str] = "azure_encryption"
-    mapping: ClassVar[Dict[str, Bender]] = {"disk_encryption_set_id": S("diskEncryptionSetId"), "type": S("type")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "disk_encryption_set_id": S("diskEncryptionSetId") >> Lower,
+        "type": S("type"),
+    }
     disk_encryption_set_id: Optional[str] = field(default=None, metadata={'description': 'Resourceid of the disk encryption set to use for enabling encryption at rest.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of key used to encrypt the data of the disk.'})  # fmt: skip
 
@@ -555,7 +568,7 @@ class AzureEncryption:
 class AzureDiskSecurityProfile:
     kind: ClassVar[str] = "azure_disk_security_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "secure_vm_disk_encryption_set_id": S("secureVMDiskEncryptionSetId"),
+        "secure_vm_disk_encryption_set_id": S("secureVMDiskEncryptionSetId") >> Lower,
         "security_type": S("securityType"),
     }
     secure_vm_disk_encryption_set_id: Optional[str] = field(default=None, metadata={'description': 'Resourceid of the disk encryption set associated to confidential vm supported disk encrypted with customer managed key.'})  # fmt: skip
@@ -790,7 +803,7 @@ class AzureDiskType(MicrosoftResource, BaseVolumeType):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("skuName"),
+        "id": S("skuName") >> Lower,
         "name": S("skuName"),
         "full_name": S("armSkuName"),
         "product_name": S("productName"),
@@ -1004,7 +1017,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
         "successors": {"default": ["azure_disk_encryption_set", "azure_disk_type"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
@@ -1014,7 +1027,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
         "completion_percent": S("properties", "completionPercent"),
         "creation_data": S("properties", "creationData") >> Bend(AzureCreationData.mapping),
         "data_access_auth_mode": S("properties", "dataAccessAuthMode"),
-        "disk_access_id": S("properties", "diskAccessId"),
+        "disk_access_id": S("properties", "diskAccessId") >> Lower,
         "disk_iops_read_only": S("properties", "diskIOPSReadOnly"),
         "disk_iops_read_write": S("properties", "diskIOPSReadWrite"),
         "disk_m_bps_read_only": S("properties", "diskMBpsReadOnly"),
@@ -1046,7 +1059,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
         "time_created": S("properties", "timeCreated"),
         "location": S("location"),
         "tier_name": S("sku", "tier"),
-        "unique_id": S("properties", "uniqueId"),
+        "unique_id": S("properties", "uniqueId") >> Lower,
         "volume_size": S("properties", "diskSizeGB"),
         "volume_type": S("sku", "name"),
         "volume_status": S("properties", "diskState") >> MapEnum(VolumeStatusMapping, default=VolumeStatus.UNKNOWN),
@@ -1218,9 +1231,9 @@ class AzureDisk(MicrosoftResource, BaseVolume):
 class AzureDiskAccessPrivateEndpointConnection:
     kind: ClassVar[str] = "azure_disk_access_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "name": S("name"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
+        "private_endpoint": S("properties", "privateEndpoint", "id") >> Lower,
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
         >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
@@ -1247,7 +1260,7 @@ class AzureDiskAccess(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("time_created"),
@@ -1266,8 +1279,8 @@ class AzureDiskAccess(MicrosoftResource):
 class AzureEncryptionSetIdentity:
     kind: ClassVar[str] = "azure_encryption_set_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
+        "principal_id": S("principalId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
         "type": S("type"),
         "user_assigned_identities": S("userAssignedIdentities"),
     }
@@ -1280,7 +1293,7 @@ class AzureEncryptionSetIdentity:
 @define(eq=False, slots=False)
 class AzureKeyForDiskEncryptionSet:
     kind: ClassVar[str] = "azure_key_for_disk_encryption_set"
-    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id") >> Lower}
     key_url: Optional[str] = field(default=None, metadata={'description': 'Fully versioned key url pointing to a key in keyvault. Version segment of the url is required regardless of rotationtolatestkeyversionenabled value.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={'description': 'The vault id is an azure resource manager resource id in the form /subscriptions/{subscriptionid}/resourcegroups/{resourcegroupname}/providers/microsoft. Keyvault/vaults/{vaultname}.'})  # fmt: skip
 
@@ -1332,13 +1345,13 @@ class AzureDiskEncryptionSet(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "active_key": S("properties", "activeKey") >> Bend(AzureKeyForDiskEncryptionSet.mapping),
         "auto_key_rotation_error": S("properties", "autoKeyRotationError") >> Bend(AzureApiError.mapping),
         "encryption_type": S("properties", "encryptionType"),
-        "federated_client_id": S("properties", "federatedClientId"),
+        "federated_client_id": S("properties", "federatedClientId") >> Lower,
         "encryption_set_identity": S("identity") >> Bend(AzureEncryptionSetIdentity.mapping),
         "last_key_rotation_timestamp": S("properties", "lastKeyRotationTimestamp"),
         "previous_keys": S("properties", "previousKeys") >> ForallBend(AzureKeyForDiskEncryptionSet.mapping),
@@ -1430,7 +1443,7 @@ class AzureGallery(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "description": S("properties", "description"),
@@ -1455,8 +1468,8 @@ class AzureImageDisk:
         "caching": S("caching"),
         "disk_encryption_set": S("diskEncryptionSet") >> Bend(AzureSubResource.mapping),
         "disk_size_gb": S("diskSizeGB"),
-        "managed_disk": S("managedDisk", "id"),
-        "snapshot": S("snapshot", "id"),
+        "managed_disk": S("managedDisk", "id") >> Lower,
+        "snapshot": S("snapshot", "id") >> Lower,
         "storage_account_type": S("storageAccountType"),
     }
     blob_uri: Optional[str] = field(default=None, metadata={"description": "The virtual hard disk."})
@@ -1502,13 +1515,13 @@ class AzureImage(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "hyper_v_generation": S("properties", "hyperVGeneration"),
         "provisioning_state": S("properties", "provisioningState"),
-        "source_virtual_machine": S("properties", "sourceVirtualMachine", "id"),
+        "source_virtual_machine": S("properties", "sourceVirtualMachine", "id") >> Lower,
         "storage_profile": S("properties", "storageProfile") >> Bend(AzureImageStorageProfile.mapping),
     }
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
@@ -1549,7 +1562,7 @@ class AzureProximityPlacementGroup(MicrosoftResource):
         "successors": {"default": ["azure_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "availability_sets": S("properties", "availabilitySets")
@@ -1579,7 +1592,7 @@ class AzureProximityPlacementGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureRestorePointCollectionSourceProperties:
     kind: ClassVar[str] = "azure_restore_point_collection_source_properties"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "location": S("location")}
+    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id") >> Lower, "location": S("location")}
     id: Optional[str] = field(default=None, metadata={'description': 'Resource id of the source resource used to create this restore point collection.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'Location of the source resource used to create this restore point collection.'})  # fmt: skip
 
@@ -1587,7 +1600,7 @@ class AzureRestorePointCollectionSourceProperties:
 @define(eq=False, slots=False)
 class AzureProxyResource:
     kind: ClassVar[str] = "azure_proxy_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "type": S("type")}
+    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id") >> Lower, "name": S("name"), "type": S("type")}
     id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
     name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
@@ -1618,7 +1631,10 @@ class AzureHardwareProfile:
 @define(eq=False, slots=False)
 class AzureKeyVaultSecretReference:
     kind: ClassVar[str] = "azure_key_vault_secret_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {"secret_url": S("secretUrl"), "source_vault": S("sourceVault", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "secret_url": S("secretUrl"),
+        "source_vault": S("sourceVault", "id") >> Lower,
+    }
     secret_url: Optional[str] = field(default=None, metadata={'description': 'The url referencing a secret in a key vault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
 
@@ -1626,7 +1642,7 @@ class AzureKeyVaultSecretReference:
 @define(eq=False, slots=False)
 class AzureKeyVaultKeyReference:
     kind: ClassVar[str] = "azure_key_vault_key_reference"
-    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"key_url": S("keyUrl"), "source_vault": S("sourceVault", "id") >> Lower}
     key_url: Optional[str] = field(default=None, metadata={'description': 'The url referencing a key encryption key in key vault.'})  # fmt: skip
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
 
@@ -1671,7 +1687,7 @@ class AzureManagedDiskParameters(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureSubResourceReadOnly:
     kind: ClassVar[str] = "azure_sub_resource_read_only"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id") >> Lower}
     id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
 
 
@@ -1691,7 +1707,7 @@ class AzureDiskRestorePointAttributes(AzureSubResourceReadOnly):
     kind: ClassVar[str] = "azure_disk_restore_point_attributes"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResourceReadOnly.mapping | {
         "encryption": S("encryption") >> Bend(AzureRestorePointEncryption.mapping),
-        "source_disk_restore_point": S("sourceDiskRestorePoint", "id"),
+        "source_disk_restore_point": S("sourceDiskRestorePoint", "id") >> Lower,
     }
     encryption: Optional[AzureRestorePointEncryption] = field(default=None, metadata={'description': 'Encryption at rest settings for disk restore point. It is an optional property that can be specified in the input while creating a restore point.'})  # fmt: skip
     source_disk_restore_point: Optional[str] = field(default=None, metadata={'description': 'The api entity reference.'})  # fmt: skip
@@ -1903,7 +1919,7 @@ class AzureVaultCertificate:
 class AzureVaultSecretGroup:
     kind: ClassVar[str] = "azure_vault_secret_group"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "source_vault": S("sourceVault", "id"),
+        "source_vault": S("sourceVault", "id") >> Lower,
         "vault_certificates": S("vaultCertificates") >> ForallBend(AzureVaultCertificate.mapping),
     }
     source_vault: Optional[str] = field(default=None, metadata={"description": ""})
@@ -1989,7 +2005,7 @@ class AzureRestorePointSourceMetadata:
         "security_profile": S("securityProfile") >> Bend(AzureSecurityProfile.mapping),
         "storage_profile": S("storageProfile") >> Bend(AzureRestorePointSourceVMStorageProfile.mapping),
         "user_data": S("userData"),
-        "vm_id": S("vmId"),
+        "vm_id": S("vmId") >> Lower,
     }
     diagnostics_profile: Optional[AzureDiagnosticsProfile] = field(default=None, metadata={'description': 'Specifies the boot diagnostic settings state. Minimum api-version: 2015-06-15.'})  # fmt: skip
     hardware_profile: Optional[AzureHardwareProfile] = field(default=None, metadata={'description': 'Specifies the hardware settings for the virtual machine.'})  # fmt: skip
@@ -2018,7 +2034,7 @@ class AzureDiskRestorePointReplicationStatus:
 class AzureDiskRestorePointInstanceView:
     kind: ClassVar[str] = "azure_disk_restore_point_instance_view"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "replication_status": S("replicationStatus") >> Bend(AzureDiskRestorePointReplicationStatus.mapping),
     }
     id: Optional[str] = field(default=None, metadata={"description": "Disk restore point id."})
@@ -2041,11 +2057,11 @@ class AzureRestorePoint(AzureProxyResource):
     kind: ClassVar[str] = "azure_restore_point"
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "consistency_mode": S("properties", "consistencyMode"),
-        "exclude_disks": S("properties") >> S("excludeDisks", default=[]) >> ForallBend(S("id")),
+        "exclude_disks": S("properties") >> S("excludeDisks", default=[]) >> ForallBend(S("id") >> Lower),
         "restore_point_instance_view": S("properties", "instanceView") >> Bend(AzureRestorePointInstanceView.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "source_metadata": S("properties", "sourceMetadata") >> Bend(AzureRestorePointSourceMetadata.mapping),
-        "source_restore_point": S("properties", "sourceRestorePoint", "id"),
+        "source_restore_point": S("properties", "sourceRestorePoint", "id") >> Lower,
         "time_created": S("properties", "timeCreated"),
     }
     consistency_mode: Optional[str] = field(default=None, metadata={'description': 'Consistencymode of the restorepoint. Can be specified in the input while creating a restore point. For now, only crashconsistent is accepted as a valid input. Please refer to https://aka. Ms/restorepoints for more details.'})  # fmt: skip
@@ -2073,11 +2089,11 @@ class AzureRestorePointCollection(MicrosoftResource):
         "successors": {"default": ["azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "restore_point_collection_id": S("properties", "restorePointCollectionId"),
+        "restore_point_collection_id": S("properties", "restorePointCollectionId") >> Lower,
         "restore_points": S("properties", "restorePoints") >> ForallBend(AzureRestorePoint.mapping),
         "source": S("properties", "source") >> Bend(AzureRestorePointCollectionSourceProperties.mapping),
     }
@@ -2122,7 +2138,7 @@ class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
         "predecessors": {"default": ["azure_disk"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
@@ -2130,7 +2146,7 @@ class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
         "copy_completion_error": S("properties", "copyCompletionError") >> Bend(AzureCopyCompletionError.mapping),
         "creation_data": S("properties", "creationData") >> Bend(AzureCreationData.mapping),
         "data_access_auth_mode": S("properties", "dataAccessAuthMode"),
-        "disk_access_id": S("properties", "diskAccessId"),
+        "disk_access_id": S("properties", "diskAccessId") >> Lower,
         "disk_size_bytes": S("properties", "diskSizeBytes"),
         "disk_size_gb": S("properties", "diskSizeGB"),
         "disk_state": S("properties", "diskState"),
@@ -2140,7 +2156,7 @@ class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "hyper_v_generation": S("properties", "hyperVGeneration"),
         "incremental": S("properties", "incremental"),
-        "incremental_snapshot_family_id": S("properties", "incrementalSnapshotFamilyId"),
+        "incremental_snapshot_family_id": S("properties", "incrementalSnapshotFamilyId") >> Lower,
         "managed_by": S("managedBy"),
         "network_access_policy": S("properties", "networkAccessPolicy"),
         "os_type": S("properties", "osType"),
@@ -2152,12 +2168,12 @@ class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
         "supported_capabilities": S("properties", "supportedCapabilities") >> Bend(AzureSupportedCapabilities.mapping),
         "supports_hibernation": S("properties", "supportsHibernation"),
         "time_created": S("properties", "timeCreated"),
-        "unique_id": S("properties", "uniqueId"),
+        "unique_id": S("properties", "uniqueId") >> Lower,
         "snapshot_status": S("properties", "diskState"),
-        "volume_id": S("id"),
+        "volume_id": S("id") >> Lower,
         "volume_size": S("properties", "diskSizeGB"),
         "encrypted": S("properties", "encryptionSettingsCollection", "enabled"),
-        "owner_id": S("properties", "creationData", "storageAccountId"),
+        "owner_id": S("properties", "creationData", "storageAccountId") >> Lower,
     }
     completion_percent: Optional[float] = field(default=None, metadata={'description': 'Percentage complete for the background copy when a resource is created via the copystart operation.'})  # fmt: skip
     copy_completion_error: Optional[AzureCopyCompletionError] = field(default=None, metadata={'description': 'Indicates the error details if the background copy of a resource created via the copystart operation fails.'})  # fmt: skip
@@ -2203,7 +2219,7 @@ class AzureSshPublicKeyResource(MicrosoftResource, BaseKeyPair):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "properties": S("properties", "publicKey"),
@@ -2230,11 +2246,11 @@ class AzurePlan:
 class AzureImageReference(AzureSubResource):
     kind: ClassVar[str] = "azure_image_reference"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "community_gallery_image_id": S("communityGalleryImageId"),
+        "community_gallery_image_id": S("communityGalleryImageId") >> Lower,
         "exact_version": S("exactVersion"),
         "offer": S("offer"),
         "publisher": S("publisher"),
-        "shared_gallery_image_id": S("sharedGalleryImageId"),
+        "shared_gallery_image_id": S("sharedGalleryImageId") >> Lower,
         "image_reference_sku": S("sku"),
         "version": S("version"),
     }
@@ -2394,7 +2410,7 @@ class AzureVirtualMachinePublicIPAddressConfiguration:
         "name": S("name"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
         "public_ip_allocation_method": S("properties", "publicIPAllocationMethod"),
-        "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
+        "public_ip_prefix": S("properties", "publicIPPrefix", "id") >> Lower,
         "sku": S("sku") >> Bend(AzurePublicIPAddressSku.mapping),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the public ip address when the vm is deleted.'})  # fmt: skip
@@ -2414,19 +2430,19 @@ class AzureVirtualMachineNetworkInterfaceIPConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "application_gateway_backend_address_pools": S("properties")
         >> S("applicationGatewayBackendAddressPools", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "application_security_groups": S("properties")
         >> S("applicationSecurityGroups", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "load_balancer_backend_address_pools": S("properties")
         >> S("loadBalancerBackendAddressPools", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "name": S("name"),
         "primary": S("properties", "primary"),
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "public_ip_address_configuration": S("properties", "publicIPAddressConfiguration")
         >> Bend(AzureVirtualMachinePublicIPAddressConfiguration.mapping),
-        "subnet": S("properties", "subnet", "id"),
+        "subnet": S("properties", "subnet", "id") >> Lower,
     }
     application_gateway_backend_address_pools: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of application gateways. A virtual machine can reference backend address pools of multiple application gateways. Multiple virtual machines cannot use the same application gateway.'})  # fmt: skip
     application_security_groups: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to application security group.'})  # fmt: skip
@@ -2446,14 +2462,14 @@ class AzureVirtualMachineNetworkInterfaceConfiguration:
         "disable_tcp_state_tracking": S("properties", "disableTcpStateTracking"),
         "dns_settings": S("properties", "dnsSettings")
         >> Bend(AzureVirtualMachineNetworkInterfaceDnsSettingsConfiguration.mapping),
-        "dscp_configuration": S("properties", "dscpConfiguration", "id"),
+        "dscp_configuration": S("properties", "dscpConfiguration", "id") >> Lower,
         "enable_accelerated_networking": S("properties", "enableAcceleratedNetworking"),
         "enable_fpga": S("properties", "enableFpga"),
         "enable_ip_forwarding": S("properties", "enableIPForwarding"),
         "ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzureVirtualMachineNetworkInterfaceIPConfiguration.mapping),
         "name": S("name"),
-        "network_security_group": S("properties", "networkSecurityGroup", "id"),
+        "network_security_group": S("properties", "networkSecurityGroup", "id") >> Lower,
         "primary": S("properties", "primary"),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the network interface when the vm is deleted.'})  # fmt: skip
@@ -2585,7 +2601,7 @@ class AzureBootDiagnosticsInstanceView:
 class AzureAvailablePatchSummary:
     kind: ClassVar[str] = "azure_available_patch_summary"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "assessment_activity_id": S("assessmentActivityId"),
+        "assessment_activity_id": S("assessmentActivityId") >> Lower,
         "critical_and_security_patch_count": S("criticalAndSecurityPatchCount"),
         "error": S("error") >> Bend(AzureApiError.mapping),
         "last_modified_time": S("lastModifiedTime"),
@@ -2611,7 +2627,7 @@ class AzureLastPatchInstallationSummary:
         "error": S("error") >> Bend(AzureApiError.mapping),
         "excluded_patch_count": S("excludedPatchCount"),
         "failed_patch_count": S("failedPatchCount"),
-        "installation_activity_id": S("installationActivityId"),
+        "installation_activity_id": S("installationActivityId") >> Lower,
         "installed_patch_count": S("installedPatchCount"),
         "last_modified_time": S("lastModifiedTime"),
         "maintenance_window_exceeded": S("maintenanceWindowExceeded"),
@@ -2718,7 +2734,7 @@ class AzureScheduledEventsProfile:
 @define(eq=False, slots=False)
 class AzureCapacityReservationProfile:
     kind: ClassVar[str] = "azure_capacity_reservation_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {"capacity_reservation_group": S("capacityReservationGroup", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"capacity_reservation_group": S("capacityReservationGroup", "id") >> Lower}
     capacity_reservation_group: Optional[str] = field(default=None, metadata={"description": ""})
 
 
@@ -2729,7 +2745,7 @@ class AzureVMGalleryApplication:
         "configuration_reference": S("configurationReference"),
         "enable_automatic_upgrade": S("enableAutomaticUpgrade"),
         "order": S("order"),
-        "package_reference_id": S("packageReferenceId"),
+        "package_reference_id": S("packageReferenceId") >> Lower,
         "tags": S("tags"),
         "treat_failure_as_deployment_failure": S("treatFailureAsDeploymentFailure"),
     }
@@ -2754,7 +2770,7 @@ class AzureApplicationProfile:
 class AzureResourceWithOptionalLocation:
     kind: ClassVar[str] = "azure_resource_with_optional_location"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "location": S("location"),
         "name": S("name"),
         "tags": S("tags"),
@@ -2805,8 +2821,8 @@ class AzureVirtualMachineExtension(AzureResourceWithOptionalLocation):
 class AzureVirtualMachineIdentity:
     kind: ClassVar[str] = "azure_virtual_machine_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
+        "principal_id": S("principalId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
         "type": S("type"),
         "user_assigned_identities": S("userAssignedIdentities"),
     }
@@ -2843,14 +2859,14 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
         "virtual_machine_capabilities": S("properties", "additionalCapabilities")
         >> Bend(AzureAdditionalCapabilities.mapping),
         "application_profile": S("properties", "applicationProfile") >> Bend(AzureApplicationProfile.mapping),
-        "availability_set": S("properties", "availabilitySet", "id"),
+        "availability_set": S("properties", "availabilitySet", "id") >> Lower,
         "billing_profile": S("properties", "billingProfile", "maxPrice"),
         "capacity_reservation": S("properties", "capacityReservation") >> Bend(AzureCapacityReservationProfile.mapping),
         "virtual_machine_diagnostics_profile": S("properties", "diagnosticsProfile")
@@ -2859,8 +2875,8 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "extensions_time_budget": S("properties", "extensionsTimeBudget"),
         "hardware_profile": S("properties", "hardwareProfile") >> Bend(AzureHardwareProfile.mapping),
-        "host": S("properties", "host", "id"),
-        "host_group": S("properties", "hostGroup", "id"),
+        "host": S("properties", "host", "id") >> Lower,
+        "host_group": S("properties", "hostGroup", "id") >> Lower,
         "virtual_machine_identity": S("identity") >> Bend(AzureVirtualMachineIdentity.mapping),
         "virtual_machine_instance_view": S("properties", "instanceView")
         >> Bend(AzureVirtualMachineInstanceView.mapping),
@@ -2872,7 +2888,7 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
         "platform_fault_domain": S("properties", "platformFaultDomain"),
         "virtual_machine_priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
-        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
+        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id") >> Lower,
         "virtual_machine_resources": S("resources") >> ForallBend(AzureVirtualMachineExtension.mapping),
         "scheduled_events_profile": S("properties", "scheduledEventsProfile")
         >> Bend(AzureScheduledEventsProfile.mapping),
@@ -2880,8 +2896,8 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
         "virtual_machine_storage_profile": S("properties", "storageProfile") >> Bend(AzureStorageProfile.mapping),
         "time_created": S("properties", "timeCreated"),
         "user_data": S("properties", "userData"),
-        "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id"),
-        "vm_id": S("properties", "vmId"),
+        "virtual_machine_scale_set": S("properties", "virtualMachineScaleSet", "id") >> Lower,
+        "vm_id": S("properties", "vmId") >> Lower,
         "location": S("location"),
         "instance_type": S("properties", "hardwareProfile", "vmSize"),
     }
@@ -3295,7 +3311,7 @@ class AzureVirtualMachineScaleSetPublicIPAddressConfiguration:
         "ip_tags": S("properties", "ipTags") >> ForallBend(AzureVirtualMachineScaleSetIpTag.mapping),
         "name": S("name"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
-        "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
+        "public_ip_prefix": S("properties", "publicIPPrefix", "id") >> Lower,
         "sku": S("sku") >> Bend(AzurePublicIPAddressSku.mapping),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the public ip when the vm is deleted.'})  # fmt: skip
@@ -3314,22 +3330,22 @@ class AzureVirtualMachineScaleSetIPConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "application_gateway_backend_address_pools": S("properties")
         >> S("applicationGatewayBackendAddressPools", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "application_security_groups": S("properties")
         >> S("applicationSecurityGroups", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "load_balancer_backend_address_pools": S("properties")
         >> S("loadBalancerBackendAddressPools", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "load_balancer_inbound_nat_pools": S("properties")
         >> S("loadBalancerInboundNatPools", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "name": S("name"),
         "primary": S("properties", "primary"),
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "public_ip_address_configuration": S("properties", "publicIPAddressConfiguration")
         >> Bend(AzureVirtualMachineScaleSetPublicIPAddressConfiguration.mapping),
-        "subnet": S("properties", "subnet", "id"),
+        "subnet": S("properties", "subnet", "id") >> Lower,
     }
     application_gateway_backend_address_pools: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to backend address pools of application gateways. A scale set can reference backend address pools of multiple application gateways. Multiple scale sets cannot use the same application gateway.'})  # fmt: skip
     application_security_groups: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies an array of references to application security group.'})  # fmt: skip
@@ -3356,7 +3372,7 @@ class AzureVirtualMachineScaleSetNetworkConfiguration:
         "ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzureVirtualMachineScaleSetIPConfiguration.mapping),
         "name": S("name"),
-        "network_security_group": S("properties", "networkSecurityGroup", "id"),
+        "network_security_group": S("properties", "networkSecurityGroup", "id") >> Lower,
         "primary": S("properties", "primary"),
     }
     delete_option: Optional[str] = field(default=None, metadata={'description': 'Specify what happens to the network interface when the vm is deleted.'})  # fmt: skip
@@ -3375,7 +3391,7 @@ class AzureVirtualMachineScaleSetNetworkConfiguration:
 class AzureVirtualMachineScaleSetNetworkProfile:
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_network_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "health_probe": S("healthProbe", "id"),
+        "health_probe": S("healthProbe", "id") >> Lower,
         "network_api_version": S("networkApiVersion"),
         "network_interface_configurations": S("networkInterfaceConfigurations")
         >> ForallBend(AzureVirtualMachineScaleSetNetworkConfiguration.mapping),
@@ -3444,7 +3460,7 @@ class AzureSecurityPostureReference:
     kind: ClassVar[str] = "azure_security_posture_reference"
     mapping: ClassVar[Dict[str, Bender]] = {
         "exclude_extensions": S("excludeExtensions") >> ForallBend(AzureVirtualMachineExtension.mapping),
-        "id": S("id"),
+        "id": S("id") >> Lower,
     }
     exclude_extensions: Optional[List[AzureVirtualMachineExtension]] = field(default=None, metadata={'description': 'List of virtual machine extensions to exclude when applying the security posture.'})  # fmt: skip
     id: Optional[str] = field(default=None, metadata={'description': 'The security posture reference id in the form of /communitygalleries/{communitygalleryname}/securitypostures/{securityposturename}/versions/{major. Minor. Patch}|{major. *}|latest.'})  # fmt: skip
@@ -3468,7 +3484,7 @@ class AzureVirtualMachineScaleSetVMProfile:
         "scheduled_events_profile": S("scheduledEventsProfile") >> Bend(AzureScheduledEventsProfile.mapping),
         "security_posture_reference": S("securityPostureReference") >> Bend(AzureSecurityPostureReference.mapping),
         "security_profile": S("securityProfile") >> Bend(AzureSecurityProfile.mapping),
-        "service_artifact_reference": S("serviceArtifactReference", "id"),
+        "service_artifact_reference": S("serviceArtifactReference", "id") >> Lower,
         "storage_profile": S("storageProfile") >> Bend(AzureVirtualMachineScaleSetStorageProfile.mapping),
         "user_data": S("userData"),
     }
@@ -3522,8 +3538,8 @@ class AzurePriorityMixPolicy:
 class AzureVirtualMachineScaleSetIdentity:
     kind: ClassVar[str] = "azure_virtual_machine_scale_set_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
+        "principal_id": S("principalId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
         "type": S("type"),
         "user_assigned_identities": S("userAssignedIdentities"),
     }
@@ -3550,7 +3566,7 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
         "successors": {"default": ["azure_virtual_machine_scale_set_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("properties", "timeCreated"),
@@ -3561,7 +3577,7 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
         "constrained_maximum_capacity": S("properties", "constrainedMaximumCapacity"),
         "do_not_run_extensions_on_overprovisioned_vm_s": S("properties", "doNotRunExtensionsOnOverprovisionedVMs"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
-        "host_group": S("properties", "hostGroup", "id"),
+        "host_group": S("properties", "hostGroup", "id") >> Lower,
         "scale_set_identity": S("identity") >> Bend(AzureVirtualMachineScaleSetIdentity.mapping),
         "orchestration_mode": S("properties", "orchestrationMode"),
         "overprovision": S("properties", "overprovision"),
@@ -3569,13 +3585,13 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
         "platform_fault_domain_count": S("properties", "platformFaultDomainCount"),
         "priority_mix_policy": S("properties", "priorityMixPolicy") >> Bend(AzurePriorityMixPolicy.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id"),
+        "proximity_placement_group": S("properties", "proximityPlacementGroup", "id") >> Lower,
         "scale_in_policy": S("properties", "scaleInPolicy") >> Bend(AzureScaleInPolicy.mapping),
         "single_placement_group": S("properties", "singlePlacementGroup"),
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "spot_restore_policy": S("properties", "spotRestorePolicy") >> Bend(AzureSpotRestorePolicy.mapping),
         "time_created": S("properties", "timeCreated"),
-        "unique_id": S("properties", "uniqueId"),
+        "unique_id": S("properties", "uniqueId") >> Lower,
         "upgrade_policy": S("properties", "upgradePolicy") >> Bend(AzureUpgradePolicy.mapping),
         "virtual_machine_profile": S("properties", "virtualMachineProfile")
         >> Bend(AzureVirtualMachineScaleSetVMProfile.mapping),
@@ -3617,7 +3633,7 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
             )
 
             items = graph_builder.client.list(api_spec)
-            vmss_instance_ids = [str(item.get("id")) for item in items if item.get("id") is not None]
+            vmss_instance_ids = [str(item.get("id")).lower() for item in items if item.get("id") is not None]
 
             AzureVirtualMachineScaleSetInstance.collect(items, graph_builder)
 

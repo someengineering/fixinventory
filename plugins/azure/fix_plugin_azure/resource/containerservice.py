@@ -15,7 +15,7 @@ from fix_plugin_azure.resource.base import (
     AzureManagedServiceIdentity,
 )
 from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnapshot, EdgeType, ModelReference
-from fixlib.json_bender import Bender, S, Bend, ForallBend
+from fixlib.json_bender import Bender, S, Bend, ForallBend, Lower
 from fixlib.types import Json
 
 service = "azure_container_service"
@@ -26,7 +26,7 @@ log = logging.getLogger("fix.plugins.azure")
 class AzureTrackedResource:
     kind: ClassVar[str] = "azure_tracked_resource"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "location": S("location"),
         "name": S("name"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
@@ -47,7 +47,7 @@ class AzureAPIServerAccessProfile:
     mapping: ClassVar[Dict[str, Bender]] = {
         "enable_private_cluster": S("enablePrivateCluster"),
         "enable_vnet_integration": S("enableVnetIntegration"),
-        "subnet_id": S("subnetId"),
+        "subnet_id": S("subnetId") >> Lower,
     }
     enable_private_cluster: Optional[bool] = field(default=None, metadata={'description': 'Whether to create the Fleet hub as a private cluster or not.'})  # fmt: skip
     enable_vnet_integration: Optional[bool] = field(default=None, metadata={'description': 'Whether to enable apiserver vnet integration for the Fleet hub or not.'})  # fmt: skip
@@ -57,7 +57,7 @@ class AzureAPIServerAccessProfile:
 @define(eq=False, slots=False)
 class AzureAgentProfile:
     kind: ClassVar[str] = "azure_agent_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {"subnet_id": S("subnetId"), "vm_size": S("vmSize")}
+    mapping: ClassVar[Dict[str, Bender]] = {"subnet_id": S("subnetId") >> Lower, "vm_size": S("vmSize")}
     subnet_id: Optional[str] = field(default=None, metadata={'description': 'A type definition that refers the id to an ARM resource.'})  # fmt: skip
     vm_size: Optional[str] = field(default=None, metadata={'description': 'The virtual machine size of the Fleet hub.'})  # fmt: skip
 
@@ -97,7 +97,7 @@ class AzureFleet(MicrosoftResource):
         "successors": {"default": ["azure_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("systemData", "createdAt"),
@@ -131,7 +131,7 @@ class AzureFleet(MicrosoftResource):
             item: Json = next(iter(items), {})
 
             try:
-                self.cluster_resource_id = item["properties"]["clusterResourceId"]
+                self.cluster_resource_id = item["properties"]["clusterResourceId"].lower()
             except KeyError as e:
                 log.warning(f"An error occured while setting cluster_resource_id: {e}")
 
@@ -170,8 +170,8 @@ class AzureDelegatedResource:
     mapping: ClassVar[Dict[str, Bender]] = {
         "location": S("location"),
         "referral_resource": S("referralResource"),
-        "resource_id": S("resourceId"),
-        "tenant_id": S("tenantId"),
+        "resource_id": S("resourceId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
     }
     location: Optional[str] = field(default=None, metadata={'description': 'The source resource location - internal use only.'})  # fmt: skip
     referral_resource: Optional[str] = field(default=None, metadata={'description': 'The delegation id of the referral delegation (optional) - internal use only.'})  # fmt: skip
@@ -184,8 +184,8 @@ class AzureManagedClusterIdentity:
     kind: ClassVar[str] = "azure_managed_cluster_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
         "delegated_resources": S("delegatedResources"),
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
+        "principal_id": S("principalId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
         "type": S("type"),
         "user_assigned_identities": S("userAssignedIdentities"),
     }
@@ -247,7 +247,7 @@ class AzureManagedClusterWindowsProfile:
 @define(eq=False, slots=False)
 class AzureManagedClusterServicePrincipalProfile:
     kind: ClassVar[str] = "azure_managed_cluster_service_principal_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "secret": S("secret")}
+    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId") >> Lower, "secret": S("secret")}
     client_id: Optional[str] = field(default=None, metadata={"description": "The ID for the service principal."})
     secret: Optional[str] = field(default=None, metadata={'description': 'The secret password associated with the service principal in plain text.'})  # fmt: skip
 
@@ -366,7 +366,7 @@ class AzureCountCountipv6:
 class AzurePublicIPPrefixes:
     kind: ClassVar[str] = "azure_public_ip_prefixes"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "public_ip_prefixes": S("publicIPPrefixes", default=[]) >> ForallBend(S("id"))
+        "public_ip_prefixes": S("publicIPPrefixes", default=[]) >> ForallBend(S("id") >> Lower)
     }
     public_ip_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'A list of public IP prefix resources.'})  # fmt: skip
 
@@ -374,7 +374,7 @@ class AzurePublicIPPrefixes:
 @define(eq=False, slots=False)
 class AzurePublicIPs:
     kind: ClassVar[str] = "azure_public_i_ps"
-    mapping: ClassVar[Dict[str, Bender]] = {"public_i_ps": S("publicIPs", default=[]) >> ForallBend(S("id"))}
+    mapping: ClassVar[Dict[str, Bender]] = {"public_i_ps": S("publicIPs", default=[]) >> ForallBend(S("id") >> Lower)}
     public_i_ps: Optional[List[str]] = field(default=None, metadata={"description": "A list of public IP resources."})
 
 
@@ -383,7 +383,7 @@ class AzureManagedClusterLoadBalancerProfile:
     kind: ClassVar[str] = "azure_managed_cluster_load_balancer_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
         "allocated_outbound_ports": S("allocatedOutboundPorts"),
-        "effective_outbound_i_ps": S("effectiveOutboundIPs", default=[]) >> ForallBend(S("id")),
+        "effective_outbound_i_ps": S("effectiveOutboundIPs", default=[]) >> ForallBend(S("id") >> Lower),
         "enable_multiple_standard_load_balancers": S("enableMultipleStandardLoadBalancers"),
         "idle_timeout_in_minutes": S("idleTimeoutInMinutes"),
         "managed_outbound_i_ps": S("managedOutboundIPs") >> Bend(AzureCountCountipv6.mapping),
@@ -403,7 +403,7 @@ class AzureManagedClusterLoadBalancerProfile:
 class AzureManagedClusterNATGatewayProfile:
     kind: ClassVar[str] = "azure_managed_cluster_nat_gateway_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "effective_outbound_i_ps": S("effectiveOutboundIPs", default=[]) >> ForallBend(S("id")),
+        "effective_outbound_i_ps": S("effectiveOutboundIPs", default=[]) >> ForallBend(S("id") >> Lower),
         "idle_timeout_in_minutes": S("idleTimeoutInMinutes"),
         "managed_outbound_ip_profile": S("managedOutboundIPProfile", "count"),
     }
@@ -454,12 +454,12 @@ class AzureManagedClusterAADProfile:
     kind: ClassVar[str] = "azure_managed_cluster_aad_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
         "admin_group_object_i_ds": S("adminGroupObjectIDs"),
-        "client_app_id": S("clientAppID"),
+        "client_app_id": S("clientAppID") >> Lower,
         "enable_azure_rbac": S("enableAzureRBAC"),
         "managed": S("managed"),
-        "server_app_id": S("serverAppID"),
+        "server_app_id": S("serverAppID") >> Lower,
         "server_app_secret": S("serverAppSecret"),
-        "tenant_id": S("tenantID"),
+        "tenant_id": S("tenantID") >> Lower,
     }
     admin_group_object_i_ds: Optional[List[str]] = field(default=None, metadata={'description': 'The list of AAD group object IDs that will have admin role of the cluster.'})  # fmt: skip
     client_app_id: Optional[str] = field(default=None, metadata={'description': '(DEPRECATED) The client AAD application ID. Learn more at https://aka.ms/aks/aad-legacy.'})  # fmt: skip
@@ -560,10 +560,10 @@ class AzureManagedClusterAPIServerAccessProfile:
 class AzurePrivateLinkResource:
     kind: ClassVar[str] = "azure_private_link_resource"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "group_id": S("groupId"),
-        "id": S("id"),
+        "group_id": S("groupId") >> Lower,
+        "id": S("id") >> Lower,
         "name": S("name"),
-        "private_link_service_id": S("privateLinkServiceID"),
+        "private_link_service_id": S("privateLinkServiceID") >> Lower,
         "required_members": S("requiredMembers"),
         "type": S("type"),
     }
@@ -594,7 +594,7 @@ class AzureManagedClusterHTTPProxyConfig:
 class AzureManagedClusterSecurityProfileDefender:
     kind: ClassVar[str] = "azure_managed_cluster_security_profile_defender"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "log_analytics_workspace_resource_id": S("logAnalyticsWorkspaceResourceId"),
+        "log_analytics_workspace_resource_id": S("logAnalyticsWorkspaceResourceId") >> Lower,
         "security_monitoring": S("securityMonitoring", "enabled"),
     }
     log_analytics_workspace_resource_id: Optional[str] = field(default=None, metadata={'description': 'Resource ID of the Log Analytics workspace to be associated with Microsoft Defender. When Microsoft Defender is enabled, this field is required and must be a valid workspace resource ID. When Microsoft Defender is disabled, leave the field empty.'})  # fmt: skip
@@ -606,9 +606,9 @@ class AzureAzureKeyVaultKms:
     kind: ClassVar[str] = "azure_azure_key_vault_kms"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("enabled"),
-        "key_id": S("keyId"),
+        "key_id": S("keyId") >> Lower,
         "key_vault_network_access": S("keyVaultNetworkAccess"),
-        "key_vault_resource_id": S("keyVaultResourceId"),
+        "key_vault_resource_id": S("keyVaultResourceId") >> Lower,
     }
     enabled: Optional[bool] = field(default=None, metadata={'description': 'Whether to enable Azure Key Vault key management service. The default is false.'})  # fmt: skip
     key_id: Optional[str] = field(default=None, metadata={'description': 'Identifier of Azure Key Vault key. See [key identifier format](https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#vault-name-and-object-name) for more details. When Azure Key Vault key management service is enabled, this field is required and must be a valid key identifier. When Azure Key Vault key management service is disabled, leave the field empty.'})  # fmt: skip
@@ -731,7 +731,7 @@ class AzureIstioPluginCertificateAuthority:
         "cert_chain_object_name": S("certChainObjectName"),
         "cert_object_name": S("certObjectName"),
         "key_object_name": S("keyObjectName"),
-        "key_vault_id": S("keyVaultId"),
+        "key_vault_id": S("keyVaultId") >> Lower,
         "root_cert_object_name": S("rootCertObjectName"),
     }
     cert_chain_object_name: Optional[str] = field(default=None, metadata={'description': 'Certificate chain object name in Azure Key Vault.'})  # fmt: skip
@@ -788,7 +788,7 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
         "successors": {"default": ["azure_disk_encryption_set", "azure_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "aad_profile": S("properties", "aadProfile") >> Bend(AzureManagedClusterAADProfile.mapping),
@@ -804,7 +804,7 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
         "azure_portal_fqdn": S("properties", "azurePortalFQDN"),
         "current_kubernetes_version": S("properties", "currentKubernetesVersion"),
         "disable_local_accounts": S("properties", "disableLocalAccounts"),
-        "disk_encryption_set_id": S("properties", "diskEncryptionSetID"),
+        "disk_encryption_set_id": S("properties", "diskEncryptionSetID") >> Lower,
         "dns_prefix": S("properties", "dnsPrefix"),
         "enable_pod_security_policy": S("properties", "enablePodSecurityPolicy"),
         "enable_rbac": S("properties", "enableRBAC"),
@@ -830,7 +830,7 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
         >> ForallBend(AzurePrivateLinkResource.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
-        "resource_uid": S("properties", "resourceUID"),
+        "resource_uid": S("properties", "resourceUID") >> Lower,
         "security_profile": S("properties", "securityProfile") >> Bend(AzureManagedClusterSecurityProfile.mapping),
         "service_mesh_profile": S("properties", "serviceMeshProfile") >> Bend(AzureServiceMeshProfile.mapping),
         "service_principal_profile": S("properties", "servicePrincipalProfile")
@@ -918,7 +918,7 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
 class AzureProxyResource:
     kind: ClassVar[str] = "azure_proxy_resource"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "name": S("name"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "type": S("type"),
@@ -974,11 +974,11 @@ class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
         "predecessors": {"default": ["azure_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("systemData", "createdAt"),
-        "creation_data_source_id": S("properties", "creationData", "sourceResourceId"),
+        "creation_data_source_id": S("properties", "creationData", "sourceResourceId") >> Lower,
         "enable_fips": S("properties", "enableFIPS"),
         "kubernetes_version": S("properties", "kubernetesVersion"),
         "node_image_version": S("properties", "nodeImageVersion"),

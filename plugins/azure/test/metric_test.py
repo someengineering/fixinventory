@@ -8,7 +8,7 @@ def test_metric(builder: GraphBuilder) -> None:
     now = datetime(2020, 3, 1, tzinfo=timezone.utc)
     earlier = now - timedelta(days=60)
     delta = now - earlier
-    resource_id = "/subscriptions/rwqrr2-31f1-rwqrrw-5325-wrq2r/resourceGroups/FOO/providers/Microsoft.Compute/virtualMachines/test1"
+    resource_id = "/subscriptions/rwqrr2-31f1-rwqrrw-5325-wrq2r/resourcegroups/foo/providers/microsoft.compute/virtualmachines/test1"
     write = AzureMetricQuery.create(
         "Disk Write Operations/Sec",
         "Microsoft.Compute/virtualMachines",

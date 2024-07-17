@@ -14,7 +14,7 @@ from fix_plugin_azure.resource.base import GraphBuilder
 from fix_plugin_azure.utils import MetricNormalization
 from fixlib.baseresources import BaseResource
 from fixlib.json import from_json
-from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, bend, Lower
 from fixlib.utils import utc_str
 
 log = logging.getLogger("fix.plugins.azure")
@@ -77,7 +77,7 @@ class AzureMetricTimeSeries:
 class AzureMetricValue:
     kind: ClassVar[str] = "azure_metric_value"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "type": S("type"),
         "name": S("name") >> Bend(AzureMetricValueName.mapping),
         "displayDescription": S("displayDescription"),
@@ -211,7 +211,7 @@ class AzureMetricData:
             Dict[AzureMetricQuery, AzureMetricData]: A dictionary mapping each query to its corresponding metric data.
         """
         # Create a lookup dictionary for efficient mapping of metric IDs to queries
-        lookup = {q.metric_id: q for q in queries}
+        lookup = {q.metric_id.lower(): q for q in queries}
         result: Dict[AzureMetricQuery, AzureMetricData] = {}
 
         # Define API specifications for querying Azure metrics
@@ -258,7 +258,7 @@ class AzureMetricData:
                 if metric is not None and metric_id is not None:
                     result[lookup[metric_id]] = metric
             except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
+                log.warning(f"An error occurred while processing a metric query: {e}", exc_info=True)
                 raise e
         return result
 

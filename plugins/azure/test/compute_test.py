@@ -194,11 +194,11 @@ def test_snapshot_resources(builder: GraphBuilder) -> None:
     assert collected.snapshot_status == "None"
     assert (
         collected.volume_id
-        == "/subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Compute/snapshots/mySnapshot2"
+        == "/subscriptions/{subscriptionid}/resourcegroups/myresourcegroup/providers/microsoft.compute/snapshots/mysnapshot2"
     )
     assert collected.volume_size == 200
     assert collected.encrypted is True
     assert (
         collected.owner_id
-        == "subscriptions/{subscriptionId}/resourceGroups/myResourceGroup/providers/Microsoft.Storage/storageAccounts/myStorageAccount"
+        == "subscriptions/{subscriptionid}/resourcegroups/myresourcegroup/providers/microsoft.storage/storageaccounts/mystorageaccount"
     )

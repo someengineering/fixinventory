@@ -126,8 +126,8 @@ def test_load_balancer(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureLoadBalancer, builder)
     assert collected[0].lb_type == "Microsoft.Network/loadBalancers"
     assert collected[0].backends == [
-        "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1",
-        "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet2",
+        "/subscriptions/subid/resourcegroups/rg1/providers/microsoft.network/virtualnetworks/vnet1",
+        "/subscriptions/subid/resourcegroups/rg1/providers/microsoft.network/virtualnetworks/vnet2",
     ]
     assert len(collected) == 2
 

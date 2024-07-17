@@ -573,9 +573,6 @@ class SecondsFromEpochToDatetime(Bender):
         return utc_str(datetime.utcfromtimestamp(source))
 
 
-EmptyToNone = EmptyToNoneBender()
-
-
 def bend(mapping: Mapping, source: Any, context: Optional[Dict[str, Any]] = None) -> Any:
     """
     The main bending function.
@@ -610,3 +607,7 @@ def bend(mapping: Mapping, source: Any, context: Optional[Dict[str, Any]] = None
 
     context = {} if context is None else context
     return bend_with_context(mapping, Transport(source, context))
+
+EmptyToNone = EmptyToNoneBender()
+Lower = F(lambda x: x.lower() if isinstance(x, str) else x)
+Upper = F(lambda x: x.upper() if isinstance(x, str) else x)

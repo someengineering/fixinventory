@@ -26,7 +26,7 @@ from fixlib.baseresources import (
     MetricUnit,
     ModelReference,
 )
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, Lower
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -41,7 +41,7 @@ class AzureUpdateHistoryProperty:
         "allow_protected_append_writes_all": S("allowProtectedAppendWritesAll"),
         "immutability_period_since_creation_in_days": S("immutabilityPeriodSinceCreationInDays"),
         "object_identifier": S("objectIdentifier"),
-        "tenant_id": S("tenantId"),
+        "tenant_id": S("tenantId") >> Lower,
         "timestamp": S("timestamp"),
         "update": S("update"),
         "upn": S("upn"),
@@ -81,7 +81,7 @@ class AzureTagProperty:
     mapping: ClassVar[Dict[str, Bender]] = {
         "object_identifier": S("objectIdentifier"),
         "tag": S("tag"),
-        "tenant_id": S("tenantId"),
+        "tenant_id": S("tenantId") >> Lower,
         "timestamp": S("timestamp"),
         "upn": S("upn"),
     }
@@ -134,7 +134,7 @@ class AzureImmutableStorageWithVersioning:
 class AzureBlobContainer(MicrosoftResource, BaseBucket):
     kind: ClassVar[str] = "azure_blob_container"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "etag": S("etag"),
         "name": S("name"),
@@ -195,7 +195,7 @@ class AzureStorageAccountDeleted(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "type": S("type"),
@@ -204,7 +204,7 @@ class AzureStorageAccountDeleted(MicrosoftResource):
         "creation_time": S("properties", "creationTime"),
         "deletion_time": S("properties", "deletionTime"),
         "restore_reference": S("properties", "restoreReference"),
-        "storage_account_resource_id": S("properties", "storageAccountResourceId"),
+        "storage_account_resource_id": S("properties", "storageAccountResourceId") >> Lower,
     }
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of the deleted account.'})  # fmt: skip
@@ -231,7 +231,7 @@ class AzureSignedIdentifier:
     kind: ClassVar[str] = "azure_signed_identifier"
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_policy": S("accessPolicy") >> Bend(AzureAccessPolicy.mapping),
-        "id": S("id"),
+        "id": S("id") >> Lower,
     }
     access_policy: Optional[AzureAccessPolicy] = field(default=None, metadata={"description": ""})
     id: Optional[str] = field(default=None, metadata={'description': 'An unique identifier of the stored access policy.'})  # fmt: skip
@@ -241,7 +241,7 @@ class AzureSignedIdentifier:
 class AzureFileShare(MicrosoftResource, BaseNetworkShare):
     kind: ClassVar[str] = "azure_file_share"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "mtime": S("properties", "lastModifiedTime"),
@@ -292,7 +292,7 @@ class AzureFileShare(MicrosoftResource, BaseNetworkShare):
 class AzureQueue(MicrosoftResource, BaseQueue):
     kind: ClassVar[str] = "azure_queue"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "approximate_message_count": S("properties", "approximateMessageCount"),
@@ -389,7 +389,7 @@ class AzureStorageSku(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name"),
+        "id": S("name") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "sku_capabilities": S("capabilities") >> ForallBend(AzureSKUCapability.mapping),
@@ -414,8 +414,8 @@ class AzureStorageSku(MicrosoftResource):
 class AzureIdentity:
     kind: ClassVar[str] = "azure_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
+        "principal_id": S("principalId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
         "type": S("type"),
         "user_assigned_identities": S("userAssignedIdentities"),
     }
@@ -555,7 +555,7 @@ class AzureKeyVaultProperties:
 class AzureEncryptionIdentity:
     kind: ClassVar[str] = "azure_encryption_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "federated_identity_client_id": S("federatedIdentityClientId"),
+        "federated_identity_client_id": S("federatedIdentityClientId") >> Lower,
         "user_assigned_identity": S("userAssignedIdentity"),
     }
     federated_identity_client_id: Optional[str] = field(default=None, metadata={'description': 'ClientId of the multi-tenant application to be used in conjunction with the user-assigned identity for cross-tenant customer-managed-keys server-side encryption on the storage account.'})  # fmt: skip
@@ -584,10 +584,10 @@ class AzureActiveDirectoryProperties:
     kind: ClassVar[str] = "azure_active_directory_properties"
     mapping: ClassVar[Dict[str, Bender]] = {
         "account_type": S("accountType"),
-        "azure_storage_sid": S("azureStorageSid"),
-        "domain_guid": S("domainGuid"),
+        "azure_storage_sid": S("azureStorageSid") >> Lower,
+        "domain_guid": S("domainGuid") >> Lower,
         "domain_name": S("domainName"),
-        "domain_sid": S("domainSid"),
+        "domain_sid": S("domainSid") >> Lower,
         "forest_name": S("forestName"),
         "net_bios_domain_name": S("netBiosDomainName"),
         "sam_account_name": S("samAccountName"),
@@ -618,7 +618,10 @@ class AzureAzureFilesIdentityBasedAuthentication:
 @define(eq=False, slots=False)
 class AzureResourceAccessRule:
     kind: ClassVar[str] = "azure_resource_access_rule"
-    mapping: ClassVar[Dict[str, Bender]] = {"resource_id": S("resourceId"), "tenant_id": S("tenantId")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "resource_id": S("resourceId") >> Lower,
+        "tenant_id": S("tenantId") >> Lower,
+    }
     resource_id: Optional[str] = field(default=None, metadata={"description": "Resource Id"})
     tenant_id: Optional[str] = field(default=None, metadata={"description": "Tenant Id"})
 
@@ -626,7 +629,7 @@ class AzureResourceAccessRule:
 @define(eq=False, slots=False)
 class AzureVirtualNetworkRule:
     kind: ClassVar[str] = "azure_virtual_network_rule"
-    mapping: ClassVar[Dict[str, Bender]] = {"action": S("action"), "id": S("id"), "state": S("state")}
+    mapping: ClassVar[Dict[str, Bender]] = {"action": S("action"), "id": S("id") >> Lower, "state": S("state")}
     action: Optional[str] = field(default=None, metadata={"description": "The action of virtual network rule."})
     id: Optional[str] = field(default=None, metadata={'description': 'Resource ID of a subnet, for example: /subscriptions/{subscriptionId}/resourceGroups/{groupName}/providers/Microsoft.Network/virtualNetworks/{vnetName}/subnets/{subnetName}.'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={"description": "Gets the state of virtual network rule."})
@@ -680,9 +683,9 @@ class AzureGeoReplicationStats:
 class AzurePrivateEndpointConnection:
     kind: ClassVar[str] = "azure_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "name": S("name"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
+        "private_endpoint": S("properties", "privateEndpoint", "id") >> Lower,
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
         >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
@@ -734,7 +737,7 @@ class AzureBlobRestoreStatus:
     mapping: ClassVar[Dict[str, Bender]] = {
         "failure_reason": S("failureReason"),
         "parameters": S("parameters") >> Bend(AzureBlobRestoreParameters.mapping),
-        "restore_id": S("restoreId"),
+        "restore_id": S("restoreId") >> Lower,
         "status": S("status"),
     }
     failure_reason: Optional[str] = field(default=None, metadata={'description': 'Failure reason when blob restore is failed.'})  # fmt: skip
@@ -800,7 +803,7 @@ class AzureStorageAccount(MicrosoftResource):
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "location": S("location"),
@@ -1133,7 +1136,7 @@ class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
         expected_error_codes=AzureBaseUsage._expected_error_codes,
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
-        "id": S("name", "value"),
+        "id": S("name", "value") >> Lower,
     }
     _is_provider_link: ClassVar[bool] = False
 
@@ -1156,7 +1159,7 @@ class AzureTableSignedIdentifier:
     kind: ClassVar[str] = "azure_table_signed_identifier"
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_policy": S("accessPolicy") >> Bend(AzureTableAccessPolicy.mapping),
-        "id": S("id"),
+        "id": S("id") >> Lower,
     }
     access_policy: Optional[AzureTableAccessPolicy] = field(default=None, metadata={'description': 'Table Access Policy Properties Object.'})  # fmt: skip
     id: Optional[str] = field(default=None, metadata={'description': 'unique-64-character-value of the stored access policy.'})  # fmt: skip
@@ -1166,7 +1169,7 @@ class AzureTableSignedIdentifier:
 class AzureTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_table"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "table_signed_identifiers": S("properties", "signedIdentifiers")

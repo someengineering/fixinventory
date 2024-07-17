@@ -8,7 +8,7 @@ from attr import define, field
 from fix_plugin_azure.azure_client import RestApiSpec, MicrosoftRestSpec
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
 from fixlib.baseresources import BaseGroup, BaseRole, BaseAccount, BaseRegion, ModelReference, BaseUser
-from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict
+from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict, Lower
 from fixlib.types import Json
 
 
@@ -16,7 +16,7 @@ from fixlib.types import Json
 class MicrosoftGraphEntity(MicrosoftResource):
     kind: ClassVar[str] = "microsoft_graph_entity"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "deleted_date_time": S("deletedDateTime"),
     }
     _is_provider_link: ClassVar[bool] = False
@@ -26,7 +26,7 @@ class MicrosoftGraphEntity(MicrosoftResource):
 @define(eq=False, slots=False)
 class MicrosoftGraphAssignedLicense:
     kind: ClassVar[str] = "microsoft_graph_assigned_license"
-    mapping: ClassVar[Dict[str, Bender]] = {"disabled_plans": S("disabledPlans"), "sku_id": S("skuId")}
+    mapping: ClassVar[Dict[str, Bender]] = {"disabled_plans": S("disabledPlans"), "sku_id": S("skuId") >> Lower}
 
     disabled_plans: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of the unique identifiers for plans that have been disabled.'})  # fmt: skip
     sku_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier for the SKU."})
@@ -87,7 +87,7 @@ class MicrosoftGraphLicenseProcessingState:
 @define(eq=False, slots=False)
 class MicrosoftGraphAssignedLabel:
     kind: ClassVar[str] = "microsoft_graph_assigned_label"
-    mapping: ClassVar[Dict[str, Bender]] = {"display_name": S("displayName"), "label_id": S("labelId")}
+    mapping: ClassVar[Dict[str, Bender]] = {"display_name": S("displayName"), "label_id": S("labelId") >> Lower}
     display_name: Optional[str] = field(default=None, metadata={'description': 'The display name of the label. Read-only.'})  # fmt: skip
     label_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the label."})
 
@@ -165,7 +165,7 @@ class MicrosoftGraphLicenseAssignmentState:
         "disabled_plans": S("disabledPlans"),
         "error": S("error"),
         "last_updated_date_time": S("lastUpdatedDateTime"),
-        "sku_id": S("skuId"),
+        "sku_id": S("skuId") >> Lower,
         "state": S("state"),
     }
     assigned_by_group: Optional[str] = field(default=None, metadata={'description': 'Indicates whether the license is directly-assigned or inherited from a group. If directly-assigned, this field is null; if inherited through a group membership, this field contains the ID of the group. Read-Only.'})  # fmt: skip
@@ -181,7 +181,7 @@ class MicrosoftGraphObjectIdentity:
     kind: ClassVar[str] = "microsoft_graph_object_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
         "issuer": S("issuer"),
-        "issuer_assigned_id": S("issuerAssignedId"),
+        "issuer_assigned_id": S("issuerAssignedId") >> Lower,
         "sign_in_type": S("signInType"),
     }
     issuer: Optional[str] = field(default=None, metadata={'description': 'Specifies the issuer of the identity, for example facebook.com. 512 character limit. For local accounts (where signInType isn t federated), this property is the local default domain name for the tenant, for example contoso.com. For guests from other Microsoft Entra organizations, this is the domain of the federated organization, for example contoso.com. For more information about filtering behavior for this property, see Filtering on the identities property of a user.'})  # fmt: skip
@@ -201,7 +201,7 @@ class MicrosoftGraphEmployeeOrgData:
 class MicrosoftGraphDeviceKey:
     kind: ClassVar[str] = "microsoft_graph_device_key"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "device_id": S("deviceId"),
+        "device_id": S("deviceId") >> Lower,
         "key_material": S("keyMaterial"),
         "key_type": S("keyType"),
     }
@@ -231,7 +231,7 @@ class MicrosoftGraphAssignedPlan:
         "assigned_date_time": S("assignedDateTime"),
         "capability_status": S("capabilityStatus"),
         "service": S("service"),
-        "service_plan_id": S("servicePlanId"),
+        "service_plan_id": S("servicePlanId") >> Lower,
     }
     assigned_date_time: Optional[datetime] = field(default=None, metadata={'description': 'The date and time at which the plan was assigned; for example: 2013-01-02T19:32:30Z. The Timestamp type represents date and time information using ISO 8601 format and is always in UTC time. For example, midnight UTC on Jan 1, 2014 is 2014-01-01T00:00:00Z'})  # fmt: skip
     capability_status: Optional[str] = field(default=None, metadata={'description': 'Condition of the capability assignment. The possible values are Enabled, Warning, Suspended, Deleted, LockedOut.'})  # fmt: skip
@@ -254,7 +254,6 @@ class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["microsoft_graph_role"]}}
 
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
-        "id": S("id"),
         "name": S("displayName"),
         "allowed_principal_types": S("allowedPrincipalTypes"),
         "assignment_mode": S("assignmentMode"),
@@ -267,7 +266,7 @@ class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
         "resource_scopes": S("resourceScopes"),
         "rich_description": S("richDescription"),
         "role_permissions": S("rolePermissions") >> ForallBend(MicrosoftGraphUnifiedRolePermission.mapping),
-        "template_id": S("templateId"),
+        "template_id": S("templateId") >> Lower,
         "version": S("version"),
     }
     allowed_principal_types: Optional[str] = field(default=None, metadata={'description': 'Types of principals that can be assigned the role. Read-only. The possible values are: user, servicePrincipal, group, unknownFutureValue. This is a multi-valued enumeration that can contain up to three values as a comma-separated string. For example, user, group. Supports $filter (eq).'})  # fmt: skip
@@ -287,7 +286,7 @@ class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for src in source.get("inheritsPermissionsFrom", []):
             if sid := src.get("id"):
-                builder.add_edge(self, reverse=True, clazz=MicrosoftGraphRole, id=sid)
+                builder.add_edge(self, reverse=True, clazz=MicrosoftGraphRole, id=sid.lower())
 
 
 @define(eq=False, slots=False)
@@ -296,7 +295,7 @@ class MicrosoftGraphVerifiedPublisher:
     mapping: ClassVar[Dict[str, Bender]] = {
         "added_date_time": S("addedDateTime"),
         "display_name": S("displayName"),
-        "verified_publisher_id": S("verifiedPublisherId"),
+        "verified_publisher_id": S("verifiedPublisherId") >> Lower,
     }
     added_date_time: Optional[datetime] = field(default=None, metadata={'description': 'The timestamp when the verified publisher was first added or most recently updated.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={'description': 'The verified publisher name from the app publisher s Microsoft Partner Network (MPN) account.'})  # fmt: skip
@@ -316,7 +315,7 @@ class MicrosoftGraphPermissionScope:
     mapping: ClassVar[Dict[str, Bender]] = {
         "admin_consent_description": S("adminConsentDescription"),
         "admin_consent_display_name": S("adminConsentDisplayName"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "is_enabled": S("isEnabled"),
         "origin": S("origin"),
         "type": S("type"),
@@ -341,7 +340,7 @@ class MicrosoftGraphPasswordSingleSignOnField:
     mapping: ClassVar[Dict[str, Bender]] = {
         "customized_label": S("customizedLabel"),
         "default_label": S("defaultLabel"),
-        "field_id": S("fieldId"),
+        "field_id": S("fieldId") >> Lower,
         "type": S("type"),
     }
     customized_label: Optional[str] = field(default=None, metadata={'description': 'Title/label override for customization.'})  # fmt: skip
@@ -358,7 +357,7 @@ class MicrosoftGraphPasswordCredential:
         "display_name": S("displayName"),
         "end_date_time": S("endDateTime"),
         "hint": S("hint"),
-        "key_id": S("keyId"),
+        "key_id": S("keyId") >> Lower,
         "secret_text": S("secretText"),
         "start_date_time": S("startDateTime"),
     }
@@ -379,7 +378,7 @@ class MicrosoftGraphKeyCredential:
         "display_name": S("displayName"),
         "end_date_time": S("endDateTime"),
         "key": S("key"),
-        "key_id": S("keyId"),
+        "key_id": S("keyId") >> Lower,
         "start_date_time": S("startDateTime"),
         "type": S("type"),
         "usage": S("usage"),
@@ -418,7 +417,7 @@ class MicrosoftGraphAppRole:
         "allowed_member_types": S("allowedMemberTypes"),
         "description": S("description"),
         "display_name": S("displayName"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "is_enabled": S("isEnabled"),
         "origin": S("origin"),
         "value": S("value"),
@@ -436,7 +435,7 @@ class MicrosoftGraphAppRole:
 class MicrosoftGraphAddIn:
     kind: ClassVar[str] = "microsoft_graph_add_in"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "properties": S("properties") >> MapDict(S("key"), S("value")),
         "type": S("type"),
     }
@@ -528,7 +527,6 @@ class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
     )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["microsoft_graph_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
-        "id": S("id"),
         "name": S("displayName"),
         "tags": S("tags") >> F(lambda ts: {t: "yes" for t in ts}),  # transform the array of string into tags dict
         "device_tags": S("tags"),
@@ -537,11 +535,11 @@ class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
         "alternative_names": S("alternativeNames"),
         "app_description": S("appDescription"),
         "app_display_name": S("appDisplayName"),
-        "app_id": S("appId"),
-        "app_owner_organization_id": S("appOwnerOrganizationId"),
+        "app_id": S("appId") >> Lower,
+        "app_owner_organization_id": S("appOwnerOrganizationId") >> Lower,
         "app_role_assignment_required": S("appRoleAssignmentRequired"),
         "app_roles": S("appRoles") >> ForallBend(MicrosoftGraphAppRole.mapping),
-        "application_template_id": S("applicationTemplateId"),
+        "application_template_id": S("applicationTemplateId") >> Lower,
         "custom_security_attributes": S("customSecurityAttributes"),
         "description": S("description"),
         "disabled_by_microsoft_status": S("disabledByMicrosoftStatus"),
@@ -571,7 +569,7 @@ class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
         "service_principal_names": S("servicePrincipalNames"),
         "service_principal_type": S("servicePrincipalType"),
         "sign_in_audience": S("signInAudience"),
-        "token_encryption_key_id": S("tokenEncryptionKeyId"),
+        "token_encryption_key_id": S("tokenEncryptionKeyId") >> Lower,
         "verified_publisher": S("verifiedPublisher") >> Bend(MicrosoftGraphVerifiedPublisher.mapping),
         "access_key_status": S("disabledByMicrosoftStatus"),
     }
@@ -617,7 +615,7 @@ class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for member in source.get("memberOf", []):
             if member.get("@odata.type") == "#microsoft.graph.directoryRole" and (rid := member.get("roleTemplateId")):
-                builder.add_edge(self, clazz=MicrosoftGraphRole, template_id=rid)
+                builder.add_edge(self, clazz=MicrosoftGraphRole, template_id=rid.lower())
 
 
 @define(eq=False, slots=False)
@@ -634,7 +632,6 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
     )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["microsoft_graph_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
-        "id": S("id"),
         "name": S("name"),
         "account_enabled": S("accountEnabled"),
         "alternative_security_ids": S("alternativeSecurityIds")
@@ -642,7 +639,7 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
         "approximate_last_sign_in_date_time": S("approximateLastSignInDateTime"),
         "compliance_expiration_date_time": S("complianceExpirationDateTime"),
         "device_category": S("deviceCategory"),
-        "device_id": S("deviceId"),
+        "device_id": S("deviceId") >> Lower,
         "device_metadata": S("deviceMetadata"),
         "device_ownership": S("deviceOwnership"),
         "device_version": S("deviceVersion"),
@@ -659,7 +656,7 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
         "device_kind": S("kind"),
         "management_type": S("managementType"),
         "manufacturer": S("manufacturer"),
-        "mdm_app_id": S("mdmAppId"),
+        "mdm_app_id": S("mdmAppId") >> Lower,
         "model": S("model"),
         "on_premises_last_sync_date_time": S("onPremisesLastSyncDateTime"),
         "on_premises_security_identifier": S("onPremisesSecurityIdentifier"),
@@ -714,7 +711,7 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for member in source.get("memberOf", []):
             if member.get("@odata.type") == "#microsoft.graph.directoryRole" and (rid := member.get("roleTemplateId")):
-                builder.add_edge(self, clazz=MicrosoftGraphRole, template_id=rid)
+                builder.add_edge(self, clazz=MicrosoftGraphRole, template_id=rid.lower())
 
 
 @define(eq=False, slots=False)
@@ -731,7 +728,6 @@ class MicrosoftGraphUser(MicrosoftGraphEntity, BaseUser):
     )
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["microsoft_graph_role"]}}
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
-        "id": S("id"),
         "name": S("displayName"),
         "ctime": S("createdDateTime"),
         "account_enabled": S("accountEnabled"),
@@ -753,7 +749,7 @@ class MicrosoftGraphUser(MicrosoftGraphEntity, BaseUser):
         "device_keys": S("deviceKeys") >> ForallBend(MicrosoftGraphDeviceKey.mapping),
         "display_name": S("displayName"),
         "employee_hire_date": S("employeeHireDate"),
-        "employee_id": S("employeeId"),
+        "employee_id": S("employeeId") >> Lower,
         "employee_leave_date_time": S("employeeLeaveDateTime"),
         "employee_org_data": S("employeeOrgData") >> Bend(MicrosoftGraphEmployeeOrgData.mapping),
         "employee_type": S("employeeType"),
@@ -778,7 +774,7 @@ class MicrosoftGraphUser(MicrosoftGraphEntity, BaseUser):
         "on_premises_distinguished_name": S("onPremisesDistinguishedName"),
         "on_premises_domain_name": S("onPremisesDomainName"),
         "on_premises_extension_attributes": S("onPremisesExtensionAttributes"),
-        "on_premises_immutable_id": S("onPremisesImmutableId"),
+        "on_premises_immutable_id": S("onPremisesImmutableId") >> Lower,
         "on_premises_last_sync_date_time": S("onPremisesLastSyncDateTime"),
         "on_premises_provisioning_errors": S("onPremisesProvisioningErrors")
         >> ForallBend(MicrosoftGraphOnPremisesProvisioningError.mapping),
@@ -902,13 +898,12 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
         }
     }
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
-        "id": S("id"),
         "name": S("displayName"),
         "access_type": S("accessType"),
         "assigned_labels": S("assignedLabels") >> ForallBend(MicrosoftGraphAssignedLabel.mapping),
         "assigned_licenses": S("assignedLicenses") >> ForallBend(MicrosoftGraphAssignedLicense.mapping),
         "classification": S("classification"),
-        "created_by_app_id": S("createdByAppId"),
+        "created_by_app_id": S("createdByAppId") >> Lower,
         "created_date_time": S("createdDateTime"),
         "description": S("description"),
         "display_name": S("displayName"),
@@ -934,7 +929,7 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
         "on_premises_sam_account_name": S("onPremisesSamAccountName"),
         "on_premises_security_identifier": S("onPremisesSecurityIdentifier"),
         "on_premises_sync_enabled": S("onPremisesSyncEnabled"),
-        "organization_id": S("organizationId"),
+        "organization_id": S("organizationId") >> Lower,
         "preferred_data_location": S("preferredDataLocation"),
         "preferred_language": S("preferredLanguage"),
         "proxy_addresses": S("proxyAddresses"),
@@ -952,7 +947,7 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
         "visibility": S("visibility"),
         "writeback_configuration": S("writebackConfiguration")
         >> Bend(MicrosoftGraphGroupWritebackConfiguration.mapping),
-        "_transitive_members": S("transitiveMembers") >> MapDict(S("id"), S("@odata.type")),
+        "_transitive_members": S("transitiveMembers") >> MapDict(S("id") >> Lower, S("@odata.type")),
     }
     access_type: Optional[str] = field(default=None, metadata={'description': 'Indicates the type of access to the group. Possible values are none, private, secret, and public.'})  # fmt: skip
     assigned_labels: Optional[List[MicrosoftGraphAssignedLabel]] = field(default=None, metadata={'description': 'The list of sensitivity label pairs (label ID, label name) associated with a Microsoft 365 group. Returned only on $select.'})  # fmt: skip
@@ -1020,7 +1015,7 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
         # create an edge to all transitively dependant node
         for mid, mtype in dependant.items():
             if clazz := KindLookup.get(mtype):
-                builder.add_edge(self, clazz=clazz, id=mid)
+                builder.add_edge(self, clazz=clazz, id=mid.lower())
 
 
 @define(eq=False, slots=False)
@@ -1035,7 +1030,6 @@ class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
         access_path="value",
     )
     mapping: ClassVar[Dict[str, Bender]] = MicrosoftGraphEntity.mapping | {
-        "id": S("id"),
         "name": S("displayName"),
         "ctime": S("createdDateTime"),
         "assigned_plans": S("assignedPlans") >> ForallBend(MicrosoftGraphAssignedPlan.mapping),

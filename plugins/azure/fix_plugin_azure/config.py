@@ -1,3 +1,4 @@
+from fnmatch import fnmatch
 from typing import ClassVar, Optional, Dict, List, Union
 
 from attr import define, field
@@ -83,3 +84,29 @@ class AzureConfig:
         default=True,
         metadata={"description": "Collect resource usage metrics via Azure Metric, enabled by default"},
     )
+    collect: List[str] = field(
+        factory=list,
+        metadata={
+            "description": (
+                "List of AWS services to collect (default: all).\n"
+                "You can use GLOB patterns like ? and * to match multiple services."
+            )
+        },
+    )
+    no_collect: List[str] = field(
+        factory=list,
+        metadata={
+            "description": (
+                "List of AWS services to exclude (default: none).\n"
+                "You can use GLOB patterns like ? and * to match multiple services."
+            )
+        },
+    )
+
+    def should_collect(self, name: str) -> bool:
+        # no_collect has precedence over collect
+        if self.no_collect and any(fnmatch(name, p) for p in self.no_collect):
+            return False
+        if self.collect:
+            return any(fnmatch(name, p) for p in self.collect)
+        return True

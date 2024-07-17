@@ -36,7 +36,7 @@ from fixlib.baseresources import (
     ModelReference,
     EdgeType,
 )
-from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber, Lower
 from fixlib.types import Json
 
 service_name = "azure_network"
@@ -76,7 +76,7 @@ class AzureApplicationGatewayIPConfiguration(AzureSubResource):
         "etag": S("etag"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "subnet": S("properties", "subnet", "id"),
+        "subnet": S("properties", "subnet", "id") >> Lower,
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -109,7 +109,7 @@ class AzureApplicationGatewayTrustedRootCertificate(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "data": S("properties", "data"),
         "etag": S("etag"),
-        "key_vault_secret_id": S("properties", "keyVaultSecretId"),
+        "key_vault_secret_id": S("properties", "keyVaultSecretId") >> Lower,
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
@@ -149,7 +149,7 @@ class AzureApplicationGatewaySslCertificate(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "data": S("properties", "data"),
         "etag": S("etag"),
-        "key_vault_secret_id": S("properties", "keyVaultSecretId"),
+        "key_vault_secret_id": S("properties", "keyVaultSecretId") >> Lower,
         "name": S("name"),
         "password": S("properties", "password"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -174,10 +174,10 @@ class AzureApplicationGatewayFrontendIPConfiguration(AzureSubResource):
         "name": S("name"),
         "private_ip_address": S("properties", "privateIPAddress"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
-        "private_link_configuration": S("properties", "privateLinkConfiguration", "id"),
+        "private_link_configuration": S("properties", "privateLinkConfiguration", "id") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_address": S("properties", "publicIPAddress", "id"),
-        "subnet": S("properties", "subnet", "id"),
+        "public_ip_address": S("properties", "publicIPAddress", "id") >> Lower,
+        "subnet": S("properties", "subnet", "id") >> Lower,
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -294,7 +294,7 @@ class AzureApplicationGatewayBackendHttpSettings(AzureSubResource):
         "affinity_cookie_name": S("properties", "affinityCookieName"),
         "authentication_certificates": S("properties")
         >> S("authenticationCertificates", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "connection_draining": S("properties", "connectionDraining")
         >> Bend(AzureApplicationGatewayConnectionDraining.mapping),
         "cookie_based_affinity": S("properties", "cookieBasedAffinity"),
@@ -304,12 +304,14 @@ class AzureApplicationGatewayBackendHttpSettings(AzureSubResource):
         "path": S("properties", "path"),
         "pick_host_name_from_backend_address": S("properties", "pickHostNameFromBackendAddress"),
         "port": S("properties", "port"),
-        "probe": S("properties", "probe", "id"),
+        "probe": S("properties", "probe", "id") >> Lower,
         "probe_enabled": S("properties", "probeEnabled"),
         "protocol": S("properties", "protocol"),
         "provisioning_state": S("properties", "provisioningState"),
         "request_timeout": S("properties", "requestTimeout"),
-        "trusted_root_certificates": S("properties") >> S("trustedRootCertificates", default=[]) >> ForallBend(S("id")),
+        "trusted_root_certificates": S("properties")
+        >> S("trustedRootCertificates", default=[])
+        >> ForallBend(S("id") >> Lower),
         "type": S("type"),
     }
     affinity_cookie_name: Optional[str] = field(default=None, metadata={'description': 'Cookie name to use for the affinity cookie.'})  # fmt: skip
@@ -340,11 +342,13 @@ class AzureApplicationGatewayBackendSettings(AzureSubResource):
         "name": S("name"),
         "pick_host_name_from_backend_address": S("properties", "pickHostNameFromBackendAddress"),
         "port": S("properties", "port"),
-        "probe": S("properties", "probe", "id"),
+        "probe": S("properties", "probe", "id") >> Lower,
         "protocol": S("properties", "protocol"),
         "provisioning_state": S("properties", "provisioningState"),
         "timeout": S("properties", "timeout"),
-        "trusted_root_certificates": S("properties") >> S("trustedRootCertificates", default=[]) >> ForallBend(S("id")),
+        "trusted_root_certificates": S("properties")
+        >> S("trustedRootCertificates", default=[])
+        >> ForallBend(S("id") >> Lower),
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -378,17 +382,17 @@ class AzureApplicationGatewayHttpListener(AzureSubResource):
         "custom_error_configurations": S("properties", "customErrorConfigurations")
         >> ForallBend(AzureApplicationGatewayCustomError.mapping),
         "etag": S("etag"),
-        "firewall_policy": S("properties", "firewallPolicy", "id"),
-        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id"),
-        "frontend_port": S("properties", "frontendPort", "id"),
+        "firewall_policy": S("properties", "firewallPolicy", "id") >> Lower,
+        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id") >> Lower,
+        "frontend_port": S("properties", "frontendPort", "id") >> Lower,
         "host_name": S("properties", "hostName"),
         "host_names": S("properties", "hostNames"),
         "name": S("name"),
         "protocol": S("properties", "protocol"),
         "provisioning_state": S("properties", "provisioningState"),
         "require_server_name_indication": S("properties", "requireServerNameIndication"),
-        "ssl_certificate": S("properties", "sslCertificate", "id"),
-        "ssl_profile": S("properties", "sslProfile", "id"),
+        "ssl_certificate": S("properties", "sslCertificate", "id") >> Lower,
+        "ssl_profile": S("properties", "sslProfile", "id") >> Lower,
         "type": S("type"),
     }
     custom_error_configurations: Optional[List[AzureApplicationGatewayCustomError]] = field(default=None, metadata={'description': 'Custom error configurations of the HTTP listener.'})  # fmt: skip
@@ -412,13 +416,13 @@ class AzureApplicationGatewayListener(AzureSubResource):
     kind: ClassVar[str] = "azure_application_gateway_listener"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "etag": S("etag"),
-        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id"),
-        "frontend_port": S("properties", "frontendPort", "id"),
+        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id") >> Lower,
+        "frontend_port": S("properties", "frontendPort", "id") >> Lower,
         "name": S("name"),
         "protocol": S("properties", "protocol"),
         "provisioning_state": S("properties", "provisioningState"),
-        "ssl_certificate": S("properties", "sslCertificate", "id"),
-        "ssl_profile": S("properties", "sslProfile", "id"),
+        "ssl_certificate": S("properties", "sslCertificate", "id") >> Lower,
+        "ssl_profile": S("properties", "sslProfile", "id") >> Lower,
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -455,7 +459,7 @@ class AzureApplicationGatewaySslProfile(AzureSubResource):
         "ssl_policy": S("properties", "sslPolicy") >> Bend(AzureApplicationGatewaySslPolicy.mapping),
         "trusted_client_certificates": S("properties")
         >> S("trustedClientCertificates", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "type": S("type"),
     }
     client_auth_configuration: Optional[AzureApplicationGatewayClientAuthConfiguration] = field(default=None, metadata={'description': 'Application gateway client authentication configuration.'})  # fmt: skip
@@ -471,16 +475,16 @@ class AzureApplicationGatewaySslProfile(AzureSubResource):
 class AzureApplicationGatewayPathRule(AzureSubResource):
     kind: ClassVar[str] = "azure_application_gateway_path_rule"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "backend_address_pool": S("properties", "backendAddressPool", "id"),
-        "backend_http_settings": S("properties", "backendHttpSettings", "id"),
+        "backend_address_pool": S("properties", "backendAddressPool", "id") >> Lower,
+        "backend_http_settings": S("properties", "backendHttpSettings", "id") >> Lower,
         "etag": S("etag"),
-        "firewall_policy": S("properties", "firewallPolicy", "id"),
-        "load_distribution_policy": S("properties", "loadDistributionPolicy", "id"),
+        "firewall_policy": S("properties", "firewallPolicy", "id") >> Lower,
+        "load_distribution_policy": S("properties", "loadDistributionPolicy", "id") >> Lower,
         "name": S("name"),
         "paths": S("properties", "paths"),
         "provisioning_state": S("properties", "provisioningState"),
-        "redirect_configuration": S("properties", "redirectConfiguration", "id"),
-        "rewrite_rule_set": S("properties", "rewriteRuleSet", "id"),
+        "redirect_configuration": S("properties", "redirectConfiguration", "id") >> Lower,
+        "rewrite_rule_set": S("properties", "rewriteRuleSet", "id") >> Lower,
         "type": S("type"),
     }
     backend_address_pool: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
@@ -500,11 +504,11 @@ class AzureApplicationGatewayPathRule(AzureSubResource):
 class AzureApplicationGatewayUrlPathMap(AzureSubResource):
     kind: ClassVar[str] = "azure_application_gateway_url_path_map"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "default_backend_address_pool": S("properties", "defaultBackendAddressPool", "id"),
-        "default_backend_http_settings": S("properties", "defaultBackendHttpSettings", "id"),
-        "default_load_distribution_policy": S("properties", "defaultLoadDistributionPolicy", "id"),
-        "default_redirect_configuration": S("properties", "defaultRedirectConfiguration", "id"),
-        "default_rewrite_rule_set": S("properties", "defaultRewriteRuleSet", "id"),
+        "default_backend_address_pool": S("properties", "defaultBackendAddressPool", "id") >> Lower,
+        "default_backend_http_settings": S("properties", "defaultBackendHttpSettings", "id") >> Lower,
+        "default_load_distribution_policy": S("properties", "defaultLoadDistributionPolicy", "id") >> Lower,
+        "default_redirect_configuration": S("properties", "defaultRedirectConfiguration", "id") >> Lower,
+        "default_rewrite_rule_set": S("properties", "defaultRewriteRuleSet", "id") >> Lower,
         "etag": S("etag"),
         "name": S("name"),
         "path_rules": S("properties", "pathRules") >> ForallBend(AzureApplicationGatewayPathRule.mapping),
@@ -527,19 +531,19 @@ class AzureApplicationGatewayUrlPathMap(AzureSubResource):
 class AzureApplicationGatewayRequestRoutingRule(AzureSubResource):
     kind: ClassVar[str] = "azure_application_gateway_request_routing_rule"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "backend_address_pool": S("properties", "backendAddressPool", "id"),
-        "backend_http_settings": S("properties", "backendHttpSettings", "id"),
+        "backend_address_pool": S("properties", "backendAddressPool", "id") >> Lower,
+        "backend_http_settings": S("properties", "backendHttpSettings", "id") >> Lower,
         "etag": S("etag"),
-        "http_listener": S("properties", "httpListener", "id"),
-        "load_distribution_policy": S("properties", "loadDistributionPolicy", "id"),
+        "http_listener": S("properties", "httpListener", "id") >> Lower,
+        "load_distribution_policy": S("properties", "loadDistributionPolicy", "id") >> Lower,
         "name": S("name"),
         "priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
-        "redirect_configuration": S("properties", "redirectConfiguration", "id"),
-        "rewrite_rule_set": S("properties", "rewriteRuleSet", "id"),
+        "redirect_configuration": S("properties", "redirectConfiguration", "id") >> Lower,
+        "rewrite_rule_set": S("properties", "rewriteRuleSet", "id") >> Lower,
         "rule_type": S("properties", "ruleType"),
         "type": S("type"),
-        "url_path_map": S("properties", "urlPathMap", "id"),
+        "url_path_map": S("properties", "urlPathMap", "id") >> Lower,
     }
     backend_address_pool: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     backend_http_settings: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
@@ -560,10 +564,10 @@ class AzureApplicationGatewayRequestRoutingRule(AzureSubResource):
 class AzureApplicationGatewayRoutingRule(AzureSubResource):
     kind: ClassVar[str] = "azure_application_gateway_routing_rule"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "backend_address_pool": S("properties", "backendAddressPool", "id"),
-        "backend_settings": S("properties", "backendSettings", "id"),
+        "backend_address_pool": S("properties", "backendAddressPool", "id") >> Lower,
+        "backend_settings": S("properties", "backendSettings", "id") >> Lower,
         "etag": S("etag"),
-        "listener": S("properties", "listener", "id"),
+        "listener": S("properties", "listener", "id") >> Lower,
         "name": S("name"),
         "priority": S("properties", "priority"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -670,13 +674,15 @@ class AzureApplicationGatewayRedirectConfiguration(AzureSubResource):
         "include_path": S("properties", "includePath"),
         "include_query_string": S("properties", "includeQueryString"),
         "name": S("name"),
-        "path_rules": S("properties") >> S("pathRules", default=[]) >> ForallBend(S("id")),
+        "path_rules": S("properties") >> S("pathRules", default=[]) >> ForallBend(S("id") >> Lower),
         "redirect_type": S("properties", "redirectType"),
-        "request_routing_rules": S("properties") >> S("requestRoutingRules", default=[]) >> ForallBend(S("id")),
-        "target_listener": S("properties", "targetListener", "id"),
+        "request_routing_rules": S("properties")
+        >> S("requestRoutingRules", default=[])
+        >> ForallBend(S("id") >> Lower),
+        "target_listener": S("properties", "targetListener", "id") >> Lower,
         "target_url": S("properties", "targetUrl"),
         "type": S("type"),
-        "url_path_maps": S("properties") >> S("urlPathMaps", default=[]) >> ForallBend(S("id")),
+        "url_path_maps": S("properties") >> S("urlPathMaps", default=[]) >> ForallBend(S("id") >> Lower),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     include_path: Optional[bool] = field(default=None, metadata={"description": "Include path in the redirected url."})
@@ -758,7 +764,7 @@ class AzureApplicationGatewayPrivateLinkIpConfiguration(AzureSubResource):
         "private_ip_address": S("properties", "privateIPAddress"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "subnet": S("properties", "subnet", "id"),
+        "subnet": S("properties", "subnet", "id") >> Lower,
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -798,7 +804,7 @@ class AzurePrivateLinkServiceConnection(AzureSubResource):
         "name": S("name"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
         >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
-        "private_link_service_id": S("properties", "privateLinkServiceId"),
+        "private_link_service_id": S("properties", "privateLinkServiceId") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
         "request_message": S("properties", "requestMessage"),
         "type": S("type"),
@@ -826,11 +832,11 @@ class AzureApplicationSecurityGroup:
     kind: ClassVar[str] = "azure_application_security_group"
     mapping: ClassVar[Dict[str, Bender]] = {
         "etag": S("etag"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "location": S("location"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "tags": S("tags", default={}),
         "type": S("type"),
     }
@@ -849,7 +855,7 @@ class AzurePrivateEndpointIPConfiguration:
     kind: ClassVar[str] = "azure_private_endpoint_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "etag": S("etag"),
-        "group_id": S("properties", "groupId"),
+        "group_id": S("properties", "groupId") >> Lower,
         "member_name": S("properties", "memberName"),
         "name": S("name"),
         "private_ip_address": S("properties", "privateIPAddress"),
@@ -874,7 +880,7 @@ class AzurePrivateEndpoint:
         "custom_network_interface_name": S("properties", "customNetworkInterfaceName"),
         "etag": S("etag"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzurePrivateEndpointIPConfiguration.mapping),
         "location": S("location"),
@@ -929,7 +935,7 @@ class AzureApplicationGatewayPrivateEndpointConnection(AzureSubResource):
 class AzureApplicationGatewayLoadDistributionTarget(AzureSubResource):
     kind: ClassVar[str] = "azure_application_gateway_load_distribution_target"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "backend_address_pool": S("properties", "backendAddressPool", "id"),
+        "backend_address_pool": S("properties", "backendAddressPool", "id") >> Lower,
         "etag": S("etag"),
         "name": S("name"),
         "type": S("type"),
@@ -990,7 +996,7 @@ class AzureApplicationGateway(MicrosoftResource, BaseGateway):
         "successors": {"default": ["azure_web_application_firewall_policy"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "authentication_certificates": S("properties", "authenticationCertificates")
@@ -1009,7 +1015,7 @@ class AzureApplicationGateway(MicrosoftResource, BaseGateway):
         "enable_fips": S("properties", "enableFips"),
         "enable_http2": S("properties", "enableHttp2"),
         "etag": S("etag"),
-        "firewall_policy": S("properties", "firewallPolicy", "id"),
+        "firewall_policy": S("properties", "firewallPolicy", "id") >> Lower,
         "force_firewall_policy_association": S("properties", "forceFirewallPolicyAssociation"),
         "frontend_ip_configurations": S("properties", "frontendIPConfigurations")
         >> ForallBend(AzureApplicationGatewayFrontendIPConfiguration.mapping),
@@ -1034,7 +1040,7 @@ class AzureApplicationGateway(MicrosoftResource, BaseGateway):
         >> ForallBend(AzureApplicationGatewayRedirectConfiguration.mapping),
         "request_routing_rules": S("properties", "requestRoutingRules")
         >> ForallBend(AzureApplicationGatewayRequestRoutingRule.mapping),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "rewrite_rule_sets": S("properties", "rewriteRuleSets")
         >> ForallBend(AzureApplicationGatewayRewriteRuleSet.mapping),
         "routing_rules": S("properties", "routingRules") >> ForallBend(AzureApplicationGatewayRoutingRule.mapping),
@@ -1109,7 +1115,7 @@ class AzureApplicationGatewayFirewallRule:
     mapping: ClassVar[Dict[str, Bender]] = {
         "action": S("action"),
         "description": S("description"),
-        "rule_id": S("ruleId"),
+        "rule_id": S("ruleId") >> Lower,
         "rule_id_string": S("ruleIdString"),
         "state": S("state"),
     }
@@ -1146,7 +1152,7 @@ class AzureApplicationGatewayFirewallRuleSet(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name"),
+        "id": S("name") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -1308,8 +1314,8 @@ class AzureFirewallIPConfiguration(AzureSubResource):
         "name": S("name"),
         "private_ip_address": S("properties", "privateIPAddress"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_address": S("properties", "publicIPAddress", "id"),
-        "subnet": S("properties", "subnet", "id"),
+        "public_ip_address": S("properties", "publicIPAddress", "id") >> Lower,
+        "subnet": S("properties", "subnet", "id") >> Lower,
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -1346,7 +1352,7 @@ class AzureHubIPAddresses:
 @define(eq=False, slots=False)
 class AzureFirewallIpGroups:
     kind: ClassVar[str] = "azure_firewall_ip_groups"
-    mapping: ClassVar[Dict[str, Bender]] = {"change_number": S("changeNumber"), "id": S("id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"change_number": S("changeNumber"), "id": S("id") >> Lower}
     change_number: Optional[str] = field(default=None, metadata={"description": "The iteration number."})
     id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
 
@@ -1376,14 +1382,14 @@ class AzureFirewall(MicrosoftResource, BaseFirewall):
         "successors": {"default": ["azure_firewall_policy", "azure_virtual_hub"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "additional_properties": S("properties", "additionalProperties"),
         "application_rule_collections": S("properties", "applicationRuleCollections")
         >> ForallBend(AzureFirewallApplicationRuleCollection.mapping),
         "etag": S("etag"),
-        "firewall_policy": S("properties", "firewallPolicy", "id"),
+        "firewall_policy": S("properties", "firewallPolicy", "id") >> Lower,
         "hub_ip_addresses": S("properties", "hubIPAddresses") >> Bend(AzureHubIPAddresses.mapping),
         "firewall_ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzureFirewallIPConfiguration.mapping),
@@ -1397,7 +1403,7 @@ class AzureFirewall(MicrosoftResource, BaseFirewall):
         "provisioning_state": S("properties", "provisioningState"),
         "firewall_sku": S("properties", "sku") >> Bend(AzureFirewallSku.mapping),
         "threat_intel_mode": S("properties", "threatIntelMode"),
-        "virtual_hub": S("properties", "virtualHub", "id"),
+        "virtual_hub": S("properties", "virtualHub", "id") >> Lower,
     }
     additional_properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The additional properties of azure firewall.'})  # fmt: skip
     application_rule_collections: Optional[List[AzureFirewallApplicationRuleCollection]] = field(default=None, metadata={'description': 'Collection of application rule collections used by Azure Firewall.'})  # fmt: skip
@@ -1433,8 +1439,8 @@ class AzureBastionHostIPConfiguration(AzureSubResource):
         "name": S("name"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_address": S("properties", "publicIPAddress", "id"),
-        "subnet": S("properties", "subnet", "id"),
+        "public_ip_address": S("properties", "publicIPAddress", "id") >> Lower,
+        "subnet": S("properties", "subnet", "id") >> Lower,
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -1470,7 +1476,7 @@ class AzureBastionHost(MicrosoftResource):
         "successors": {"default": ["azure_public_ip_address"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "disable_copy_paste": S("properties", "disableCopyPaste"),
@@ -1487,7 +1493,7 @@ class AzureBastionHost(MicrosoftResource):
         "provisioning_state": S("properties", "provisioningState"),
         "scale_units": S("properties", "scaleUnits"),
         "sku": S("sku", "name"),
-        "virtual_network": S("properties", "virtualNetwork", "id"),
+        "virtual_network": S("properties", "virtualNetwork", "id") >> Lower,
     }
     disable_copy_paste: Optional[bool] = field(default=None, metadata={'description': 'Enable/Disable Copy/Paste feature of the Bastion Host resource.'})  # fmt: skip
     dns_name: Optional[str] = field(default=None, metadata={'description': 'FQDN for the endpoint on which bastion host is accessible.'})  # fmt: skip
@@ -1527,15 +1533,17 @@ class AzureCustomIpPrefix(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "asn": S("properties", "asn"),
         "authorization_message": S("properties", "authorizationMessage"),
-        "child_custom_ip_prefixes": S("properties") >> S("childCustomIpPrefixes", default=[]) >> ForallBend(S("id")),
+        "child_custom_ip_prefixes": S("properties")
+        >> S("childCustomIpPrefixes", default=[])
+        >> ForallBend(S("id") >> Lower),
         "cidr": S("properties", "cidr"),
         "commissioned_state": S("properties", "commissionedState"),
-        "custom_ip_prefix_parent": S("properties", "customIpPrefixParent", "id"),
+        "custom_ip_prefix_parent": S("properties", "customIpPrefixParent", "id") >> Lower,
         "etag": S("etag"),
         "express_route_advertise": S("properties", "expressRouteAdvertise"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
@@ -1544,8 +1552,8 @@ class AzureCustomIpPrefix(MicrosoftResource):
         "no_internet_advertise": S("properties", "noInternetAdvertise"),
         "prefix_type": S("properties", "prefixType"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_prefixes": S("properties") >> S("publicIpPrefixes", default=[]) >> ForallBend(S("id")),
-        "resource_guid": S("properties", "resourceGuid"),
+        "public_ip_prefixes": S("properties") >> S("publicIpPrefixes", default=[]) >> ForallBend(S("id") >> Lower),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "signed_message": S("properties", "signedMessage"),
     }
     asn: Optional[str] = field(default=None, metadata={'description': 'The ASN for CIDR advertising. Should be an integer as string.'})  # fmt: skip
@@ -1581,14 +1589,14 @@ class AzureDdosProtectionPlan(MicrosoftResource):
         "successors": {"default": ["azure_public_ip_address", "azure_virtual_network"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_addresses": S("properties") >> S("publicIPAddresses", default=[]) >> ForallBend(S("id")),
-        "resource_guid": S("properties", "resourceGuid"),
-        "virtual_networks": S("properties") >> S("virtualNetworks", default=[]) >> ForallBend(S("id")),
+        "public_ip_addresses": S("properties") >> S("publicIPAddresses", default=[]) >> ForallBend(S("id") >> Lower),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
+        "virtual_networks": S("properties") >> S("virtualNetworks", default=[]) >> ForallBend(S("id") >> Lower),
     }
     public_ip_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'The list of public IPs associated with the DDoS protection plan resource. This list is read-only.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the DDoS protection plan resource. It uniquely identifies the resource, even if the user changes its name or migrate the resource across subscriptions or resource groups.'})  # fmt: skip
@@ -1709,9 +1717,9 @@ class AzureTrafficAnalyticsConfigurationProperties:
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("enabled"),
         "traffic_analytics_interval": S("trafficAnalyticsInterval"),
-        "workspace_id": S("workspaceId"),
+        "workspace_id": S("workspaceId") >> Lower,
         "workspace_region": S("workspaceRegion"),
-        "workspace_resource_id": S("workspaceResourceId"),
+        "workspace_resource_id": S("workspaceResourceId") >> Lower,
     }
     enabled: Optional[bool] = field(default=None, metadata={'description': 'Flag to enable/disable traffic analytics.'})  # fmt: skip
     traffic_analytics_interval: Optional[int] = field(default=None, metadata={'description': 'The interval in minutes which would decide how frequently TA service should do flow analytics.'})  # fmt: skip
@@ -1739,15 +1747,15 @@ class AzureFlowLog:
         "flow_analytics_configuration": S("properties", "flowAnalyticsConfiguration")
         >> Bend(AzureTrafficAnalyticsProperties.mapping),
         "format": S("properties", "format") >> Bend(AzureFlowLogFormatParameters.mapping),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "location": S("location"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "retention_policy": S("properties", "retentionPolicy") >> Bend(AzureRetentionPolicyParameters.mapping),
-        "storage_id": S("properties", "storageId"),
+        "storage_id": S("properties", "storageId") >> Lower,
         "tags": S("tags", default={}),
-        "target_resource_guid": S("properties", "targetResourceGuid"),
-        "target_resource_id": S("properties", "targetResourceId"),
+        "target_resource_guid": S("properties", "targetResourceGuid") >> Lower,
+        "target_resource_id": S("properties", "targetResourceId") >> Lower,
         "type": S("type"),
     }
     enabled: Optional[bool] = field(default=None, metadata={"description": "Flag to enable/disable flow logging."})
@@ -1779,7 +1787,7 @@ class AzureNetworkSecurityGroup(MicrosoftResource, BaseSecurityGroup):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "default_security_rules": S("properties", "defaultSecurityRules") >> ForallBend(AzureSecurityRule.mapping),
@@ -1787,7 +1795,7 @@ class AzureNetworkSecurityGroup(MicrosoftResource, BaseSecurityGroup):
         "flow_logs": S("properties", "flowLogs") >> ForallBend(AzureFlowLog.mapping),
         "flush_connection": S("properties", "flushConnection"),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "security_rules": S("properties", "securityRules") >> ForallBend(AzureSecurityRule.mapping),
     }
     default_security_rules: Optional[List[AzureSecurityRule]] = field(default=None, metadata={'description': 'The default security rules of network security group.'})  # fmt: skip
@@ -1850,15 +1858,15 @@ class AzureRouteTable(MicrosoftResource, BaseRoutingTable):
     mapping: ClassVar[Dict[str, Bender]] = {
         "disable_bgp_route_propagation": S("properties", "disableBgpRoutePropagation"),
         "etag": S("etag"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "location": S("location"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "routes": S("properties", "routes") >> ForallBend(AzureRoute.mapping),
         "tags": S("tags", default={}),
         "type": S("type"),
-        "subnets": S("properties", "subnets") >> ForallBend(S("id")),
+        "subnets": S("properties", "subnets") >> ForallBend(S("id") >> Lower),
     }
     subnets: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to subnets.'})  # fmt: skip
     disable_bgp_route_propagation: Optional[bool] = field(default=None, metadata={'description': 'Whether to disable the routes learned by BGP on that route table. True means disable.'})  # fmt: skip
@@ -1911,12 +1919,12 @@ class AzureServiceEndpointPolicy:
     mapping: ClassVar[Dict[str, Bender]] = {
         "contextual_service_endpoint_policies": S("properties", "contextualServiceEndpointPolicies"),
         "etag": S("etag"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "policy_kind": S("kind"),
         "location": S("location"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "service_alias": S("properties", "serviceAlias"),
         "service_endpoint_policy_definitions": S("properties", "serviceEndpointPolicyDefinitions")
         >> ForallBend(AzureServiceEndpointPolicyDefinition.mapping),
@@ -1956,7 +1964,7 @@ class AzurePublicIPAddressDnsSettings:
 class AzureDdosSettings:
     kind: ClassVar[str] = "azure_ddos_settings"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "ddos_protection_plan": S("ddosProtectionPlan", "id"),
+        "ddos_protection_plan": S("ddosProtectionPlan", "id") >> Lower,
         "protection_mode": S("protectionMode"),
     }
     ddos_protection_plan: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
@@ -1984,18 +1992,18 @@ class AzureNatGateway(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
         "idle_timeout_in_minutes": S("properties", "idleTimeoutInMinutes"),
         "location": S("location"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_addresses": S("properties") >> S("publicIpAddresses", default=[]) >> ForallBend(S("id")),
-        "public_ip_prefixes": S("properties") >> S("publicIpPrefixes", default=[]) >> ForallBend(S("id")),
-        "resource_guid": S("properties", "resourceGuid"),
+        "public_ip_addresses": S("properties") >> S("publicIpAddresses", default=[]) >> ForallBend(S("id") >> Lower),
+        "public_ip_prefixes": S("properties") >> S("publicIpPrefixes", default=[]) >> ForallBend(S("id") >> Lower),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "sku": S("sku", "name"),
-        "subnet_ids": S("properties") >> S("subnets", default=[]) >> ForallBend(S("id")),
+        "subnet_ids": S("properties") >> S("subnets", default=[]) >> ForallBend(S("id") >> Lower),
         "type": S("type"),
         "zones": S("zones"),
     }
@@ -2026,7 +2034,7 @@ class AzurePublicIPAddress(MicrosoftResource, BaseIPAddress):
         "predecessors": {"default": ["azure_nat_gateway", "azure_public_ip_prefix"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "ddos_settings": S("properties", "ddosSettings") >> Bend(AzureDdosSettings.mapping),
@@ -2039,12 +2047,12 @@ class AzurePublicIPAddress(MicrosoftResource, BaseIPAddress):
         "ip_tags": S("properties", "ipTags") >> ForallBend(AzureIpTag.mapping),
         "location": S("location"),
         "migration_phase": S("properties", "migrationPhase"),
-        "_nat_gateway_id": S("properties", "natGateway", "id"),
+        "_nat_gateway_id": S("properties", "natGateway", "id") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
         "public_ip_allocation_method": S("properties", "publicIPAllocationMethod"),
-        "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "public_ip_prefix": S("properties", "publicIPPrefix", "id") >> Lower,
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "type": S("type"),
         "zones": S("zones"),
@@ -2085,7 +2093,7 @@ class AzureIPConfiguration(AzureSubResource):
         "private_ip_address": S("properties", "privateIPAddress"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "_public_ip_address_id": S("properties", "publicIPAddress", "id"),
+        "_public_ip_address_id": S("properties", "publicIPAddress", "id") >> Lower,
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
@@ -2103,7 +2111,7 @@ class AzureIPConfigurationProfile(AzureSubResource):
         "name": S("name"),
         "properties": S("properties", "provisioningState"),
         "type": S("type"),
-        "_subnet_id": S("properties", "subnet", "id"),
+        "_subnet_id": S("properties", "subnet", "id") >> Lower,
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource. This name can be used to access the resource.'})  # fmt: skip
@@ -2122,7 +2130,7 @@ class AzureResourceNavigationLink(AzureSubResource):
     kind: ClassVar[str] = "azure_resource_navigation_link"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "etag": S("etag"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "link": S("properties", "link"),
         "linked_resource_type": S("properties", "linkedResourceType"),
         "name": S("name"),
@@ -2192,7 +2200,7 @@ class AzureSubnet(MicrosoftResource, BaseSubnet):
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "address_prefix": S("properties", "addressPrefix"),
@@ -2202,12 +2210,12 @@ class AzureSubnet(MicrosoftResource, BaseSubnet):
         "default_outbound_access": S("properties", "defaultOutboundAccess"),
         "delegations": S("properties", "delegations") >> ForallBend(AzureDelegation.mapping),
         "etag": S("etag"),
-        "ip_allocations": S("properties") >> S("ipAllocations", default=[]) >> ForallBend(S("id")),
+        "ip_allocations": S("properties") >> S("ipAllocations", default=[]) >> ForallBend(S("id") >> Lower),
         "ip_configuration_profiles": S("properties", "ipConfigurationProfiles")
         >> ForallBend(AzureIPConfigurationProfile.mapping),
-        "_ip_configuration_ids": S("properties", "ipConfigurations", default=[]) >> ForallBend(S("id")),
-        "_nat_gateway_id": S("properties", "natGateway", "id"),
-        "_network_security_group_id": S("properties", "networkSecurityGroup", "id"),
+        "_ip_configuration_ids": S("properties", "ipConfigurations", default=[]) >> ForallBend(S("id") >> Lower),
+        "_nat_gateway_id": S("properties", "natGateway", "id") >> Lower,
+        "_network_security_group_id": S("properties", "networkSecurityGroup", "id") >> Lower,
         "private_endpoint_network_policies": S("properties", "privateEndpointNetworkPolicies"),
         "private_endpoints": S("properties", "privateEndpoints") >> ForallBend(AzurePrivateEndpoint.mapping),
         "private_link_service_network_policies": S("properties", "privateLinkServiceNetworkPolicies"),
@@ -2215,7 +2223,7 @@ class AzureSubnet(MicrosoftResource, BaseSubnet):
         "purpose": S("properties", "purpose"),
         "resource_navigation_links": S("properties", "resourceNavigationLinks")
         >> ForallBend(AzureResourceNavigationLink.mapping),
-        "_route_table_id": S("properties", "routeTable") >> Bend(S("id")),
+        "_route_table_id": S("properties", "routeTable") >> Bend(S("id") >> Lower),
         "service_association_links": S("properties", "serviceAssociationLinks")
         >> ForallBend(AzureServiceAssociationLink.mapping),
         "service_endpoint_policies": S("properties", "serviceEndpointPolicies")
@@ -2259,19 +2267,19 @@ class AzureFrontendIPConfiguration(AzureSubResource):
     kind: ClassVar[str] = "azure_frontend_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "etag": S("etag"),
-        "gateway_load_balancer": S("properties", "gatewayLoadBalancer", "id"),
-        "inbound_nat_pools": S("properties") >> S("inboundNatPools", default=[]) >> ForallBend(S("id")),
-        "inbound_nat_rules": S("properties") >> S("inboundNatRules", default=[]) >> ForallBend(S("id")),
-        "load_balancing_rules": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id")),
+        "gateway_load_balancer": S("properties", "gatewayLoadBalancer", "id") >> Lower,
+        "inbound_nat_pools": S("properties") >> S("inboundNatPools", default=[]) >> ForallBend(S("id") >> Lower),
+        "inbound_nat_rules": S("properties") >> S("inboundNatRules", default=[]) >> ForallBend(S("id") >> Lower),
+        "load_balancing_rules": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id") >> Lower),
         "name": S("name"),
-        "outbound_rules": S("properties") >> S("outboundRules", default=[]) >> ForallBend(S("id")),
+        "outbound_rules": S("properties") >> S("outboundRules", default=[]) >> ForallBend(S("id") >> Lower),
         "private_ip_address": S("properties", "privateIPAddress"),
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "_public_ip_address_id": S("properties", "publicIPAddress", "id"),
-        "public_ip_prefix": S("properties", "publicIPPrefix", "id"),
-        "_subnet_id": S("properties", "subnet", "id"),
+        "_public_ip_address_id": S("properties", "publicIPAddress", "id") >> Lower,
+        "public_ip_prefix": S("properties", "publicIPPrefix", "id") >> Lower,
+        "_subnet_id": S("properties", "subnet", "id") >> Lower,
         "type": S("type"),
         "zones": S("zones"),
     }
@@ -2306,7 +2314,7 @@ class AzureVirtualNetworkTap(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "destination_load_balancer_front_end_ip_configuration": S(
@@ -2319,7 +2327,7 @@ class AzureVirtualNetworkTap(MicrosoftResource):
         "network_interface_tap_configurations": S("properties", "networkInterfaceTapConfigurations")
         >> ForallBend(AzureNetworkInterfaceTapConfiguration.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "type": S("type"),
     }
     destination_load_balancer_front_end_ip_configuration: Optional[AzureFrontendIPConfiguration] = field(default=None, metadata={'description': 'Frontend IP address of the load balancer.'})  # fmt: skip
@@ -2334,12 +2342,12 @@ class AzureVirtualNetworkTap(MicrosoftResource):
 class AzureInboundNatRule(AzureSubResource):
     kind: ClassVar[str] = "azure_inbound_nat_rule"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "backend_address_pool": S("properties", "backendAddressPool", "id"),
+        "backend_address_pool": S("properties", "backendAddressPool", "id") >> Lower,
         "backend_port": S("properties", "backendPort"),
         "enable_floating_ip": S("properties", "enableFloatingIP"),
         "enable_tcp_reset": S("properties", "enableTcpReset"),
         "etag": S("etag"),
-        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id"),
+        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id") >> Lower,
         "frontend_port": S("properties", "frontendPort"),
         "frontend_port_range_end": S("properties", "frontendPortRangeEnd"),
         "frontend_port_range_start": S("properties", "frontendPortRangeStart"),
@@ -2370,7 +2378,7 @@ class AzureNetworkInterfaceIPConfigurationPrivateLinkConnectionProperties:
     kind: ClassVar[str] = "azure_network_interface_ip_configuration_private_link_connection_properties"
     mapping: ClassVar[Dict[str, Bender]] = {
         "fqdns": S("fqdns"),
-        "group_id": S("groupId"),
+        "group_id": S("groupId") >> Lower,
         "required_member_name": S("requiredMemberName"),
     }
     fqdns: Optional[List[str]] = field(default=None, metadata={'description': 'List of FQDNs for current private link connection.'})  # fmt: skip
@@ -2387,7 +2395,7 @@ class AzureNetworkInterfaceIPConfiguration(AzureSubResource):
         "application_security_groups": S("properties", "applicationSecurityGroups")
         >> ForallBend(AzureApplicationSecurityGroup.mapping),
         "etag": S("etag"),
-        "gateway_load_balancer": S("properties", "gatewayLoadBalancer", "id"),
+        "gateway_load_balancer": S("properties", "gatewayLoadBalancer", "id") >> Lower,
         "load_balancer_inbound_nat_rules": S("properties", "loadBalancerInboundNatRules")
         >> ForallBend(AzureInboundNatRule.mapping),
         "name": S("name"),
@@ -2398,10 +2406,10 @@ class AzureNetworkInterfaceIPConfiguration(AzureSubResource):
         "private_link_connection_properties": S("properties", "privateLinkConnectionProperties")
         >> Bend(AzureNetworkInterfaceIPConfigurationPrivateLinkConnectionProperties.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "_public_ip_id": S("properties", "publicIPAddress", "id"),
+        "_public_ip_id": S("properties", "publicIPAddress", "id") >> Lower,
         "type": S("type"),
-        "_virtual_network_tap_ids": S("properties", "virtualNetworkTaps", default=[]) >> ForallBend(S("id")),
-        "_subnet_id": S("properties", "subnet", "id"),
+        "_virtual_network_tap_ids": S("properties", "virtualNetworkTaps", default=[]) >> ForallBend(S("id") >> Lower),
+        "_subnet_id": S("properties", "subnet", "id") >> Lower,
     }
     application_gateway_backend_address_pools: Optional[List[AzureApplicationGatewayBackendAddressPool]] = field(default=None, metadata={'description': 'The reference to ApplicationGatewayBackendAddressPool resource.'})  # fmt: skip
     application_security_groups: Optional[List[AzureApplicationSecurityGroup]] = field(default=None, metadata={'description': 'Application security groups in which the IP configuration is included.'})  # fmt: skip
@@ -2449,7 +2457,7 @@ class AzurePrivateLinkServiceIpConfiguration(AzureSubResource):
         "private_ip_address_version": S("properties", "privateIPAddressVersion"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "_subnet_id": S("properties", "subnet", "id"),
+        "_subnet_id": S("properties", "subnet", "id") >> Lower,
         "type": S("type"),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -2507,7 +2515,7 @@ class AzurePrivateLinkService(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "alias": S("properties", "alias"),
@@ -2521,7 +2529,7 @@ class AzurePrivateLinkService(MicrosoftResource):
         "_load_balancer_frontend_ip_configuration_ids": S(
             "properties", "loadBalancerFrontendIpConfigurations", default=[]
         )
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "location": S("location"),
         "link_service_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzureLinkServicePrivateEndpointConnection.mapping),
@@ -2565,14 +2573,14 @@ class AzureNetworkInterface(MicrosoftResource, BaseNetworkInterface):
         "successors": {"default": ["azure_dscp_configuration"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "auxiliary_mode": S("properties", "auxiliaryMode"),
         "auxiliary_sku": S("properties", "auxiliarySku"),
         "disable_tcp_state_tracking": S("properties", "disableTcpStateTracking"),
         "interface_dns_settings": S("properties", "dnsSettings") >> Bend(AzureNetworkInterfaceDnsSettings.mapping),
-        "dscp_configuration": S("properties", "dscpConfiguration", "id"),
+        "dscp_configuration": S("properties", "dscpConfiguration", "id") >> Lower,
         "enable_accelerated_networking": S("properties", "enableAcceleratedNetworking"),
         "enable_ip_forwarding": S("properties", "enableIPForwarding"),
         "etag": S("etag"),
@@ -2583,17 +2591,17 @@ class AzureNetworkInterface(MicrosoftResource, BaseNetworkInterface):
         "location": S("location"),
         "mac_address": S("properties", "macAddress"),
         "migration_phase": S("properties", "migrationPhase"),
-        "_network_security_group_id": S("properties", "networkSecurityGroup", "id"),
+        "_network_security_group_id": S("properties", "networkSecurityGroup", "id") >> Lower,
         "nic_type": S("properties", "nicType"),
         "primary": S("properties", "primary"),
         "private_endpoint": S("properties", "privateEndpoint") >> Bend(AzurePrivateEndpoint.mapping),
-        "_private_link_service_id": S("properties", "privateLinkService", "id"),
+        "_private_link_service_id": S("properties", "privateLinkService", "id") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "tap_configurations": S("properties", "tapConfigurations")
         >> ForallBend(AzureNetworkInterfaceTapConfiguration.mapping),
         "type": S("type"),
-        "virtual_machine": S("properties", "virtualMachine", "id"),
+        "virtual_machine": S("properties", "virtualMachine", "id") >> Lower,
         "vnet_encryption_supported": S("properties", "vnetEncryptionSupported"),
         "workload_type": S("properties", "workloadType"),
         "mac": S("properties", "macAddress"),
@@ -2665,21 +2673,21 @@ class AzureDscpConfiguration(MicrosoftResource):
         "predecessors": {"default": ["azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "_associated_network_interface_ids": S("properties", "associatedNetworkInterfaces", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "destination_ip_ranges": S("properties", "destinationIpRanges") >> ForallBend(AzureQosIpRange.mapping),
         "destination_port_ranges": S("properties", "destinationPortRanges") >> ForallBend(AzureQosPortRange.mapping),
         "etag": S("etag"),
         "markings": S("properties", "markings"),
         "protocol": S("properties", "protocol"),
         "provisioning_state": S("properties", "provisioningState"),
-        "qos_collection_id": S("properties", "qosCollectionId"),
+        "qos_collection_id": S("properties", "qosCollectionId") >> Lower,
         "qos_definition_collection": S("properties", "qosDefinitionCollection")
         >> ForallBend(AzureQosDefinition.mapping),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "source_ip_ranges": S("properties", "sourceIpRanges") >> ForallBend(AzureQosIpRange.mapping),
         "source_port_ranges": S("properties", "sourcePortRanges") >> ForallBend(AzureQosPortRange.mapping),
     }
@@ -2783,7 +2791,7 @@ class AzureIpv6ExpressRouteCircuitPeeringConfig:
     mapping: ClassVar[Dict[str, Bender]] = {
         "microsoft_peering_config": S("microsoftPeeringConfig") >> Bend(AzureExpressRouteCircuitPeeringConfig.mapping),
         "primary_peer_address_prefix": S("primaryPeerAddressPrefix"),
-        "route_filter": S("routeFilter", "id"),
+        "route_filter": S("routeFilter", "id") >> Lower,
         "secondary_peer_address_prefix": S("secondaryPeerAddressPrefix"),
         "state": S("state"),
     }
@@ -2813,11 +2821,11 @@ class AzureExpressRouteCircuitConnection(AzureSubResource):
         "authorization_key": S("properties", "authorizationKey"),
         "circuit_connection_status": S("properties", "circuitConnectionStatus"),
         "etag": S("etag"),
-        "express_route_circuit_peering": S("properties", "expressRouteCircuitPeering", "id"),
+        "express_route_circuit_peering": S("properties", "expressRouteCircuitPeering", "id") >> Lower,
         "ipv6_circuit_connection_config": S("properties", "ipv6CircuitConnectionConfig")
         >> Bend(AzureIpv6CircuitConnectionConfig.mapping),
         "name": S("name"),
-        "peer_express_route_circuit_peering": S("properties", "peerExpressRouteCircuitPeering", "id"),
+        "peer_express_route_circuit_peering": S("properties", "peerExpressRouteCircuitPeering", "id") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
     }
@@ -2838,13 +2846,13 @@ class AzurePeerExpressRouteCircuitConnection(AzureSubResource):
     kind: ClassVar[str] = "azure_peer_express_route_circuit_connection"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "address_prefix": S("properties", "addressPrefix"),
-        "auth_resource_guid": S("properties", "authResourceGuid"),
+        "auth_resource_guid": S("properties", "authResourceGuid") >> Lower,
         "circuit_connection_status": S("properties", "circuitConnectionStatus"),
         "connection_name": S("properties", "connectionName"),
         "etag": S("etag"),
-        "express_route_circuit_peering": S("properties", "expressRouteCircuitPeering", "id"),
+        "express_route_circuit_peering": S("properties", "expressRouteCircuitPeering", "id") >> Lower,
         "name": S("name"),
-        "peer_express_route_circuit_peering": S("properties", "peerExpressRouteCircuitPeering", "id"),
+        "peer_express_route_circuit_peering": S("properties", "peerExpressRouteCircuitPeering", "id") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
     }
@@ -2867,7 +2875,7 @@ class AzureExpressRouteCircuitPeering(AzureSubResource):
         "azure_asn": S("properties", "azureASN"),
         "connections": S("properties", "connections") >> ForallBend(AzureExpressRouteCircuitConnection.mapping),
         "etag": S("etag"),
-        "express_route_connection": S("properties", "expressRouteConnection", "id"),
+        "express_route_connection": S("properties", "expressRouteConnection", "id") >> Lower,
         "gateway_manager_etag": S("properties", "gatewayManagerEtag"),
         "ipv6_peering_config": S("properties", "ipv6PeeringConfig")
         >> Bend(AzureIpv6ExpressRouteCircuitPeeringConfig.mapping),
@@ -2882,14 +2890,14 @@ class AzureExpressRouteCircuitPeering(AzureSubResource):
         "primary_azure_port": S("properties", "primaryAzurePort"),
         "primary_peer_address_prefix": S("properties", "primaryPeerAddressPrefix"),
         "provisioning_state": S("properties", "provisioningState"),
-        "route_filter": S("properties", "routeFilter", "id"),
+        "route_filter": S("properties", "routeFilter", "id") >> Lower,
         "secondary_azure_port": S("properties", "secondaryAzurePort"),
         "secondary_peer_address_prefix": S("properties", "secondaryPeerAddressPrefix"),
         "shared_key": S("properties", "sharedKey"),
         "state": S("properties", "state"),
         "stats": S("properties", "stats") >> Bend(AzureExpressRouteCircuitStats.mapping),
         "type": S("type"),
-        "vlan_id": S("properties", "vlanId"),
+        "vlan_id": S("properties", "vlanId") >> Lower,
     }
     azure_asn: Optional[int] = field(default=None, metadata={"description": "The Azure ASN."})
     connections: Optional[List[AzureExpressRouteCircuitConnection]] = field(default=None, metadata={'description': 'The list of circuit connections associated with Azure Private Peering for this circuit.'})  # fmt: skip
@@ -2945,7 +2953,7 @@ class AzureExpressRouteCircuit(MicrosoftResource):
         "successors": {"default": ["azure_express_route_port", "azure_express_route_ports_location"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "allow_classic_operations": S("properties", "allowClassicOperations"),
@@ -2956,7 +2964,7 @@ class AzureExpressRouteCircuit(MicrosoftResource):
         "bandwidth_in_gbps": S("properties", "bandwidthInGbps"),
         "circuit_provisioning_state": S("properties", "circuitProvisioningState"),
         "etag": S("etag"),
-        "express_route_port": S("properties", "expressRoutePort", "id"),
+        "express_route_port": S("properties", "expressRoutePort", "id") >> Lower,
         "gateway_manager_etag": S("properties", "gatewayManagerEtag"),
         "global_reach_enabled": S("properties", "globalReachEnabled"),
         "circuit_peerings": S("properties", "peerings") >> ForallBend(AzureExpressRouteCircuitPeering.mapping),
@@ -3032,7 +3040,7 @@ class AzureExpressRouteCrossConnectionPeering(AzureSubResource):
         "secondary_peer_address_prefix": S("properties", "secondaryPeerAddressPrefix"),
         "shared_key": S("properties", "sharedKey"),
         "state": S("properties", "state"),
-        "vlan_id": S("properties", "vlanId"),
+        "vlan_id": S("properties", "vlanId") >> Lower,
     }
     azure_asn: Optional[int] = field(default=None, metadata={"description": "The Azure ASN."})
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -3066,12 +3074,12 @@ class AzureExpressRouteCrossConnection(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "bandwidth_in_mbps": S("properties", "bandwidthInMbps"),
         "etag": S("etag"),
-        "express_route_circuit": S("properties", "expressRouteCircuit", "id"),
+        "express_route_circuit": S("properties", "expressRouteCircuit", "id") >> Lower,
         "peering_location": S("properties", "peeringLocation"),
         "cross_connection_peerings": S("properties", "peerings")
         >> ForallBend(AzureExpressRouteCrossConnectionPeering.mapping),
@@ -3111,7 +3119,10 @@ class AzureBounds:
 @define(eq=False, slots=False)
 class AzurePropagatedRouteTable:
     kind: ClassVar[str] = "azure_propagated_route_table"
-    mapping: ClassVar[Dict[str, Bender]] = {"ids": S("ids", default=[]) >> ForallBend(S("id")), "labels": S("labels")}
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "ids": S("ids", default=[]) >> ForallBend(S("id") >> Lower),
+        "labels": S("labels"),
+    }
     ids: Optional[List[str]] = field(default=None, metadata={'description': 'The list of resource ids of all the RouteTables.'})  # fmt: skip
     labels: Optional[List[str]] = field(default=None, metadata={"description": "The list of labels."})
 
@@ -3146,7 +3157,7 @@ class AzureStaticRoute:
 class AzureVnetRoute:
     kind: ClassVar[str] = "azure_vnet_route"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "bgp_connections": S("bgpConnections", default=[]) >> ForallBend(S("id")),
+        "bgp_connections": S("bgpConnections", default=[]) >> ForallBend(S("id") >> Lower),
         "static_routes": S("staticRoutes") >> ForallBend(AzureStaticRoute.mapping),
         "static_routes_config": S("staticRoutesConfig") >> Bend(AzureStaticRoutesConfig.mapping),
     }
@@ -3159,9 +3170,9 @@ class AzureVnetRoute:
 class AzureRoutingConfiguration:
     kind: ClassVar[str] = "azure_routing_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "associated_route_table": S("associatedRouteTable", "id"),
-        "inbound_route_map": S("inboundRouteMap", "id"),
-        "outbound_route_map": S("outboundRouteMap", "id"),
+        "associated_route_table": S("associatedRouteTable", "id") >> Lower,
+        "inbound_route_map": S("inboundRouteMap", "id") >> Lower,
+        "outbound_route_map": S("outboundRouteMap", "id") >> Lower,
         "propagated_route_tables": S("propagatedRouteTables") >> Bend(AzurePropagatedRouteTable.mapping),
         "vnet_routes": S("vnetRoutes") >> Bend(AzureVnetRoute.mapping),
     }
@@ -3179,7 +3190,7 @@ class AzureExpressRouteConnection(AzureSubResource):
         "authorization_key": S("properties", "authorizationKey"),
         "enable_internet_security": S("properties", "enableInternetSecurity"),
         "enable_private_link_fast_path": S("properties", "enablePrivateLinkFastPath"),
-        "express_route_circuit_peering": S("properties", "expressRouteCircuitPeering", "id"),
+        "express_route_circuit_peering": S("properties", "expressRouteCircuitPeering", "id") >> Lower,
         "express_route_gateway_bypass": S("properties", "expressRouteGatewayBypass"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -3210,7 +3221,7 @@ class AzureExpressRouteGateway(MicrosoftResource, BaseGateway):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "allow_non_virtual_wan_traffic": S("properties", "allowNonVirtualWanTraffic"),
@@ -3219,7 +3230,7 @@ class AzureExpressRouteGateway(MicrosoftResource, BaseGateway):
         "express_route_connections": S("properties", "expressRouteConnections")
         >> ForallBend(AzureExpressRouteConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "virtual_hub": S("properties", "virtualHub", "id"),
+        "virtual_hub": S("properties", "virtualHub", "id") >> Lower,
     }
     allow_non_virtual_wan_traffic: Optional[bool] = field(default=None, metadata={'description': 'Configures this gateway to accept traffic from non Virtual WAN networks.'})  # fmt: skip
     auto_scale_configuration: Optional[AzureBounds] = field(default=None, metadata={'description': 'Configuration for auto scaling.'})  # fmt: skip
@@ -3253,9 +3264,9 @@ class AzureExpressRouteLink(AzureSubResource):
         "interface_name": S("properties", "interfaceName"),
         "mac_sec_config": S("properties", "macSecConfig") >> Bend(AzureExpressRouteLinkMacSecConfig.mapping),
         "name": S("name"),
-        "patch_panel_id": S("properties", "patchPanelId"),
+        "patch_panel_id": S("properties", "patchPanelId") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
-        "rack_id": S("properties", "rackId"),
+        "rack_id": S("properties", "rackId") >> Lower,
         "router_name": S("properties", "routerName"),
     }
     admin_state: Optional[str] = field(default=None, metadata={'description': 'Administrative state of the physical port.'})  # fmt: skip
@@ -3284,13 +3295,13 @@ class AzureExpressRoutePort(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "allocation_date": S("properties", "allocationDate"),
         "bandwidth_in_gbps": S("properties", "bandwidthInGbps"),
         "billing_type": S("properties", "billingType"),
-        "circuits": S("properties") >> S("circuits", default=[]) >> ForallBend(S("id")),
+        "circuits": S("properties") >> S("circuits", default=[]) >> ForallBend(S("id") >> Lower),
         "encapsulation": S("properties", "encapsulation"),
         "etag": S("etag"),
         "ether_type": S("properties", "etherType"),
@@ -3300,7 +3311,7 @@ class AzureExpressRoutePort(MicrosoftResource):
         "peering_location": S("properties", "peeringLocation"),
         "provisioned_bandwidth_in_gbps": S("properties", "provisionedBandwidthInGbps"),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
     }
     allocation_date: Optional[str] = field(default=None, metadata={'description': 'Date of the physical port allocation to be used in Letter of Authorization.'})  # fmt: skip
     bandwidth_in_gbps: Optional[float] = field(default=None, metadata={'description': 'Bandwidth of procured ports in Gbps.'})  # fmt: skip
@@ -3337,7 +3348,7 @@ class AzureExpressRoutePortsLocation(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "address": S("properties", "address"),
@@ -3362,7 +3373,7 @@ class AzureFirewallPolicyThreatIntelWhitelist:
 @define(eq=False, slots=False)
 class AzureFirewallPolicyLogAnalyticsWorkspace:
     kind: ClassVar[str] = "azure_firewall_policy_log_analytics_workspace"
-    mapping: ClassVar[Dict[str, Bender]] = {"region": S("region"), "workspace_id": S("workspaceId", "id")}
+    mapping: ClassVar[Dict[str, Bender]] = {"region": S("region"), "workspace_id": S("workspaceId", "id") >> Lower}
     region: Optional[str] = field(default=None, metadata={"description": "Region to configure the Workspace."})
     workspace_id: Optional[str] = field(default=None, metadata={"description": "Reference to another subresource."})
 
@@ -3371,7 +3382,7 @@ class AzureFirewallPolicyLogAnalyticsWorkspace:
 class AzureFirewallPolicyLogAnalyticsResources:
     kind: ClassVar[str] = "azure_firewall_policy_log_analytics_resources"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "default_workspace_id": S("defaultWorkspaceId", "id"),
+        "default_workspace_id": S("defaultWorkspaceId", "id") >> Lower,
         "workspaces": S("workspaces") >> ForallBend(AzureFirewallPolicyLogAnalyticsWorkspace.mapping),
     }
     default_workspace_id: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
@@ -3437,7 +3448,7 @@ class AzureExplicitProxy:
 @define(eq=False, slots=False)
 class AzureFirewallPolicyIntrusionDetectionSignatureSpecification:
     kind: ClassVar[str] = "azure_firewall_policy_intrusion_detection_signature_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "mode": S("mode")}
+    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id") >> Lower, "mode": S("mode")}
     id: Optional[str] = field(default=None, metadata={"description": "Signature id."})
     mode: Optional[str] = field(default=None, metadata={"description": "Possible state values."})
 
@@ -3494,7 +3505,7 @@ class AzureFirewallPolicyIntrusionDetection:
 @define(eq=False, slots=False)
 class AzureFirewallPolicyCertificateAuthority:
     kind: ClassVar[str] = "azure_firewall_policy_certificate_authority"
-    mapping: ClassVar[Dict[str, Bender]] = {"key_vault_secret_id": S("keyVaultSecretId"), "name": S("name")}
+    mapping: ClassVar[Dict[str, Bender]] = {"key_vault_secret_id": S("keyVaultSecretId") >> Lower, "name": S("name")}
     key_vault_secret_id: Optional[str] = field(default=None, metadata={'description': 'Secret Id of (base-64 encoded unencrypted pfx) Secret or Certificate object stored in KeyVault.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "Name of the CA certificate."})
 
@@ -3521,21 +3532,23 @@ class AzureFirewallPolicy(MicrosoftResource, BasePolicy):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
-        "base_policy": S("properties", "basePolicy", "id"),
-        "child_policies": S("properties") >> S("childPolicies", default=[]) >> ForallBend(S("id")),
+        "base_policy": S("properties", "basePolicy", "id") >> Lower,
+        "child_policies": S("properties") >> S("childPolicies", default=[]) >> ForallBend(S("id") >> Lower),
         "firewall_policy_dns_settings": S("properties", "dnsSettings") >> Bend(AzureDnsSettings.mapping),
         "etag": S("etag"),
         "explicit_proxy": S("properties", "explicitProxy") >> Bend(AzureExplicitProxy.mapping),
-        "firewalls": S("properties") >> S("firewalls", default=[]) >> ForallBend(S("id")),
+        "firewalls": S("properties") >> S("firewalls", default=[]) >> ForallBend(S("id") >> Lower),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "insights": S("properties", "insights") >> Bend(AzureFirewallPolicyInsights.mapping),
         "intrusion_detection": S("properties", "intrusionDetection")
         >> Bend(AzureFirewallPolicyIntrusionDetection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "rule_collection_groups": S("properties") >> S("ruleCollectionGroups", default=[]) >> ForallBend(S("id")),
+        "rule_collection_groups": S("properties")
+        >> S("ruleCollectionGroups", default=[])
+        >> ForallBend(S("id") >> Lower),
         "size": S("properties", "size") >> StringToUnitNumber("B", expected=int),
         "sku": S("properties", "sku", "tier"),
         "snat": S("properties", "snat") >> Bend(AzureFirewallPolicySNAT.mapping),
@@ -3580,17 +3593,17 @@ class AzureIpAllocation(MicrosoftResource):
         "predecessors": {"default": ["azure_virtual_network", "azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "allocation_tags": S("properties", "allocationTags"),
         "etag": S("etag"),
-        "ipam_allocation_id": S("properties", "ipamAllocationId"),
+        "ipam_allocation_id": S("properties", "ipamAllocationId") >> Lower,
         "prefix": S("properties", "prefix"),
         "prefix_length": S("properties", "prefixLength"),
         "prefix_type": S("properties", "prefixType"),
-        "subnet": S("properties", "subnet", "id"),
-        "virtual_network": S("properties", "virtualNetwork", "id"),
+        "subnet": S("properties", "subnet", "id") >> Lower,
+        "virtual_network": S("properties", "virtualNetwork", "id") >> Lower,
     }
     allocation_tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "IpAllocation tags."})
     ipam_allocation_id: Optional[str] = field(default=None, metadata={"description": "The IPAM allocation ID."})
@@ -3623,12 +3636,12 @@ class AzureIpGroup(MicrosoftResource):
         "predecessors": {"default": ["azure_virtual_network"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
-        "firewall_policies": S("properties") >> S("firewallPolicies", default=[]) >> ForallBend(S("id")),
-        "firewalls": S("properties") >> S("firewalls", default=[]) >> ForallBend(S("id")),
+        "firewall_policies": S("properties") >> S("firewallPolicies", default=[]) >> ForallBend(S("id") >> Lower),
+        "firewalls": S("properties") >> S("firewalls", default=[]) >> ForallBend(S("id") >> Lower),
         "ip_addresses": S("properties", "ipAddresses"),
         "provisioning_state": S("properties", "provisioningState"),
     }
@@ -3665,12 +3678,14 @@ class AzureLoadBalancerProbe(MicrosoftResource, BaseHealthCheck):
     kind: ClassVar[str] = "azure_load_balancer_probe"
     # Collect via AzureLoadBalancer
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
         "interval_in_seconds": S("properties", "intervalInSeconds"),
-        "load_balancing_rules_ids": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id")),
+        "load_balancing_rules_ids": S("properties")
+        >> S("loadBalancingRules", default=[])
+        >> ForallBend(S("id") >> Lower),
         "no_healthy_backends_behavior": S("properties", "NoHealthyBackendsBehavior"),
         "number_of_probes": S("properties", "numberOfProbes"),
         "port": S("properties", "port"),
@@ -3728,11 +3743,12 @@ class AzureLoadBalancerBackendAddress:
         "inbound_nat_rules_port_mapping": S("properties", "inboundNatRulesPortMapping")
         >> ForallBend(AzureNatRulePortMapping.mapping),
         "ip_address": S("properties", "ipAddress"),
-        "load_balancer_frontend_ip_configuration": S("properties", "loadBalancerFrontendIPConfiguration", "id"),
+        "load_balancer_frontend_ip_configuration": S("properties", "loadBalancerFrontendIPConfiguration", "id")
+        >> Lower,
         "name": S("name"),
-        "network_interface_ip_configuration": S("properties", "networkInterfaceIPConfiguration", "id"),
-        "subnet": S("properties", "subnet", "id"),
-        "virtual_network": S("properties", "virtualNetwork", "id"),
+        "network_interface_ip_configuration": S("properties", "networkInterfaceIPConfiguration", "id") >> Lower,
+        "subnet": S("properties", "subnet", "id") >> Lower,
+        "virtual_network": S("properties", "virtualNetwork", "id") >> Lower,
     }
     admin_state: Optional[str] = field(default=None, metadata={'description': 'A list of administrative states which once set can override health probe so that Load Balancer will always forward new connections to backend, or deny new connections and reset existing connections.'})  # fmt: skip
     inbound_nat_rules_port_mapping: Optional[List[AzureNatRulePortMapping]] = field(default=None, metadata={'description': 'Collection of inbound NAT rule port mappings.'})  # fmt: skip
@@ -3750,21 +3766,22 @@ class AzureBackendAddressPool(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "drain_period_in_seconds": S("properties", "drainPeriodInSeconds"),
         "etag": S("etag"),
-        "inbound_nat_rules": S("properties") >> S("inboundNatRules", default=[]) >> ForallBend(S("id")),
+        "inbound_nat_rules": S("properties") >> S("inboundNatRules", default=[]) >> ForallBend(S("id") >> Lower),
         "load_balancer_backend_addresses": S("properties", "loadBalancerBackendAddresses")
         >> ForallBend(AzureLoadBalancerBackendAddress.mapping),
-        "load_balancing_rules": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id")),
+        "load_balancing_rules": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id") >> Lower),
         "location": S("properties", "location"),
         "name": S("name"),
-        "outbound_rule": S("properties", "outboundRule", "id"),
-        "outbound_rules": S("properties") >> S("outboundRules", default=[]) >> ForallBend(S("id")),
+        "outbound_rule": S("properties", "outboundRule", "id") >> Lower,
+        "outbound_rules": S("properties") >> S("outboundRules", default=[]) >> ForallBend(S("id") >> Lower),
         "provisioning_state": S("properties", "provisioningState"),
         "sync_mode": S("properties", "syncMode"),
         "tunnel_interfaces": S("properties", "tunnelInterfaces")
         >> ForallBend(AzureGatewayLoadBalancerTunnelInterface.mapping),
         "type": S("type"),
-        "virtual_network": S("properties", "virtualNetwork", "id"),
-        "_backend_ip_configuration_ids": S("properties", "backendIPConfigurations", default=[]) >> ForallBend(S("id")),
+        "virtual_network": S("properties", "virtualNetwork", "id") >> Lower,
+        "_backend_ip_configuration_ids": S("properties", "backendIPConfigurations", default=[])
+        >> ForallBend(S("id") >> Lower),
     }
     drain_period_in_seconds: Optional[int] = field(default=None, metadata={'description': 'Amount of seconds Load Balancer waits for before sending RESET to client and backend address.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -3789,19 +3806,21 @@ class AzureBackendAddressPool(AzureSubResource):
 class AzureLoadBalancingRule(AzureSubResource):
     kind: ClassVar[str] = "azure_load_balancing_rule"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "backend_address_pool": S("properties", "backendAddressPool", "id"),
-        "backend_address_pools": S("properties") >> S("backendAddressPools", default=[]) >> ForallBend(S("id")),
+        "backend_address_pool": S("properties", "backendAddressPool", "id") >> Lower,
+        "backend_address_pools": S("properties")
+        >> S("backendAddressPools", default=[])
+        >> ForallBend(S("id") >> Lower),
         "backend_port": S("properties", "backendPort"),
         "disable_outbound_snat": S("properties", "disableOutboundSnat"),
         "enable_floating_ip": S("properties", "enableFloatingIP"),
         "enable_tcp_reset": S("properties", "enableTcpReset"),
         "etag": S("etag"),
-        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id"),
+        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id") >> Lower,
         "frontend_port": S("properties", "frontendPort"),
         "idle_timeout_in_minutes": S("properties", "idleTimeoutInMinutes"),
         "load_distribution": S("properties", "loadDistribution"),
         "name": S("name"),
-        "probe": S("properties", "probe", "id"),
+        "probe": S("properties", "probe", "id") >> Lower,
         "protocol": S("properties", "protocol"),
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
@@ -3830,7 +3849,7 @@ class AzureProbe(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "etag": S("etag"),
         "interval_in_seconds": S("properties", "intervalInSeconds"),
-        "load_balancing_rules": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id")),
+        "load_balancing_rules": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id") >> Lower),
         "name": S("name"),
         "number_of_probes": S("properties", "numberOfProbes"),
         "port": S("properties", "port"),
@@ -3861,7 +3880,7 @@ class AzureInboundNatPool(AzureSubResource):
         "enable_floating_ip": S("properties", "enableFloatingIP"),
         "enable_tcp_reset": S("properties", "enableTcpReset"),
         "etag": S("etag"),
-        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id"),
+        "frontend_ip_configuration": S("properties", "frontendIPConfiguration", "id") >> Lower,
         "frontend_port_range_end": S("properties", "frontendPortRangeEnd"),
         "frontend_port_range_start": S("properties", "frontendPortRangeStart"),
         "idle_timeout_in_minutes": S("properties", "idleTimeoutInMinutes"),
@@ -3889,12 +3908,12 @@ class AzureOutboundRule(AzureSubResource):
     kind: ClassVar[str] = "azure_outbound_rule"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "allocated_outbound_ports": S("properties", "allocatedOutboundPorts"),
-        "backend_address_pool": S("properties", "backendAddressPool", "id"),
+        "backend_address_pool": S("properties", "backendAddressPool", "id") >> Lower,
         "enable_tcp_reset": S("properties", "enableTcpReset"),
         "etag": S("etag"),
         "frontend_ip_configurations": S("properties")
         >> S("frontendIPConfigurations", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "idle_timeout_in_minutes": S("properties", "idleTimeoutInMinutes"),
         "name": S("name"),
         "protocol": S("properties", "protocol"),
@@ -3930,7 +3949,7 @@ class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
         "successors": {"default": ["azure_load_balancer_probe"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "backend_address_pools": S("properties", "backendAddressPools") >> ForallBend(AzureBackendAddressPool.mapping),
@@ -3942,9 +3961,9 @@ class AzureLoadBalancer(MicrosoftResource, BaseLoadBalancer):
         "inbound_nat_rules": S("properties", "inboundNatRules") >> ForallBend(AzureInboundNatRule.mapping),
         "load_balancing_rules": S("properties", "loadBalancingRules") >> ForallBend(AzureLoadBalancingRule.mapping),
         "outbound_rules": S("properties", "outboundRules") >> ForallBend(AzureOutboundRule.mapping),
-        "_lb_probes_id": S("properties", "probes") >> ForallBend(S("id")),
+        "_lb_probes_id": S("properties", "probes") >> ForallBend(S("id") >> Lower),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "lb_type": S("type"),
         "backends": S("properties", "backendAddressPools")
@@ -4048,7 +4067,7 @@ class AzureContainerNetworkInterfaceConfiguration(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "container_network_interfaces": S("properties")
         >> S("containerNetworkInterfaces", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "etag": S("etag"),
         "ip_configurations": S("properties", "ipConfigurations") >> ForallBend(AzureIPConfigurationProfile.mapping),
         "name": S("name"),
@@ -4124,7 +4143,7 @@ class AzureNetworkProfile(MicrosoftResource):
         "successors": {"default": ["azure_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "container_network_interface_configurations": S("properties", "containerNetworkInterfaceConfigurations")
@@ -4133,7 +4152,7 @@ class AzureNetworkProfile(MicrosoftResource):
         >> ForallBend(AzureContainerNetworkInterface.mapping),
         "etag": S("etag"),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
     }
     container_network_interface_configurations: Optional[List[AzureContainerNetworkInterfaceConfiguration]] = field(default=None, metadata={'description': 'List of chid container network interface configurations.'})  # fmt: skip
     container_network_interfaces: Optional[List[AzureContainerNetworkInterface]] = field(default=None, metadata={'description': 'List of child container network interfaces.'})  # fmt: skip
@@ -4227,9 +4246,9 @@ class AzureDelegationProperties:
 class AzurePartnerManagedResourceProperties:
     kind: ClassVar[str] = "azure_partner_managed_resource_properties"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "internal_load_balancer_id": S("internalLoadBalancerId"),
-        "standard_load_balancer_id": S("standardLoadBalancerId"),
+        "id": S("id") >> Lower,
+        "internal_load_balancer_id": S("internalLoadBalancerId") >> Lower,
+        "standard_load_balancer_id": S("standardLoadBalancerId") >> Lower,
     }
     id: Optional[str] = field(default=None, metadata={"description": "The partner managed resource id."})
     internal_load_balancer_id: Optional[str] = field(default=None, metadata={'description': 'The partner managed ILB resource id'})  # fmt: skip
@@ -4253,7 +4272,7 @@ class AzureNetworkVirtualAppliance(MicrosoftResource):
         "successors": {"default": ["azure_network_virtual_appliance_sku"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "additional_nics": S("properties", "additionalNics")
@@ -4266,7 +4285,9 @@ class AzureNetworkVirtualAppliance(MicrosoftResource):
         "deployment_type": S("properties", "deploymentType"),
         "etag": S("etag"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
-        "inbound_security_rules": S("properties") >> S("inboundSecurityRules", default=[]) >> ForallBend(S("id")),
+        "inbound_security_rules": S("properties")
+        >> S("inboundSecurityRules", default=[])
+        >> ForallBend(S("id") >> Lower),
         "nva_sku": S("properties", "nvaSku") >> Bend(AzureVirtualApplianceSkuProperties.mapping),
         "partner_managed_resource": S("properties", "partnerManagedResource")
         >> Bend(AzurePartnerManagedResourceProperties.mapping),
@@ -4275,11 +4296,13 @@ class AzureNetworkVirtualAppliance(MicrosoftResource):
         "virtual_appliance_asn": S("properties", "virtualApplianceAsn"),
         "virtual_appliance_connections": S("properties")
         >> S("virtualApplianceConnections", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "virtual_appliance_nics": S("properties", "virtualApplianceNics")
         >> ForallBend(AzureVirtualApplianceNicProperties.mapping),
-        "virtual_appliance_sites": S("properties") >> S("virtualApplianceSites", default=[]) >> ForallBend(S("id")),
-        "virtual_hub": S("properties", "virtualHub", "id"),
+        "virtual_appliance_sites": S("properties")
+        >> S("virtualApplianceSites", default=[])
+        >> ForallBend(S("id") >> Lower),
+        "virtual_hub": S("properties", "virtualHub", "id") >> Lower,
     }
     additional_nics: Optional[List[AzureVirtualApplianceAdditionalNicProperties]] = field(default=None, metadata={'description': 'Details required for Additional Network Interface.'})  # fmt: skip
     address_prefix: Optional[str] = field(default=None, metadata={"description": "Address Prefix."})
@@ -4401,7 +4424,7 @@ class AzureNetworkWatcher(MicrosoftResource):
         "predecessors": {"default": ["azure_virtual_network"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
@@ -4474,7 +4497,7 @@ class AzureVpnServerConfigurationPolicyGroup(AzureSubResource):
         "name": S("name"),
         "p2_s_connection_configurations": S("properties")
         >> S("p2SConnectionConfigurations", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "policy_members": S("properties", "policyMembers")
         >> ForallBend(AzureVpnServerConfigurationPolicyGroupMember.mapping),
         "priority": S("properties", "priority"),
@@ -4497,7 +4520,7 @@ class AzureP2SConnectionConfiguration(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "configuration_policy_group_associations": S("properties")
         >> S("configurationPolicyGroupAssociations", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "enable_internet_security": S("properties", "enableInternetSecurity"),
         "etag": S("etag"),
         "name": S("name"),
@@ -4550,7 +4573,7 @@ class AzureP2SVpnGateway(MicrosoftResource, BaseGateway):
         "successors": {"default": ["azure_virtual_hub"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "custom_dns_servers": S("properties", "customDnsServers"),
@@ -4559,11 +4582,11 @@ class AzureP2SVpnGateway(MicrosoftResource, BaseGateway):
         "p2_s_connection_configurations": S("properties", "p2SConnectionConfigurations")
         >> ForallBend(AzureP2SConnectionConfiguration.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "virtual_hub": S("properties", "virtualHub", "id"),
+        "virtual_hub": S("properties", "virtualHub", "id") >> Lower,
         "vpn_client_connection_health": S("properties", "vpnClientConnectionHealth")
         >> Bend(AzureVpnClientConnectionHealth.mapping),
         "vpn_gateway_scale_unit": S("properties", "vpnGatewayScaleUnit"),
-        "vpn_server_configuration": S("properties", "vpnServerConfiguration", "id"),
+        "vpn_server_configuration": S("properties", "vpnServerConfiguration", "id") >> Lower,
     }
     custom_dns_servers: Optional[List[str]] = field(default=None, metadata={'description': 'List of all customer specified DNS servers IP addresses.'})  # fmt: skip
     is_routing_preference_internet: Optional[bool] = field(default=None, metadata={'description': 'Enable Routing Preference property for the Public IP Interface of the P2SVpnGateway.'})  # fmt: skip
@@ -4591,21 +4614,22 @@ class AzurePublicIPPrefix(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
-        "custom_ip_prefix": S("properties", "customIPPrefix", "id"),
+        "custom_ip_prefix": S("properties", "customIPPrefix", "id") >> Lower,
         "etag": S("etag"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "ip_prefix": S("properties", "ipPrefix"),
         "ip_tags": S("properties", "ipTags") >> ForallBend(AzureIpTag.mapping),
-        "load_balancer_frontend_ip_configuration": S("properties", "loadBalancerFrontendIpConfiguration", "id"),
-        "_nat_gateway_id": S("properties", "natGateway", "id"),
+        "load_balancer_frontend_ip_configuration": S("properties", "loadBalancerFrontendIpConfiguration", "id")
+        >> Lower,
+        "_nat_gateway_id": S("properties", "natGateway", "id") >> Lower,
         "prefix_length": S("properties", "prefixLength"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_ip_address_version": S("properties", "publicIPAddressVersion"),
-        "public_ip_addresses": S("properties") >> S("publicIPAddresses", default=[]) >> ForallBend(S("id")),
-        "resource_guid": S("properties", "resourceGuid"),
+        "public_ip_addresses": S("properties") >> S("publicIPAddresses", default=[]) >> ForallBend(S("id") >> Lower),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "azure_sku": S("sku") >> Bend(AzureSku.mapping),
     }
     custom_ip_prefix: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
@@ -4655,7 +4679,7 @@ class AzureRouteFilter(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
@@ -4682,14 +4706,14 @@ class AzureSecurityPartnerProvider(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "connection_status": S("properties", "connectionStatus"),
         "etag": S("etag"),
         "provisioning_state": S("properties", "provisioningState"),
         "security_provider_name": S("properties", "securityProviderName"),
-        "virtual_hub": S("properties", "virtualHub", "id"),
+        "virtual_hub": S("properties", "virtualHub", "id") >> Lower,
     }
     connection_status: Optional[str] = field(default=None, metadata={'description': 'The current state of the connection with Security Partner Provider.'})  # fmt: skip
     security_provider_name: Optional[str] = field(default=None, metadata={"description": "The Security Providers."})
@@ -4710,7 +4734,7 @@ class AzureNetworkUsage(MicrosoftResource, AzureBaseUsage, BaseNetworkQuota):
         expected_error_codes=AzureBaseUsage._expected_error_codes,
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
-        "id": S("id"),
+        "id": S("id") >> Lower,
     }
 
 
@@ -4787,25 +4811,25 @@ class AzureVirtualHub(MicrosoftResource):
         "successors": {"default": ["azure_public_ip_address"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "address_prefix": S("properties", "addressPrefix"),
         "allow_branch_to_branch_traffic": S("properties", "allowBranchToBranchTraffic"),
-        "azure_firewall": S("properties", "azureFirewall", "id"),
-        "bgp_connections": S("properties") >> S("bgpConnections", default=[]) >> ForallBend(S("id")),
+        "azure_firewall": S("properties", "azureFirewall", "id") >> Lower,
+        "bgp_connections": S("properties") >> S("bgpConnections", default=[]) >> ForallBend(S("id") >> Lower),
         "etag": S("etag"),
-        "express_route_gateway": S("properties", "expressRouteGateway", "id"),
+        "express_route_gateway": S("properties", "expressRouteGateway", "id") >> Lower,
         "hub_routing_preference": S("properties", "hubRoutingPreference"),
-        "ip_configuration_ids": S("properties") >> S("ipConfigurations", default=[]) >> ForallBend(S("id")),
+        "ip_configuration_ids": S("properties") >> S("ipConfigurations", default=[]) >> ForallBend(S("id") >> Lower),
         "hub_kind": S("kind"),
-        "p2s_vpn_gateway": S("properties", "p2SVpnGateway", "id"),
+        "p2s_vpn_gateway": S("properties", "p2SVpnGateway", "id") >> Lower,
         "preferred_routing_gateway": S("properties", "preferredRoutingGateway"),
         "provisioning_state": S("properties", "provisioningState"),
-        "route_maps": S("properties") >> S("routeMaps", default=[]) >> ForallBend(S("id")),
+        "route_maps": S("properties") >> S("routeMaps", default=[]) >> ForallBend(S("id") >> Lower),
         "virtual_hub_route_table": S("properties", "routeTable") >> Bend(AzureVirtualHubRouteTable.mapping),
         "routing_state": S("properties", "routingState"),
-        "security_partner_provider": S("properties", "securityPartnerProvider", "id"),
+        "security_partner_provider": S("properties", "securityPartnerProvider", "id") >> Lower,
         "security_provider_name": S("properties", "securityProviderName"),
         "sku": S("properties", "sku"),
         "virtual_hub_route_table_v2s": S("properties", "virtualHubRouteTableV2s")
@@ -4815,8 +4839,8 @@ class AzureVirtualHub(MicrosoftResource):
             "properties", "virtualRouterAutoScaleConfiguration", "minCapacity"
         ),
         "virtual_router_ips": S("properties", "virtualRouterIps"),
-        "virtual_wan": S("properties", "virtualWan", "id"),
-        "vpn_gateway": S("properties", "vpnGateway", "id"),
+        "virtual_wan": S("properties", "virtualWan", "id") >> Lower,
+        "vpn_gateway": S("properties", "vpnGateway", "id") >> Lower,
     }
     address_prefix: Optional[str] = field(default=None, metadata={'description': 'Address-prefix for this VirtualHub.'})  # fmt: skip
     allow_branch_to_branch_traffic: Optional[bool] = field(default=None, metadata={'description': 'Flag to control transit for VirtualRouter hub.'})  # fmt: skip
@@ -4926,12 +4950,12 @@ class AzureVirtualNetworkPeering(AzureSubResource):
         "remote_address_space": S("properties", "remoteAddressSpace") >> Bend(AzureAddressSpace.mapping),
         "remote_bgp_communities": S("properties", "remoteBgpCommunities")
         >> Bend(AzureVirtualNetworkBgpCommunities.mapping),
-        "remote_virtual_network": S("properties", "remoteVirtualNetwork", "id"),
+        "remote_virtual_network": S("properties", "remoteVirtualNetwork", "id") >> Lower,
         "remote_virtual_network_address_space": S("properties", "remoteVirtualNetworkAddressSpace")
         >> Bend(AzureAddressSpace.mapping),
         "remote_virtual_network_encryption": S("properties", "remoteVirtualNetworkEncryption")
         >> Bend(AzureVirtualNetworkEncryption.mapping),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "type": S("type"),
         "use_remote_gateways": S("properties", "useRemoteGateways"),
     }
@@ -4970,12 +4994,12 @@ class AzureVirtualNetwork(MicrosoftResource, BaseNetwork):
         "successors": {"default": ["azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "address_space": S("properties", "addressSpace") >> Bend(AzureAddressSpace.mapping),
         "bgp_communities": S("properties", "bgpCommunities") >> Bend(AzureVirtualNetworkBgpCommunities.mapping),
-        "ddos_protection_plan": S("properties", "ddosProtectionPlan", "id"),
+        "ddos_protection_plan": S("properties", "ddosProtectionPlan", "id") >> Lower,
         "dhcp_options": S("properties", "dhcpOptions") >> Bend(AzureDhcpOptions.mapping),
         "enable_ddos_protection": S("properties", "enableDdosProtection"),
         "enable_vm_protection": S("properties", "enableVmProtection"),
@@ -4984,10 +5008,10 @@ class AzureVirtualNetwork(MicrosoftResource, BaseNetwork):
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "flow_logs": S("properties", "flowLogs") >> ForallBend(AzureFlowLog.mapping),
         "flow_timeout_in_minutes": S("properties", "flowTimeoutInMinutes"),
-        "ip_allocations": S("properties") >> S("ipAllocations", default=[]) >> ForallBend(S("id")),
+        "ip_allocations": S("properties") >> S("ipAllocations", default=[]) >> ForallBend(S("id") >> Lower),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
-        "_subnet_ids": S("properties", "subnets", default=[]) >> ForallBend(S("id")),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
+        "_subnet_ids": S("properties", "subnets", default=[]) >> ForallBend(S("id") >> Lower),
         "virtual_network_peerings": S("properties", "virtualNetworkPeerings")
         >> ForallBend(AzureVirtualNetworkPeering.mapping),
         "location": S("location"),
@@ -5044,13 +5068,13 @@ class AzureVirtualRouter(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
-        "hosted_gateway": S("properties", "hostedGateway", "id"),
-        "hosted_subnet": S("properties", "hostedSubnet", "id"),
-        "peerings": S("properties") >> S("peerings", default=[]) >> ForallBend(S("id")),
+        "hosted_gateway": S("properties", "hostedGateway", "id") >> Lower,
+        "hosted_subnet": S("properties", "hostedSubnet", "id") >> Lower,
+        "peerings": S("properties") >> S("peerings", default=[]) >> ForallBend(S("id") >> Lower),
         "provisioning_state": S("properties", "provisioningState"),
         "virtual_router_asn": S("properties", "virtualRouterAsn"),
         "virtual_router_ips": S("properties", "virtualRouterIps"),
@@ -5075,7 +5099,7 @@ class AzureVirtualWAN(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "allow_branch_to_branch_traffic": S("properties", "allowBranchToBranchTraffic"),
@@ -5084,8 +5108,8 @@ class AzureVirtualWAN(MicrosoftResource):
         "etag": S("etag"),
         "office365_local_breakout_category": S("properties", "office365LocalBreakoutCategory"),
         "provisioning_state": S("properties", "provisioningState"),
-        "virtual_hubs": S("properties") >> S("virtualHubs", default=[]) >> ForallBend(S("id")),
-        "vpn_sites": S("properties") >> S("vpnSites", default=[]) >> ForallBend(S("id")),
+        "virtual_hubs": S("properties") >> S("virtualHubs", default=[]) >> ForallBend(S("id") >> Lower),
+        "vpn_sites": S("properties") >> S("vpnSites", default=[]) >> ForallBend(S("id") >> Lower),
     }
     allow_branch_to_branch_traffic: Optional[bool] = field(default=None, metadata={'description': 'True if branch to branch traffic is allowed.'})  # fmt: skip
     allow_vnet_to_vnet_traffic: Optional[bool] = field(default=None, metadata={'description': 'True if Vnet to Vnet traffic is allowed.'})  # fmt: skip
@@ -5136,7 +5160,7 @@ class AzureGatewayCustomBgpIpAddressIpConfiguration:
     kind: ClassVar[str] = "azure_gateway_custom_bgp_ip_address_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "custom_bgp_ip_address": S("customBgpIpAddress"),
-        "ip_configuration_id": S("ipConfigurationId"),
+        "ip_configuration_id": S("ipConfigurationId") >> Lower,
     }
     custom_bgp_ip_address: Optional[str] = field(default=None, metadata={'description': 'The custom BgpPeeringAddress which belongs to IpconfigurationId.'})  # fmt: skip
     ip_configuration_id: Optional[str] = field(default=None, metadata={'description': 'The IpconfigurationId of ipconfiguration which belongs to gateway.'})  # fmt: skip
@@ -5149,12 +5173,12 @@ class AzureVpnSiteLinkConnection(AzureSubResource):
         "connection_bandwidth": S("properties", "connectionBandwidth"),
         "connection_status": S("properties", "connectionStatus"),
         "egress_bytes_transferred": S("properties", "egressBytesTransferred"),
-        "egress_nat_rules": S("properties") >> S("egressNatRules", default=[]) >> ForallBend(S("id")),
+        "egress_nat_rules": S("properties") >> S("egressNatRules", default=[]) >> ForallBend(S("id") >> Lower),
         "enable_bgp": S("properties", "enableBgp"),
         "enable_rate_limiting": S("properties", "enableRateLimiting"),
         "etag": S("etag"),
         "ingress_bytes_transferred": S("properties", "ingressBytesTransferred"),
-        "ingress_nat_rules": S("properties") >> S("ingressNatRules", default=[]) >> ForallBend(S("id")),
+        "ingress_nat_rules": S("properties") >> S("ingressNatRules", default=[]) >> ForallBend(S("id") >> Lower),
         "ipsec_policies": S("properties", "ipsecPolicies") >> ForallBend(AzureIpsecPolicy.mapping),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -5167,7 +5191,7 @@ class AzureVpnSiteLinkConnection(AzureSubResource):
         "vpn_gateway_custom_bgp_addresses": S("properties", "vpnGatewayCustomBgpAddresses")
         >> ForallBend(AzureGatewayCustomBgpIpAddressIpConfiguration.mapping),
         "vpn_link_connection_mode": S("properties", "vpnLinkConnectionMode"),
-        "vpn_site_link": S("properties", "vpnSiteLink", "id"),
+        "vpn_site_link": S("properties", "vpnSiteLink", "id") >> Lower,
     }
     connection_bandwidth: Optional[int] = field(default=None, metadata={"description": "Expected bandwidth in MBPS."})
     connection_status: Optional[str] = field(default=None, metadata={'description': 'The current state of the vpn connection.'})  # fmt: skip
@@ -5197,7 +5221,7 @@ class AzureVirtualWANVpnConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_virtual_wan_vpn_connection"
     # Collect via AzureVirtualWANVpnGateway
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "connection_bandwidth": S("properties", "connectionBandwidth"),
         "connection_status": S("properties", "connectionStatus"),
         "dpd_timeout_seconds": S("properties", "dpdTimeoutSeconds"),
@@ -5211,7 +5235,7 @@ class AzureVirtualWANVpnConnection(MicrosoftResource, BaseTunnel):
         "tags": S("tags", default={}),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "remote_vpn_site": S("properties", "remoteVpnSite", "id"),
+        "remote_vpn_site": S("properties", "remoteVpnSite", "id") >> Lower,
         "routing_configuration": S("properties", "routingConfiguration") >> Bend(AzureRoutingConfiguration.mapping),
         "routing_weight": S("properties", "routingWeight"),
         "shared_key": S("properties", "sharedKey"),
@@ -5249,7 +5273,7 @@ class AzureIPConfigurationBgpPeeringAddress:
     mapping: ClassVar[Dict[str, Bender]] = {
         "custom_bgp_ip_addresses": S("customBgpIpAddresses"),
         "default_bgp_ip_addresses": S("defaultBgpIpAddresses"),
-        "ipconfiguration_id": S("ipconfigurationId"),
+        "ipconfiguration_id": S("ipconfigurationId") >> Lower,
         "tunnel_ip_addresses": S("tunnelIpAddresses"),
     }
     custom_bgp_ip_addresses: Optional[List[str]] = field(default=None, metadata={'description': 'The list of custom BGP peering addresses which belong to IP configuration.'})  # fmt: skip
@@ -5277,7 +5301,7 @@ class AzureBgpSettings:
 class AzureVpnGatewayIpConfiguration:
     kind: ClassVar[str] = "azure_vpn_gateway_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "private_ip_address": S("privateIpAddress"),
         "public_ip_address": S("publicIpAddress"),
     }
@@ -5300,14 +5324,14 @@ class AzureVpnGatewayNatRule(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "egress_vpn_site_link_connections": S("properties")
         >> S("egressVpnSiteLinkConnections", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "etag": S("etag"),
         "external_mappings": S("properties", "externalMappings") >> ForallBend(AzureVpnNatRuleMapping.mapping),
         "ingress_vpn_site_link_connections": S("properties")
         >> S("ingressVpnSiteLinkConnections", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "internal_mappings": S("properties", "internalMappings") >> ForallBend(AzureVpnNatRuleMapping.mapping),
-        "ip_configuration_id": S("properties", "ipConfigurationId"),
+        "ip_configuration_id": S("properties", "ipConfigurationId") >> Lower,
         "mode": S("properties", "mode"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -5341,11 +5365,11 @@ class AzureVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
         "successors": {"default": ["azure_virtual_wan_vpn_connection"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
-        "_connections_ids": S("properties", "connections") >> ForallBend(S("id")),
+        "_connections_ids": S("properties", "connections") >> ForallBend(S("id") >> Lower),
         "enable_bgp_route_translation_for_nat": S("properties", "enableBgpRouteTranslationForNat"),
         "etag": S("etag"),
         "gateway_ip_configurations": S("properties", "ipConfigurations")
@@ -5353,7 +5377,7 @@ class AzureVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
         "is_routing_preference_internet": S("properties", "isRoutingPreferenceInternet"),
         "wan_gateway_nat_rules": S("properties", "natRules") >> ForallBend(AzureVpnGatewayNatRule.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "virtual_hub": S("properties", "virtualHub", "id"),
+        "virtual_hub": S("properties", "virtualHub", "id") >> Lower,
         "vpn_gateway_scale_unit": S("properties", "vpnGatewayScaleUnit"),
     }
     bgp_settings: Optional[AzureBgpSettings] = field(default=None, metadata={"description": "BGP settings details."})
@@ -5461,7 +5485,7 @@ class AzureVpnServerConfiguration(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "aad_authentication_parameters": S("properties", "aadAuthenticationParameters")
@@ -5469,7 +5493,7 @@ class AzureVpnServerConfiguration(MicrosoftResource):
         "configuration_policy_groups": S("properties", "configurationPolicyGroups")
         >> ForallBend(AzureVpnServerConfigurationPolicyGroup.mapping),
         "etag": S("etag"),
-        "_p2s_vpn_gateway_ids": S("properties", "p2SVpnGateways", default=[]) >> ForallBend(S("id")),
+        "_p2s_vpn_gateway_ids": S("properties", "p2SVpnGateways", default=[]) >> ForallBend(S("id") >> Lower),
         "provisioning_state": S("properties", "provisioningState"),
         "radius_client_root_certificates": S("properties", "radiusClientRootCertificates")
         >> ForallBend(AzureVpnServerConfigRadiusClientRootCertificate.mapping),
@@ -5590,7 +5614,7 @@ class AzureVpnSite(MicrosoftResource, BasePeeringConnection):
         "predecessors": {"default": ["azure_virtual_wan"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "address_space": S("properties", "addressSpace") >> Bend(AzureAddressSpace.mapping),
@@ -5602,7 +5626,7 @@ class AzureVpnSite(MicrosoftResource, BasePeeringConnection):
         "o365_policy": S("properties", "o365Policy") >> Bend(AzureO365PolicyProperties.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "site_key": S("properties", "siteKey"),
-        "virtual_wan": S("properties", "virtualWan", "id"),
+        "virtual_wan": S("properties", "virtualWan", "id") >> Lower,
         "vpn_site_links": S("properties", "vpnSiteLinks") >> ForallBend(AzureVpnSiteLink.mapping),
     }
     address_space: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
@@ -5741,7 +5765,7 @@ class AzureExclusionManagedRuleGroup:
     kind: ClassVar[str] = "azure_exclusion_managed_rule_group"
     mapping: ClassVar[Dict[str, Bender]] = {
         "rule_group_name": S("ruleGroupName"),
-        "rules": S("rules", default=[]) >> ForallBend(S("ruleId")),
+        "rules": S("rules", default=[]) >> ForallBend(S("ruleId") >> Lower),
     }
     rule_group_name: Optional[str] = field(default=None, metadata={'description': 'The managed rule group for exclusion.'})  # fmt: skip
     rules: Optional[List[str]] = field(default=None, metadata={'description': 'List of rules that will be excluded. If none specified, all rules in the group will be excluded.'})  # fmt: skip
@@ -5779,7 +5803,7 @@ class AzureOwaspCrsExclusionEntry:
 @define(eq=False, slots=False)
 class AzureManagedRuleOverride:
     kind: ClassVar[str] = "azure_managed_rule_override"
-    mapping: ClassVar[Dict[str, Bender]] = {"action": S("action"), "rule_id": S("ruleId"), "state": S("state")}
+    mapping: ClassVar[Dict[str, Bender]] = {"action": S("action"), "rule_id": S("ruleId") >> Lower, "state": S("state")}
     action: Optional[str] = field(default=None, metadata={"description": "Defines the action to take on rule match."})
     rule_id: Optional[str] = field(default=None, metadata={"description": "Identifier for the managed rule."})
     state: Optional[str] = field(default=None, metadata={'description': 'The state of the managed rule. Defaults to Disabled if not specified.'})  # fmt: skip
@@ -5833,15 +5857,15 @@ class AzureWebApplicationFirewallPolicy(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
-        "_application_gateway_ids": S("properties", "applicationGateways", default=[]) >> ForallBend(S("id")),
+        "_application_gateway_ids": S("properties", "applicationGateways", default=[]) >> ForallBend(S("id") >> Lower),
         "custom_rules": S("properties", "customRules") >> ForallBend(AzureWebApplicationFirewallCustomRule.mapping),
         "etag": S("etag"),
-        "gateway_http_listeners": S("properties") >> S("httpListeners", default=[]) >> ForallBend(S("id")),
+        "gateway_http_listeners": S("properties") >> S("httpListeners", default=[]) >> ForallBend(S("id") >> Lower),
         "managed_rules": S("properties", "managedRules") >> Bend(AzureManagedRulesDefinition.mapping),
-        "path_based_rules": S("properties") >> S("pathBasedRules", default=[]) >> ForallBend(S("id")),
+        "path_based_rules": S("properties") >> S("pathBasedRules", default=[]) >> ForallBend(S("id") >> Lower),
         "policy_settings": S("properties", "policySettings") >> Bend(AzurePolicySettings.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_state": S("properties", "resourceState"),
@@ -5881,8 +5905,8 @@ class AzureVirtualNetworkGatewayIPConfiguration(AzureSubResource):
         "private_ip_address": S("properties", "privateIPAddress"),
         "private_ip_allocation_method": S("properties", "privateIPAllocationMethod"),
         "provisioning_state": S("properties", "provisioningState"),
-        "public_ip_address": S("properties", "publicIPAddress", "id"),
-        "subnet": S("properties", "subnet", "id"),
+        "public_ip_address": S("properties", "publicIPAddress", "id") >> Lower,
+        "subnet": S("properties", "subnet", "id") >> Lower,
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
@@ -5943,7 +5967,7 @@ class AzureVngClientConnectionConfiguration(AzureSubResource):
         "provisioning_state": S("properties", "provisioningState"),
         "virtual_network_gateway_policy_groups": S("properties")
         >> S("virtualNetworkGatewayPolicyGroups", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "vpn_client_address_pool": S("properties", "vpnClientAddressPool") >> Bend(AzureAddressSpace.mapping),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
@@ -6015,7 +6039,7 @@ class AzureVirtualNetworkGatewayPolicyGroup(AzureSubResource):
         "provisioning_state": S("properties", "provisioningState"),
         "vng_client_connection_configurations": S("properties")
         >> S("vngClientConnectionConfigurations", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
     }
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     is_default: Optional[bool] = field(default=None, metadata={'description': 'Shows if this is a Default VirtualNetworkGatewayPolicyGroup or not.'})  # fmt: skip
@@ -6044,7 +6068,7 @@ class AzureVirtualNetworkGatewayNatRule(AzureSubResource):
         "etag": S("etag"),
         "external_mappings": S("properties", "externalMappings") >> ForallBend(AzureVpnNatRuleMapping.mapping),
         "internal_mappings": S("properties", "internalMappings") >> ForallBend(AzureVpnNatRuleMapping.mapping),
-        "ip_configuration_id": S("properties", "ipConfigurationId"),
+        "ip_configuration_id": S("properties", "ipConfigurationId") >> Lower,
         "mode": S("properties", "mode"),
         "provisioning_state": S("properties", "provisioningState"),
     }
@@ -6074,9 +6098,9 @@ class AzureVirtualNetworkGateway(MicrosoftResource, BaseGateway):
         "enable_private_ip_address": S("properties", "enablePrivateIpAddress"),
         "etag": S("etag"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
-        "gateway_default_site": S("properties", "gatewayDefaultSite", "id"),
+        "gateway_default_site": S("properties", "gatewayDefaultSite", "id") >> Lower,
         "gateway_type": S("properties", "gatewayType"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "inbound_dns_forwarding_endpoint": S("properties", "inboundDnsForwardingEndpoint"),
         "ip_configurations": S("properties", "ipConfigurations")
@@ -6085,11 +6109,11 @@ class AzureVirtualNetworkGateway(MicrosoftResource, BaseGateway):
         "name": S("name"),
         "gateway_nat_rules": S("properties", "natRules") >> ForallBend(AzureVirtualNetworkGatewayNatRule.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "network_gateway_sku": S("properties", "sku") >> Bend(AzureVirtualNetworkGatewaySku.mapping),
         "tags": S("tags", default={}),
         "type": S("type"),
-        "v_net_extended_location_resource_id": S("properties", "vNetExtendedLocationResourceId"),
+        "v_net_extended_location_resource_id": S("properties", "vNetExtendedLocationResourceId") >> Lower,
         "virtual_network_gateway_policy_groups": S("properties", "virtualNetworkGatewayPolicyGroups")
         >> ForallBend(AzureVirtualNetworkGatewayPolicyGroup.mapping),
         "vpn_client_configuration": S("properties", "vpnClientConfiguration")
@@ -6136,12 +6160,12 @@ class AzureLocalNetworkGateway(MicrosoftResource, BaseGateway):
         "etag": S("etag"),
         "fqdn": S("properties", "fqdn"),
         "gateway_ip_address": S("properties", "gatewayIpAddress"),
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "local_network_address_space": S("properties", "localNetworkAddressSpace") >> Bend(AzureAddressSpace.mapping),
         "location": S("location"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "tags": S("tags", default={}),
         "type": S("type"),
     }
@@ -6179,7 +6203,7 @@ class AzureVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel):
         "predecessors": {"default": ["azure_virtual_network_gateway", "azure_local_network_gateway"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "authorization_key": S("properties", "authorizationKey"),
@@ -6189,7 +6213,7 @@ class AzureVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel):
         "connection_type": S("properties", "connectionType"),
         "dpd_timeout_seconds": S("properties", "dpdTimeoutSeconds"),
         "egress_bytes_transferred": S("properties", "egressBytesTransferred"),
-        "egress_nat_rules": S("properties") >> S("egressNatRules", default=[]) >> ForallBend(S("id")),
+        "egress_nat_rules": S("properties") >> S("egressNatRules", default=[]) >> ForallBend(S("id") >> Lower),
         "enable_bgp": S("properties", "enableBgp"),
         "enable_private_link_fast_path": S("properties", "enablePrivateLinkFastPath"),
         "etag": S("etag"),
@@ -6197,12 +6221,12 @@ class AzureVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel):
         "gateway_custom_bgp_ip_addresses": S("properties", "gatewayCustomBgpIpAddresses")
         >> ForallBend(AzureGatewayCustomBgpIpAddressIpConfiguration.mapping),
         "ingress_bytes_transferred": S("properties", "ingressBytesTransferred"),
-        "ingress_nat_rules": S("properties") >> S("ingressNatRules", default=[]) >> ForallBend(S("id")),
+        "ingress_nat_rules": S("properties") >> S("ingressNatRules", default=[]) >> ForallBend(S("id") >> Lower),
         "ipsec_policies": S("properties", "ipsecPolicies") >> ForallBend(AzureIpsecPolicy.mapping),
-        "local_network_gateway2": S("properties", "localNetworkGateway2", "id"),
-        "peer": S("properties", "peer", "id"),
+        "local_network_gateway2": S("properties", "localNetworkGateway2", "id") >> Lower,
+        "peer": S("properties", "peer", "id") >> Lower,
         "provisioning_state": S("properties", "provisioningState"),
-        "resource_guid": S("properties", "resourceGuid"),
+        "resource_guid": S("properties", "resourceGuid") >> Lower,
         "routing_weight": S("properties", "routingWeight"),
         "shared_key": S("properties", "sharedKey"),
         "traffic_selector_policies": S("properties", "trafficSelectorPolicies")
@@ -6211,8 +6235,8 @@ class AzureVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel):
         >> ForallBend(AzureTunnelConnectionHealth.mapping),
         "use_local_azure_ip_address": S("properties", "useLocalAzureIpAddress"),
         "use_policy_based_traffic_selectors": S("properties", "usePolicyBasedTrafficSelectors"),
-        "virtual_network_gateway1_id": S("properties", "virtualNetworkGateway1", "id"),
-        "virtual_network_gateway2_id": S("properties", "virtualNetworkGateway2", "id"),
+        "virtual_network_gateway1_id": S("properties", "virtualNetworkGateway1", "id") >> Lower,
+        "virtual_network_gateway2_id": S("properties", "virtualNetworkGateway2", "id") >> Lower,
     }
     authorization_key: Optional[str] = field(default=None, metadata={"description": "The authorizationKey."})
     connection_mode: Optional[str] = field(default=None, metadata={"description": "Gateway connection type."})
@@ -6335,7 +6359,7 @@ class AzureDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
         "predecessors": {"default": ["azure_dns_zone"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "a_records": S("properties") >> S("ARecords", default=[]) >> ForallBend(S("ipv4Address")),
@@ -6351,7 +6375,7 @@ class AzureDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
         "ptr_records": S("properties") >> S("PTRRecords", default=[]) >> ForallBend(S("ptrdname")),
         "soa_record": S("properties", "SOARecord") >> Bend(AzureSoaRecord.mapping),
         "srv_records": S("properties", "SRVRecords") >> ForallBend(AzureSrvRecord.mapping),
-        "target_resource": S("properties", "targetResource", "id"),
+        "target_resource": S("properties", "targetResource", "id") >> Lower,
         "ttl": S("properties", "TTL"),
         "txt_records": S("properties", "TXTRecords") >> ForallBend(AzureTxtRecord.mapping),
     }
@@ -6384,7 +6408,7 @@ class AzureDNSZone(MicrosoftResource, BaseDNSZone):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("id") >> Lower,
         "tags": S("tags", default={}),
         "name": S("name"),
         "etag": S("etag"),
@@ -6394,10 +6418,10 @@ class AzureDNSZone(MicrosoftResource, BaseDNSZone):
         "number_of_record_sets": S("properties", "numberOfRecordSets"),
         "registration_virtual_networks": S("properties")
         >> S("registrationVirtualNetworks", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "resolution_virtual_networks": S("properties")
         >> S("resolutionVirtualNetworks", default=[])
-        >> ForallBend(S("id")),
+        >> ForallBend(S("id") >> Lower),
         "zone_type": S("properties", "zoneType"),
     }
     max_number_of_record_sets: Optional[int] = field(default=None, metadata={'description': 'The maximum number of record sets that can be created in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
