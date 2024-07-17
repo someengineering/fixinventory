@@ -185,9 +185,9 @@ def connect_resources(
     # collect all defined resource kinds before we can connect them
     for resource_kind in collect_resources or []:
         resource_kind.collect_resources(builder)
+    builder.executor.wait_for_submitted_work()
     # connect all resources
     for node, data in list(builder.graph.nodes(data=True)):
         if not filter_class or isinstance(node, filter_class):
             node.connect_in_graph(builder, data.get("source", {}))
-
     builder.executor.wait_for_submitted_work()

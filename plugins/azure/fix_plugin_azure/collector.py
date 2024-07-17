@@ -167,7 +167,8 @@ class MicrosoftBaseCollector:
         group_futures = []
         self.core_feedback.progress_done(name, 0, 1, context=[self.cloud.id, self.account.id])
         for resource_type in resources:
-            group_futures.append(builder.submit_work("azure_all", collect_resource, resource_type))
+            if self.config.should_collect(resource_type.kind):
+                group_futures.append(builder.submit_work("azure_all", collect_resource, resource_type))
         all_done = GatherFutures.all(group_futures)
         all_done.add_done_callback(work_done)
         return all_done
