@@ -121,11 +121,15 @@ class AzureClassModel:
         return sorted(self.props.values(), key=lambda p: p.name)
 
     def to_class(self) -> str:
-        bases = (["AzureResource"] if self.aggregate_root else []) + [f"Azure{b}" for b in self.base_classes]
+        bases = (["MicrosoftResource"] if self.aggregate_root else []) + [f"Azure{b}" for b in self.base_classes]
         base = ("(" + ", ".join(bases) + ")") if bases else ""
         kind = f'    kind: ClassVar[str] = "azure_{to_snake(self.name)}"'
 
-        api = f"    api_spec: ClassVar[AzureApiSpec] = AzureApiSpec{str(self.api_info)[12:]}\n" if self.api_info else ""
+        api = (
+            f"    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec{str(self.api_info)[12:]}\n"
+            if self.api_info
+            else ""
+        )
 
         # add mappings for base properties
         base_mappings: Dict[str, str] = {}
@@ -154,7 +158,7 @@ class AzureClassModel:
             base_mappings["tags"] = "S('tags', default={})"
 
         # take class hierarchy into account and assemble the mappings
-        bmp = " | ".join(f"Azure{base}.mapping" for base in self.base_classes if base != "AzureResource")
+        bmp = " | ".join(f"Azure{base}.mapping" for base in self.base_classes if base != "MicrosoftResource")
         bmp = f"{bmp} | " if bmp else ""
         mapping = f"    mapping: ClassVar[Dict[str, Bender]] = {bmp} {{\n"
         if self.aggregate_root:

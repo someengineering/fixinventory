@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from concurrent.futures import Future
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast, Union
 
 from attr import define, field
 from azure.identity import DefaultAzureCredential
@@ -22,7 +22,7 @@ from fixlib.baseresources import (
 )
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
-from fixlib.graph import Graph, EdgeKey
+from fixlib.graph import Graph, EdgeKey, NodeSelector, ByNodeId
 from fixlib.json_bender import Bender, bend, S, ForallBend, Bend
 from fixlib.lock import RWLock
 from fixlib.threading import ExecutorQueue
@@ -765,6 +765,16 @@ class GraphBuilder:
                     start, end = end, start
                 log.debug(f"{self.name}: add edge: {end} -> {start} [delete]")
                 self.graph.add_edge(end, start, edge_type=EdgeType.delete)
+
+    def add_deferred_edge(
+        self,
+        from_node: Union[BaseResource, NodeSelector],
+        to_node: Union[BaseResource, NodeSelector],
+        edge_type: EdgeType = EdgeType.default,
+    ) -> None:
+        start: NodeSelector = ByNodeId(from_node.chksum) if isinstance(from_node, BaseResource) else from_node
+        end: NodeSelector = ByNodeId(to_node.chksum) if isinstance(to_node, BaseResource) else to_node
+        self.graph.add_deferred_edge(start, end, edge_type)
 
     def resources_of(self, resource_type: Type[MicrosoftResourceType]) -> List[MicrosoftResourceType]:
         with self.graph_access_lock.read_access:

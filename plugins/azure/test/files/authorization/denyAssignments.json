@@ -1,0 +1,31 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/denyAssignments/45678901-2345-6789-2345-678901234567",
+            "type": "Microsoft.Authorization/denyAssignments",
+            "name": "45678901-2345-6789-2345-678901234567",
+            "properties": {
+                "denyAssignmentName": "DenyDeleteContributor",
+                "description": "Prevents contributors from deleting any resources in the subscription.",
+                "scope": "/subscriptions/00000000-0000-0000-0000-000000000001",
+                "doNotApplyToChildScopes": false,
+                "principals": [
+                    {
+                        "id": "dcba4321-dcba-4321-dcba-4321dcba4321",
+                        "type": "ServicePrincipal"
+                    }
+                ],
+                "excludePrincipals": [],
+                "permissions": [
+                    {
+                        "actions": [],
+                        "notActions": [
+                            "*/delete"
+                        ]
+                    }
+                ],
+                "isSystemProtected": false
+            }
+        }
+    ]
+}

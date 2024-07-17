@@ -1,0 +1,50 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleDefinitions/reader",
+            "type": "Microsoft.Authorization/roleDefinitions",
+            "name": "reader",
+            "properties": {
+                "roleName": "Reader",
+                "description": "Can view all resources, but does not allow for any form of modification or deletion.",
+                "type": "BuiltInRole",
+                "permissions": [
+                    {
+                        "actions": [
+                            "*/read"
+                        ],
+                        "notActions": []
+                    }
+                ],
+                "assignableScopes": [
+                    "/subscriptions/00000000-0000-0000-0000-000000000001"
+                ]
+            }
+        },
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleDefinitions/contributor",
+            "type": "Microsoft.Authorization/roleDefinitions",
+            "name": "contributor",
+            "properties": {
+                "roleName": "Contributor",
+                "description": "Can manage all resources (except access to them), including deleting and modifying them.",
+                "type": "BuiltInRole",
+                "permissions": [
+                    {
+                        "actions": [
+                            "*"
+                        ],
+                        "notActions": [
+                            "Microsoft.Authorization/*/Delete",
+                            "Microsoft.Authorization/*/Write",
+                            "Microsoft.Authorization/*/Action"
+                        ]
+                    }
+                ],
+                "assignableScopes": [
+                    "/subscriptions/00000000-0000-0000-0000-000000000001"
+                ]
+            }
+        }
+    ]
+}

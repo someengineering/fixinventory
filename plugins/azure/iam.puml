@@ -57,7 +57,7 @@ package Azure {
     package Subscription {
         class RoleAssignment
         class ResourcePolicy
-        class Role {
+        class RoleDefinition {
             + permissions: string[]
         }
         class ResourceGroup
@@ -65,9 +65,9 @@ package Azure {
 
         <> Scope
         RoleAssignment -----> Principal
-        RoleAssignment ---> Scope
+        RoleAssignment <--- Scope
         ResourcePolicy ---> Scope
-        Role <-- RoleAssignment
+        RoleDefinition <-- RoleAssignment
         Subscription <.. Scope
         ResourceGroup <.. Scope
         Resource <.. Scope

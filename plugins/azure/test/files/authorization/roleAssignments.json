@@ -1,0 +1,37 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleAssignments/12345678-1234-1234-1234-123456789abc",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "name": "12345678-1234-1234-1234-123456789abc",
+            "properties": {
+                "roleDefinitionId": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleDefinitions/reader",
+                "principalId": "abcd1234-abcd-1234-abcd-1234abcd1234",
+                "principalType": "User",
+                "scope": "/subscriptions/00000000-0000-0000-0000-000000000001"
+            }
+        },
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleAssignments/23456789-2345-2345-2345-234567890bcd",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "name": "23456789-2345-2345-2345-234567890bcd",
+            "properties": {
+                "roleDefinitionId": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleDefinitions/contributor",
+                "principalId": "dcba4321-dcba-4321-dcba-4321dcba4321",
+                "principalType": "ServicePrincipal",
+                "scope": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/MyResourceGroup"
+            }
+        },
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleAssignments/34567890-3456-3456-3456-345678901cde",
+            "type": "Microsoft.Authorization/roleAssignments",
+            "name": "34567890-3456-3456-3456-345678901cde",
+            "properties": {
+                "roleDefinitionId": "/subscriptions/00000000-0000-0000-0000-000000000001/providers/Microsoft.Authorization/roleDefinitions/owner",
+                "principalId": "efgh5678-efgh-5678-efgh-5678efgh5678",
+                "principalType": "Group",
+                "scope": "/subscriptions/00000000-0000-0000-0000-000000000001"
+            }
+        }
+    ]
+}

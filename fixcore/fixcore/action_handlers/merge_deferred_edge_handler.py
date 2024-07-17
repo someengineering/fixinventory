@@ -69,7 +69,7 @@ class MergeDeferredEdgesHandler(Service):
                         return node.get("id") if node else None
                     else:
                         query = parse_query(selector.query).with_limit(2)
-                        async with await graph_db.search_list(QueryModel(query, model)) as cursor:
+                        async with await graph_db.search_list(QueryModel(query, model), consistent=True) as cursor:
                             results = [node async for node in cursor]
                             if len(results) > 1:
                                 log.warning(

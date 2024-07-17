@@ -266,7 +266,7 @@ class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
         "is_privileged": S("isPrivileged"),
         "resource_scopes": S("resourceScopes"),
         "rich_description": S("richDescription"),
-        "role_permissions": S("rolePermissions") >> ForallBend(MicrosoftGraphUnifiedRolePermission.mapping),
+        "graph_role_permissions": S("rolePermissions") >> ForallBend(MicrosoftGraphUnifiedRolePermission.mapping),
         "template_id": S("templateId"),
         "version": S("version"),
     }
@@ -280,7 +280,7 @@ class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
     is_privileged: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating if the role is privileged. Microsoft Entra ID defines a role as privileged if it contains at least one sensitive resource action in the rolePermissions and allowedResourceActions objects. Applies only for actions in the microsoft.directory resource namespace. Read-only. Supports $filter (eq).'})  # fmt: skip
     resource_scopes: Optional[List[str]] = field(default=None, metadata={'description': 'List of scopes permissions granted by the role definition apply to. Currently only / is supported. Read-only when isBuiltIn is true. DO NOT USE. This will be deprecated soon. Attach scope to role assignment.'})  # fmt: skip
     rich_description: Optional[str] = field(default=None, metadata={'description': 'The description for the unifiedRoleDefinition. Read-only when isBuiltIn is true.'})  # fmt: skip
-    role_permissions: Optional[List[MicrosoftGraphUnifiedRolePermission]] = field(default=None, metadata={'description': 'List of permissions included in the role. Read-only when isBuiltIn is true. Required.'})  # fmt: skip
+    graph_role_permissions: Optional[List[MicrosoftGraphUnifiedRolePermission]] = field(default=None, metadata={'description': 'List of permissions included in the role. Read-only when isBuiltIn is true. Required.'})  # fmt: skip
     template_id: Optional[str] = field(default=None, metadata={'description': 'Custom template identifier that can be set when isBuiltIn is false. This identifier is typically used if one needs an identifier to be the same across different directories. Read-only when isBuiltIn is true.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={'description': 'Indicates the version of the unifiedRoleDefinition object. Read-only when isBuiltIn is true.'})  # fmt: skip
 
@@ -1108,6 +1108,12 @@ KindLookup = {
     "#microsoft.graph.group": MicrosoftGraphGroup,
     "#microsoft.graph.role": MicrosoftGraphRole,
 }
+MicrosoftGraphPrincipalTypes: List[Type[MicrosoftGraphEntity]] = [
+    MicrosoftGraphUser,
+    MicrosoftGraphDevice,
+    MicrosoftGraphServicePrincipal,
+    MicrosoftGraphGroup,
+]
 
 
 resources: List[Type[MicrosoftResource]] = [
