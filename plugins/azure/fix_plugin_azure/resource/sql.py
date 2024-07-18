@@ -185,6 +185,7 @@ class AzureSqlDatabase(MicrosoftResource):
                     query_parameters=["api-version"],
                     access_path="value",
                     expect_array=True,
+                    expected_error_codes=["FeatureDisabledOnSelectedEdition"],
                 )
                 items = graph_builder.client.list(api_spec)
 
