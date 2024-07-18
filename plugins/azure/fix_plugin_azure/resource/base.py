@@ -62,8 +62,13 @@ class MicrosoftResource(BaseResource):
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
+    @property
     def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptionId")
+
+    @property
+    def resource_group_name(self) -> Optional[str]:
+        return self.extract_part("resourceGroupName")
 
     def extract_part(self, part: str) -> Optional[str]:
         """
@@ -91,6 +96,12 @@ class MicrosoftResource(BaseResource):
             if index := id_parts.index("subscriptions"):
                 return id_parts[index + 1]
             return None
+        elif part == "resourceGroupName":
+            if "resourceGroups" not in id_parts:
+                return None
+            if index := id_parts.index("resourceGroups"):
+                return id_parts[index + 1]
+            return None
         else:
             return None
 
@@ -101,7 +112,7 @@ class MicrosoftResource(BaseResource):
         Returns:
         bool: True if the resource was successfully deleted; False otherwise.
         """
-        subscription_id = self.resource_subscription_id()
+        subscription_id = self.resource_subscription_id
         if subscription_id is None:
             log.warning("Failed to delete resource. Subscription ID is not available.")
             return False
@@ -113,7 +124,7 @@ class MicrosoftResource(BaseResource):
         This method removes a specific value from a tag associated with a subscription, while keeping the tag itself intact.
         The tag remains on the account, but the specified value will be deleted.
         """
-        subscription_id = self.resource_subscription_id()
+        subscription_id = self.resource_subscription_id
         if subscription_id is None:
             log.warning("Failed to delete tag. Subscription ID is not available.")
             return False
@@ -125,7 +136,7 @@ class MicrosoftResource(BaseResource):
         This method allows for the creation or update of a tag value associated with the specified tag name.
         The tag name must already exist for the operation to be successful.
         """
-        subscription_id = self.resource_subscription_id()
+        subscription_id = self.resource_subscription_id
         if subscription_id is None:
             log.warning("Failed to update tag. Subscription ID is not available.")
             return False

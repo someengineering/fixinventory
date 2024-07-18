@@ -78,7 +78,6 @@ class AzureSqlDatabase(MicrosoftResource):
             "default": [
                 "azure_sql_workload_group",
                 "azure_sql_geo_backup_policy",
-                "azure_sql_failover_group",
                 "azure_sql_advisor",
             ]
         },
@@ -250,8 +249,6 @@ class AzureSqlDatabase(MicrosoftResource):
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlElasticPool, id=elastic_pool_id
             )
-        if failover_group_id := self.failover_group_id:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSqlFailoverGroup, id=failover_group_id)
 
 
 @define(eq=False, slots=False)
@@ -450,15 +447,10 @@ class AzureManagedInstancePairInfo:
 @define(eq=False, slots=False)
 class AzureSqlInstanceFailoverGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_instance_failover_group"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/locations/{locationName}/instanceFailoverGroups",
-        path_parameters=["resourceGroupName", "locationName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlManagedInstance()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_sql_managed_instance"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -480,6 +472,27 @@ class AzureSqlInstanceFailoverGroup(MicrosoftResource):
     replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
     replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if managed_instance_pairs := self.managed_instance_pairs:
+            for managed_instance_pair in managed_instance_pairs:
+                if (primary_managed_instance_id := managed_instance_pair.primary_managed_instance_id) and (
+                    secondary_managed_instance_id := managed_instance_pair.partner_managed_instance_id
+                ):
+                    builder.add_edge(
+                        self,
+                        reverse=True,
+                        edge_type=EdgeType.default,
+                        id=primary_managed_instance_id,
+                        clazz=AzureSqlManagedInstance,
+                    )
+                    builder.add_edge(
+                        self,
+                        reverse=True,
+                        edge_type=EdgeType.default,
+                        id=secondary_managed_instance_id,
+                        clazz=AzureSqlManagedInstance,
+                    )
 
 
 @define(eq=False, slots=False)
@@ -681,7 +694,7 @@ class AzureSqlManagedInstance(MicrosoftResource):
                 "azure_sql_private_endpoint_connection",
             ]
         },
-        "predecessors": {"default": ["azure_sql_instance_pool"]},
+        "predecessors": {"default": ["azure_sql_instance_pool", "azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -757,14 +770,62 @@ class AzureSqlManagedInstance(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        managed_instance_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+    ) -> None:
+        path = f"{managed_instance_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="sql",
+            version="2021-11-01",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                id=clazz.id,
+                clazz=class_instance,
+            )
+
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if database_id := self.id:
+            resources_to_collect = [
+                ("databases", AzureSqlManagedDatabase),
+                ("serverTrustGroups", AzureSqlServerTrustGroup),
+            ]
 
-            def collect_managed_instance_databases() -> None:
+            for resource_type, resource_class in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    database_id,
+                    resource_type,
+                    resource_class,
+                )
+
+            def collect_instance_failover_group() -> None:
+                rg = self.resource_group_name
+                subscription_id = self.resource_subscription_id
+                location = self.location
+                if not rg or not subscription_id or not location:
+                    return
                 api_spec = AzureResourceSpec(
                     service="sql",
                     version="2021-11-01",
-                    path=f"{database_id}/databases",
+                    path=f"/subscriptions/{subscription_id}/resourceGroups/{rg}/providers/Microsoft.Sql/locations/{location}/instanceFailoverGroups",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -772,34 +833,9 @@ class AzureSqlManagedInstance(MicrosoftResource):
                 )
                 items = graph_builder.client.list(api_spec)
 
-                managed_instance_databases = AzureSqlManagedDatabase.collect(items, graph_builder)
+                AzureSqlInstanceFailoverGroup.collect(items, graph_builder)
 
-                for database in managed_instance_databases:
-                    graph_builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureSqlManagedDatabase, id=database.id
-                    )
-
-            def collect_trust_groups() -> None:
-                api_spec = AzureResourceSpec(
-                    service="sql",
-                    version="2021-11-01",
-                    path=f"{database_id}/serverTrustGroups",
-                    path_parameters=[],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                )
-                items = graph_builder.client.list(api_spec)
-
-                trust_groups = AzureSqlServerTrustGroup.collect(items, graph_builder)
-
-                for trust_group in trust_groups:
-                    graph_builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureSqlServerTrustGroup, id=trust_group.id
-                    )
-
-            graph_builder.submit_work(service_name, collect_managed_instance_databases)
-            graph_builder.submit_work(service_name, collect_trust_groups)
+            graph_builder.submit_work(service_name, collect_instance_failover_group)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if private_endpoint_connections := self.instance_private_endpoint_connections:
@@ -815,6 +851,8 @@ class AzureSqlManagedInstance(MicrosoftResource):
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlInstancePool, id=instance_pool_id
             )
+        if subnet_id := self.subnet_id:
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -1241,7 +1279,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureSqlFailoverGroup,
     AzureSqlFirewallRule,
     AzureSqlGeoBackupPolicy,
-    # AzureSqlInstanceFailoverGroup, # TODO: Do collection via resource group and location
+    AzureSqlInstanceFailoverGroup,  # TODO: Do collection via resource group and location
     AzureSqlInstancePool,
     AzureSqlJobAgent,
     AzureSqlManagedDatabase,
