@@ -6,7 +6,6 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
-    MicrosoftResource,
     GraphBuilder,
     AzureSubResource,
     AzureSku,
