@@ -447,39 +447,39 @@ class AzureManagedInstancePairInfo:
     primary_managed_instance_id: Optional[str] = field(default=None, metadata={'description': 'Id of Primary Managed Instance in pair.'})  # fmt: skip
 
 
-# @define(eq=False, slots=False)
-# class AzureSqlInstanceFailoverGroup(MicrosoftResource):
-#     kind: ClassVar[str] = "azure_sql_instance_failover_group"
-#     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-#         service="sql",
-#         version="2021-11-01",
-#         path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/locations/{locationName}/instanceFailoverGroups",
-#         path_parameters=["resourceGroupName", "locationName", "subscriptionId"],
-#         query_parameters=["api-version"],
-#         access_path="value",
-#         expect_array=True,
-#     )
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "id": S("id"),
-#         "tags": S("tags", default={}),
-#         "name": S("name"),
-#         "type": S("type"),
-#         "managed_instance_pairs": S("properties", "managedInstancePairs")
-#         >> ForallBend(AzureManagedInstancePairInfo.mapping),
-#         "partner_regions": S("properties", "partnerRegions") >> ForallBend(AzurePartnerRegionInfo.mapping),
-#         "sql_instance_read_only_endpoint": S("properties", "readOnlyEndpoint", "failoverPolicy"),
-#         "sql_instance_read_write_endpoint": S("properties", "readWriteEndpoint")
-#         >> Bend(AzureInstanceFailoverGroupReadWriteEndpoint.mapping),
-#         "replication_role": S("properties", "replicationRole"),
-#         "replication_state": S("properties", "replicationState"),
-#     }
-#     managed_instance_pairs: Optional[List[AzureManagedInstancePairInfo]] = field(default=None, metadata={'description': 'List of managed instance pairs in the failover group.'})  # fmt: skip
-#     partner_regions: Optional[List[AzurePartnerRegionInfo]] = field(default=None, metadata={'description': 'Partner region information for the failover group.'})  # fmt: skip
-#     sql_instance_read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
-#     sql_instance_read_write_endpoint: Optional[AzureInstanceFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
-#     replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
-#     replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
-#     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+@define(eq=False, slots=False)
+class AzureSqlInstanceFailoverGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_instance_failover_group"
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
+        service="sql",
+        version="2021-11-01",
+        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/locations/{locationName}/instanceFailoverGroups",
+        path_parameters=["resourceGroupName", "locationName", "subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "type": S("type"),
+        "managed_instance_pairs": S("properties", "managedInstancePairs")
+        >> ForallBend(AzureManagedInstancePairInfo.mapping),
+        "partner_regions": S("properties", "partnerRegions") >> ForallBend(AzurePartnerRegionInfo.mapping),
+        "sql_instance_read_only_endpoint": S("properties", "readOnlyEndpoint", "failoverPolicy"),
+        "sql_instance_read_write_endpoint": S("properties", "readWriteEndpoint")
+        >> Bend(AzureInstanceFailoverGroupReadWriteEndpoint.mapping),
+        "replication_role": S("properties", "replicationRole"),
+        "replication_state": S("properties", "replicationState"),
+    }
+    managed_instance_pairs: Optional[List[AzureManagedInstancePairInfo]] = field(default=None, metadata={'description': 'List of managed instance pairs in the failover group.'})  # fmt: skip
+    partner_regions: Optional[List[AzurePartnerRegionInfo]] = field(default=None, metadata={'description': 'Partner region information for the failover group.'})  # fmt: skip
+    sql_instance_read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
+    sql_instance_read_write_endpoint: Optional[AzureInstanceFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
+    replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
+    replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
 
 @define(eq=False, slots=False)
@@ -1241,7 +1241,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureSqlFailoverGroup,
     AzureSqlFirewallRule,
     AzureSqlGeoBackupPolicy,
-    # AzureSqlInstanceFailoverGroup,
+    # AzureSqlInstanceFailoverGroup, # TODO: Do collection via resource group and location
     AzureSqlInstancePool,
     AzureSqlJobAgent,
     AzureSqlManagedDatabase,
