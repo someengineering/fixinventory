@@ -79,8 +79,8 @@ class AzureServerExternalAdministrator:
     sid: Optional[str] = field(default=None, metadata={'description': 'SID (object ID) of the server administrator.'})
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'Tenant ID of the administrator.'})
 @define(eq=False, slots=False)
-class AzureServer(MicrosoftResource):
-    kind: ClassVar[str] = "azure_server"
+class AzureSqlServer(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/providers/Microsoft.Sql/servers', path_parameters=['subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -90,7 +90,7 @@ class AzureServer(MicrosoftResource):
         "location": S("location"),
         "administrator_login": S("properties","administratorLogin"),
         "administrator_login_password": S("properties","administratorLoginPassword"),
-        "administrators": S("properties","administrators") >> Bend(AzureServerExternalAdministrator.mapping),
+        "server_administrators": S("properties","administrators") >> Bend(AzureServerExternalAdministrator.mapping),
         "federated_client_id": S("properties","federatedClientId"),
         "fully_qualified_domain_name": S("properties","fullyQualifiedDomainName"),
         "server_identity": S("identity") >> Bend(AzureResourceIdentity.mapping),
@@ -98,7 +98,7 @@ class AzureServer(MicrosoftResource):
         "server_kind": S("kind"),
         "minimal_tls_version": S("properties","minimalTlsVersion"),
         "primary_user_assigned_identity_id": S("properties","primaryUserAssignedIdentityId"),
-        "private_endpoint_connections": S("properties","privateEndpointConnections") >> ForallBend(AzureServerPrivateEndpointConnection.mapping),
+        "server_private_endpoint_connections": S("properties","privateEndpointConnections") >> ForallBend(AzureServerPrivateEndpointConnection.mapping),
         "public_network_access": S("properties","publicNetworkAccess"),
         "restrict_outbound_network_access": S("properties","restrictOutboundNetworkAccess"),
         "state": S("properties","state"),
@@ -107,7 +107,7 @@ class AzureServer(MicrosoftResource):
     }
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'Administrator username for the server. Once created it cannot be changed.'})  # fmt: skip
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The administrator login password (required for server creation).'})  # fmt: skip
-    administrators: Optional[AzureServerExternalAdministrator] = field(default=None, metadata={'description': 'Properties of a active directory administrator.'})  # fmt: skip
+    server_administrators: Optional[AzureServerExternalAdministrator] = field(default=None, metadata={'description': 'Properties of a active directory administrator.'})  # fmt: skip
     federated_client_id: Optional[str] = field(default=None, metadata={'description': 'The Client id used for cross tenant CMK scenario'})  # fmt: skip
     fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of the server.'})  # fmt: skip
     server_identity: Optional[AzureResourceIdentity] = field(default=None, metadata={'description': 'Azure Active Directory identity configuration for a resource.'})  # fmt: skip
@@ -115,7 +115,7 @@ class AzureServer(MicrosoftResource):
     server_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of sql server. This is metadata used for the Azure portal experience.'})  # fmt: skip
     minimal_tls_version: Optional[str] = field(default=None, metadata={'description': 'Minimal TLS version. Allowed values: 1.0 , 1.1 , 1.2 '})  # fmt: skip
     primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of a user assigned identity to be used by default.'})  # fmt: skip
-    private_endpoint_connections: Optional[List[AzureServerPrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections on a server'})  # fmt: skip
+    server_private_endpoint_connections: Optional[List[AzureServerPrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections on a server'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Whether or not public endpoint access is allowed for this server. Value is optional but if passed in, must be Enabled or Disabled '})  # fmt: skip
     restrict_outbound_network_access: Optional[str] = field(default=None, metadata={'description': 'Whether or not to restrict outbound network access for this server. Value is optional but if passed in, must be Enabled or Disabled '})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={'description': 'The state of the server.'})
@@ -124,14 +124,6 @@ class AzureServer(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
     location: Optional[str] = field(default=None, metadata={'description': 'Resource location.'})
 
-
-@define(eq=False, slots=False)
-class AzureSqlSku(AzureSku):
-    kind: ClassVar[str] = "azure_sku"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSku.mapping | {
-        "size": S("size"),
-    }
-    size: Optional[str] = field(default=None, metadata={'description': 'Size of the particular SKU'})
 
 @define(eq=False, slots=False)
 class AzureDatabaseUserIdentity:
@@ -154,8 +146,8 @@ class AzureDatabaseIdentity:
     type: Optional[str] = field(default=None, metadata={'description': 'The identity type'})
     user_assigned_identities: Optional[Dict[str, AzureDatabaseUserIdentity]] = field(default=None, metadata={'description': 'The resource ids of the user assigned identities to use'})  # fmt: skip
 @define(eq=False, slots=False)
-class AzureDatabase(MicrosoftResource):
-    kind: ClassVar[str] = "azure_database"
+class AzureSqlDatabase(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_database"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/databases', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -172,7 +164,7 @@ class AzureDatabase(MicrosoftResource):
         "creation_date": S("properties","creationDate"),
         "current_backup_storage_redundancy": S("properties","currentBackupStorageRedundancy"),
         "current_service_objective_name": S("properties","currentServiceObjectiveName"),
-        "current_sku": S("properties","currentSku") >> Bend(AzureSqlSku.mapping),
+        "current_sku": S("properties","currentSku") >> Bend(AzureSku.mapping),
         "database_id": S("properties","databaseId"),
         "default_secondary_location": S("properties","defaultSecondaryLocation"),
         "earliest_restore_date": S("properties","earliestRestoreDate"),
@@ -202,7 +194,7 @@ class AzureDatabase(MicrosoftResource):
         "resumed_date": S("properties","resumedDate"),
         "sample_name": S("properties","sampleName"),
         "secondary_type": S("properties","secondaryType"),
-        "database_sku": S("sku") >> Bend(AzureSqlSku.mapping),
+        "database_sku": S("sku") >> Bend(AzureSku.mapping),
         "source_database_deletion_date": S("properties","sourceDatabaseDeletionDate"),
         "source_database_id": S("properties","sourceDatabaseId"),
         "source_resource_id": S("properties","sourceResourceId"),
@@ -216,7 +208,7 @@ class AzureDatabase(MicrosoftResource):
     creation_date: Optional[datetime] = field(default=None, metadata={'description': 'The creation date of the database (ISO8601 format).'})  # fmt: skip
     current_backup_storage_redundancy: Optional[str] = field(default=None, metadata={'description': 'The storage account type used to store backups for this database.'})  # fmt: skip
     current_service_objective_name: Optional[str] = field(default=None, metadata={'description': 'The current service level objective name of the database.'})  # fmt: skip
-    current_sku: Optional[AzureSqlSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
+    current_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
     database_id: Optional[str] = field(default=None, metadata={'description': 'The ID of the database.'})
     default_secondary_location: Optional[str] = field(default=None, metadata={'description': 'The default secondary region for this database.'})  # fmt: skip
     earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'This records the earliest start date and time that restore is available for this database (ISO8601 format).'})  # fmt: skip
@@ -246,7 +238,7 @@ class AzureDatabase(MicrosoftResource):
     resumed_date: Optional[datetime] = field(default=None, metadata={'description': 'The date when database was resumed by user action or database login (ISO8601 format). Null if the database is paused.'})  # fmt: skip
     sample_name: Optional[str] = field(default=None, metadata={'description': 'The name of the sample schema to apply when creating this database.'})  # fmt: skip
     secondary_type: Optional[str] = field(default=None, metadata={'description': 'The secondary type of the database if it is a secondary. Valid values are Geo and Named.'})  # fmt: skip
-    database_sku: Optional[AzureSqlSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
+    database_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
     source_database_deletion_date: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time that the database was deleted.'})  # fmt: skip
     source_database_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the source database associated with create operation of this database.'})  # fmt: skip
     source_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the source associated with the create operation of this database. This property is only supported for DataWarehouse edition and allows to restore across subscriptions. When sourceResourceId is specified, sourceDatabaseId, recoverableDatabaseId, restorableDroppedDatabaseId and sourceDatabaseDeletionDate must not be specified and CreateMode must be PointInTimeRestore, Restore or Recover. When createMode is PointInTimeRestore, sourceResourceId must be the resource ID of the existing database or existing sql pool, and restorePointInTime must be specified. When createMode is Restore, sourceResourceId must be the resource ID of restorable dropped database or restorable dropped sql pool. When createMode is Recover, sourceResourceId must be the resource ID of recoverable database or recoverable sql pool. When source subscription belongs to a different tenant than target subscription, “x-ms-authorization-auxiliary” header must contain authentication token for the source tenant. For more details about “x-ms-authorization-auxiliary” header see https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/authenticate-multi-tenant '})  # fmt: skip
@@ -266,8 +258,8 @@ class AzureElasticPoolPerDatabaseSettings:
     max_capacity: Optional[float] = field(default=None, metadata={'description': 'The maximum capacity any one database can consume.'})  # fmt: skip
     min_capacity: Optional[float] = field(default=None, metadata={'description': 'The minimum capacity all databases are guaranteed.'})  # fmt: skip
 @define(eq=False, slots=False)
-class AzureElasticPool(MicrosoftResource):
-    kind: ClassVar[str] = "azure_elastic_pool"
+class AzureSqlElasticPool(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_elastic_pool"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/elasticPools', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -284,7 +276,7 @@ class AzureElasticPool(MicrosoftResource):
         "max_size_bytes": S("properties","maxSizeBytes"),
         "min_capacity": S("properties","minCapacity"),
         "per_database_settings": S("properties","perDatabaseSettings") >> Bend(AzureElasticPoolPerDatabaseSettings.mapping),
-        "elastic_pool_sku": S("sku") >> Bend(AzureSqlSku.mapping),
+        "elastic_pool_sku": S("sku") >> Bend(AzureSku.mapping),
         "state": S("properties","state"),
         "zone_redundant": S("properties","zoneRedundant")
     }
@@ -296,15 +288,15 @@ class AzureElasticPool(MicrosoftResource):
     max_size_bytes: Optional[int] = field(default=None, metadata={'description': 'The storage limit for the database elastic pool in bytes.'})  # fmt: skip
     min_capacity: Optional[float] = field(default=None, metadata={'description': 'Minimal capacity that serverless pool will not shrink below, if not paused'})  # fmt: skip
     per_database_settings: Optional[AzureElasticPoolPerDatabaseSettings] = field(default=None, metadata={'description': 'Per database settings of an elastic pool.'})  # fmt: skip
-    elastic_pool_sku: Optional[AzureSqlSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
+    elastic_pool_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
     state: Optional[str] = field(default=None, metadata={'description': 'The state of the elastic pool.'})
     zone_redundant: Optional[bool] = field(default=None, metadata={'description': 'Whether or not this elastic pool is zone redundant, which means the replicas of this elastic pool will be spread across multiple availability zones.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
     location: Optional[str] = field(default=None, metadata={'description': 'Resource location.'})
 
 @define(eq=False, slots=False)
-class AzurePrivateEndpointConnection(MicrosoftResource):
-    kind: ClassVar[str] = "azure_private_endpoint_connection"
+class AzureSqlPrivateEndpointConnection(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_private_endpoint_connection"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/privateEndpointConnections', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -312,12 +304,12 @@ class AzurePrivateEndpointConnection(MicrosoftResource):
         "name": S("name"),
         "type": S("type"),
         "group_ids": S("properties","groupIds"),
-        "private_endpoint": S("properties","privateEndpoint","id"),
+        "private_endpoint_id": S("properties","privateEndpoint","id"),
         "private_link_service_connection_state": S("properties","privateLinkServiceConnectionState") >> Bend(AzurePrivateLinkServiceConnectionStateProperty.mapping),
         "provisioning_state": S("properties","provisioningState")
     }
     group_ids: Optional[List[str]] = field(default=None, metadata={'description': 'Group IDs.'})
-    private_endpoint: Optional[str] = field(default=None, metadata={'description': 'Private endpoint ID.'})
+    private_endpoint_id: Optional[str] = field(default=None, metadata={'description': 'Private endpoint ID.'})
     private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionStateProperty] = field(default=None, metadata={'description': ''})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the private endpoint connection.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
@@ -345,8 +337,8 @@ class AzurePartnerInfo:
     replication_role: Optional[str] = field(default=None, metadata={'description': 'Replication role of the partner server.'})  # fmt: skip
 
 @define(eq=False, slots=False)
-class AzureFailoverGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_failover_group"
+class AzureSqlFailoverGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_failover_group"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/failoverGroups', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -355,23 +347,23 @@ class AzureFailoverGroup(MicrosoftResource):
         "type": S("type"),
         "database_ids": S("properties","databases"),
         "partner_servers": S("properties","partnerServers") >> ForallBend(AzurePartnerInfo.mapping),
-        "read_only_endpoint": S("properties","readOnlyEndpoint","failoverPolicy"),
-        "read_write_endpoint": S("properties","readWriteEndpoint") >> Bend(AzureFailoverGroupReadWriteEndpoint.mapping),
+        "group_read_only_endpoint": S("properties","readOnlyEndpoint","failoverPolicy"),
+        "group_read_write_endpoint": S("properties","readWriteEndpoint") >> Bend(AzureFailoverGroupReadWriteEndpoint.mapping),
         "replication_role": S("properties","replicationRole"),
         "replication_state": S("properties","replicationState")
     }
     database_ids: Optional[List[str]] = field(default=None, metadata={'description': 'List of databases in the failover group.'})  # fmt: skip
     partner_servers: Optional[List[AzurePartnerInfo]] = field(default=None, metadata={'description': 'List of partner server information for the failover group.'})  # fmt: skip
-    read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
-    read_write_endpoint: Optional[AzureFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
+    group_read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
+    group_read_write_endpoint: Optional[AzureFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
     replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
     replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
 
 
 @define(eq=False, slots=False)
-class AzureFirewallRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_firewall_rule"
+class AzureSqlFirewallRule(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_firewall_rule"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/firewallRules', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -385,8 +377,8 @@ class AzureFirewallRule(MicrosoftResource):
     start_ip_address: Optional[str] = field(default=None, metadata={'description': 'The start IP address of the firewall rule. Must be IPv4 format. Use value 0.0.0.0 for all Azure-internal IP addresses.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
 @define(eq=False, slots=False)
-class AzureGeoBackupPolicy(MicrosoftResource):
-    kind: ClassVar[str] = "azure_geo_backup_policy"
+class AzureSqlGeoBackupPolicy(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_geo_backup_policy"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/geoBackupPolicies', path_parameters=['resourceGroupName', 'serverName', 'databaseName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -431,8 +423,8 @@ class AzureManagedInstancePairInfo:
     partner_managed_instance_id: Optional[str] = field(default=None, metadata={'description': 'Id of Partner Managed Instance in pair.'})  # fmt: skip
     primary_managed_instance_id: Optional[str] = field(default=None, metadata={'description': 'Id of Primary Managed Instance in pair.'})  # fmt: skip
 @define(eq=False, slots=False)
-class AzureInstanceFailoverGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_instance_failover_group"
+class AzureSqlInstanceFailoverGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_instance_failover_group"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/locations/{locationName}/instanceFailoverGroups', path_parameters=['resourceGroupName', 'locationName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -441,22 +433,22 @@ class AzureInstanceFailoverGroup(MicrosoftResource):
         "type": S("type"),
         "managed_instance_pairs": S("properties","managedInstancePairs") >> ForallBend(AzureManagedInstancePairInfo.mapping),
         "partner_regions": S("properties","partnerRegions") >> ForallBend(AzurePartnerRegionInfo.mapping),
-        "read_only_endpoint": S("properties","readOnlyEndpoint","failoverPolicy"),
-        "read_write_endpoint": S("properties","readWriteEndpoint") >> Bend(AzureInstanceFailoverGroupReadWriteEndpoint.mapping),
+        "sql_instance_read_only_endpoint": S("properties","readOnlyEndpoint","failoverPolicy"),
+        "sql_instance_read_write_endpoint": S("properties","readWriteEndpoint") >> Bend(AzureInstanceFailoverGroupReadWriteEndpoint.mapping),
         "replication_role": S("properties","replicationRole"),
         "replication_state": S("properties","replicationState")
     }
     managed_instance_pairs: Optional[List[AzureManagedInstancePairInfo]] = field(default=None, metadata={'description': 'List of managed instance pairs in the failover group.'})  # fmt: skip
     partner_regions: Optional[List[AzurePartnerRegionInfo]] = field(default=None, metadata={'description': 'Partner region information for the failover group.'})  # fmt: skip
-    read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
-    read_write_endpoint: Optional[AzureInstanceFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
+    sql_instance_read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
+    sql_instance_read_write_endpoint: Optional[AzureInstanceFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
     replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
     replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
 
 @define(eq=False, slots=False)
-class AzureInstancePool(MicrosoftResource):
-    kind: ClassVar[str] = "azure_instance_pool"
+class AzureSqlInstancePool(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_instance_pool"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/providers/Microsoft.Sql/instancePools', path_parameters=['subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -465,12 +457,12 @@ class AzureInstancePool(MicrosoftResource):
         "type": S("type"),
         "location": S("location"),
         "license_type": S("properties","licenseType"),
-        "instance_pool_sku": S("sku") >> Bend(AzureSqlSku.mapping),
+        "instance_pool_sku": S("sku") >> Bend(AzureSku.mapping),
         "subnet_id": S("properties","subnetId"),
         "v_cores": S("properties","vCores")
     }
     license_type: Optional[str] = field(default=None, metadata={'description': 'The license type. Possible values are LicenseIncluded (price for SQL license is included) and BasePrice (without SQL license price).'})  # fmt: skip
-    instance_pool_sku: Optional[AzureSqlSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
+    instance_pool_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
     subnet_id: Optional[str] = field(default=None, metadata={'description': 'Resource ID of the subnet to place this instance pool in.'})  # fmt: skip
     v_cores: Optional[int] = field(default=None, metadata={'description': 'Count of vCores belonging to this instance pool.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
@@ -478,8 +470,8 @@ class AzureInstancePool(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureJobAgent(MicrosoftResource):
-    kind: ClassVar[str] = "azure_job_agent"
+class AzureSqlJobAgent(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_job_agent"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/jobAgents', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -488,19 +480,19 @@ class AzureJobAgent(MicrosoftResource):
         "type": S("type"),
         "location": S("location"),
         "database_id": S("properties","databaseId"),
-        "agent_sku": S("sku") >> Bend(AzureSqlSku.mapping),
+        "job_agent_sku": S("sku") >> Bend(AzureSku.mapping),
         "state": S("properties","state")
     }
     database_id: Optional[str] = field(default=None, metadata={'description': 'Resource ID of the database to store job metadata in.'})  # fmt: skip
-    agent_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
+    job_agent_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
     state: Optional[str] = field(default=None, metadata={'description': 'The state of the job agent.'})
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
     location: Optional[str] = field(default=None, metadata={'description': 'Resource location.'})
 
 
 @define(eq=False, slots=False)
-class AzureManagedDatabase(MicrosoftResource):
-    kind: ClassVar[str] = "azure_managed_database"
+class AzureSqlManagedDatabase(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_managed_database"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/managedInstances/{managedInstanceName}/databases', path_parameters=['resourceGroupName', 'managedInstanceName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -602,8 +594,8 @@ class AzureServicePrincipal:
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'The Azure Active Directory tenant id.'})
     type: Optional[str] = field(default=None, metadata={'description': 'Service principal type.'})
 @define(eq=False, slots=False)
-class AzureManagedInstance(MicrosoftResource):
-    kind: ClassVar[str] = "azure_managed_instance"
+class AzureSqlManagedInstance(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_managed_instance"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/providers/Microsoft.Sql/managedInstances', path_parameters=['subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -613,13 +605,13 @@ class AzureManagedInstance(MicrosoftResource):
         "location": S("location"),
         "administrator_login": S("properties","administratorLogin"),
         "administrator_login_password": S("properties","administratorLoginPassword"),
-        "administrators": S("properties","administrators") >> Bend(AzureManagedInstanceExternalAdministrator.mapping),
+        "managed_instance_administrators": S("properties","administrators") >> Bend(AzureManagedInstanceExternalAdministrator.mapping),
         "collation": S("properties","collation"),
         "current_backup_storage_redundancy": S("properties","currentBackupStorageRedundancy"),
         "dns_zone": S("properties","dnsZone"),
         "dns_zone_partner": S("properties","dnsZonePartner"),
         "fully_qualified_domain_name": S("properties","fullyQualifiedDomainName"),
-        "identity": S("identity") >> Bend(AzureResourceIdentity.mapping),
+        "managed_instance_identity": S("identity") >> Bend(AzureResourceIdentity.mapping),
         "instance_pool_id": S("properties","instancePoolId"),
         "key_id": S("properties","keyId"),
         "license_type": S("properties","licenseType"),
@@ -627,14 +619,14 @@ class AzureManagedInstance(MicrosoftResource):
         "managed_instance_create_mode": S("properties","managedInstanceCreateMode"),
         "minimal_tls_version": S("properties","minimalTlsVersion"),
         "primary_user_assigned_identity_id": S("properties","primaryUserAssignedIdentityId"),
-        "private_endpoint_connections": S("properties","privateEndpointConnections") >> ForallBend(AzureManagedInstancePecProperty.mapping),
+        "instance_private_endpoint_connections": S("properties","privateEndpointConnections") >> ForallBend(AzureManagedInstancePecProperty.mapping),
         "provisioning_state": S("properties","provisioningState"),
         "proxy_override": S("properties","proxyOverride"),
         "public_data_endpoint_enabled": S("properties","publicDataEndpointEnabled"),
         "requested_backup_storage_redundancy": S("properties","requestedBackupStorageRedundancy"),
         "restore_point_in_time": S("properties","restorePointInTime"),
         "service_principal": S("properties","servicePrincipal") >> Bend(AzureServicePrincipal.mapping),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "managed_instance_sku": S("sku") >> Bend(AzureSku.mapping),
         "source_managed_instance_id": S("properties","sourceManagedInstanceId"),
         "state": S("properties","state"),
         "storage_size_in_gb": S("properties","storageSizeInGB"),
@@ -645,13 +637,13 @@ class AzureManagedInstance(MicrosoftResource):
     }
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'Administrator username for the managed instance. Can only be specified when the managed instance is being created (and is required for creation).'})  # fmt: skip
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The administrator login password (required for managed instance creation).'})  # fmt: skip
-    administrators: Optional[AzureManagedInstanceExternalAdministrator] = field(default=None, metadata={'description': 'Properties of a active directory administrator.'})  # fmt: skip
+    managed_instance_administrators: Optional[AzureManagedInstanceExternalAdministrator] = field(default=None, metadata={'description': 'Properties of a active directory administrator.'})  # fmt: skip
     collation: Optional[str] = field(default=None, metadata={'description': 'Collation of the managed instance.'})
     current_backup_storage_redundancy: Optional[str] = field(default=None, metadata={'description': 'The storage account type used to store backups for this instance. The options are Local (LocallyRedundantStorage), Zone (ZoneRedundantStorage), Geo (GeoRedundantStorage) and GeoZone(GeoZoneRedundantStorage)'})  # fmt: skip
     dns_zone: Optional[str] = field(default=None, metadata={'description': 'The Dns Zone that the managed instance is in.'})  # fmt: skip
     dns_zone_partner: Optional[str] = field(default=None, metadata={'description': 'The resource id of another managed instance whose DNS zone this managed instance will share after creation.'})  # fmt: skip
     fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of the managed instance.'})  # fmt: skip
-    identity: Optional[AzureResourceIdentity] = field(default=None, metadata={'description': 'Azure Active Directory identity configuration for a resource.'})  # fmt: skip
+    managed_instance_identity: Optional[AzureResourceIdentity] = field(default=None, metadata={'description': 'Azure Active Directory identity configuration for a resource.'})  # fmt: skip
     instance_pool_id: Optional[str] = field(default=None, metadata={'description': 'The Id of the instance pool this managed server belongs to.'})  # fmt: skip
     key_id: Optional[str] = field(default=None, metadata={'description': 'A CMK URI of the key to use for encryption.'})  # fmt: skip
     license_type: Optional[str] = field(default=None, metadata={'description': 'The license type. Possible values are LicenseIncluded (regular price inclusive of a new SQL license) and BasePrice (discounted AHB price for bringing your own SQL licenses).'})  # fmt: skip
@@ -659,14 +651,14 @@ class AzureManagedInstance(MicrosoftResource):
     managed_instance_create_mode: Optional[str] = field(default=None, metadata={'description': 'Specifies the mode of database creation. Default: Regular instance creation. Restore: Creates an instance by restoring a set of backups to specific point in time. RestorePointInTime and SourceManagedInstanceId must be specified.'})  # fmt: skip
     minimal_tls_version: Optional[str] = field(default=None, metadata={'description': 'Minimal TLS version. Allowed values: None , 1.0 , 1.1 , 1.2 '})  # fmt: skip
     primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of a user assigned identity to be used by default.'})  # fmt: skip
-    private_endpoint_connections: Optional[List[AzureManagedInstancePecProperty]] = field(default=None, metadata={'description': 'List of private endpoint connections on a managed instance.'})  # fmt: skip
+    instance_private_endpoint_connections: Optional[List[AzureManagedInstancePecProperty]] = field(default=None, metadata={'description': 'List of private endpoint connections on a managed instance.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': ''})
     proxy_override: Optional[str] = field(default=None, metadata={'description': 'Connection type used for connecting to the instance.'})  # fmt: skip
     public_data_endpoint_enabled: Optional[bool] = field(default=None, metadata={'description': 'Whether or not the public data endpoint is enabled.'})  # fmt: skip
     requested_backup_storage_redundancy: Optional[str] = field(default=None, metadata={'description': 'The storage account type to be used to store backups for this instance. The options are Local (LocallyRedundantStorage), Zone (ZoneRedundantStorage), Geo (GeoRedundantStorage) and GeoZone(GeoZoneRedundantStorage)'})  # fmt: skip
     restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.'})  # fmt: skip
     service_principal: Optional[AzureServicePrincipal] = field(default=None, metadata={'description': 'The managed instance s service principal configuration for a resource.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
+    managed_instance_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'An ARM Resource SKU.'})
     source_managed_instance_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the source managed instance associated with create operation of this instance.'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={'description': 'The state of the managed instance.'})
     storage_size_in_gb: Optional[int] = field(default=None, metadata={'description': 'Storage size in GB. Minimum value: 32. Maximum value: 16384. Increments of 32 GB allowed only. Maximum value depends on the selected hardware family and number of vCores.'})  # fmt: skip
@@ -678,8 +670,8 @@ class AzureManagedInstance(MicrosoftResource):
     location: Optional[str] = field(default=None, metadata={'description': 'Resource location.'})
 
 @define(eq=False, slots=False)
-class AzureVirtualCluster(MicrosoftResource):
-    kind: ClassVar[str] = "azure_virtual_cluster"
+class AzureSqlVirtualCluster(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_virtual_cluster"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/providers/Microsoft.Sql/virtualClusters', path_parameters=['subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -700,8 +692,8 @@ class AzureVirtualCluster(MicrosoftResource):
     location: Optional[str] = field(default=None, metadata={'description': 'Resource location.'})
 
 @define(eq=False, slots=False)
-class AzureServerTrustGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_server_trust_group"
+class AzureSqlServerTrustGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_trust_group"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/managedInstances/{managedInstanceName}/serverTrustGroups', path_parameters=['resourceGroupName', 'locationName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -717,8 +709,8 @@ class AzureServerTrustGroup(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualNetworkRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_virtual_network_rule"
+class AzureSqlVirtualNetworkRule(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_virtual_network_rule"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/virtualNetworkRules', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -735,8 +727,8 @@ class AzureVirtualNetworkRule(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type.'})
 
 @define(eq=False, slots=False)
-class AzureWorkloadGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_workload_group"
+class AzureSqlWorkloadGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_workload_group"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/workloadGroups', path_parameters=['resourceGroupName', 'serverName', 'databaseName', 'subscriptionId'], query_parameters=['api-version'], access_path='value', expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -878,8 +870,8 @@ class AzureRecommendedAction:
     name: Optional[str] = field(default=None, metadata={'description': 'Resource name.'})
 
 @define(eq=False, slots=False)
-class AzureAdvisor(MicrosoftResource):
-    kind: ClassVar[str] = "azure_advisor"
+class AzureSqlAdvisor(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_advisor"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(service='sql', version='2021-11-01', path='/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/advisors?$expand=recommendedActions', path_parameters=['resourceGroupName', 'serverName', 'subscriptionId'], query_parameters=['api-version'], access_path=None, expect_array=True)
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -906,20 +898,21 @@ class AzureAdvisor(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureDatabase,
-    AzureElasticPool,
-    AzureFailoverGroup,
-    AzureFirewallRule,
-    AzureGeoBackupPolicy,
-    AzureInstanceFailoverGroup,
-    AzureInstancePool,
-    AzureJobAgent,
-    AzureManagedDatabase,
-    AzureManagedInstance,
-    AzureServer,
-    AzureVirtualCluster,
-    AzureServerTrustGroup,
-    AzureVirtualNetworkRule,
-    AzureWorkloadGroup,
-    AzureAdvisor
+    AzureSqlDatabase,
+    AzureSqlElasticPool,
+    AzureSqlFailoverGroup,
+    AzureSqlFirewallRule,
+    AzureSqlGeoBackupPolicy,
+    AzureSqlInstanceFailoverGroup,
+    AzureSqlInstancePool,
+    AzureSqlJobAgent,
+    AzureSqlManagedDatabase,
+    AzureSqlManagedInstance,
+    AzureSqlServer,
+    AzureSqlVirtualCluster,
+    AzureSqlServerTrustGroup,
+    AzureSqlVirtualNetworkRule,
+    AzureSqlWorkloadGroup,
+    AzureSqlPrivateEndpointConnection,
+    AzureSqlAdvisor
 ]

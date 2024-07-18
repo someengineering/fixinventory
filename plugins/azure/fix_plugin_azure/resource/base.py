@@ -570,12 +570,13 @@ class AzureSku:
         "name": S("name"),
         "tier": S("tier"),
         "family": S("family"),
+        "size": S("size"),
     }
     capacity: Optional[int] = field(default=None, metadata={'description': 'Specifies the number of virtual machines in the scale set.'})  # fmt: skip
     family: Optional[str] = field(default=None, metadata={"description": "The family of the sku."})
     name: Optional[str] = field(default=None, metadata={"description": "The sku name."})
     tier: Optional[str] = field(default=None, metadata={'description': 'Specifies the tier of virtual machines in a scale set. Possible values: **standard** **basic**.'})  # fmt: skip
-
+    size: Optional[str] = field(default=None, metadata={'description': 'Size of the particular SKU'})
 
 class GraphBuilder:
     def __init__(

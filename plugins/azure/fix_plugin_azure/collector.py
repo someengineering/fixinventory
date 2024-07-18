@@ -34,6 +34,9 @@ from fix_plugin_azure.resource.network import (
     AzureNetworkUsage,
     resources as network_resources,
 )
+from fix_plugin_azure.resource.sql import (
+    resources as sql_resources,
+)
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -58,7 +61,7 @@ subscription_resources: List[Type[MicrosoftResource]] = (
     + network_resources
     + aks_resources
     + security_resources
-    + storage_resources
+    + storage_resources + sql_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
