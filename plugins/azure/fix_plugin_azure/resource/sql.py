@@ -1279,7 +1279,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureSqlFailoverGroup,
     AzureSqlFirewallRule,
     AzureSqlGeoBackupPolicy,
-    AzureSqlInstanceFailoverGroup,  # TODO: Do collection via resource group and location
+    AzureSqlInstanceFailoverGroup,
     AzureSqlInstancePool,
     AzureSqlJobAgent,
     AzureSqlManagedDatabase,
