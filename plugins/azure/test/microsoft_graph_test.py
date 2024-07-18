@@ -6,6 +6,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
     MicrosoftGraphGroup,
     MicrosoftGraphRole,
     MicrosoftGraphUser,
+    MicrosoftGraphPolicy,
 )
 
 
@@ -32,3 +33,8 @@ def test_microsoft_graph_role(builder: GraphBuilder) -> None:
 def test_microsoft_graph_user(builder: GraphBuilder) -> None:
     collected = roundtrip_check(MicrosoftGraphUser, builder)
     assert len(collected) == 1
+
+
+def test_microsoft_graph_policy(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(MicrosoftGraphPolicy, builder)
+    assert len(collected) == 7

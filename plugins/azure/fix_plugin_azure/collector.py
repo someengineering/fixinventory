@@ -71,8 +71,6 @@ class MicrosoftBaseCollector:
         account: BaseAccount,
         credentials: AzureCredentials,
         core_feedback: CoreFeedback,
-        global_resources: List[Type[MicrosoftResource]],
-        regional_resources: List[Type[MicrosoftResource]],
         task_data: Optional[Json] = None,
         max_resources_per_account: Optional[int] = None,
     ):
@@ -81,14 +79,8 @@ class MicrosoftBaseCollector:
         self.account = account
         self.credentials = credentials
         self.core_feedback = core_feedback
-        self.global_resources = global_resources
-        self.regional_resources = regional_resources
         self.graph = Graph(root=account, max_nodes=max_resources_per_account)
         self.task_data = task_data
-
-    @abstractmethod
-    def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
-        pass
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
@@ -125,16 +117,15 @@ class MicrosoftBaseCollector:
                 config=self.config,
                 last_run_started_at=last_run,
             )
+
             # collect all locations
             locations = self.locations(builder)
             builder.location_lookup = locations
-            # collect all global resources
-            self.collect_resource_list("subscription", builder, self.global_resources)
-            # collect all regional resources
-            for location in locations.values():
-                self.collect_resource_list(location.safe_name, builder.with_location(location), self.regional_resources)
-            # wait for all work to finish
+
+            # collect all resources
+            self.collect_with(builder, locations)
             queue.wait_for_submitted_work()
+
             # connect nodes
             log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
@@ -144,18 +135,16 @@ class MicrosoftBaseCollector:
                     pass
                 else:
                     raise Exception(f"Only Azure resources expected, but got {node}")
-            # wait for all work to finish
             queue.wait_for_submitted_work()
-            # filter nodes
-            self.filter_nodes()
 
-            # post process nodes
+            # post-process nodes
+            self.remove_unused()
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, MicrosoftResource):
                     node.after_collect(builder, data.get("source", {}))
 
             # delete unnecessary nodes after all work is completed
-            self.after_collect_filter()
+            self.after_collect()
             # report all accumulated errors
             error_accumulator.report_all(self.core_feedback)
             self.core_feedback.progress_done(self.account.id, 1, 1, context=[self.cloud.id])
@@ -181,7 +170,37 @@ class MicrosoftBaseCollector:
         all_done.add_done_callback(work_done)
         return all_done
 
-    def filter_nodes(self) -> None:
+    @abstractmethod
+    def collect_with(self, builder: GraphBuilder, locations: Dict[str, BaseRegion]) -> None:
+        pass
+
+    @abstractmethod
+    def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
+        pass
+
+    def remove_unused(self) -> None:
+        pass
+
+    def after_collect(self) -> None:
+        pass
+
+
+class AzureSubscriptionCollector(MicrosoftBaseCollector):
+    def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
+        locations = AzureLocation.collect_resources(builder)
+        return CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
+
+    def collect_with(self, builder: GraphBuilder, locations: Dict[str, BaseRegion]) -> None:
+        # add deferred edge to organization
+        builder.submit_work("azure_all", MicrosoftGraphOrganization.deferred_edge_to_subscription, builder)
+        # collect all global and regional resources
+        regional_resources = [r for r in subscription_resources if resource_with_params(r, "location")]
+        global_resources = list(set(subscription_resources) - set(regional_resources))
+        self.collect_resource_list("subscription", builder, global_resources)
+        for location in locations.values():
+            self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
+
+    def remove_unused(self) -> None:
         remove_nodes = []
 
         def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None) -> None:  # type: ignore
@@ -214,7 +233,7 @@ class MicrosoftBaseCollector:
         rm_nodes(AzureStorageSku, AzureLocation)
         remove_usage_zero_value()
 
-    def after_collect_filter(self) -> None:
+    def after_collect(self) -> None:
         # Filter unnecessary nodes such as AzureDiskTypePricing
         nodes_to_remove = []
         node_types = (AzureDiskTypePricing,)
@@ -225,70 +244,23 @@ class MicrosoftBaseCollector:
             nodes_to_remove.append(node)
         self._delete_nodes(nodes_to_remove)
 
-    def _delete_nodes(self, nodes_to_delte: Any) -> None:
+    def _delete_nodes(self, nodes_to_delete: Any) -> None:
         removed = set()
-        for node in nodes_to_delte:
+        for node in nodes_to_delete:
             if node in removed:
                 continue
             removed.add(node)
             self.graph.remove_node(node)
-        nodes_to_delte.clear()
-
-
-class AzureSubscriptionCollector(MicrosoftBaseCollector):
-    def __init__(
-        self,
-        config: AzureConfig,
-        cloud: Cloud,
-        subscription: AzureSubscription,
-        credentials: AzureCredentials,
-        core_feedback: CoreFeedback,
-        task_data: Optional[Json] = None,
-        max_resources_per_account: Optional[int] = None,
-    ):
-        regional_resources = [r for r in subscription_resources if resource_with_params(r, "location")]
-        global_resources = list(set(subscription_resources) - set(regional_resources))
-        super().__init__(
-            config,
-            cloud,
-            subscription,
-            credentials,
-            core_feedback,
-            global_resources,
-            regional_resources,
-            task_data=task_data,
-            max_resources_per_account=max_resources_per_account,
-        )
-
-    def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
-        locations = AzureLocation.collect_resources(builder)
-        return CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
+        nodes_to_delete.clear()
 
 
 class MicrosoftGraphOrganizationCollector(MicrosoftBaseCollector):
-    def __init__(
-        self,
-        config: AzureConfig,
-        cloud: Cloud,
-        organization: MicrosoftGraphOrganization,
-        credentials: AzureCredentials,
-        core_feedback: CoreFeedback,
-        task_data: Optional[Json] = None,
-        max_resources_per_account: Optional[int] = None,
-    ):
-        super().__init__(
-            config,
-            cloud,
-            organization,
-            credentials,
-            core_feedback,
-            [],
-            graph_resources,  # treat all resources as regional resources, attached to the organization root
-            task_data=task_data,
-            max_resources_per_account=max_resources_per_account,
-        )
 
     def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
         root = MicrosoftGraphOrganizationRoot(id="organization_root")
         builder.add_node(root)
         return {"organization_root": root}
+
+    def collect_with(self, builder: GraphBuilder, locations: Dict[str, BaseRegion]) -> None:
+        for location in locations.values():  # all resources underneath the organization root
+            self.collect_resource_list(location.safe_name, builder.with_location(location), graph_resources)
