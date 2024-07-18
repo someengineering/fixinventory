@@ -5,6 +5,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import AzureSku, GraphBuilder, MicrosoftResource
+from fix_plugin_azure.resource.network import AzureSubnet
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -73,7 +74,15 @@ class AzureSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_database"
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_sql_workload_group", "azure_sql_geo_backup_policy"]},
+        "successors": {
+            "default": [
+                "azure_sql_workload_group",
+                "azure_sql_geo_backup_policy",
+                "azure_sql_failover_group",
+                "azure_sql_advisor",
+            ]
+        },
+        "predecessors": {"default": ["azure_sql_elastic_pool"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -215,8 +224,34 @@ class AzureSqlDatabase(MicrosoftResource):
                         self, edge_type=EdgeType.default, clazz=AzureSqlGeoBackupPolicy, id=backup_policy.id
                     )
 
+            def collect_advisors() -> None:
+                api_spec = AzureResourceSpec(
+                    service="sql",
+                    version="2021-11-01",
+                    path=f"{database_id}/advisors?$expand=recommendedAction",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+
+                advisors = AzureSqlAdvisor.collect(items, graph_builder)
+
+                for advisor in advisors:
+                    graph_builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSqlAdvisor, id=advisor.id)
+
             graph_builder.submit_work(service_name, collect_workload_groups)
             graph_builder.submit_work(service_name, collect_geo_backups)
+            graph_builder.submit_work(service_name, collect_advisors)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if elastic_pool_id := self.elastic_pool_id:
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlElasticPool, id=elastic_pool_id
+            )
+        if failover_group_id := self.failover_group_id:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSqlFailoverGroup, id=failover_group_id)
 
 
 @define(eq=False, slots=False)
@@ -316,6 +351,9 @@ class AzurePartnerInfo:
 class AzureSqlFailoverGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_failover_group"
     # Collect via AzureSqlServer()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_sql_database"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -336,6 +374,11 @@ class AzureSqlFailoverGroup(MicrosoftResource):
     replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
     replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if database_ids := self.database_ids:
+            for database_id in database_ids:
+                builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlDatabase, id=database_id)
 
 
 @define(eq=False, slots=False)
@@ -451,6 +494,9 @@ class AzureSqlInstancePool(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_subnet"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -469,11 +515,18 @@ class AzureSqlInstancePool(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if subnet_id := self.subnet_id:
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
+
 
 @define(eq=False, slots=False)
 class AzureSqlJobAgent(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_job_agent"
     # Collect via AzureSqlServer()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_sql_database"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -489,6 +542,10 @@ class AzureSqlJobAgent(MicrosoftResource):
     state: Optional[str] = field(default=None, metadata={"description": "The state of the job agent."})
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if database_id := self.database_id:
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlDatabase, id=database_id)
 
 
 @define(eq=False, slots=False)
@@ -559,13 +616,13 @@ class AzureManagedInstancePecProperty:
     kind: ClassVar[str] = "azure_managed_instance_pec_property"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
+        "private_endpoint_id": S("properties", "privateEndpoint", "id"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
         >> Bend(AzureManagedInstancePrivateLinkServiceConnectionStateProperty.mapping),
         "provisioning_state": S("properties", "provisioningState"),
     }
     id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": ""})
+    private_endpoint_id: Optional[str] = field(default=None, metadata={"description": ""})
     private_link_service_connection_state: Optional[AzureManagedInstancePrivateLinkServiceConnectionStateProperty] = field(default=None, metadata={'description': ''})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the Private Endpoint Connection.'})  # fmt: skip
 
@@ -617,7 +674,14 @@ class AzureSqlManagedInstance(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_sql_managed_database", "azure_sql_server_trust_group"]},
+        "successors": {
+            "default": [
+                "azure_sql_managed_database",
+                "azure_sql_server_trust_group",
+                "azure_sql_private_endpoint_connection",
+            ]
+        },
+        "predecessors": {"default": ["azure_sql_instance_pool"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -737,6 +801,21 @@ class AzureSqlManagedInstance(MicrosoftResource):
             graph_builder.submit_work(service_name, collect_managed_instance_databases)
             graph_builder.submit_work(service_name, collect_trust_groups)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if private_endpoint_connections := self.instance_private_endpoint_connections:
+            for private_endpoint_connection in private_endpoint_connections:
+                if endpoint_id := private_endpoint_connection.private_endpoint_id:
+                    builder.add_edge(
+                        self,
+                        edge_type=EdgeType.default,
+                        clazz=AzureSqlPrivateEndpointConnection,
+                        private_endpoint_id=endpoint_id,
+                    )
+        if instance_pool_id := self.instance_pool_id:
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlInstancePool, id=instance_pool_id
+            )
+
 
 @define(eq=False, slots=False)
 class AzureSqlVirtualCluster(MicrosoftResource):
@@ -750,6 +829,10 @@ class AzureSqlVirtualCluster(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_sql_managed_instance"]},
+        "predecessors": {"default": ["azure_subnet"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -767,6 +850,15 @@ class AzureSqlVirtualCluster(MicrosoftResource):
     subnet_id: Optional[str] = field(default=None, metadata={'description': 'Subnet resource ID for the virtual cluster.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if managed_instance_ids := self.child_resources:
+            for managed_instance_id in managed_instance_ids:
+                builder.add_edge(
+                    self, edge_type=EdgeType.default, clazz=AzureSqlManagedInstance, id=managed_instance_id
+                )
+        if subnet_id := self.subnet_id:
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -959,7 +1051,7 @@ class AzureRecommendedAction:
 @define(eq=False, slots=False)
 class AzureSqlAdvisor(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_advisor"
-    # Collect via AzureSqlServer()
+    # Collect via AzureSqlServer() and AzureSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
