@@ -860,7 +860,7 @@ class AzureSqlVirtualCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_virtual_cluster"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
-        version="2021-11-01",
+        version="2022-05-01-preview",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Sql/virtualClusters",
         path_parameters=["subscriptionId"],
         query_parameters=["api-version"],
