@@ -12,6 +12,7 @@ from fixcore.db.arango_query import (
     possible_values,
     load_time_series,
     history_query,
+    TranslateRegexpToLike,
 )
 from fixcore.db.graphdb import GraphDB
 from fixcore.db.model import QueryModel
@@ -438,12 +439,13 @@ def test_view(foo_model: Model, graph_db: GraphDB) -> None:
     assert_view("g[*] in [1,2,3]", "SEARCH v0.g in @b0 RETURN v0)  FOR result in view0")
     assert_view("g[*] not in [1,2,3]", "SEARCH v0.g not in @b0 RETURN v0)  FOR result in view0")
     # use like instead of regex
-    assert_view('name=~"^123"', "SEARCH v0.name LIKE @b0", b0="123%")
-    assert_view('name=~"^.*123$"', "SEARCH v0.name LIKE @b0", b0="%123")
-    assert_view('name=~".*123$"', "SEARCH v0.name LIKE @b0", b0="%123")
-    assert_view('name=~"^123$"', "SEARCH v0.name LIKE @b0", b0="123")
-    assert_view('name=~"^%1%2%.*3%$"', "SEARCH v0.name LIKE @b0", b0="\\%1\\%2\\%%3\\%")
-    assert_view('name=~"^...$"', "SEARCH v0.name LIKE @b0", b0="___")
+    if TranslateRegexpToLike:
+        assert_view('name=~"^123"', "SEARCH v0.name LIKE @b0", b0="123%")
+        assert_view('name=~"^.*123$"', "SEARCH v0.name LIKE @b0", b0="%123")
+        assert_view('name=~".*123$"', "SEARCH v0.name LIKE @b0", b0="%123")
+        assert_view('name=~"^123$"', "SEARCH v0.name LIKE @b0", b0="123")
+        assert_view('name=~"^%1%2%.*3%$"', "SEARCH v0.name LIKE @b0", b0="\\%1\\%2\\%%3\\%")
+        assert_view('name=~"^...$"', "SEARCH v0.name LIKE @b0", b0="___")
 
     # cannot use like since regex cannot be expressed as glob. needs filter
     assert_view('name=~"123[0-9]+"',

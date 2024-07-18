@@ -84,6 +84,8 @@ regex_detect_pattern = re.compile(r"(?<!\\)([\[\]().|*+?^$]|\{[0-9]+(?:,[0-9]*)?
 regexp_leading_trailing = re.compile(r"(^\^?[.][*])|([.][*][$]?$)")
 # see: cli.py
 DefaultSort = [Sort("reported.kind"), Sort("reported.name"), Sort("reported.id")]
+# Disabled for the moment, since likes are case-sensitive and regex are not
+TranslateRegexpToLike = False
 
 
 class ArangoQueryContext:
@@ -170,7 +172,7 @@ def query_view_string(
         )
 
     def regexp_like(value: Any) -> Optional[str]:
-        if not isinstance(value, str):
+        if not TranslateRegexpToLike or not isinstance(value, str):
             return None
         ml = regexp_leading_trailing.sub("", value)
         ml = ml.replace("%", "\\%").replace("_", "\\_").replace(".*", "%").replace(".", "_")
