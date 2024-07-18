@@ -61,7 +61,8 @@ subscription_resources: List[Type[MicrosoftResource]] = (
     + network_resources
     + aks_resources
     + security_resources
-    + storage_resources + sql_resources
+    + storage_resources
+    + sql_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 

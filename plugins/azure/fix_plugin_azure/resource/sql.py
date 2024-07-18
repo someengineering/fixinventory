@@ -4,8 +4,12 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import AzureSku, MicrosoftResource
+from fix_plugin_azure.resource.base import AzureSku, GraphBuilder, MicrosoftResource
+from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.types import Json
+
+service_name = "azure_sql"
 
 
 class AzureUserIdentity:
@@ -67,15 +71,10 @@ class AzureDatabaseIdentity:
 @define(eq=False, slots=False)
 class AzureSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/databases",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_sql_workload_group", "azure_sql_geo_backup_policy"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -174,6 +173,50 @@ class AzureSqlDatabase(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if database_id := self.id:
+
+            def collect_workload_groups() -> None:
+                api_spec = AzureResourceSpec(
+                    service="sql",
+                    version="2021-11-01",
+                    path=f"{database_id}/workloadGroups",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+
+                workload_groups = AzureSqlWorkloadGroup.collect(items, graph_builder)
+
+                for workload_group in workload_groups:
+                    graph_builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureSqlWorkloadGroup, id=workload_group.id
+                    )
+
+            def collect_geo_backups() -> None:
+                api_spec = AzureResourceSpec(
+                    service="sql",
+                    version="2021-11-01",
+                    path=f"{database_id}/geoBackupPolicies",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+
+                backup_policies = AzureSqlGeoBackupPolicy.collect(items, graph_builder)
+
+                for backup_policy in backup_policies:
+                    graph_builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureSqlGeoBackupPolicy, id=backup_policy.id
+                    )
+
+            graph_builder.submit_work(service_name, collect_workload_groups)
+            graph_builder.submit_work(service_name, collect_geo_backups)
+
 
 @define(eq=False, slots=False)
 class AzureElasticPoolPerDatabaseSettings:
@@ -186,15 +229,7 @@ class AzureElasticPoolPerDatabaseSettings:
 @define(eq=False, slots=False)
 class AzureSqlElasticPool(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_elastic_pool"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/elasticPools",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -233,15 +268,7 @@ class AzureSqlElasticPool(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_private_endpoint_connection"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/privateEndpointConnections",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -287,15 +314,7 @@ class AzurePartnerInfo:
 @define(eq=False, slots=False)
 class AzureSqlFailoverGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_failover_group"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/failoverGroups",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -321,15 +340,7 @@ class AzureSqlFailoverGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlFirewallRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_firewall_rule"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/firewallRules",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -346,15 +357,7 @@ class AzureSqlFirewallRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlGeoBackupPolicy(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_geo_backup_policy"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/geoBackupPolicies",
-        path_parameters=["resourceGroupName", "serverName", "databaseName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -400,39 +403,39 @@ class AzureManagedInstancePairInfo:
     primary_managed_instance_id: Optional[str] = field(default=None, metadata={'description': 'Id of Primary Managed Instance in pair.'})  # fmt: skip
 
 
-@define(eq=False, slots=False)
-class AzureSqlInstanceFailoverGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_instance_failover_group"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/locations/{locationName}/instanceFailoverGroups",
-        path_parameters=["resourceGroupName", "locationName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "type": S("type"),
-        "managed_instance_pairs": S("properties", "managedInstancePairs")
-        >> ForallBend(AzureManagedInstancePairInfo.mapping),
-        "partner_regions": S("properties", "partnerRegions") >> ForallBend(AzurePartnerRegionInfo.mapping),
-        "sql_instance_read_only_endpoint": S("properties", "readOnlyEndpoint", "failoverPolicy"),
-        "sql_instance_read_write_endpoint": S("properties", "readWriteEndpoint")
-        >> Bend(AzureInstanceFailoverGroupReadWriteEndpoint.mapping),
-        "replication_role": S("properties", "replicationRole"),
-        "replication_state": S("properties", "replicationState"),
-    }
-    managed_instance_pairs: Optional[List[AzureManagedInstancePairInfo]] = field(default=None, metadata={'description': 'List of managed instance pairs in the failover group.'})  # fmt: skip
-    partner_regions: Optional[List[AzurePartnerRegionInfo]] = field(default=None, metadata={'description': 'Partner region information for the failover group.'})  # fmt: skip
-    sql_instance_read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
-    sql_instance_read_write_endpoint: Optional[AzureInstanceFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
-    replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
-    replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+# @define(eq=False, slots=False)
+# class AzureSqlInstanceFailoverGroup(MicrosoftResource):
+#     kind: ClassVar[str] = "azure_sql_instance_failover_group"
+#     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
+#         service="sql",
+#         version="2021-11-01",
+#         path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/locations/{locationName}/instanceFailoverGroups",
+#         path_parameters=["resourceGroupName", "locationName", "subscriptionId"],
+#         query_parameters=["api-version"],
+#         access_path="value",
+#         expect_array=True,
+#     )
+#     mapping: ClassVar[Dict[str, Bender]] = {
+#         "id": S("id"),
+#         "tags": S("tags", default={}),
+#         "name": S("name"),
+#         "type": S("type"),
+#         "managed_instance_pairs": S("properties", "managedInstancePairs")
+#         >> ForallBend(AzureManagedInstancePairInfo.mapping),
+#         "partner_regions": S("properties", "partnerRegions") >> ForallBend(AzurePartnerRegionInfo.mapping),
+#         "sql_instance_read_only_endpoint": S("properties", "readOnlyEndpoint", "failoverPolicy"),
+#         "sql_instance_read_write_endpoint": S("properties", "readWriteEndpoint")
+#         >> Bend(AzureInstanceFailoverGroupReadWriteEndpoint.mapping),
+#         "replication_role": S("properties", "replicationRole"),
+#         "replication_state": S("properties", "replicationState"),
+#     }
+#     managed_instance_pairs: Optional[List[AzureManagedInstancePairInfo]] = field(default=None, metadata={'description': 'List of managed instance pairs in the failover group.'})  # fmt: skip
+#     partner_regions: Optional[List[AzurePartnerRegionInfo]] = field(default=None, metadata={'description': 'Partner region information for the failover group.'})  # fmt: skip
+#     sql_instance_read_only_endpoint: Optional[str] = field(default=None, metadata={'description': 'Read-only endpoint of the failover group instance.'})  # fmt: skip
+#     sql_instance_read_write_endpoint: Optional[AzureInstanceFailoverGroupReadWriteEndpoint] = field(default=None, metadata={'description': 'Read-write endpoint of the failover group instance.'})  # fmt: skip
+#     replication_role: Optional[str] = field(default=None, metadata={'description': 'Local replication role of the failover group instance.'})  # fmt: skip
+#     replication_state: Optional[str] = field(default=None, metadata={'description': 'Replication state of the failover group instance.'})  # fmt: skip
+#     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
 
 @define(eq=False, slots=False)
@@ -469,15 +472,7 @@ class AzureSqlInstancePool(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlJobAgent(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_job_agent"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/jobAgents",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -498,15 +493,7 @@ class AzureSqlJobAgent(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlManagedDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_managed_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/managedInstances/{managedInstanceName}/databases",
-        path_parameters=["resourceGroupName", "managedInstanceName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -628,6 +615,9 @@ class AzureSqlManagedInstance(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_sql_managed_database", "azure_sql_server_trust_group"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -702,6 +692,50 @@ class AzureSqlManagedInstance(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if database_id := self.id:
+
+            def collect_managed_instance_databases() -> None:
+                api_spec = AzureResourceSpec(
+                    service="sql",
+                    version="2021-11-01",
+                    path=f"{database_id}/databases",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+
+                managed_instance_databases = AzureSqlManagedDatabase.collect(items, graph_builder)
+
+                for database in managed_instance_databases:
+                    graph_builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureSqlManagedDatabase, id=database.id
+                    )
+
+            def collect_trust_groups() -> None:
+                api_spec = AzureResourceSpec(
+                    service="sql",
+                    version="2021-11-01",
+                    path=f"{database_id}/serverTrustGroups",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+
+                trust_groups = AzureSqlServerTrustGroup.collect(items, graph_builder)
+
+                for trust_group in trust_groups:
+                    graph_builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureSqlServerTrustGroup, id=trust_group.id
+                    )
+
+            graph_builder.submit_work(service_name, collect_managed_instance_databases)
+            graph_builder.submit_work(service_name, collect_trust_groups)
+
 
 @define(eq=False, slots=False)
 class AzureSqlVirtualCluster(MicrosoftResource):
@@ -737,15 +771,7 @@ class AzureSqlVirtualCluster(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerTrustGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_trust_group"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/managedInstances/{managedInstanceName}/serverTrustGroups",
-        path_parameters=["resourceGroupName", "locationName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -762,15 +788,7 @@ class AzureSqlServerTrustGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlVirtualNetworkRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_virtual_network_rule"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/virtualNetworkRules",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -789,15 +807,7 @@ class AzureSqlVirtualNetworkRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlWorkloadGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_workload_group"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/workloadGroups",
-        path_parameters=["resourceGroupName", "serverName", "databaseName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -948,15 +958,7 @@ class AzureRecommendedAction:
 @define(eq=False, slots=False)
 class AzureSqlAdvisor(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_advisor"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="sql",
-        version="2021-11-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Sql/servers/{serverName}/advisors?$expand=recommendedActions",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path=None,
-        expect_array=True,
-    )
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1029,6 +1031,20 @@ class AzureSqlServer(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_sql_database",
+                "azure_sql_elastic_pool",
+                "azure_sql_private_endpoint_connection",
+                "azure_sql_failover_group",
+                "azure_sql_firewall_rule",
+                "azure_sql_job_agent",
+                "azure_sql_virtual_network_rule",
+                "azure_sql_advisor",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1072,14 +1088,67 @@ class AzureSqlServer(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        server_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+    ) -> None:
+        path = f"{server_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="sql",
+            version="2021-11-01",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                id=clazz.id,
+                clazz=class_instance,
+            )
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if server_id := self.id:
+            resources_to_collect = [
+                ("databases", AzureSqlDatabase),
+                ("elasticPools", AzureSqlElasticPool),
+                ("privateEndpointConnections", AzureSqlPrivateEndpointConnection),
+                ("failoverGroups", AzureSqlFailoverGroup),
+                ("firewallRules", AzureSqlFirewallRule),
+                ("jobAgents", AzureSqlJobAgent),
+                ("virtualNetworkRules", AzureSqlVirtualNetworkRule),
+                ("advisors?$expand=recommendedActions", AzureSqlAdvisor),
+            ]
+
+            for resource_type, resource_class in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    server_id,
+                    resource_type,
+                    resource_class,
+                )
+
 
 resources: List[Type[MicrosoftResource]] = [
     AzureSqlDatabase,
     AzureSqlElasticPool,
+    AzureSqlPrivateEndpointConnection,
     AzureSqlFailoverGroup,
     AzureSqlFirewallRule,
     AzureSqlGeoBackupPolicy,
-    AzureSqlInstanceFailoverGroup,
+    # AzureSqlInstanceFailoverGroup,
     AzureSqlInstancePool,
     AzureSqlJobAgent,
     AzureSqlManagedDatabase,
@@ -1089,6 +1158,5 @@ resources: List[Type[MicrosoftResource]] = [
     AzureSqlServerTrustGroup,
     AzureSqlVirtualNetworkRule,
     AzureSqlWorkloadGroup,
-    AzureSqlPrivateEndpointConnection,
     AzureSqlAdvisor,
 ]

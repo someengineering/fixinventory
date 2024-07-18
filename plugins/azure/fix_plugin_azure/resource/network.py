@@ -12,6 +12,7 @@ from fix_plugin_azure.resource.base import (
     AzureExtendedLocation,
     AzurePrivateLinkServiceConnectionState,
     AzureManagedServiceIdentity,
+    MicrosoftResource,
 )
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
 from fix_plugin_azure.utils import rgetattr
