@@ -181,68 +181,55 @@ class AzureSqlDatabase(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        database_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_error_codes: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{database_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="sql",
+            version="2021-11-01",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_error_codes or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                id=clazz.id,
+                clazz=class_instance,
+            )
+
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if database_id := self.id:
+            resources_to_collect = [
+                ("geoBackupPolicies", AzureSqlGeoBackupPolicy, None),
+                ("advisors?$expand=recommendedAction", AzureSqlAdvisor, None),
+                ("workloadGroups", AzureSqlWorkloadGroup, ["FeatureDisabledOnSelectedEdition"]),
+            ]
 
-            def collect_workload_groups() -> None:
-                api_spec = AzureResourceSpec(
-                    service="sql",
-                    version="2021-11-01",
-                    path=f"{database_id}/workloadGroups",
-                    path_parameters=[],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                    expected_error_codes=["FeatureDisabledOnSelectedEdition"],
+            for resource_type, resource_class, expected_error_codes in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    database_id,
+                    resource_type,
+                    resource_class,
+                    expected_error_codes,
                 )
-                items = graph_builder.client.list(api_spec)
-
-                workload_groups = AzureSqlWorkloadGroup.collect(items, graph_builder)
-
-                for workload_group in workload_groups:
-                    graph_builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureSqlWorkloadGroup, id=workload_group.id
-                    )
-
-            def collect_geo_backups() -> None:
-                api_spec = AzureResourceSpec(
-                    service="sql",
-                    version="2021-11-01",
-                    path=f"{database_id}/geoBackupPolicies",
-                    path_parameters=[],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                )
-                items = graph_builder.client.list(api_spec)
-
-                backup_policies = AzureSqlGeoBackupPolicy.collect(items, graph_builder)
-
-                for backup_policy in backup_policies:
-                    graph_builder.add_edge(
-                        self, edge_type=EdgeType.default, clazz=AzureSqlGeoBackupPolicy, id=backup_policy.id
-                    )
-
-            def collect_advisors() -> None:
-                api_spec = AzureResourceSpec(
-                    service="sql",
-                    version="2021-11-01",
-                    path=f"{database_id}/advisors?$expand=recommendedAction",
-                    path_parameters=[],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                )
-                items = graph_builder.client.list(api_spec)
-
-                advisors = AzureSqlAdvisor.collect(items, graph_builder)
-
-                for advisor in advisors:
-                    graph_builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureSqlAdvisor, id=advisor.id)
-
-            graph_builder.submit_work(service_name, collect_workload_groups)
-            graph_builder.submit_work(service_name, collect_geo_backups)
-            graph_builder.submit_work(service_name, collect_advisors)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if elastic_pool_id := self.elastic_pool_id:

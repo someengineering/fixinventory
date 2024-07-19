@@ -64,45 +64,33 @@ class MicrosoftResource(BaseResource):
 
     @property
     def resource_subscription_id(self) -> Optional[str]:
-        return self.extract_part("subscriptionId")
+        return self.extract_part("subscriptions")
 
     @property
     def resource_group_name(self) -> Optional[str]:
-        return self.extract_part("resourceGroupName")
+        return self.extract_part("resourceGroups")
 
     def extract_part(self, part: str) -> Optional[str]:
         """
         Extracts a specific part from a resource ID.
 
-        The function takes a resource ID and a specified part to extract, such as 'subscriptionId'.
+        The function takes a resource ID and a specified part to extract, such as 'subscriptions'.
         The resource ID is expected to follow the Azure Resource Manager path format.
 
         Example:
         For the resource ID "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...",
-        calling extract_part("subscriptionId") would return the value within the curly braces,
-        representing the subscription ID.
+        calling extract_part("subscriptions") would return the value representing the subscription ID.
 
         Parameters:
         - part (str): The part to extract from the resource ID.
 
         Returns:
-        str: The extracted part of the resource ID.
+        Optional[str]: The extracted part of the resource ID, or None if not found.
         """
         id_parts = self.id.split("/")
-
-        if part == "subscriptionId":
-            if "subscriptions" not in id_parts:
-                return None
-            if index := id_parts.index("subscriptions"):
-                return id_parts[index + 1]
-            return None
-        elif part == "resourceGroupName":
-            if "resourceGroups" not in id_parts:
-                return None
-            if index := id_parts.index("resourceGroups"):
-                return id_parts[index + 1]
-            return None
-        else:
+        try:
+            return id_parts[id_parts.index(part) + 1]
+        except ValueError:
             return None
 
     def delete(self, graph: Graph) -> bool:

@@ -34,9 +34,7 @@ from fix_plugin_azure.resource.network import (
     AzureNetworkUsage,
     resources as network_resources,
 )
-from fix_plugin_azure.resource.sql import (
-    resources as sql_resources,
-)
+from fix_plugin_azure.resource.sql import resources as sql_resources
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
