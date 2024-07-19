@@ -5,8 +5,10 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import AzureSku, GraphBuilder, MicrosoftResource
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal
 from fix_plugin_azure.resource.network import AzureSubnet
 from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -79,6 +81,7 @@ class AzureSqlDatabase(MicrosoftResource):
                 "azure_sql_workload_group",
                 "azure_sql_geo_backup_policy",
                 "azure_sql_advisor",
+                "microsoft_graph_service_principal",
             ]
         },
         "predecessors": {"default": ["azure_sql_elastic_pool"]},
@@ -106,7 +109,7 @@ class AzureSqlDatabase(MicrosoftResource):
         "failover_group_id": S("properties", "failoverGroupId"),
         "federated_client_id": S("properties", "federatedClientId"),
         "high_availability_replica_count": S("properties", "highAvailabilityReplicaCount"),
-        "daatabase_identity": S("identity") >> Bend(AzureDatabaseIdentity.mapping),
+        "database_identity": S("identity") >> Bend(AzureDatabaseIdentity.mapping),
         "is_infra_encryption_enabled": S("properties", "isInfraEncryptionEnabled"),
         "is_ledger_on": S("properties", "isLedgerOn"),
         "database_kind": S("kind"),
@@ -150,7 +153,7 @@ class AzureSqlDatabase(MicrosoftResource):
     failover_group_id: Optional[str] = field(default=None, metadata={'description': 'Failover Group resource identifier that this database belongs to.'})  # fmt: skip
     federated_client_id: Optional[str] = field(default=None, metadata={'description': 'The Client id used for cross tenant per database CMK scenario'})  # fmt: skip
     high_availability_replica_count: Optional[int] = field(default=None, metadata={'description': 'The number of secondary replicas associated with the database that are used to provide high availability. Not applicable to a Hyperscale database within an elastic pool.'})  # fmt: skip
-    daatabase_identity: Optional[AzureDatabaseIdentity] = field(default=None, metadata={'description': 'Azure Active Directory identity configuration for a resource.'})  # fmt: skip
+    database_identity: Optional[AzureDatabaseIdentity] = field(default=None, metadata={'description': 'Azure Active Directory identity configuration for a resource.'})  # fmt: skip
     is_infra_encryption_enabled: Optional[bool] = field(default=None, metadata={'description': 'Infra encryption is enabled for this database.'})  # fmt: skip
     is_ledger_on: Optional[bool] = field(default=None, metadata={'description': 'Whether or not this database is a ledger database, which means all tables in the database are ledger tables. Note: the value of this property cannot be changed after the database has been created.'})  # fmt: skip
     database_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of database. This is metadata used for the Azure portal experience.'})  # fmt: skip
@@ -236,6 +239,16 @@ class AzureSqlDatabase(MicrosoftResource):
             builder.add_edge(
                 self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlElasticPool, id=elastic_pool_id
             )
+        # principal: collected via ms graph -> create a deferred edge
+        if (di := self.database_identity) and (uai := di.user_assigned_identities):
+            for _, identity_info in uai.items():
+                if identity_info and identity_info.principal_id:
+                    builder.add_deferred_edge(
+                        from_node=self,
+                        to_node=BySearchCriteria(
+                            f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{identity_info.principal_id}"'
+                        ),
+                    )
 
 
 @define(eq=False, slots=False)
@@ -679,6 +692,7 @@ class AzureSqlManagedInstance(MicrosoftResource):
                 "azure_sql_managed_database",
                 "azure_sql_server_trust_group",
                 "azure_sql_private_endpoint_connection",
+                "microsoft_graph_service_principal",
             ]
         },
         "predecessors": {"default": ["azure_sql_instance_pool", "azure_subnet"]},
@@ -840,6 +854,13 @@ class AzureSqlManagedInstance(MicrosoftResource):
             )
         if subnet_id := self.subnet_id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
+
+        # principal: collected via ms graph -> create a deferred edge
+        if (mii := self.managed_instance_identity) and (pid := mii.principal_id):
+            builder.add_deferred_edge(
+                from_node=self,
+                to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+            )
 
 
 @define(eq=False, slots=False)
@@ -1160,6 +1181,7 @@ class AzureSqlServer(MicrosoftResource):
                 "azure_sql_job_agent",
                 "azure_sql_virtual_network_rule",
                 "azure_sql_advisor",
+                "microsoft_graph_service_principal",
             ]
         },
     }
@@ -1257,6 +1279,14 @@ class AzureSqlServer(MicrosoftResource):
                     resource_type,
                     resource_class,
                 )
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if (si := self.server_identity) and (pid := si.principal_id):
+            builder.add_deferred_edge(
+                from_node=self,
+                to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+            )
 
 
 resources: List[Type[MicrosoftResource]] = [
