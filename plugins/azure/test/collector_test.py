@@ -30,7 +30,7 @@ def collector_with_graph(
     collector = AzureSubscriptionCollector(
         config=AzureConfig(),
         cloud=Cloud(id="azure"),
-        subscription=AzureSubscription(id="test", subscription_id="test"),
+        account=AzureSubscription(id="test", subscription_id="test"),
         credentials=credentials,
         core_feedback=CoreFeedback("test", "test", "test", Queue()),
     )

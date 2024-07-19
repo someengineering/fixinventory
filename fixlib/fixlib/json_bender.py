@@ -367,6 +367,7 @@ class AsBool(Bender):
         else:
             return bool(source)
 
+
 def reformat_keys_to_snake(js: JsonElement) -> JsonElement:
     if isinstance(js, dict):
         return {snakecase(k): reformat_keys_to_snake(v) for k, v in js.items()}
@@ -374,6 +375,7 @@ def reformat_keys_to_snake(js: JsonElement) -> JsonElement:
         return [reformat_keys_to_snake(v) for v in js]
     else:
         return js
+
 
 class ParseJson(Bender):
     def __init__(self, keys_to_snake: bool = False, **kwargs: Any):

@@ -1182,7 +1182,7 @@ class MicrosoftGraphPolicy(MicrosoftGraphEntity):
                         ctime=parse_datetime(created) if created else None,
                         mtime=parse_datetime(updated) if updated else None,
                         description=description,
-                        policy=policy,
+                        policy=policy,  # type: ignore
                         enabled=enabled,
                     )
                     builder.add_node(gp)
