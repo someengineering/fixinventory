@@ -130,7 +130,9 @@ def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
     ctx = ArangoQueryContext()
     query = rewrite_query(query_model)
     start = f"`{db.name}_node_history`"
-    cursor, query_str = query_string(db, query, query_model, start, False, ctx, id_column="id")
+    cursor, query_str = query_string(
+        db, query, query_model, start, False, ctx, id_column="id", use_fulltext_index=False
+    )
     last_limit = f" LIMIT {ll.offset}, {ll.length}" if (ll := query.current_part.limit) else ""
     return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
 
@@ -302,7 +304,7 @@ def query_view_string(
     else:
         ctx.bind_vars.clear()
 
-    cursor, query_str = query_string(db, query, query_model, start_cursor, with_edges, ctx)
+    cursor, query_str = query_string(db, query, query_model, start_cursor, with_edges, ctx, use_fulltext_index=False)
     return cursor, qs + query_str
 
 
@@ -340,6 +342,7 @@ def query_string(
     *,
     outer_merge: Optional[str] = None,
     id_column: str = "_key",
+    use_fulltext_index: bool = True,
 ) -> Tuple[str, str]:
     # Note: the parts are maintained in reverse order
     query_parts = query.parts[::-1]
@@ -646,6 +649,7 @@ def query_string(
                 ctx,
                 outer_merge=merge_crsr,
                 id_column=id_column,
+                use_fulltext_index=use_fulltext_index,
             )
             if mq.only_first:
                 merge_result += (
@@ -960,7 +964,7 @@ def query_string(
         return q, crs
 
     parts = []
-    ft, remaining = fulltext_term_combine(query_parts[0].term)
+    ft, remaining = fulltext_term_combine(query_parts[0].term) if use_fulltext_index else (None, query_parts[0].term)
     fulltext_part, crsr = fulltext(ft, remaining) if ft else ("", start_cursor)
     for idx, p in enumerate(query_parts):
         part_tuple = part(p, crsr, idx)

@@ -744,7 +744,7 @@ class ArangoGraphDB(GraphDB):
         more_than_one = len(query.query.parts) > 1
         has_invalid_terms = any(query.query.find_terms(lambda t: isinstance(t, (FulltextTerm, MergeTerm))))
         has_navigation = any(p.navigation for p in query.query.parts)
-        if more_than_one and has_invalid_terms or has_navigation:
+        if more_than_one or has_invalid_terms or has_navigation:
             raise AttributeError("Fulltext, merge terms and navigation is not supported in history queries!")
         # adjust query
         term = query.query.current_part.term

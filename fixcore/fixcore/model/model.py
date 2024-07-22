@@ -1374,6 +1374,9 @@ predefined_kinds = [
             Property("exported_at", "datetime", False, None, "datetime when the account was exported."),
             Property("exported_age", "trafo.duration_to_datetime", False, SyntheticProperty(["exported_at"])),
             Property("provider_link", "string", False, None, "Link to the provider of this resource."),
+            # History entries
+            Property("change", "string", False, None, "Kind of change."),
+            Property("changed_at", "datetime", False, None, "Time of change."),
         ],
         metadata={"dynamic": True},
     ),
