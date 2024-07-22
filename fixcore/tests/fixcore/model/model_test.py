@@ -594,7 +594,7 @@ def test_filter_model(person_model: Model) -> None:
 
 def test_complete_path(person_model: Model) -> None:
     count, all_props = person_model.complete_path("", "", fuzzy=False, skip=0, limit=4)
-    assert count == 22  # total
+    assert count == 24  # total
     assert all_props == {"address": "Address", "addresses[*]": "Address", "age": "duration", "any": "any"}
     # filter by prefix
     count, all_props = person_model.complete_path("", "ad", fuzzy=False, skip=0, limit=4)
@@ -604,10 +604,10 @@ def test_complete_path(person_model: Model) -> None:
     assert ap == {"address": "Address", "addresses[*]": "Address", "other_addresses": "dictionary[string, Address]"}
     # filter by prefix fuzzy
     count, ap = person_model.complete_path("", "t", fuzzy=True, skip=0, limit=4)
-    assert ap == {"tags": "dictionary[string, string]", "test": "string", "city": "string", "ctime": "datetime"}
+    assert ap == {"tags": "dictionary[string, string]", "test": "string", "city": "string", "changed_at": "datetime"}
     # skip the first 4
     count, all_props = person_model.complete_path("", "", fuzzy=False, skip=4, limit=4)
-    assert all_props == {"city": "string", "ctime": "datetime", "expires": "datetime", "exported_age": "duration"}
+    assert all_props == {"change": "string", "changed_at": "datetime", "city": "string", "ctime": "datetime"}
     # ask for a nested kind
     count, all_props = person_model.complete_path("address", "", fuzzy=False, skip=4, limit=4)
     assert all_props == {"mtime": "datetime", "tags": "dictionary[string, string]", "zip": "string"}
