@@ -73,8 +73,8 @@ class AzureServerEditionCapabilityV2:
 
 
 @define(eq=False, slots=False)
-class AzureCapability(MicrosoftResource):
-    kind: ClassVar[str] = "azure_capability"
+class AzureMysqlCapabilitySet(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_capability_set"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -147,8 +147,8 @@ class AzureServerEditionCapability:
 
 
 @define(eq=False, slots=False)
-class AzureCapabilityProperties(MicrosoftResource):
-    kind: ClassVar[str] = "azure_capability_properties"
+class AzureMysqlCapability(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_capability"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -175,8 +175,8 @@ class AzureCapabilityProperties(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureConfiguration(MicrosoftResource):
-    kind: ClassVar[str] = "azure_configuration"
+class AzureMysqlConfiguration(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_configuration"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -222,8 +222,8 @@ class AzureConfiguration(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureDatabase(MicrosoftResource):
-    kind: ClassVar[str] = "azure_database"
+class AzureMysqlDatabase(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_database"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2021-05-01",
@@ -251,8 +251,8 @@ class AzureDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureFirewallRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_firewall_rule"
+class AzureMysqlFirewallRule(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_firewall_rule"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2021-05-01",
@@ -280,8 +280,8 @@ class AzureFirewallRule(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureLogFile(MicrosoftResource):
-    kind: ClassVar[str] = "azure_log_file"
+class AzureMysqlLogFile(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_log_file"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -313,8 +313,8 @@ class AzureLogFile(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMaintenance(MicrosoftResource):
-    kind: ClassVar[str] = "azure_maintenance"
+class AzureMysqlMaintenance(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_maintenance"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -397,8 +397,8 @@ class AzurePrivateEndpointConnection:
 
 
 @define(eq=False, slots=False)
-class AzurePrivateLinkResource(MicrosoftResource):
-    kind: ClassVar[str] = "azure_private_link_resource"
+class AzureMysqlPrivateLinkResource(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_private_link_resource"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-06-30",
@@ -556,8 +556,8 @@ class AzureImportSourceProperties:
 
 
 @define(eq=False, slots=False)
-class AzureServer(MicrosoftResource):
-    kind: ClassVar[str] = "azure_server"
+class AzureMysqlServer(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -627,8 +627,8 @@ class AzureServer(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureServerBackup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_server_backup"
+class AzureMysqlServerBackup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_backup"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2021-05-01",
@@ -658,8 +658,8 @@ class AzureServerBackup(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureServerBackupV2(MicrosoftResource):
-    kind: ClassVar[str] = "azure_server_backup_v2"
+class AzureMysqlServerBackupV2(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_backup_v2"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -693,15 +693,15 @@ class AzureServerBackupV2(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureCapability,
-    AzureCapabilityProperties,
-    AzureConfiguration,
-    AzureDatabase,
-    AzureFirewallRule,
-    AzureLogFile,
-    AzureMaintenance,
-    AzurePrivateLinkResource,
-    AzureServer,
-    AzureServerBackup,
-    AzureServerBackupV2,
+    AzureMysqlCapabilitySet,
+    AzureMysqlCapability,
+    AzureMysqlConfiguration,
+    AzureMysqlDatabase,
+    AzureMysqlFirewallRule,
+    AzureMysqlLogFile,
+    AzureMysqlMaintenance,
+    AzureMysqlPrivateLinkResource,
+    AzureMysqlServer,
+    AzureMysqlServerBackup,
+    AzureMysqlServerBackupV2,
 ]
