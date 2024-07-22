@@ -6,7 +6,7 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource, AzureSystemData
 from fixlib.baseresources import EdgeType, ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import AsBool, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 service_name = "azure_mysql"
@@ -157,19 +157,17 @@ class AzureMysqlCapability(MicrosoftResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": S("name"),
         "supported_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapability.mapping),
         "supported_geo_backup_regions": S("supportedGeoBackupRegions"),
         "supported_ha_mode": S("supportedHAMode"),
-        "zone": S("zone"),
+        "capability_zone": S("zone"),
     }
     supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
-    capability_properties_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
+    capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
 
 
 @define(eq=False, slots=False)
@@ -191,7 +189,7 @@ class AzureMysqlConfiguration(MicrosoftResource):
         "documentation_link": S("properties", "documentationLink"),
         "is_config_pending_restart": S("properties", "isConfigPendingRestart"),
         "is_dynamic_config": S("properties", "isDynamicConfig"),
-        "is_read_only": S("properties", "isReadOnly"),
+        "is_read_only": S("properties", "isReadOnly") >> AsBool(),
         "source": S("properties", "source"),
         "value": S("properties", "value"),
     }
@@ -511,6 +509,20 @@ class AzureMysqlServer(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_mysql_server_backup_v2",
+                "azure_mysql_server_backup",
+                "azure_mysql_private_link_resource",
+                "azure_mysql_maintenance",
+                "azure_mysql_log_file",
+                "azure_mysql_firewall_rule",
+                "azure_mysql_database",
+                "azure_mysql_configuration",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -528,7 +540,7 @@ class AzureMysqlServer(MicrosoftResource):
         "data_encryption": S("properties", "dataEncryption") >> Bend(AzureDataEncryption.mapping),
         "fully_qualified_domain_name": S("properties", "fullyQualifiedDomainName"),
         "high_availability": S("properties", "highAvailability") >> Bend(AzureHighAvailability.mapping),
-        "server_identity": S("identity") >> Bend(AzureMySQLServerIdentity.mapping),
+        "mysql_server_identity": S("identity") >> Bend(AzureMySQLServerIdentity.mapping),
         "import_source_properties": S("properties", "importSourceProperties")
         >> Bend(AzureImportSourceProperties.mapping),
         "maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
@@ -552,7 +564,7 @@ class AzureMysqlServer(MicrosoftResource):
     data_encryption: Optional[AzureDataEncryption] = field(default=None, metadata={'description': 'The date encryption for cmk.'})  # fmt: skip
     fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of a server.'})  # fmt: skip
     high_availability: Optional[AzureHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
-    server_identity: Optional[AzureMySQLServerIdentity] = field(default=None, metadata={'description': 'Properties to configure Identity for Bring your Own Keys'})  # fmt: skip
+    mysql_server_identity: Optional[AzureMySQLServerIdentity] = field(default=None, metadata={'description': 'Properties to configure Identity for Bring your Own Keys'})  # fmt: skip
     import_source_properties: Optional[AzureImportSourceProperties] = field(default=None, metadata={'description': 'Import source related properties.'})  # fmt: skip
     maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window of a server.'})  # fmt: skip
     network: Optional[AzureNetwork] = field(default=None, metadata={'description': 'Network related properties of a server'})  # fmt: skip
@@ -579,7 +591,7 @@ class AzureMysqlServer(MicrosoftResource):
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
-            service="sql",
+            service="mysql",
             version=api_version,
             path=path,
             path_parameters=[],

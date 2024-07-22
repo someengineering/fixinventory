@@ -35,6 +35,7 @@ from fix_plugin_azure.resource.network import (
     resources as network_resources,
 )
 from fix_plugin_azure.resource.sql import resources as sql_resources
+from fix_plugin_azure.resource.mysql import resources as mysql_resources
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -54,13 +55,14 @@ def resource_with_params(clazz: Type[MicrosoftResource], param: str) -> bool:
 
 subscription_resources: List[Type[MicrosoftResource]] = (
     base_resources
-    + authorization_resources
-    + compute_resources
-    + network_resources
-    + aks_resources
-    + security_resources
-    + storage_resources
-    + sql_resources
+    # + authorization_resources
+    # + compute_resources
+    # + network_resources
+    # + aks_resources
+    # + security_resources
+    # + storage_resources
+    # + sql_resources
+    + mysql_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
