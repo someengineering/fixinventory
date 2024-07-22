@@ -6,8 +6,6 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource, AzureSystemData
 from fixlib.baseresources import EdgeType, ModelReference
-
-# from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -177,15 +175,6 @@ class AzureMysqlCapability(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_configuration"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/configurations",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -224,15 +213,6 @@ class AzureMysqlConfiguration(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2021-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/databases",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -253,15 +233,6 @@ class AzureMysqlDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlFirewallRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_firewall_rule"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2021-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/firewallRules",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -282,15 +253,6 @@ class AzureMysqlFirewallRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlLogFile(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_log_file"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/logFiles",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -315,15 +277,6 @@ class AzureMysqlLogFile(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlMaintenance(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_maintenance"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/maintenances",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -399,15 +352,6 @@ class AzurePrivateEndpointConnection:
 @define(eq=False, slots=False)
 class AzureMysqlPrivateLinkResource(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_private_link_resource"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2023-06-30",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/privateLinkResources",
-        path_parameters=["resourceGroupName", "serverName", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -625,19 +569,64 @@ class AzureMysqlServer(MicrosoftResource):
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        server_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        api_version: str,
+    ) -> None:
+        path = f"{server_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="sql",
+            version=api_version,
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                id=clazz.id,
+                clazz=class_instance,
+            )
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if server_id := self.id:
+            resources_to_collect = [
+                ("backupsV2", AzureMysqlServerBackupV2, "2023-12-30"),
+                ("backups", AzureMysqlServerBackup, "2021-05-01"),
+                ("privateLinkResources", AzureMysqlPrivateLinkResource, "2023-06-30"),
+                ("maintenances", AzureMysqlMaintenance, "2023-12-30"),
+                ("logFiles", AzureMysqlLogFile, "2023-12-30"),
+                ("firewallRules", AzureMysqlFirewallRule, "2021-05-01"),
+                ("databases", AzureMysqlDatabase, "2021-05-01"),
+                ("configurations", AzureMysqlConfiguration, "2023-12-30"),
+            ]
+
+            for resource_type, resource_class, api_version in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    server_id,
+                    resource_type,
+                    resource_class,
+                    api_version,
+                )
+
 
 @define(eq=False, slots=False)
 class AzureMysqlServerBackup(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_backup"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2021-05-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/backups",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -660,15 +649,6 @@ class AzureMysqlServerBackup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerBackupV2(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_backup_v2"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforMySQL/flexibleServers/{serverName}/backupsV2",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
