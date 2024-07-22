@@ -72,19 +72,19 @@ class AzureDatabaseIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureSqlDatabase(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_database"
+class AzureSqlServerDatabase(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_database"
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
-                "azure_sql_workload_group",
-                "azure_sql_geo_backup_policy",
-                "azure_sql_advisor",
+                "azure_sql_server_database_workload_group",
+                "azure_sql_server_database_geo_backup_policy",
+                "azure_sql_server_advisor",
                 "microsoft_graph_user",
             ]
         },
-        "predecessors": {"default": ["azure_sql_elastic_pool"]},
+        "predecessors": {"default": ["azure_sql_server_elastic_pool"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -218,9 +218,9 @@ class AzureSqlDatabase(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if database_id := self.id:
             resources_to_collect = [
-                ("geoBackupPolicies", AzureSqlGeoBackupPolicy, None),
-                ("advisors?$expand=recommendedAction", AzureSqlAdvisor, None),
-                ("workloadGroups", AzureSqlWorkloadGroup, ["FeatureDisabledOnSelectedEdition"]),
+                ("geoBackupPolicies", AzureSqlServerDatabaseGeoBackupPolicy, None),
+                ("advisors?$expand=recommendedAction", AzureSqlServerAdvisor, None),
+                ("workloadGroups", AzureSqlServerDatabaseWorkloadGroup, ["FeatureDisabledOnSelectedEdition"]),
             ]
 
             for resource_type, resource_class, expected_error_codes in resources_to_collect:
@@ -237,7 +237,7 @@ class AzureSqlDatabase(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if elastic_pool_id := self.elastic_pool_id:
             builder.add_edge(
-                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlElasticPool, id=elastic_pool_id
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlServerElasticPool, id=elastic_pool_id
             )
         # principal: collected via ms graph -> create a deferred edge
         if (di := self.database_identity) and (uai := di.user_assigned_identities):
@@ -260,8 +260,8 @@ class AzureElasticPoolPerDatabaseSettings:
 
 
 @define(eq=False, slots=False)
-class AzureSqlElasticPool(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_elastic_pool"
+class AzureSqlServerElasticPool(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_elastic_pool"
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -299,8 +299,8 @@ class AzureSqlElasticPool(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlPrivateEndpointConnection(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_private_endpoint_connection"
+class AzureSqlServerPrivateEndpointConnection(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_private_endpoint_connection"
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -345,11 +345,11 @@ class AzurePartnerInfo:
 
 
 @define(eq=False, slots=False)
-class AzureSqlFailoverGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_failover_group"
+class AzureSqlServerFailoverGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_failover_group"
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_sql_database"]},
+        "predecessors": {"default": ["azure_sql_server_database"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -375,12 +375,14 @@ class AzureSqlFailoverGroup(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if database_ids := self.database_ids:
             for database_id in database_ids:
-                builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlDatabase, id=database_id)
+                builder.add_edge(
+                    self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlServerDatabase, id=database_id
+                )
 
 
 @define(eq=False, slots=False)
-class AzureSqlFirewallRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_firewall_rule"
+class AzureSqlServerFirewallRule(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_firewall_rule"
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -396,9 +398,9 @@ class AzureSqlFirewallRule(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlGeoBackupPolicy(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_geo_backup_policy"
-    # Collect via AzureSqlDatabase()
+class AzureSqlServerDatabaseGeoBackupPolicy(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_database_geo_backup_policy"
+    # Collect via AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -445,11 +447,11 @@ class AzureManagedInstancePairInfo:
 
 
 @define(eq=False, slots=False)
-class AzureSqlInstanceFailoverGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_instance_failover_group"
-    # Collect via AzureSqlManagedInstance()
+class AzureSqlServerManagedInstanceFailoverGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_managed_instance_failover_group"
+    # Collect via AzureSqlServerManagedInstance()
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_sql_managed_instance"]},
+        "predecessors": {"default": ["azure_sql_server_managed_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -484,20 +486,20 @@ class AzureSqlInstanceFailoverGroup(MicrosoftResource):
                         reverse=True,
                         edge_type=EdgeType.default,
                         id=primary_managed_instance_id,
-                        clazz=AzureSqlManagedInstance,
+                        clazz=AzureSqlServerManagedInstance,
                     )
                     builder.add_edge(
                         self,
                         reverse=True,
                         edge_type=EdgeType.default,
                         id=secondary_managed_instance_id,
-                        clazz=AzureSqlManagedInstance,
+                        clazz=AzureSqlServerManagedInstance,
                     )
 
 
 @define(eq=False, slots=False)
-class AzureSqlInstancePool(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_instance_pool"
+class AzureSqlServerManagedInstancePool(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_managed_instance_pool"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
         version="2021-11-01",
@@ -534,11 +536,11 @@ class AzureSqlInstancePool(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlJobAgent(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_job_agent"
+class AzureSqlServerJobAgent(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_job_agent"
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_sql_database"]},
+        "predecessors": {"default": ["azure_sql_server_database"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -558,13 +560,15 @@ class AzureSqlJobAgent(MicrosoftResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if database_id := self.database_id:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlDatabase, id=database_id)
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlServerDatabase, id=database_id
+            )
 
 
 @define(eq=False, slots=False)
-class AzureSqlManagedDatabase(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_managed_database"
-    # Collect via AzureSqlManagedInstance()
+class AzureSqlServerManagedInstanceDatabase(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_managed_instance_database"
+    # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -675,8 +679,8 @@ class AzureServicePrincipal:
 
 
 @define(eq=False, slots=False)
-class AzureSqlManagedInstance(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_managed_instance"
+class AzureSqlServerManagedInstance(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_managed_instance"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
         version="2021-11-01",
@@ -689,14 +693,14 @@ class AzureSqlManagedInstance(MicrosoftResource):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
-                "azure_sql_managed_database",
+                "azure_sql_server_managed_instance_database",
                 "azure_sql_server_trust_group",
-                "azure_sql_private_endpoint_connection",
+                "azure_sql_server_private_endpoint_connection",
                 "microsoft_graph_service_principal",
                 "microsoft_graph_user",
             ]
         },
-        "predecessors": {"default": ["azure_sql_instance_pool", "azure_subnet"]},
+        "predecessors": {"default": ["azure_sql_server_managed_instance_pool", "azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -804,7 +808,7 @@ class AzureSqlManagedInstance(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if database_id := self.id:
             resources_to_collect = [
-                ("databases", AzureSqlManagedDatabase),
+                ("databases", AzureSqlServerManagedInstanceDatabase),
                 ("serverTrustGroups", AzureSqlServerTrustGroup),
             ]
 
@@ -835,7 +839,7 @@ class AzureSqlManagedInstance(MicrosoftResource):
                 )
                 items = graph_builder.client.list(api_spec)
 
-                AzureSqlInstanceFailoverGroup.collect(items, graph_builder)
+                AzureSqlServerManagedInstanceFailoverGroup.collect(items, graph_builder)
 
             graph_builder.submit_work(service_name, collect_instance_failover_group)
 
@@ -846,12 +850,16 @@ class AzureSqlManagedInstance(MicrosoftResource):
                     builder.add_edge(
                         self,
                         edge_type=EdgeType.default,
-                        clazz=AzureSqlPrivateEndpointConnection,
+                        clazz=AzureSqlServerPrivateEndpointConnection,
                         private_endpoint_id=endpoint_id,
                     )
         if instance_pool_id := self.instance_pool_id:
             builder.add_edge(
-                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSqlInstancePool, id=instance_pool_id
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureSqlServerManagedInstancePool,
+                id=instance_pool_id,
             )
         if subnet_id := self.subnet_id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
@@ -875,8 +883,8 @@ class AzureSqlManagedInstance(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlVirtualCluster(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_virtual_cluster"
+class AzureSqlServerVirtualCluster(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_virtual_cluster"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
         version="2022-05-01-preview",
@@ -887,7 +895,7 @@ class AzureSqlVirtualCluster(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_sql_managed_instance"]},
+        "successors": {"default": ["azure_sql_server_managed_instance"]},
         "predecessors": {"default": ["azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -912,7 +920,7 @@ class AzureSqlVirtualCluster(MicrosoftResource):
         if managed_instance_ids := self.child_resources:
             for managed_instance_id in managed_instance_ids:
                 builder.add_edge(
-                    self, edge_type=EdgeType.default, clazz=AzureSqlManagedInstance, id=managed_instance_id
+                    self, edge_type=EdgeType.default, clazz=AzureSqlServerManagedInstance, id=managed_instance_id
                 )
         if subnet_id := self.subnet_id:
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
@@ -921,7 +929,7 @@ class AzureSqlVirtualCluster(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerTrustGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_trust_group"
-    # Collect via AzureSqlManagedInstance()
+    # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -936,8 +944,8 @@ class AzureSqlServerTrustGroup(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlVirtualNetworkRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_virtual_network_rule"
+class AzureSqlServerVirtualNetworkRule(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_virtual_network_rule"
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -955,9 +963,9 @@ class AzureSqlVirtualNetworkRule(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlWorkloadGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_workload_group"
-    # Collect via AzureSqlDatabase()
+class AzureSqlServerDatabaseWorkloadGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_database_workload_group"
+    # Collect via AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1106,9 +1114,9 @@ class AzureRecommendedAction:
 
 
 @define(eq=False, slots=False)
-class AzureSqlAdvisor(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_advisor"
-    # Collect via AzureSqlServer() and AzureSqlDatabase()
+class AzureSqlServerAdvisor(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_advisor"
+    # Collect via AzureSqlServer() and AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1184,14 +1192,14 @@ class AzureSqlServer(MicrosoftResource):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
-                "azure_sql_database",
-                "azure_sql_elastic_pool",
-                "azure_sql_private_endpoint_connection",
-                "azure_sql_failover_group",
-                "azure_sql_firewall_rule",
-                "azure_sql_job_agent",
-                "azure_sql_virtual_network_rule",
-                "azure_sql_advisor",
+                "azure_sql_server_database",
+                "azure_sql_server_elastic_pool",
+                "azure_sql_server_private_endpoint_connection",
+                "azure_sql_server_failover_group",
+                "azure_sql_server_firewall_rule",
+                "azure_sql_server_job_agent",
+                "azure_sql_server_virtual_network_rule",
+                "azure_sql_server_advisor",
                 "microsoft_graph_service_principal",
                 "microsoft_graph_user",
             ]
@@ -1272,14 +1280,14 @@ class AzureSqlServer(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if server_id := self.id:
             resources_to_collect = [
-                ("databases", AzureSqlDatabase),
-                ("elasticPools", AzureSqlElasticPool),
-                ("privateEndpointConnections", AzureSqlPrivateEndpointConnection),
-                ("failoverGroups", AzureSqlFailoverGroup),
-                ("firewallRules", AzureSqlFirewallRule),
-                ("jobAgents", AzureSqlJobAgent),
-                ("virtualNetworkRules", AzureSqlVirtualNetworkRule),
-                ("advisors?$expand=recommendedActions", AzureSqlAdvisor),
+                ("databases", AzureSqlServerDatabase),
+                ("elasticPools", AzureSqlServerElasticPool),
+                ("privateEndpointConnections", AzureSqlServerPrivateEndpointConnection),
+                ("failoverGroups", AzureSqlServerFailoverGroup),
+                ("firewallRules", AzureSqlServerFirewallRule),
+                ("jobAgents", AzureSqlServerJobAgent),
+                ("virtualNetworkRules", AzureSqlServerVirtualNetworkRule),
+                ("advisors?$expand=recommendedActions", AzureSqlServerAdvisor),
             ]
 
             for resource_type, resource_class in resources_to_collect:
@@ -1312,21 +1320,21 @@ class AzureSqlServer(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureSqlDatabase,
-    AzureSqlElasticPool,
-    AzureSqlPrivateEndpointConnection,
-    AzureSqlFailoverGroup,
-    AzureSqlFirewallRule,
-    AzureSqlGeoBackupPolicy,
-    AzureSqlInstanceFailoverGroup,
-    AzureSqlInstancePool,
-    AzureSqlJobAgent,
-    AzureSqlManagedDatabase,
-    AzureSqlManagedInstance,
+    AzureSqlServerDatabase,
+    AzureSqlServerElasticPool,
+    AzureSqlServerPrivateEndpointConnection,
+    AzureSqlServerFailoverGroup,
+    AzureSqlServerFirewallRule,
+    AzureSqlServerDatabaseGeoBackupPolicy,
+    AzureSqlServerManagedInstanceFailoverGroup,
+    AzureSqlServerManagedInstancePool,
+    AzureSqlServerJobAgent,
+    AzureSqlServerManagedInstanceDatabase,
+    AzureSqlServerManagedInstance,
     AzureSqlServer,
-    AzureSqlVirtualCluster,
+    AzureSqlServerVirtualCluster,
     AzureSqlServerTrustGroup,
-    AzureSqlVirtualNetworkRule,
-    AzureSqlWorkloadGroup,
-    AzureSqlAdvisor,
+    AzureSqlServerVirtualNetworkRule,
+    AzureSqlServerDatabaseWorkloadGroup,
+    AzureSqlServerAdvisor,
 ]
