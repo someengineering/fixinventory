@@ -14,7 +14,6 @@ from fixcore.query.model import (
     CombinedTerm,
     IsTerm,
     NotTerm,
-    IdTerm,
 )
 
 
@@ -76,12 +75,6 @@ def add_is_term(query_model: QueryModel) -> Query:
 def rewrite_query(
     query_model: QueryModel,
 ) -> Query:
-    q = query_model.query
-
-    #  remove sort if id is used
-    if isinstance(q.current_part.term, IdTerm):
-        q = q.change_current_part(lambda p: evolve(p, sort=[]))
-        query_model = evolve(query_model, query=q)
 
     # try to add an IsTerm if not already provided
     q = add_is_term(query_model)
