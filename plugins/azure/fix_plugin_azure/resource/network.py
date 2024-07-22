@@ -6,13 +6,13 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
-    MicrosoftResource,
     GraphBuilder,
     AzureSubResource,
     AzureSku,
     AzureExtendedLocation,
     AzurePrivateLinkServiceConnectionState,
     AzureManagedServiceIdentity,
+    MicrosoftResource,
 )
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
 from fix_plugin_azure.utils import rgetattr

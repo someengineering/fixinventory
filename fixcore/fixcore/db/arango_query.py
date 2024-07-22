@@ -84,6 +84,8 @@ regex_detect_pattern = re.compile(r"(?<!\\)([\[\]().|*+?^$]|\{[0-9]+(?:,[0-9]*)?
 regexp_leading_trailing = re.compile(r"(^\^?[.][*])|([.][*][$]?$)")
 # see: cli.py
 DefaultSort = [Sort("reported.kind"), Sort("reported.name"), Sort("reported.id")]
+# Disabled for the moment, since likes are case-sensitive and regex are not
+TranslateRegexpToLike = False
 
 
 class ArangoQueryContext:
@@ -170,7 +172,7 @@ def query_view_string(
         )
 
     def regexp_like(value: Any) -> Optional[str]:
-        if not isinstance(value, str):
+        if not TranslateRegexpToLike or not isinstance(value, str):
             return None
         ml = regexp_leading_trailing.sub("", value)
         ml = ml.replace("%", "\\%").replace("_", "\\_").replace(".*", "%").replace(".", "_")
@@ -789,13 +791,13 @@ def query_string(
             #        LET regions = (
             #            FOR region IN 1..1 OUTBOUND account `fix_test` OPTIONS { bfs: true, uniqueVertices: 'global' }
             #            FILTER "region" IN region.kinds
-            #            LIMIT 1
             #            LET resources = (
             #                FOR resource IN 1..1 OUTBOUND region `fix_test` OPTIONS {bfs:true,uniqueVertices:'global'}
             #                LIMIT 1
             #                RETURN resource
             #            )
             #            FILTER LENGTH(resources)>0
+            #            LIMIT 1
             #            RETURN region
             #        )
             #        FILTER LENGTH(regions)==0
@@ -827,8 +829,7 @@ def query_string(
                     # empty: if we find one element, it is not empty
                     # any: if we find one element, it is any
                     # count op x: if we find x+1 elements, we can always answer the predicate
-                    f"LIMIT {cl.with_filter.num + 1} "
-                    f"{inner} RETURN {for_crsr})"
+                    f"{inner} LIMIT {cl.with_filter.num + 1} RETURN {for_crsr})"
                     f"FILTER LENGTH({let_crs}){cl.with_filter.op}{cl.with_filter.num} "
                 )
 
