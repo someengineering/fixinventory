@@ -165,7 +165,7 @@ class MSGraphClassModel:
             parameters = {
                 "$select": ",".join(p.name for p in self.hierarchy_props()),
             }
-            api = f'    api_spec: ClassVar[AzureRestSpec] = AzureRestApiSpec("entra", "https://graph.microsoft.com/v1.0/{self.title.lower()}s", parameters={parameters}, access_path="value")'
+            api = f'    api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec("graph", "https://graph.microsoft.com/v1.0/{self.title.lower()}s", parameters={parameters}, access_path="value")'
         # tags need a default value
         base_mappings: Dict[str, str] = {}
         for bp in ["id", "tags", "name", "ctime", "mtime", "atime"]:
@@ -277,7 +277,7 @@ def process_schema(path: str) -> MSSchemaModel:
 
 
 if __name__ == "__main__":
-    specs_path = os.environ.get("GRAPH_REST_API", "../../../../msgraph-metadata/openapi/beta/openapi.yaml")
+    specs_path = os.environ.get("GRAPH_REST_API", "../../../../msgraph-metadata/openapi/v1.0/openapi.yaml")
     assert specs_path, (
         "GRAPH_REST_API need to be defined! "
         "Checkout https://github.com/microsoftgraph/msgraph-metadata and set path in env"

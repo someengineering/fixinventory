@@ -30,7 +30,7 @@ def collector_with_graph(
     collector = AzureSubscriptionCollector(
         config=AzureConfig(),
         cloud=Cloud(id="azure"),
-        subscription=AzureSubscription(id="test", subscription_id="test"),
+        account=AzureSubscription(id="test", subscription_id="test"),
         credentials=credentials,
         core_feedback=CoreFeedback("test", "test", "test", Queue()),
     )
@@ -49,16 +49,16 @@ def test_collect(
         config, Cloud(id="azure"), azure_subscription, credentials, core_feedback
     )
     subscription_collector.collect()
-    assert len(subscription_collector.graph.nodes) == 372
-    assert len(subscription_collector.graph.edges) == 558
+    assert len(subscription_collector.graph.nodes) == 374
+    assert len(subscription_collector.graph.edges) == 560
 
     graph_collector = MicrosoftGraphOrganizationCollector(
         config, Cloud(id="azure"), MicrosoftGraphOrganization(id="test", name="test"), credentials, core_feedback
     )
     graph_collector.collect()
 
-    assert len(graph_collector.graph.nodes) == 7
-    assert len(graph_collector.graph.edges) == 6
+    assert len(graph_collector.graph.nodes) == 14
+    assert len(graph_collector.graph.edges) == 13
 
 
 def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
@@ -73,7 +73,7 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
 
     num_all_virtual_machine_types = list(collector.graph.search("kind", "azure_virtual_machine_size"))
 
-    collector.filter_nodes()
+    collector.remove_unused()
 
     assert len(list(collector.graph.search("kind", "azure_virtual_machine_size"))) < len(num_all_virtual_machine_types)
 
@@ -81,7 +81,7 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
 
     assert len(pricing_info) > 0
 
-    collector.after_collect_filter()
+    collector.after_collect()
     assert len(list(collector.graph.search("kind", "azure_disk_type_pricing"))) < len(pricing_info)
 
 

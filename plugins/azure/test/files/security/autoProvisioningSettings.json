@@ -1,0 +1,20 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/20ff7fc3-e762-44dd-bd96-b71116dcdc23/providers/Microsoft.Security/autoProvisioningSettings/default",
+            "name": "default",
+            "type": "Microsoft.Security/autoProvisioningSettings",
+            "properties": {
+                "autoProvision": "On"
+            }
+        },
+        {
+            "id": "/subscriptions/20ff7fc3-e762-44dd-bd96-b71116dcdc23/providers/Microsoft.Security/autoProvisioningSettings/somethingElse",
+            "name": "somethingElse",
+            "type": "Microsoft.Security/autoProvisioningSettings",
+            "properties": {
+                "autoProvision": "Off"
+            }
+        }
+    ]
+}

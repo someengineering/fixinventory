@@ -1,0 +1,9 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#policies/authenticationFlowsPolicy/$entity",
+    "description": "Authentication flows policy allows modification of settings related to authentication flows in AAD tenant, such as self-service sign up configuration.",
+    "displayName": "Authentication flows policy",
+    "id": "authenticationFlowsPolicy",
+    "selfServiceSignUp": {
+        "isEnabled": false
+    }
+}

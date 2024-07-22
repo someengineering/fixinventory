@@ -1,0 +1,65 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#authenticationMethodsPolicy",
+    "authenticationMethodConfigurations": [
+        {
+            "@odata.type": "#microsoft.graph.x509CertificateAuthenticationMethodConfiguration",
+            "authenticationModeConfiguration": {
+                "rules": [],
+                "x509CertificateAuthenticationDefaultMode": "x509CertificateSingleFactor",
+                "x509CertificateDefaultRequiredAffinityLevel": "low"
+            },
+            "certificateUserBindings": [
+                {
+                    "priority": 1,
+                    "trustAffinityLevel": "low",
+                    "userProperty": "userPrincipalName",
+                    "x509CertificateField": "PrincipalName"
+                },
+                {
+                    "priority": 2,
+                    "trustAffinityLevel": "low",
+                    "userProperty": "userPrincipalName",
+                    "x509CertificateField": "RFC822Name"
+                },
+                {
+                    "priority": 3,
+                    "trustAffinityLevel": "high",
+                    "userProperty": "certificateUserIds",
+                    "x509CertificateField": "SubjectKeyIdentifier"
+                }
+            ],
+            "excludeTargets": [],
+            "id": "X509Certificate",
+            "includeTargets": [
+                {
+                    "id": "all_users",
+                    "isRegistrationRequired": false,
+                    "targetType": "group"
+                }
+            ],
+            "includeTargets@odata.context": "https://graph.microsoft.com/v1.0/$metadata#policies/authenticationMethodsPolicy/authenticationMethodConfigurations('X509Certificate')/microsoft.graph.x509CertificateAuthenticationMethodConfiguration/includeTargets",
+            "state": "disabled"
+        }
+    ],
+    "authenticationMethodConfigurations@odata.context": "https://graph.microsoft.com/v1.0/$metadata#policies/authenticationMethodsPolicy/authenticationMethodConfigurations",
+    "description": "The tenant-wide policy that controls which authentication methods are allowed in the tenant, authentication method registration requirements, and self-service password reset settings",
+    "displayName": "Authentication Methods Policy",
+    "id": "authenticationMethodsPolicy",
+    "lastModifiedDateTime": "0001-01-01T00:00:00Z",
+    "policyMigrationState": "migrationInProgress",
+    "policyVersion": "1.5",
+    "registrationEnforcement": {
+        "authenticationMethodsRegistrationCampaign": {
+            "excludeTargets": [],
+            "includeTargets": [
+                {
+                    "id": "all_users",
+                    "targetType": "group",
+                    "targetedAuthenticationMethod": "microsoftAuthenticator"
+                }
+            ],
+            "snoozeDurationInDays": 1,
+            "state": "default"
+        }
+    }
+}

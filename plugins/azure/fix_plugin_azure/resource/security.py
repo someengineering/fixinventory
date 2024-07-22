@@ -5,7 +5,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
-from fixlib.json_bender import Bender, S, Bend, ForallBend
+from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
 
@@ -170,7 +170,28 @@ class AzureSecuritySetting(MicrosoftResource):
     enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the setting is enabled."})
 
 
+@define(eq=False, slots=False)
+class AzureAutoProvisioningSetting(MicrosoftResource):
+    kind: ClassVar[str] = "azure_auto_provisioning_setting"
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
+        service="security",
+        version="2017-08-01-preview",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Security/autoProvisioningSettings",
+        path_parameters=["subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "name": S("name"),
+        "auto_provision": S("properties", "autoProvision") >> F(lambda x: x == "On"),
+    }
+    auto_provision: Optional[bool] = field(default=None, metadata={'description': 'describes properties of an auto provisioning setting'})  # fmt: skip
+
+
 resources: List[Type[MicrosoftResource]] = [
+    AzureAutoProvisioningSetting,
     AzureSecurityAssessment,
     AzureSecurityPricing,
     AzureSecurityServerVulnerabilityAssessmentsSetting,

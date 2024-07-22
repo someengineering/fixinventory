@@ -1,0 +1,62 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#organization",
+    "value": [
+        {
+            "assignedPlans": [
+                {
+                    "assignedDateTime": "2024-03-12T04:27:24Z",
+                    "capabilityStatus": "Enabled",
+                    "service": "WindowsAzure",
+                    "servicePlanId": "00000000-0000-0000-0000-000000000000"
+                }
+            ],
+            "businessPhones": [],
+            "city": "San Francisco",
+            "country": null,
+            "countryLetterCode": "US",
+            "createdDateTime": "2023-03-21T12:16:54Z",
+            "defaultUsageLocation": null,
+            "deletedDateTime": null,
+            "directorySizeQuota": {
+                "total": 300000,
+                "used": 268
+            },
+            "displayName": "Default Directory",
+            "id": "00000000-0000-0000-0000-000000000000",
+            "isMultipleDataLocationsForServicesEnabled": null,
+            "marketingNotificationEmails": [],
+            "onPremisesLastSyncDateTime": null,
+            "onPremisesSyncEnabled": null,
+            "onPremisesSyncStatus": [],
+            "partnerTenantType": null,
+            "postalCode": "15366",
+            "preferredLanguage": "en",
+            "privacyProfile": null,
+            "provisionedPlans": [],
+            "securityComplianceNotificationMails": [],
+            "securityComplianceNotificationPhones": [],
+            "state": "ca",
+            "street": "72 Battery St",
+            "technicalNotificationMails": [
+                "test@foo.bla"
+            ],
+            "tenantType": "AAD",
+            "verifiedDomains": [
+                {
+                    "capabilities": "Email, OfficeCommunicationsOnline",
+                    "isDefault": false,
+                    "isInitial": true,
+                    "name": "foo.onmicrosoft.com",
+                    "type": "Managed"
+                },
+                {
+                    "capabilities": "None",
+                    "isDefault": true,
+                    "isInitial": false,
+                    "name": "some.engineering",
+                    "type": "Managed"
+                }
+            ]
+        }
+    ]
+}

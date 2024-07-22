@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
+from isodate import parse_datetime
 
 from fix_plugin_azure.azure_client import RestApiSpec, MicrosoftRestSpec
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
 from fixlib.baseresources import BaseGroup, BaseRole, BaseAccount, BaseRegion, ModelReference, BaseUser
-from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict
+from fixlib.graph import BySearchCriteria, ByNodeId
+from fixlib.json_bender import Bender, S, ForallBend, Bend, F, MapDict, reformat_keys_to_snake
 from fixlib.types import Json
+
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -1097,10 +1102,95 @@ class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
     tenant_type: Optional[str] = field(default=None, metadata={'description': 'Not nullable. Can be one of the following types: AAD - An enterprise identity access management (IAM) service that serves business-to-employee and business-to-business (B2B) scenarios. AAD B2C An identity access management (IAM) service that serves business-to-consumer (B2C) scenarios. CIAM - A customer identity & access management (CIAM) solution that provides an integrated platform to serve consumers, partners, and citizen scenarios.'})  # fmt: skip
     verified_domains: Optional[List[MicrosoftGraphVerifiedDomain]] = field(default=None, metadata={'description': 'The collection of domains associated with this tenant. Not nullable.'})  # fmt: skip
 
+    @classmethod
+    def deferred_edge_to_subscription(cls, builder: GraphBuilder) -> None:
+        for js in builder.client.list(cls.api_spec):
+            org = cls.from_api(js)
+            builder.add_deferred_edge(
+                BySearchCriteria(f'is({cls.kind}) and reported.id=="{org.id}"'), ByNodeId(builder.account.chksum)
+            )
+
 
 @define(eq=False, slots=False)
 class MicrosoftGraphOrganizationRoot(MicrosoftGraphEntity, BaseRegion):
     kind: ClassVar[str] = "microsoft_graph_organization_root"
+
+
+@define(eq=False, slots=False)
+class MicrosoftGraphPolicy(MicrosoftGraphEntity):
+    kind: ClassVar[str] = "microsoft_graph_policy"
+
+    policy_kind: Optional[str] = field(default=None, metadata={"description": "The kind of policy."})
+    enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the policy is enabled."})
+    description: Optional[str] = field(default=None, metadata={"description": "Description of the policy."})
+    policy: Optional[Json] = field(default=None, metadata={"description": "The policy."})
+
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List[MicrosoftGraphPolicy]:
+        base = "https://graph.microsoft.com/v1.0/policies"
+        policies = {
+            "admin_consent request": RestApiSpec("graph", f"{base}/adminConsentRequestPolicy"),
+            "authorization": RestApiSpec("graph", f"{base}/authorizationPolicy"),
+            "authentication_flow": RestApiSpec("graph", f"{base}/authenticationFlowsPolicy"),
+            "authentication_method": RestApiSpec("graph", f"{base}/authenticationMethodsPolicy"),
+            "cross_tenant_access": RestApiSpec("graph", f"{base}/crossTenantAccessPolicy"),
+            "default_app_management": RestApiSpec("graph", f"{base}/defaultAppManagementPolicy"),
+            "device_registration": RestApiSpec("graph", f"{base}/deviceRegistrationPolicy"),
+            "identity_security_defaults_enforcement": RestApiSpec(
+                "graph", f"{base}/identitySecurityDefaultsEnforcementPolicy"
+            ),
+            "activity_based_timeout": RestApiSpec(
+                "graph", f"{base}/activityBasedTimeoutPolicies", expect_array=True, access_path="value"
+            ),
+            "app_management": RestApiSpec(
+                "graph", f"{base}/appManagementPolicies", expect_array=True, access_path="value"
+            ),
+            "authentication_strength": RestApiSpec(
+                "graph", f"{base}/authenticationStrengthPolicies", expect_array=True, access_path="value"
+            ),
+            "claims_mapping": RestApiSpec(
+                "graph", f"{base}/claimsMappingPolicies", expect_array=True, access_path="value"
+            ),
+            "conditional_access": RestApiSpec(
+                "graph", f"{base}/conditionalAccessPolicies", expect_array=True, access_path="value"
+            ),
+            "feature_rollout": RestApiSpec(
+                "graph", f"{base}/featureRolloutPolicies", expect_array=True, access_path="value"
+            ),
+            "home_realm_discovery": RestApiSpec(
+                "graph", f"{base}/homeRealmDiscoveryPolicies", expect_array=True, access_path="value"
+            ),
+            "token_issuance": RestApiSpec(
+                "graph", f"{base}/tokenIssuancePolicies", expect_array=True, access_path="value"
+            ),
+        }
+        result = []
+        for policy_kind, spec in policies.items():
+            try:
+                for response in builder.client.list(spec, **kwargs):
+                    rid = response.pop("id", policy_kind)
+                    name = response.pop("displayName", policy_kind)
+                    description = response.pop("description", None)
+                    enabled = response.pop("isEnabled", None) or response.pop("state", None) == "enabled" or True
+                    created = response.pop("createdDateTime", None)
+                    updated = response.pop("modifiedDateTime", None)
+                    policy = reformat_keys_to_snake({k: v for k, v in response.items() if not k.startswith("@odata")})
+                    gp = MicrosoftGraphPolicy(
+                        id=rid,
+                        policy_kind=policy_kind,
+                        name=name,
+                        ctime=parse_datetime(created) if created else None,
+                        mtime=parse_datetime(updated) if updated else None,
+                        description=description,
+                        policy=policy,  # type: ignore
+                        enabled=enabled,
+                    )
+                    builder.add_node(gp)
+                    result.append(gp)
+
+            except Exception as e:
+                log.warning(f"Error while collecting policies with service {spec.service}: {e}")
+        return result
 
 
 KindLookup = {
@@ -1117,6 +1207,7 @@ MicrosoftGraphPrincipalTypes: List[Type[MicrosoftGraphEntity]] = [
 
 
 resources: List[Type[MicrosoftResource]] = [
+    MicrosoftGraphPolicy,
     MicrosoftGraphDevice,
     MicrosoftGraphServicePrincipal,
     MicrosoftGraphGroup,

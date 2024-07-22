@@ -368,20 +368,21 @@ class AsBool(Bender):
             return bool(source)
 
 
+def reformat_keys_to_snake(js: JsonElement) -> JsonElement:
+    if isinstance(js, dict):
+        return {snakecase(k): reformat_keys_to_snake(v) for k, v in js.items()}
+    elif isinstance(js, list):
+        return [reformat_keys_to_snake(v) for v in js]
+    else:
+        return js
+
+
 class ParseJson(Bender):
     def __init__(self, keys_to_snake: bool = False, **kwargs: Any):
         super().__init__(**kwargs)
         self._keys_to_snake = keys_to_snake
 
     def execute(self, source: Any) -> Any:
-        def reformat_keys_to_snake(js: JsonElement) -> JsonElement:
-            if isinstance(js, dict):
-                return {snakecase(k): reformat_keys_to_snake(v) for k, v in js.items()}
-            elif isinstance(js, list):
-                return [reformat_keys_to_snake(v) for v in js]
-            else:
-                return js
-
         if isinstance(source, str):
             try:
                 result = json.loads(source)
