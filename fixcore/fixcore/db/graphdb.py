@@ -568,7 +568,7 @@ class ArangoGraphDB(GraphDB):
 
         def update_security_section(
             existing_issues: List[Json], actual_issues: List[SecurityIssue]
-        ) -> Tuple[List[Json], HistoryChange, ReportSeverity, bool, Json]:
+        ) -> Tuple[List[Json], ReportSeverity, bool, Json]:
             existing = read_checks(existing_issues)
             updated: Dict[str, SecurityIssue] = {}  # check id -> issue
             diff_compliant: List[Json] = []
@@ -597,21 +597,22 @@ class ArangoGraphDB(GraphDB):
             # the node severity is the highest severity of all issues
             previous = max((a.severity for a in existing.values()), default=ReportSeverity.info)
             severity = max((a.severity for a in updated.values()), default=ReportSeverity.info)
-            # the node is still vulnerable: the change marks either improvement or worsening
-            change = (
-                HistoryChange.node_compliant
-                # better #1: severity is lower, #2: severity is the same, but less issues
-                if (severity < previous or (severity == previous and len(existing) > len(updated)))
-                else HistoryChange.node_vulnerable
-            )
+            # the node is still vulnerable: the progress marks either improvement (+1), no change (0), or worsening (-1)
+            if severity < previous or (severity == previous and len(existing) > len(updated)):
+                progress = 1
+            elif severity == previous and len(existing) == len(updated):
+                progress = 0
+            else:
+                progress = -1
             diff: Json = {
                 HistoryChange.node_compliant.value: diff_compliant,
                 HistoryChange.node_vulnerable.value: diff_vulnerable,
+                "progress": progress,
             }
             if existing:
                 diff["previous"] = previous.value
             changed = bool(diff_compliant or diff_vulnerable)
-            return [a.to_json() for a in updated.values()], change, severity, changed, diff
+            return [a.to_json() for a in updated.values()], severity, changed, diff
 
         async def update_chunk(chunk: Dict[NodeId, List[SecurityIssue]]) -> None:
             nonlocal nodes_vulnerable_new, nodes_vulnerable_updated
@@ -623,7 +624,7 @@ class ArangoGraphDB(GraphDB):
                     node_id = NodeId(node.pop("_key", ""))
                     node["id"] = node_id  # store the id in the id column (not _key)
                     existing: List[Json] = value_in_path_get(node, NodePath.security_issues, [])
-                    updated, change, severity, changed, diff = update_security_section(existing, chunk.get(node_id, []))
+                    updated, severity, changed, diff = update_security_section(existing, chunk.get(node_id, []))
                     security_section = dict(
                         issues=updated,
                         opened_at=value_in_path_get(node, NodePath.security_opened_at, now),
@@ -634,17 +635,16 @@ class ArangoGraphDB(GraphDB):
                     )
                     node["security"] = security_section
                     node["changed_at"] = now
+                    node["change"] = "node_vulnerable"
                     if not existing:  # no issues before, but now
                         nodes_vulnerable_new += 1
                         security_section["opened_at"] = now
                         security_section["reopen_counter"] = security_section["reopen_counter"] + 1  # type: ignore
-                        node["change"] = "node_vulnerable"
                         node["diff"] = diff
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
                     elif changed:
                         nodes_vulnerable_updated += 1
                         nodes_to_insert.append(dict(action="node_vulnerable", node_id=node_id, data=node))
-                        node["change"] = change.value
                         node["diff"] = diff
                     else:  # no change
                         nodes_to_insert.append(dict(action="mark", node_id=node_id, run_id=report_run_id))
