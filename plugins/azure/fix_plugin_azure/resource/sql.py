@@ -12,7 +12,7 @@ from fix_plugin_azure.resource.base import (
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
-from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -1170,7 +1170,7 @@ class AzureServerExternalAdministrator:
 
 
 @define(eq=False, slots=False)
-class AzureSqlServer(MicrosoftResource):
+class AzureSqlServer(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",

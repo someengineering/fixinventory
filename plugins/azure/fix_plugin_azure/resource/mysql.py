@@ -10,7 +10,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
-from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
 from fixlib.json_bender import AsBool, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -81,8 +81,8 @@ class AzureMysqlCapabilitySet(MicrosoftResource):
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{locationName}/capabilitySets",
-        path_parameters=["subscriptionId", "locationName"],
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{location}/capabilitySets",
+        path_parameters=["subscriptionId", "location"],
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
@@ -107,6 +107,11 @@ class AzureMysqlCapabilitySet(MicrosoftResource):
     supported_server_versions: Optional[List[str]] = field(default=None, metadata={'description': 'A list of supported server versions.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+    display_location_name: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if builder_location := graph_builder.location:
+            self.display_location_name = builder_location.long_name
 
 
 @define(eq=False, slots=False)
@@ -155,13 +160,15 @@ class AzureMysqlCapability(MicrosoftResource):
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{locationName}/capabilities",
-        path_parameters=["subscriptionId", "locationName"],
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{location}/capabilities",
+        path_parameters=["subscriptionId", "location"],
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("zone"),
+        "name":S("zone"),
         "tags": S("tags", default={}),
         "supported_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapability.mapping),
@@ -173,6 +180,12 @@ class AzureMysqlCapability(MicrosoftResource):
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
+    display_location_name: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if builder_location := graph_builder.location:
+            self.display_location_name = builder_location.long_name
+
 
 
 @define(eq=False, slots=False)
@@ -492,7 +505,7 @@ class AzureImportSourceProperties:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlServer(MicrosoftResource):
+class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_mysql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
@@ -582,6 +595,7 @@ class AzureMysqlServer(MicrosoftResource):
         resource_type: str,
         class_instance: MicrosoftResource,
         api_version: str,
+        expected_errors: Optional[List[str]] = None,
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -592,6 +606,7 @@ class AzureMysqlServer(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
+            expected_error_codes=expected_errors or []
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -608,17 +623,17 @@ class AzureMysqlServer(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if server_id := self.id:
             resources_to_collect = [
-                ("backupsV2", AzureMysqlServerBackupV2, "2023-12-30"),
-                ("backups", AzureMysqlServerBackup, "2021-05-01"),
-                ("privateLinkResources", AzureMysqlServerPrivateLinkResource, "2023-06-30"),
-                ("maintenances", AzureMysqlServerMaintenance, "2023-12-30"),
-                ("logFiles", AzureMysqlServerLogFile, "2023-12-30"),
-                ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01"),
-                ("databases", AzureMysqlServerDatabase, "2021-05-01"),
-                ("configurations", AzureMysqlServerConfiguration, "2023-12-30"),
+                ("backupsV2", AzureMysqlServerBackupV2, "2023-12-30", ["ServerNotExist"]),
+                ("backups", AzureMysqlServerBackup, "2021-05-01", ["ServerNotExist"]),
+                ("privateLinkResources", AzureMysqlServerPrivateLinkResource, "2023-06-30", None),
+                ("maintenances", AzureMysqlServerMaintenance, "2023-12-30", None),
+                ("logFiles", AzureMysqlServerLogFile, "2023-12-30", ["ServerNotExist"]),
+                ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01", None),
+                ("databases", AzureMysqlServerDatabase, "2021-05-01", ["ServerUnavailableForOperation"]),
+                ("configurations", AzureMysqlServerConfiguration, "2023-12-30", ["ServerUnavailableForOperation"]),
             ]
 
-            for resource_type, resource_class, api_version in resources_to_collect:
+            for resource_type, resource_class, api_version, expected_errors in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
                     self._collect_items,
@@ -627,7 +642,13 @@ class AzureMysqlServer(MicrosoftResource):
                     resource_type,
                     resource_class,
                     api_version,
+                    expected_errors,
                 )
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if location := self.location:
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureMysqlCapability, display_location_name=location)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureMysqlCapabilitySet, display_location_name=location)            
 
 
 @define(eq=False, slots=False)

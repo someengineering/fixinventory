@@ -35,7 +35,7 @@ from fix_plugin_azure.resource.network import (
     resources as network_resources,
 )
 from fix_plugin_azure.resource.sql import resources as sql_resources
-from fix_plugin_azure.resource.mysql import resources as mysql_resources
+from fix_plugin_azure.resource.mysql import AzureMysqlCapability, AzureMysqlCapabilitySet, resources as mysql_resources
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -235,6 +235,8 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
         rm_nodes(AzureDiskType, AzureLocation)
         rm_nodes(AzureStorageSku, AzureLocation)
+        rm_nodes(AzureMysqlCapabilitySet, AzureLocation)
+        rm_nodes(AzureMysqlCapability, AzureLocation)
         remove_usage_zero_value()
 
     def after_collect(self) -> None:
