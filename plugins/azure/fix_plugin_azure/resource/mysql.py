@@ -10,8 +10,8 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
-from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
-from fixlib.json_bender import AsBool, Bender, S, ForallBend, Bend
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
+from fixlib.json_bender import F, K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_mysql"
@@ -561,6 +561,33 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         "state": S("properties", "state"),
         "storage": S("properties", "storage") >> Bend(AzureStorage.mapping),
         "version": S("properties", "version"),
+        "db_type": K("mysql"),
+        "db_status": S("properties", "state")
+        >> MapEnum(
+            {
+                "Disabled": DatabaseInstanceStatus.FAILED,
+                "Dropping": DatabaseInstanceStatus.TERMINATED,
+                "Ready": DatabaseInstanceStatus.AVAILABLE,
+                "Starting": DatabaseInstanceStatus.BUSY,
+                "Stopped": DatabaseInstanceStatus.STOPPED,
+                "Stopping": DatabaseInstanceStatus.BUSY,
+                "Updating": DatabaseInstanceStatus.BUSY,
+            }
+        ),
+        "db_endpoint": S("properties", "fullyQualifiedDomainName"),
+        "db_version": S("properties", "version"),
+        "db_publicly_accessible": S("properties", "network", "publicNetworkAccess")
+        >> MapValue(
+            {
+                "Disabled": False,
+                "Enabled": True,
+            },
+            default=False,
+        ),
+        "instance_type": S("sku", "name"),
+        "volume_size": S("properties", "storage", "storageSizeGB"),
+        "volume_iops": S("properties", "storage", "iops"),
+        "volume_encrypted": S("properties", "dataEncryption") >> F(lambda srvr: srvr is not None),
     }
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login name of a server. Can only be specified when the server is being created (and is required for creation).'})  # fmt: skip
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The password of the administrator login (required for server creation).'})  # fmt: skip
