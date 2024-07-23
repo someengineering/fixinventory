@@ -1,10 +1,6 @@
 from conftest import roundtrip_check
 from fix_plugin_azure.resource.base import GraphBuilder
-from fix_plugin_azure.resource.mysql import (
-    AzureMysqlCapability,
-    AzureMysqlCapabilitySet,
-    AzureMysqlServer
-)
+from fix_plugin_azure.resource.mysql import AzureMysqlCapability, AzureMysqlCapabilitySet, AzureMysqlServer
 
 
 def test_mysql_capability(builder: GraphBuilder) -> None:

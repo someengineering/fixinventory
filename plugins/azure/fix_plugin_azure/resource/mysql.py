@@ -540,7 +540,6 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
             "default": [
                 "azure_mysql_server_backup_v2",
                 "azure_mysql_server_backup",
-                "azure_mysql_server_private_link_resource",
                 "azure_mysql_server_maintenance",
                 "azure_mysql_server_log_file",
                 "azure_mysql_server_firewall_rule",
