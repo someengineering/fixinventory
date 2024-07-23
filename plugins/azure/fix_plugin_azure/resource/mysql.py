@@ -394,29 +394,6 @@ class AzurePrivateEndpointConnection:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlServerPrivateLinkResource(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_server_private_link_resource"
-    # Collect via AzureMysqlServer()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": S("systemData", "createdAt"),
-        "mtime": S("systemData", "lastModifiedAt"),
-        "private_link_group_id": S("properties", "groupId"),
-        "required_members": S("properties", "requiredMembers"),
-        "required_zone_names": S("properties", "requiredZoneNames"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    private_link_group_id: Optional[str] = field(
-        default=None, metadata={"description": "The private link resource group id."}
-    )
-    required_members: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource required member names.'})  # fmt: skip
-    required_zone_names: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource private link DNS zone name.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureMySQLServerIdentity:
     kind: ClassVar[str] = "azure_my_sql_server_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -696,7 +673,6 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
             resources_to_collect = [
                 ("backupsV2", AzureMysqlServerBackupV2, "2023-12-30", ["ServerNotExist"]),
                 ("backups", AzureMysqlServerBackup, "2021-05-01", ["ServerNotExist"]),
-                ("privateLinkResources", AzureMysqlServerPrivateLinkResource, "2023-06-30", None),
                 ("maintenances", AzureMysqlServerMaintenance, "2023-12-30", None),
                 ("logFiles", AzureMysqlServerLogFile, "2023-12-30", ["ServerNotExist"]),
                 ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01", None),
@@ -790,7 +766,6 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMysqlServerFirewallRule,
     AzureMysqlServerLogFile,
     AzureMysqlServerMaintenance,
-    AzureMysqlServerPrivateLinkResource,
     AzureMysqlServer,
     AzureMysqlServerBackup,
     AzureMysqlServerBackupV2,
