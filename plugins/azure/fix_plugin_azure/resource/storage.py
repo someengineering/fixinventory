@@ -816,7 +816,7 @@ class AzureStorageAccount(MicrosoftResource):
         "blob_restore_status": S("properties", "blobRestoreStatus") >> Bend(AzureBlobRestoreStatus.mapping),
         "creation_time": S("properties", "creationTime"),
         "storage_custom_domain": S("properties", "customDomain") >> Bend(AzureCustomDomain.mapping),
-        "default_to_o_auth_authentication": S("properties", "defaultToOAuthAuthentication"),
+        "default_to_oauth_authentication": S("properties", "defaultToOAuthAuthentication"),
         "dns_endpoint_type": S("properties", "dnsEndpointType"),
         "storage_encryption": S("properties", "encryption") >> Bend(AzureStorageEncryption.mapping),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
@@ -831,7 +831,7 @@ class AzureStorageAccount(MicrosoftResource):
         "is_sftp_enabled": S("properties", "isSftpEnabled"),
         "is_sku_conversion_blocked": S("properties", "isSkuConversionBlocked"),
         "key_creation_time": S("properties", "keyCreationTime") >> Bend(AzureKeyCreationTime.mapping),
-        "key_policy": S("properties", "keyPolicy", "keyExpirationPeriodInDays"),
+        "key_expiration_period_in_days": S("properties", "keyPolicy", "keyExpirationPeriodInDays"),
         "resource_kind": S("kind"),
         "large_file_shares_state": S("properties", "largeFileSharesState"),
         "last_geo_failover_time": S("properties", "lastGeoFailoverTime"),
@@ -872,7 +872,7 @@ class AzureStorageAccount(MicrosoftResource):
     blob_restore_status: Optional[AzureBlobRestoreStatus] = field(default=None, metadata={'description': 'Blob restore status.'})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={'description': 'Gets the creation date and time of the storage account in UTC.'})  # fmt: skip
     storage_custom_domain: Optional[AzureCustomDomain] = field(default=None, metadata={'description': 'The custom domain assigned to this storage account. This can be set via Update.'})  # fmt: skip
-    default_to_o_auth_authentication: Optional[bool] = field(default=None, metadata={'description': 'A boolean flag which indicates whether the default authentication is OAuth or not. The default interpretation is false for this property.'})  # fmt: skip
+    default_to_oauth_authentication: Optional[bool] = field(default=None, metadata={'description': 'A boolean flag which indicates whether the default authentication is OAuth or not. The default interpretation is false for this property.'})  # fmt: skip
     dns_endpoint_type: Optional[str] = field(default=None, metadata={'description': 'Allows you to specify the type of endpoint. Set this to AzureDNSZone to create a large number of accounts in a single subscription, which creates accounts in an Azure DNS Zone and the endpoint URL will have an alphanumeric DNS Zone identifier.'})  # fmt: skip
     storage_encryption: Optional[AzureStorageEncryption] = field(default=None, metadata={'description': 'The encryption settings on the storage account.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
@@ -888,7 +888,7 @@ class AzureStorageAccount(MicrosoftResource):
     is_sftp_enabled: Optional[bool] = field(default=None, metadata={'description': 'Enables Secure File Transfer Protocol, if set to true'})  # fmt: skip
     is_sku_conversion_blocked: Optional[bool] = field(default=None, metadata={'description': 'This property will be set to true or false on an event of ongoing migration. Default value is null.'})  # fmt: skip
     key_creation_time: Optional[AzureKeyCreationTime] = field(default=None, metadata={'description': 'Storage account keys creation time.'})  # fmt: skip
-    key_policy: Optional[int] = field(default=None, metadata={'description': 'KeyPolicy assigned to the storage account.'})  # fmt: skip
+    key_expiration_period_in_days: Optional[int] = field(default=None, metadata={'description': 'KeyPolicy assigned to the storage account.'})  # fmt: skip
     resource_kind: Optional[str] = field(default=None, metadata={"description": "Gets the Kind."})
     large_file_shares_state: Optional[str] = field(default=None, metadata={'description': 'Allow large file shares if sets to Enabled. It cannot be disabled once it is enabled.'})  # fmt: skip
     last_geo_failover_time: Optional[datetime] = field(default=None, metadata={'description': 'Gets the timestamp of the most recent instance of a failover to the secondary location. Only the most recent timestamp is retained. This element is not returned if there has never been a failover instance. Only available if the accountType is Standard_GRS or Standard_RAGRS.'})  # fmt: skip
