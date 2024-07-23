@@ -1,6 +1,6 @@
 from conftest import roundtrip_check
 from fix_plugin_azure.resource.base import GraphBuilder
-from fix_plugin_azure.resource.sql import (
+from fix_plugin_azure.resource.sql_server import (
     AzureSqlServerManagedInstancePool,
     AzureSqlServerManagedInstance,
     AzureSqlServer,
