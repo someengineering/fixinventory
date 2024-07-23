@@ -10,11 +10,48 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphUser
 from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
-from fixlib.json_bender import F, K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
+from fixlib.graph import BySearchCriteria
+from fixlib.json_bender import K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_mysql"
+
+
+@define(eq=False, slots=False)
+class AzureADAdministrator(MicrosoftResource):
+    kind: ClassVar[str] = "azure_ad_administrator"
+    # Collect via AzureMysqlServer()
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "type": S("type"),
+        "administrator_type": S("properties", "administratorType"),
+        "identity_resource_id": S("properties", "identityResourceId"),
+        "login": S("properties", "login"),
+        "sid": S("properties", "sid"),
+        "tenant_id": S("properties", "tenantId"),
+    }
+    administrator_type: Optional[str] = field(default=None, metadata={'description': 'Type of the sever administrator.'})  # fmt: skip
+    identity_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of the identity used for AAD Authentication.'})  # fmt: skip
+    login: Optional[str] = field(default=None, metadata={"description": "Login name of the server administrator."})
+    sid: Optional[str] = field(default=None, metadata={"description": "SID (object ID) of the server administrator."})
+    tenant_id: Optional[str] = field(default=None, metadata={"description": "Tenant ID of the administrator."})
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if user_id := self.sid:
+            builder.add_deferred_edge(
+                from_node=self,
+                to_node=BySearchCriteria(f'is({MicrosoftGraphUser.kind}) and reported.id=="{user_id}"'),
+            )
 
 
 @define(eq=False, slots=False)
@@ -190,6 +227,7 @@ class AzureMysqlCapability(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_configuration"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -228,6 +266,7 @@ class AzureMysqlServerConfiguration(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_database"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -248,6 +287,7 @@ class AzureMysqlServerDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerFirewallRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_firewall_rule"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -268,6 +308,7 @@ class AzureMysqlServerFirewallRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerLogFile(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_log_file"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -292,6 +333,7 @@ class AzureMysqlServerLogFile(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerMaintenance(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_maintenance"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -354,6 +396,7 @@ class AzurePrivateEndpointConnection:
 @define(eq=False, slots=False)
 class AzureMysqlServerPrivateLinkResource(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_private_link_resource"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -526,6 +569,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 "azure_mysql_server_firewall_rule",
                 "azure_mysql_server_database",
                 "azure_mysql_server_configuration",
+                "azure_ad_administrator",
             ]
         },
     }
@@ -587,7 +631,6 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         "instance_type": S("sku", "name"),
         "volume_size": S("properties", "storage", "storageSizeGB"),
         "volume_iops": S("properties", "storage", "iops"),
-        "volume_encrypted": S("properties", "dataEncryption") >> F(lambda srvr: srvr is not None),
     }
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login name of a server. Can only be specified when the server is being created (and is required for creation).'})  # fmt: skip
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The password of the administrator login (required for server creation).'})  # fmt: skip
@@ -657,6 +700,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01", None),
                 ("databases", AzureMysqlServerDatabase, "2021-05-01", ["ServerUnavailableForOperation"]),
                 ("configurations", AzureMysqlServerConfiguration, "2023-12-30", ["ServerUnavailableForOperation"]),
+                ("administrators", AzureADAdministrator, "2023-12-30", None),
             ]
 
             for resource_type, resource_class, api_version, expected_errors in resources_to_collect:
@@ -670,6 +714,10 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                     api_version,
                     expected_errors,
                 )
+        if self.data_encryption:
+            self.volume_encrypted = True
+        else:
+            self.volume_encrypted = False
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if location := self.location:
@@ -684,6 +732,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
 @define(eq=False, slots=False)
 class AzureMysqlServerBackup(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_backup"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -706,6 +755,7 @@ class AzureMysqlServerBackup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerBackupV2(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_backup_v2"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -730,6 +780,7 @@ class AzureMysqlServerBackupV2(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
+    AzureADAdministrator,
     AzureMysqlCapabilitySet,
     AzureMysqlCapability,
     AzureMysqlServerConfiguration,
