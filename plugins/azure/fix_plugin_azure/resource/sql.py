@@ -929,7 +929,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             return
         collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
-            if isinstance(clazz, AzureSqlManagedDatabase):
+            if isinstance(clazz, AzureSqlServerManagedInstanceDatabase):
                 clazz.db_publicly_accessible = self.public_data_endpoint_enabled
                 if self.managed_instance_sku and self.managed_instance_sku.name:
                     clazz.instance_type = self.managed_instance_sku.name
@@ -1409,7 +1409,7 @@ class AzureSqlServer(MicrosoftResource):
         collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
             # In case if we collect DB, then set properties
-            if isinstance(clazz, AzureSqlDatabase):
+            if isinstance(clazz, AzureSqlServerDatabase):
                 if self.public_network_access == "Enabled":
                     clazz.db_publicly_accessible = True
                 else:
