@@ -45,8 +45,8 @@ class AzureResourceIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureServerADAdministrator(MicrosoftResource):
-    kind: ClassVar[str] = "azure_server_ad_administrator"
+class AzureSqlServerADAdministrator(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_ad_administrator"
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -626,6 +626,35 @@ class AzureSqlServerJobAgent(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
+class AzureSqlServerManagedInstanceADAdministrator(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_managed_instance_ad_administrator"
+    # Collect via AzureSqlManagedInstance()
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "type": S("type"),
+        "administrator_type": S("properties", "administratorType"),
+        "login": S("properties", "login"),
+        "sid": S("properties", "sid"),
+        "tenant_id": S("properties", "tenantId"),
+    }
+    administrator_type: Optional[str] = field(default=None, metadata={'description': 'Type of the managed instance administrator.'})  # fmt: skip
+    login: Optional[str] = field(default=None, metadata={'description': 'Login name of the managed instance administrator.'})  # fmt: skip
+    sid: Optional[str] = field(default=None, metadata={'description': 'SID (object ID) of the managed instance administrator.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={'description': 'Tenant ID of the managed instance administrator.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if user_id := self.sid:
+            builder.add_deferred_edge(
+                from_node=self,
+                to_node=BySearchCriteria(f'is({MicrosoftGraphUser.kind}) and reported.id=="{user_id}"'),
+            )
+
+
+@define(eq=False, slots=False)
 class AzureSqlServerManagedInstanceDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_database"
     # Collect via AzureSqlServerManagedInstance()
@@ -799,6 +828,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
                 "azure_sql_server_private_endpoint_connection",
                 "microsoft_graph_service_principal",
                 "microsoft_graph_user",
+                "azure_sql_server_managed_instance_ad_administrator",
             ]
         },
         "predecessors": {"default": ["azure_sql_server_managed_instance_pool", "azure_subnet"]},
@@ -917,6 +947,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             resources_to_collect = [
                 ("databases", AzureSqlServerManagedInstanceDatabase),
                 ("serverTrustGroups", AzureSqlServerTrustGroup),
+                ("administrators", AzureSqlServerManagedInstanceADAdministrator),
             ]
 
             for resource_type, resource_class in resources_to_collect:
@@ -1403,7 +1434,7 @@ class AzureSqlServer(MicrosoftResource):
                 ("jobAgents", AzureSqlServerJobAgent),
                 ("virtualNetworkRules", AzureSqlServerVirtualNetworkRule),
                 ("advisors?$expand=recommendedActions", AzureSqlServerAdvisor),
-                ("administrators", AzureServerADAdministrator),
+                ("administrators", AzureSqlServerADAdministrator),
             ]
 
             for resource_type, resource_class in resources_to_collect:
@@ -1436,7 +1467,7 @@ class AzureSqlServer(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureServerADAdministrator,
+    AzureSqlServerADAdministrator,
     AzureSqlServerDatabase,
     AzureSqlServerElasticPool,
     AzureSqlServerPrivateEndpointConnection,
@@ -1446,6 +1477,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureSqlServerManagedInstanceFailoverGroup,
     AzureSqlServerManagedInstancePool,
     AzureSqlServerJobAgent,
+    AzureSqlServerManagedInstanceADAdministrator,
     AzureSqlServerManagedInstanceDatabase,
     AzureSqlServerManagedInstance,
     AzureSqlServer,

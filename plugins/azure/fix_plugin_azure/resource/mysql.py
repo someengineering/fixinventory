@@ -20,8 +20,8 @@ service_name = "azure_mysql"
 
 
 @define(eq=False, slots=False)
-class AzureADAdministrator(MicrosoftResource):
-    kind: ClassVar[str] = "azure_ad_administrator"
+class AzureMysqlServerADAdministrator(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_ad_administrator"
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -569,7 +569,9 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 "azure_mysql_server_firewall_rule",
                 "azure_mysql_server_database",
                 "azure_mysql_server_configuration",
-                "azure_ad_administrator",
+                "azure_mysql_server_ad_administrator",
+                "azure_mysql_capability_set",
+                "azure_mysql_capability",
             ]
         },
     }
@@ -700,7 +702,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01", None),
                 ("databases", AzureMysqlServerDatabase, "2021-05-01", ["ServerUnavailableForOperation"]),
                 ("configurations", AzureMysqlServerConfiguration, "2023-12-30", ["ServerUnavailableForOperation"]),
-                ("administrators", AzureADAdministrator, "2023-12-30", None),
+                ("administrators", AzureMysqlServerADAdministrator, "2023-12-30", None),
             ]
 
             for resource_type, resource_class, api_version, expected_errors in resources_to_collect:
@@ -780,7 +782,7 @@ class AzureMysqlServerBackupV2(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureADAdministrator,
+    AzureMysqlServerADAdministrator,
     AzureMysqlCapabilitySet,
     AzureMysqlCapability,
     AzureMysqlServerConfiguration,
