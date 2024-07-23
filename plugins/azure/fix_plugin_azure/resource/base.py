@@ -295,6 +295,8 @@ class AzureLocation(MicrosoftResource, BaseRegion):
         "regional_display_name": S("regionalDisplayName"),
         "subscription_id": S("subscriptionId"),
         "long_name": S("displayName"),
+        "latitude": S("metadata", "latitude"),
+        "longitude": S("metadata", "longitude"),
     }
     availability_zone_mappings: Optional[List[AzureAvailabilityZoneMappings]] = field(default=None, metadata={'description': 'The availability zone mappings for this region.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The display name of the location."})

@@ -11,7 +11,7 @@ from fix_plugin_azure.resource.base import (
     AzureSystemData,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphUser
-from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, BaseType, DatabaseInstanceStatus, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
@@ -113,7 +113,7 @@ class AzureServerEditionCapabilityV2:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlCapabilitySet(MicrosoftResource):
+class AzureMysqlCapabilitySet(MicrosoftResource, BaseType):
     kind: ClassVar[str] = "azure_mysql_capability_set"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
@@ -192,7 +192,7 @@ class AzureServerEditionCapability:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlCapability(MicrosoftResource):
+class AzureMysqlCapability(MicrosoftResource, BaseType):
     kind: ClassVar[str] = "azure_mysql_capability"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
