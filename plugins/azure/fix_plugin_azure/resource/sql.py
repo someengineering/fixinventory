@@ -4,7 +4,12 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import AzureSku, GraphBuilder, MicrosoftResource
+from fix_plugin_azure.resource.base import (
+    AzurePrivateLinkServiceConnectionState,
+    AzureSku,
+    GraphBuilder,
+    MicrosoftResource,
+)
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
 from fixlib.baseresources import EdgeType, ModelReference
@@ -35,19 +40,6 @@ class AzureResourceIdentity:
     tenant_id: Optional[str] = field(default=None, metadata={"description": "The Azure Active Directory tenant id."})
     type: Optional[str] = field(default=None, metadata={'description': 'The identity type. Set this to SystemAssigned in order to automatically create and assign an Azure Active Directory principal for the resource.'})  # fmt: skip
     user_assigned_identities: Optional[Dict[str, AzureUserIdentity]] = field(default=None, metadata={'description': 'The resource ids of the user assigned identities to use'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrivateLinkServiceConnectionStateProperty:
-    kind: ClassVar[str] = "azure_private_link_service_connection_state_property"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'The actions required for private link service connection.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The private link service connection description.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={'description': 'The private link service connection status.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -310,12 +302,12 @@ class AzureSqlServerPrivateEndpointConnection(MicrosoftResource):
         "group_ids": S("properties", "groupIds"),
         "private_endpoint_id": S("properties", "privateEndpoint", "id"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionStateProperty.mapping),
+        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
     }
     group_ids: Optional[List[str]] = field(default=None, metadata={"description": "Group IDs."})
     private_endpoint_id: Optional[str] = field(default=None, metadata={"description": "Private endpoint ID."})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionStateProperty] = field(default=None, metadata={'description': ''})  # fmt: skip
+    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': ''})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the private endpoint connection.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
@@ -1148,13 +1140,13 @@ class AzureServerPrivateEndpointConnection:
         "id": S("id"),
         "private_endpoint": S("properties", "privateEndpoint", "id"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionStateProperty.mapping),
+        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
     }
     group_ids: Optional[List[str]] = field(default=None, metadata={"description": "Group IDs."})
     id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
     private_endpoint: Optional[str] = field(default=None, metadata={"description": ""})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionStateProperty] = field(default=None, metadata={'description': ''})  # fmt: skip
+    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': ''})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the private endpoint connection.'})  # fmt: skip
 
 

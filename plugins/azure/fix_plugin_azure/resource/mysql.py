@@ -4,7 +4,12 @@ from typing import ClassVar, Dict, Optional, List, Any, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource, AzureSystemData
+from fix_plugin_azure.resource.base import (
+    AzurePrivateLinkServiceConnectionState,
+    GraphBuilder,
+    MicrosoftResource,
+    AzureSystemData,
+)
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import AsBool, Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -90,14 +95,14 @@ class AzureMysqlCapabilitySet(MicrosoftResource):
         "type": S("type"),
         "ctime": S("systemData", "createdAt"),
         "mtime": S("systemData", "lastModifiedAt"),
-        "supported_flexible_server_editions": S("properties", "supportedFlexibleServerEditions")
+        "supported_flexible_server_editions_v2": S("properties", "supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapabilityV2.mapping),
         "supported_geo_backup_regions": S("properties", "supportedGeoBackupRegions"),
         "supported_server_versions": S("properties")
         >> S("supportedServerVersions", default=[])
         >> ForallBend(S("name")),
     }
-    supported_flexible_server_editions: Optional[List[AzureServerEditionCapabilityV2]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
+    supported_flexible_server_editions_v2: Optional[List[AzureServerEditionCapabilityV2]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_server_versions: Optional[List[str]] = field(default=None, metadata={'description': 'A list of supported server versions.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -171,8 +176,8 @@ class AzureMysqlCapability(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMysqlConfiguration(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_configuration"
+class AzureMysqlServerConfiguration(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -187,8 +192,8 @@ class AzureMysqlConfiguration(MicrosoftResource):
         "default_value": S("properties", "defaultValue"),
         "description": S("properties", "description"),
         "documentation_link": S("properties", "documentationLink"),
-        "is_config_pending_restart": S("properties", "isConfigPendingRestart"),
-        "is_dynamic_config": S("properties", "isDynamicConfig"),
+        "is_config_pending_restart": S("properties", "isConfigPendingRestart") >> AsBool(),
+        "is_dynamic_config": S("properties", "isDynamicConfig") >> AsBool(),
         "is_read_only": S("properties", "isReadOnly") >> AsBool(),
         "source": S("properties", "source"),
         "value": S("properties", "value"),
@@ -199,9 +204,9 @@ class AzureMysqlConfiguration(MicrosoftResource):
     default_value: Optional[str] = field(default=None, metadata={"description": "Default value of the configuration."})
     description: Optional[str] = field(default=None, metadata={"description": "Description of the configuration."})
     documentation_link: Optional[str] = field(default=None, metadata={'description': 'The link used to get the document from community or Azure site.'})  # fmt: skip
-    is_config_pending_restart: Optional[str] = field(default=None, metadata={'description': 'If is the configuration pending restart or not.'})  # fmt: skip
-    is_dynamic_config: Optional[str] = field(default=None, metadata={'description': 'If is the configuration dynamic.'})  # fmt: skip
-    is_read_only: Optional[str] = field(default=None, metadata={"description": "If is the configuration read only."})
+    is_config_pending_restart: Optional[bool] = field(default=None, metadata={'description': 'If is the configuration pending restart or not.'})  # fmt: skip
+    is_dynamic_config: Optional[bool] = field(default=None, metadata={'description': 'If is the configuration dynamic.'})  # fmt: skip
+    is_read_only: Optional[bool] = field(default=None, metadata={"description": "If is the configuration read only."})
     source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
     value: Optional[str] = field(default=None, metadata={"description": "Value of the configuration."})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -209,8 +214,8 @@ class AzureMysqlConfiguration(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMysqlDatabase(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_database"
+class AzureMysqlServerDatabase(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_database"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -229,8 +234,8 @@ class AzureMysqlDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMysqlFirewallRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_firewall_rule"
+class AzureMysqlServerFirewallRule(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_firewall_rule"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -249,8 +254,8 @@ class AzureMysqlFirewallRule(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMysqlLogFile(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_log_file"
+class AzureMysqlServerLogFile(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_log_file"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -273,8 +278,8 @@ class AzureMysqlLogFile(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMysqlMaintenance(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_maintenance"
+class AzureMysqlServerMaintenance(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_maintenance"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -311,19 +316,6 @@ class AzureMysqlMaintenance(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzurePrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The reason for approval/rejection of the connection.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
-
-
-@define(eq=False, slots=False)
 class AzurePrivateEndpointConnection:
     kind: ClassVar[str] = "azure_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -348,20 +340,22 @@ class AzurePrivateEndpointConnection:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlPrivateLinkResource(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_private_link_resource"
+class AzureMysqlServerPrivateLinkResource(MicrosoftResource):
+    kind: ClassVar[str] = "azure_mysql_server_private_link_resource"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "ctime": S("systemData", "createdAt"),
         "mtime": S("systemData", "lastModifiedAt"),
-        "group_id": S("properties", "groupId"),
+        "private_link_group_id": S("properties", "groupId"),
         "required_members": S("properties", "requiredMembers"),
         "required_zone_names": S("properties", "requiredZoneNames"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
-    group_id: Optional[str] = field(default=None, metadata={"description": "The private link resource group id."})
+    private_link_group_id: Optional[str] = field(
+        default=None, metadata={"description": "The private link resource group id."}
+    )
     required_members: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource required member names.'})  # fmt: skip
     required_zone_names: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource private link DNS zone name.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -514,12 +508,12 @@ class AzureMysqlServer(MicrosoftResource):
             "default": [
                 "azure_mysql_server_backup_v2",
                 "azure_mysql_server_backup",
-                "azure_mysql_private_link_resource",
-                "azure_mysql_maintenance",
-                "azure_mysql_log_file",
-                "azure_mysql_firewall_rule",
-                "azure_mysql_database",
-                "azure_mysql_configuration",
+                "azure_mysql_server_private_link_resource",
+                "azure_mysql_server_maintenance",
+                "azure_mysql_server_log_file",
+                "azure_mysql_server_firewall_rule",
+                "azure_mysql_server_database",
+                "azure_mysql_server_configuration",
             ]
         },
     }
@@ -543,9 +537,9 @@ class AzureMysqlServer(MicrosoftResource):
         "mysql_server_identity": S("identity") >> Bend(AzureMySQLServerIdentity.mapping),
         "import_source_properties": S("properties", "importSourceProperties")
         >> Bend(AzureImportSourceProperties.mapping),
-        "maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
-        "network": S("properties", "network") >> Bend(AzureNetwork.mapping),
-        "private_endpoint_connections": S("properties", "privateEndpointConnections")
+        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
+        "server_network": S("properties", "network") >> Bend(AzureNetwork.mapping),
+        "mysql_server_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "replica_capacity": S("properties", "replicaCapacity"),
         "replication_role": S("properties", "replicationRole"),
@@ -566,9 +560,9 @@ class AzureMysqlServer(MicrosoftResource):
     high_availability: Optional[AzureHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
     mysql_server_identity: Optional[AzureMySQLServerIdentity] = field(default=None, metadata={'description': 'Properties to configure Identity for Bring your Own Keys'})  # fmt: skip
     import_source_properties: Optional[AzureImportSourceProperties] = field(default=None, metadata={'description': 'Import source related properties.'})  # fmt: skip
-    maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window of a server.'})  # fmt: skip
-    network: Optional[AzureNetwork] = field(default=None, metadata={'description': 'Network related properties of a server'})  # fmt: skip
-    private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'PrivateEndpointConnections related properties of a server.'})  # fmt: skip
+    server_maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window of a server.'})  # fmt: skip
+    server_network: Optional[AzureNetwork] = field(default=None, metadata={'description': 'Network related properties of a server'})  # fmt: skip
+    mysql_server_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'PrivateEndpointConnections related properties of a server.'})  # fmt: skip
     replica_capacity: Optional[int] = field(default=None, metadata={'description': 'The maximum number of replicas that a primary server can have.'})  # fmt: skip
     replication_role: Optional[str] = field(default=None, metadata={"description": "The replication role."})
     restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from.'})  # fmt: skip
@@ -616,12 +610,12 @@ class AzureMysqlServer(MicrosoftResource):
             resources_to_collect = [
                 ("backupsV2", AzureMysqlServerBackupV2, "2023-12-30"),
                 ("backups", AzureMysqlServerBackup, "2021-05-01"),
-                ("privateLinkResources", AzureMysqlPrivateLinkResource, "2023-06-30"),
-                ("maintenances", AzureMysqlMaintenance, "2023-12-30"),
-                ("logFiles", AzureMysqlLogFile, "2023-12-30"),
-                ("firewallRules", AzureMysqlFirewallRule, "2021-05-01"),
-                ("databases", AzureMysqlDatabase, "2021-05-01"),
-                ("configurations", AzureMysqlConfiguration, "2023-12-30"),
+                ("privateLinkResources", AzureMysqlServerPrivateLinkResource, "2023-06-30"),
+                ("maintenances", AzureMysqlServerMaintenance, "2023-12-30"),
+                ("logFiles", AzureMysqlServerLogFile, "2023-12-30"),
+                ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01"),
+                ("databases", AzureMysqlServerDatabase, "2021-05-01"),
+                ("configurations", AzureMysqlServerConfiguration, "2023-12-30"),
             ]
 
             for resource_type, resource_class, api_version in resources_to_collect:
@@ -648,12 +642,12 @@ class AzureMysqlServerBackup(MicrosoftResource):
         "mtime": S("systemData", "lastModifiedAt"),
         "backup_type": S("properties", "backupType"),
         "completed_time": S("properties", "completedTime"),
-        "source": S("properties", "source"),
+        "backup_source": S("properties", "source"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
     backup_type: Optional[str] = field(default=None, metadata={"description": "Backup type."})
     completed_time: Optional[datetime] = field(default=None, metadata={'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
-    source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
+    backup_source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
@@ -673,13 +667,13 @@ class AzureMysqlServerBackupV2(MicrosoftResource):
         "backup_type": S("properties", "backupType"),
         "completed_time": S("properties", "completedTime"),
         "provisioning_state": S("properties", "provisioningState"),
-        "source": S("properties", "source"),
+        "backup_source": S("properties", "source"),
     }
     backup_name_v2: Optional[str] = field(default=None, metadata={"description": "Backup name"})
     backup_type: Optional[str] = field(default=None, metadata={"description": ""})
     completed_time: Optional[datetime] = field(default=None, metadata={'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
+    backup_source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
@@ -687,12 +681,12 @@ class AzureMysqlServerBackupV2(MicrosoftResource):
 resources: List[Type[MicrosoftResource]] = [
     AzureMysqlCapabilitySet,
     AzureMysqlCapability,
-    AzureMysqlConfiguration,
-    AzureMysqlDatabase,
-    AzureMysqlFirewallRule,
-    AzureMysqlLogFile,
-    AzureMysqlMaintenance,
-    AzureMysqlPrivateLinkResource,
+    AzureMysqlServerConfiguration,
+    AzureMysqlServerDatabase,
+    AzureMysqlServerFirewallRule,
+    AzureMysqlServerLogFile,
+    AzureMysqlServerMaintenance,
+    AzureMysqlServerPrivateLinkResource,
     AzureMysqlServer,
     AzureMysqlServerBackup,
     AzureMysqlServerBackupV2,
