@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import Any, ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
@@ -12,12 +13,13 @@ from fix_plugin_azure.resource.base import (
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
-from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum
 from fixlib.types import Json
 
 service_name = "azure_sql"
+log = logging.getLogger("fix.plugins.azure")
 
 
 class AzureUserIdentity:
@@ -64,7 +66,7 @@ class AzureDatabaseIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureSqlServerDatabase(MicrosoftResource):
+class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_database"
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
@@ -129,6 +131,41 @@ class AzureSqlServerDatabase(MicrosoftResource):
         "source_resource_id": S("properties", "sourceResourceId"),
         "status": S("properties", "status"),
         "zone_redundant": S("properties", "zoneRedundant"),
+        "db_type": K("sql"),
+        "db_status": S("properties", "state")
+        >> MapEnum(
+            {
+                "AutoClosed": DatabaseInstanceStatus.STOPPED,
+                "Copying": DatabaseInstanceStatus.BUSY,
+                "Creating": DatabaseInstanceStatus.BUSY,
+                "Disabled": DatabaseInstanceStatus.STOPPED,
+                "EmergencyMode": DatabaseInstanceStatus.FAILED,
+                "Inaccessible": DatabaseInstanceStatus.FAILED,
+                "Offline": DatabaseInstanceStatus.STOPPED,
+                "OfflineChangingDwPerformanceTiers": DatabaseInstanceStatus.BUSY,
+                "OfflineSecondary": DatabaseInstanceStatus.STOPPED,
+                "Online": DatabaseInstanceStatus.AVAILABLE,
+                "OnlineChangingDwPerformanceTiers": DatabaseInstanceStatus.BUSY,
+                "Paused": DatabaseInstanceStatus.STOPPED,
+                "Pausing": DatabaseInstanceStatus.BUSY,
+                "Recovering": DatabaseInstanceStatus.BUSY,
+                "RecoveryPending": DatabaseInstanceStatus.BUSY,
+                "Restoring": DatabaseInstanceStatus.BUSY,
+                "Resuming": DatabaseInstanceStatus.BUSY,
+                "Scaling": DatabaseInstanceStatus.BUSY,
+                "Shutdown": DatabaseInstanceStatus.STOPPED,
+                "Standby": DatabaseInstanceStatus.AVAILABLE,
+                "Starting": DatabaseInstanceStatus.BUSY,
+                "Stopped": DatabaseInstanceStatus.STOPPED,
+                "Stopping": DatabaseInstanceStatus.BUSY,
+                "Suspect": DatabaseInstanceStatus.FAILED,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
+        "instance_type": S("sku", "name"),
+        # Convert bytes to gigabytes
+        "volume_size": S("properties", "maxSizeBytes") >> F(lambda size: size // 1_073_741_824),
+        "volume_encrypted": S("properties", "isInfraEncryptionEnabled"),
     }
     auto_pause_delay: Optional[int] = field(default=None, metadata={'description': 'Time in minutes after which database is automatically paused. A value of -1 means that automatic pause is disabled'})  # fmt: skip
     catalog_collation: Optional[str] = field(default=None, metadata={'description': 'Collation of the metadata catalog.'})  # fmt: skip
@@ -558,7 +595,7 @@ class AzureSqlServerJobAgent(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlServerManagedInstanceDatabase(MicrosoftResource):
+class AzureSqlServerManagedInstanceDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_database"
     # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -585,6 +622,20 @@ class AzureSqlServerManagedInstanceDatabase(MicrosoftResource):
         "status": S("properties", "status"),
         "storage_container_sas_token": S("properties", "storageContainerSasToken"),
         "storage_container_uri": S("properties", "storageContainerUri"),
+        "db_type": K("sql"),
+        "db_status": S("properties", "state")
+        >> MapEnum(
+            {
+                "Creating": DatabaseInstanceStatus.BUSY,
+                "Inaccessible": DatabaseInstanceStatus.FAILED,
+                "Offline": DatabaseInstanceStatus.STOPPED,
+                "Online": DatabaseInstanceStatus.AVAILABLE,
+                "Restoring": DatabaseInstanceStatus.BUSY,
+                "Shutdown": DatabaseInstanceStatus.STOPPED,
+                "Updating": DatabaseInstanceStatus.BUSY,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
     }
     auto_complete_restore: Optional[bool] = field(default=None, metadata={'description': 'Whether to auto complete restore of this managed database.'})  # fmt: skip
     catalog_collation: Optional[str] = field(default=None, metadata={'description': 'Collation of the metadata catalog.'})  # fmt: skip
@@ -605,6 +656,33 @@ class AzureSqlServerManagedInstanceDatabase(MicrosoftResource):
     storage_container_uri: Optional[str] = field(default=None, metadata={'description': 'Conditional. If createMode is RestoreExternalBackup, this value is required. Specifies the uri of the storage container where backups for this restore are stored.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if database_id := self.id:
+
+            def set_encryption_status() -> None:
+                api_spec = AzureResourceSpec(
+                    service="sql",
+                    version="2021-11-01",
+                    path=f"{database_id}/transparentDataEncryption",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                try:
+                    state = items[0]["properties"]["state"]
+                    if state == "Enabled":
+                        self.volume_encrypted = True
+                    else:
+                        self.volume_encrypted = False
+                except KeyError as e:
+                    log.warning(f"An error occured while setting volume_encrypted: {e}")
+
+            graph_builder.submit_work(service_name, set_encryption_status)
 
 
 @define(eq=False, slots=False)
@@ -790,6 +868,12 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             return
         collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
+            if isinstance(clazz, AzureSqlManagedDatabase):
+                clazz.db_publicly_accessible = self.public_data_endpoint_enabled
+                if self.managed_instance_sku and self.managed_instance_sku.name:
+                    clazz.instance_type = self.managed_instance_sku.name
+                clazz.volume_size = self.storage_size_in_gb
+                clazz.db_endpoint = self.fully_qualified_domain_name
             graph_builder.add_edge(
                 self,
                 edge_type=EdgeType.default,
@@ -798,7 +882,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             )
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if database_id := self.id:
+        if server_id := self.id:
             resources_to_collect = [
                 ("databases", AzureSqlServerManagedInstanceDatabase),
                 ("serverTrustGroups", AzureSqlServerTrustGroup),
@@ -809,7 +893,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
                     service_name,
                     self._collect_items,
                     graph_builder,
-                    database_id,
+                    server_id,
                     resource_type,
                     resource_class,
                 )
@@ -1170,7 +1254,7 @@ class AzureServerExternalAdministrator:
 
 
 @define(eq=False, slots=False)
-class AzureSqlServer(MicrosoftResource, BaseDatabase):
+class AzureSqlServer(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
@@ -1262,6 +1346,14 @@ class AzureSqlServer(MicrosoftResource, BaseDatabase):
             return
         collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
+            # In case if we collect DB, then set properties
+            if isinstance(clazz, AzureSqlDatabase):
+                if self.public_network_access == "Enabled":
+                    clazz.db_publicly_accessible = True
+                else:
+                    clazz.db_publicly_accessible = False
+                clazz.db_version = self.version
+                clazz.db_endpoint = self.fully_qualified_domain_name
             graph_builder.add_edge(
                 self,
                 edge_type=EdgeType.default,

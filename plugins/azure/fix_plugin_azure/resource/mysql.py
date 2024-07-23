@@ -168,7 +168,7 @@ class AzureMysqlCapability(MicrosoftResource):
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("zone"),
-        "name":S("zone"),
+        "name": S("zone"),
         "tags": S("tags", default={}),
         "supported_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapability.mapping),
@@ -185,7 +185,6 @@ class AzureMysqlCapability(MicrosoftResource):
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if builder_location := graph_builder.location:
             self.display_location_name = builder_location.long_name
-
 
 
 @define(eq=False, slots=False)
@@ -606,7 +605,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or []
+            expected_error_codes=expected_errors or [],
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -647,8 +646,12 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if location := self.location:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureMysqlCapability, display_location_name=location)
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureMysqlCapabilitySet, display_location_name=location)            
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AzureMysqlCapability, display_location_name=location
+            )
+            builder.add_edge(
+                self, edge_type=EdgeType.default, clazz=AzureMysqlCapabilitySet, display_location_name=location
+            )
 
 
 @define(eq=False, slots=False)
