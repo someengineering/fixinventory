@@ -76,40 +76,53 @@ class AzureStorageEditionCapability:
 
 
 @define(eq=False, slots=False)
-class AzureSkuCapabilityV2:
-    kind: ClassVar[str] = "azure_sku_capability_v2"
+class AzureSkuCapability:
+    kind: ClassVar[str] = "azure_sku_capability"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "supported_ha_mode": S("supportedHAMode"),
+        "supported_zones": S("supportedZones"),
         "supported_iops": S("supportedIops"),
         "supported_memory_per_v_core_mb": S("supportedMemoryPerVCoreMB"),
-        "supported_zones": S("supportedZones"),
         "v_cores": S("vCores"),
     }
     name: Optional[str] = field(default=None, metadata={"description": "vCore name"})
-    supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     supported_iops: Optional[int] = field(default=None, metadata={"description": "supported IOPS"})
     supported_memory_per_v_core_mb: Optional[int] = field(default=None, metadata={'description': 'supported memory per vCore in MB'})  # fmt: skip
-    supported_zones: Optional[List[str]] = field(default=None, metadata={"description": "Supported zones"})
     v_cores: Optional[int] = field(default=None, metadata={"description": "supported vCores"})
+    supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
+    supported_zones: Optional[List[str]] = field(default=None, metadata={"description": "Supported zones"})
 
 
 @define(eq=False, slots=False)
-class AzureServerEditionCapabilityV2:
-    kind: ClassVar[str] = "azure_server_edition_capability_v2"
+class AzureServerVersionCapability:
+    kind: ClassVar[str] = "azure_server_version_capability"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "name": S("name"),
+        "supported_skus": S("supportedSkus") >> ForallBend(AzureSkuCapability.mapping),
+    }
+    name: Optional[str] = field(default=None, metadata={"description": "server version"})
+    supported_skus: Optional[List[AzureSkuCapability]] = field(default=None, metadata={'description': 'A list of supported Skus'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerEditionCapability:
+    kind: ClassVar[str] = "azure_server_edition_capability"
     mapping: ClassVar[Dict[str, Bender]] = {
         "default_sku": S("defaultSku"),
         "default_storage_size": S("defaultStorageSize"),
         "name": S("name"),
-        "supported_skus": S("supportedSkus") >> ForallBend(AzureSkuCapabilityV2.mapping),
+        "supported_server_versions": S("supportedServerVersions") >> ForallBend(AzureServerVersionCapability.mapping),
         "supported_storage_editions": S("supportedStorageEditions")
         >> ForallBend(AzureStorageEditionCapability.mapping),
+        "supported_skus": S("supportedSkus") >> ForallBend(AzureSkuCapability.mapping),
     }
     default_sku: Optional[str] = field(default=None, metadata={"description": "Default Sku name"})
     default_storage_size: Optional[int] = field(default=None, metadata={"description": "Default storage size"})
     name: Optional[str] = field(default=None, metadata={"description": "Server edition name"})
-    supported_skus: Optional[List[AzureSkuCapabilityV2]] = field(default=None, metadata={'description': 'A list of supported Skus'})  # fmt: skip
+    supported_server_versions: Optional[List[AzureServerVersionCapability]] = field(default=None, metadata={'description': 'A list of supported server versions.'})  # fmt: skip
     supported_storage_editions: Optional[List[AzureStorageEditionCapability]] = field(default=None, metadata={'description': 'A list of supported storage editions'})  # fmt: skip
+    supported_skus: Optional[List[AzureSkuCapability]] = field(default=None, metadata={'description': 'A list of supported Skus'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -133,13 +146,13 @@ class AzureMysqlCapabilitySet(MicrosoftResource, BaseType):
         "ctime": S("systemData", "createdAt"),
         "mtime": S("systemData", "lastModifiedAt"),
         "supported_flexible_server_editions_v2": S("properties", "supportedFlexibleServerEditions")
-        >> ForallBend(AzureServerEditionCapabilityV2.mapping),
+        >> ForallBend(AzureServerEditionCapability.mapping),
         "supported_geo_backup_regions": S("properties", "supportedGeoBackupRegions"),
         "supported_server_versions": S("properties")
         >> S("supportedServerVersions", default=[])
         >> ForallBend(S("name")),
     }
-    supported_flexible_server_editions_v2: Optional[List[AzureServerEditionCapabilityV2]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
+    supported_flexible_server_editions_v2: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_server_versions: Optional[List[str]] = field(default=None, metadata={'description': 'A list of supported server versions.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -149,46 +162,6 @@ class AzureMysqlCapabilitySet(MicrosoftResource, BaseType):
     def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if builder_location := graph_builder.location:
             self.display_location_name = builder_location.long_name
-
-
-@define(eq=False, slots=False)
-class AzureSkuCapability:
-    kind: ClassVar[str] = "azure_sku_capability"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name"),
-        "supported_iops": S("supportedIops"),
-        "supported_memory_per_v_core_mb": S("supportedMemoryPerVCoreMB"),
-        "v_cores": S("vCores"),
-    }
-    name: Optional[str] = field(default=None, metadata={"description": "vCore name"})
-    supported_iops: Optional[int] = field(default=None, metadata={"description": "supported IOPS"})
-    supported_memory_per_v_core_mb: Optional[int] = field(default=None, metadata={'description': 'supported memory per vCore in MB'})  # fmt: skip
-    v_cores: Optional[int] = field(default=None, metadata={"description": "supported vCores"})
-
-
-@define(eq=False, slots=False)
-class AzureServerVersionCapability:
-    kind: ClassVar[str] = "azure_server_version_capability"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name"),
-        "supported_skus": S("supportedSkus") >> ForallBend(AzureSkuCapability.mapping),
-    }
-    name: Optional[str] = field(default=None, metadata={"description": "server version"})
-    supported_skus: Optional[List[AzureSkuCapability]] = field(default=None, metadata={'description': 'A list of supported Skus'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureServerEditionCapability:
-    kind: ClassVar[str] = "azure_server_edition_capability"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("name"),
-        "supported_server_versions": S("supportedServerVersions") >> ForallBend(AzureServerVersionCapability.mapping),
-        "supported_storage_editions": S("supportedStorageEditions")
-        >> ForallBend(AzureStorageEditionCapability.mapping),
-    }
-    name: Optional[str] = field(default=None, metadata={"description": "Server edition name"})
-    supported_server_versions: Optional[List[AzureServerVersionCapability]] = field(default=None, metadata={'description': 'A list of supported server versions.'})  # fmt: skip
-    supported_storage_editions: Optional[List[AzureStorageEditionCapability]] = field(default=None, metadata={'description': 'A list of supported storage editions'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -538,7 +511,6 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
-                "azure_mysql_server_backup_v2",
                 "azure_mysql_server_backup",
                 "azure_mysql_server_maintenance",
                 "azure_mysql_server_log_file",
@@ -670,7 +642,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if server_id := self.id:
             resources_to_collect = [
-                ("backupsV2", AzureMysqlServerBackupV2, "2023-12-30", ["ServerNotExist"]),
+                ("backupsV2", AzureMysqlServerBackup, "2023-12-30", ["ServerNotExist"]),
                 ("backups", AzureMysqlServerBackup, "2021-05-01", ["ServerNotExist"]),
                 ("maintenances", AzureMysqlServerMaintenance, "2023-12-30", None),
                 ("logFiles", AzureMysqlServerLogFile, "2023-12-30", ["ServerNotExist"]),
@@ -714,29 +686,6 @@ class AzureMysqlServerBackup(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "type": S("type"),
-        "ctime": S("systemData", "createdAt"),
-        "mtime": S("systemData", "lastModifiedAt"),
-        "backup_type": S("properties", "backupType"),
-        "completed_time": S("properties", "completedTime"),
-        "backup_source": S("properties", "source"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-    }
-    backup_type: Optional[str] = field(default=None, metadata={"description": "Backup type."})
-    completed_time: Optional[datetime] = field(default=None, metadata={'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
-    backup_source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMysqlServerBackupV2(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_server_backup_v2"
-    # Collect via AzureMysqlServer()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "type": S("type"),
         "ctime": S("systemData", "createdAt"),
@@ -767,5 +716,4 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMysqlServerMaintenance,
     AzureMysqlServer,
     AzureMysqlServerBackup,
-    AzureMysqlServerBackupV2,
 ]

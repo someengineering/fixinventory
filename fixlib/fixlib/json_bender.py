@@ -358,6 +358,17 @@ class AsInt(Bender):
                 return None
 
 
+class AsFloat(Bender):
+    def execute(self, source: Any) -> Any:
+        if isinstance(source, float):
+            return source
+        else:
+            try:
+                return float(source)
+            except Exception:
+                return None
+
+
 class AsBool(Bender):
     def execute(self, source: Any) -> Any:
         if isinstance(source, bool):
