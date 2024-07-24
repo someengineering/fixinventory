@@ -11,7 +11,7 @@ from fix_plugin_azure.resource.base import (
     AzureSystemData,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphUser
-from fixlib.baseresources import BaseDatabase, BaseType, DatabaseInstanceStatus, EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, BaseDatabaseType, DatabaseInstanceStatus, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
@@ -126,7 +126,7 @@ class AzureServerEditionCapability:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlCapabilitySet(MicrosoftResource, BaseType):
+class AzureMysqlCapabilitySet(MicrosoftResource, BaseDatabaseType):
     kind: ClassVar[str] = "azure_mysql_capability_set"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
@@ -145,14 +145,14 @@ class AzureMysqlCapabilitySet(MicrosoftResource, BaseType):
         "type": S("type"),
         "ctime": S("systemData", "createdAt"),
         "mtime": S("systemData", "lastModifiedAt"),
-        "supported_flexible_server_editions_v2": S("properties", "supportedFlexibleServerEditions")
+        "supported_flexible_server_editions": S("properties", "supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapability.mapping),
         "supported_geo_backup_regions": S("properties", "supportedGeoBackupRegions"),
         "supported_server_versions": S("properties")
         >> S("supportedServerVersions", default=[])
         >> ForallBend(S("name")),
     }
-    supported_flexible_server_editions_v2: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
+    supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_server_versions: Optional[List[str]] = field(default=None, metadata={'description': 'A list of supported server versions.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -165,7 +165,7 @@ class AzureMysqlCapabilitySet(MicrosoftResource, BaseType):
 
 
 @define(eq=False, slots=False)
-class AzureMysqlCapability(MicrosoftResource, BaseType):
+class AzureMysqlCapability(MicrosoftResource, BaseDatabaseType):
     kind: ClassVar[str] = "azure_mysql_capability"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
@@ -341,6 +341,9 @@ class AzureMysqlServerMaintenance(MicrosoftResource):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
+# @define(eq=False, slots=False)
+# class AzureMysqlServerType(MicrosoftResource, BaseDatabaseType):
+#     pass
 
 @define(eq=False, slots=False)
 class AzurePrivateEndpointConnection:
