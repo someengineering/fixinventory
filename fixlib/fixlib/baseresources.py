@@ -1093,11 +1093,12 @@ class DatabaseInstanceStatus(Enum):
     BUSY = "busy"
     UNKNOWN = "unknown"
 
+
 @define(eq=False, slots=False)
-class BaseDatabaseType(BaseType):
-    kind: ClassVar[str] = "database_type"
-    kind_display: ClassVar[str] = "Database Type"
-    kind_description: ClassVar[str] = "A database type."
+class BaseDatabaseInstanceType(BaseType):
+    kind: ClassVar[str] = "database_instance_type"
+    kind_display: ClassVar[str] = "Database Instance Type"
+    kind_description: ClassVar[str] = "A database instance type."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     instance_type: Optional[str] = None
     instance_cores: float = 0.0
@@ -1108,6 +1109,7 @@ class BaseDatabaseType(BaseType):
         super().__attrs_post_init__()
         if self.instance_type is None:
             self.instance_type = self.id
+
 
 @define(eq=False, slots=False)
 class BaseDatabase(BaseResource):
