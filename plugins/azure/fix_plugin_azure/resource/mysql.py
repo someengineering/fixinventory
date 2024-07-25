@@ -19,7 +19,7 @@ from fixlib.baseresources import (
     ModelReference,
 )
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
+from fixlib.json_bender import F, K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_mysql"
@@ -369,6 +369,7 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "capability_sku": S("sku") >> Bend(AzureSkuCapability.mapping),
         "display_location": S("location"),
         "instance_cores": S("sku", "vCores"),
+        "instance_memory": S("sku", "supportedMemoryPerVCoreMB") >> F(lambda mb: mb / 1024),
     }
     capability_zone: Optional[str] = field(default=None)
     supported_ha_mode: Optional[List[str]] = field(default=None)
