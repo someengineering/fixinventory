@@ -1,0 +1,20 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/foo/providers/Microsoft.Sql/servers/test-server111/extendedAuditingSettings/Default",
+            "name": "Default",
+            "properties": {
+                "auditActionsAndGroups": [],
+                "isAzureMonitorTargetEnabled": false,
+                "isManagedIdentityInUse": false,
+                "isStorageSecondaryKeyInUse": false,
+                "predicateExpression": "",
+                "retentionDays": 0,
+                "state": "Disabled",
+                "storageAccountSubscriptionId": "00000000-0000-0000-0000-000000000000",
+                "storageEndpoint": ""
+            },
+            "type": "Microsoft.Sql/servers/extendedAuditingSettings"
+        }
+    ]
+}

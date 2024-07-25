@@ -1,0 +1,15 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/foo/providers/Microsoft.Sql/servers/test-server111/encryptionProtector/current",
+            "kind": "servicemanaged",
+            "name": "current",
+            "properties": {
+                "autoRotationEnabled": false,
+                "serverKeyName": "ServiceManaged",
+                "serverKeyType": "ServiceManaged"
+            },
+            "type": "Microsoft.Sql/servers/encryptionProtector"
+        }
+    ]
+}

@@ -4,7 +4,7 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import AzureSku, GraphBuilder, MicrosoftResource
+from fix_plugin_azure.resource.base import AzureSku, GraphBuilder, MicrosoftResource, parse_json
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
 from fixlib.baseresources import EdgeType, ModelReference
@@ -1178,6 +1178,58 @@ class AzureServerExternalAdministrator:
 
 
 @define(eq=False, slots=False)
+class AzureSqlServerBlobAuditingPolicy:
+    kind: ClassVar[str] = "azure_sql_server_blob_auditing_policy"
+    # collected via AzureSqlServer
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "audit_actions_and_groups": S("properties", "auditActionsAndGroups"),
+        "is_azure_monitor_target_enabled": S("properties", "isAzureMonitorTargetEnabled"),
+        "is_devops_audit_enabled": S("properties", "isDevopsAuditEnabled"),
+        "is_managed_identity_in_use": S("properties", "isManagedIdentityInUse"),
+        "is_storage_secondary_key_in_use": S("properties", "isStorageSecondaryKeyInUse"),
+        "queue_delay_ms": S("properties", "queueDelayMs"),
+        "retention_days": S("properties", "retentionDays"),
+        "state": S("properties", "state"),
+        "storage_account_access_key": S("properties", "storageAccountAccessKey"),
+        "storage_account_subscription_id": S("properties", "storageAccountSubscriptionId"),
+        "storage_endpoint": S("properties", "storageEndpoint"),
+    }
+    audit_actions_and_groups: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies the Actions-Groups and Actions to audit. The recommended set of action groups to use is the following combination - this will audit all the queries and stored procedures executed against the database, as well as successful and failed logins: BATCH_COMPLETED_GROUP, SUCCESSFUL_DATABASE_AUTHENTICATION_GROUP, FAILED_DATABASE_AUTHENTICATION_GROUP. This above combination is also the set that is configured by default when enabling auditing from the Azure portal. The supported action groups to audit are (note: choose only specific groups that cover your auditing needs. Using unnecessary groups could lead to very large quantities of audit records): APPLICATION_ROLE_CHANGE_PASSWORD_GROUP BACKUP_RESTORE_GROUP DATABASE_LOGOUT_GROUP DATABASE_OBJECT_CHANGE_GROUP DATABASE_OBJECT_OWNERSHIP_CHANGE_GROUP DATABASE_OBJECT_PERMISSION_CHANGE_GROUP DATABASE_OPERATION_GROUP DATABASE_PERMISSION_CHANGE_GROUP DATABASE_PRINCIPAL_CHANGE_GROUP DATABASE_PRINCIPAL_IMPERSONATION_GROUP DATABASE_ROLE_MEMBER_CHANGE_GROUP FAILED_DATABASE_AUTHENTICATION_GROUP SCHEMA_OBJECT_ACCESS_GROUP SCHEMA_OBJECT_CHANGE_GROUP SCHEMA_OBJECT_OWNERSHIP_CHANGE_GROUP SCHEMA_OBJECT_PERMISSION_CHANGE_GROUP SUCCESSFUL_DATABASE_AUTHENTICATION_GROUP USER_CHANGE_PASSWORD_GROUP BATCH_STARTED_GROUP BATCH_COMPLETED_GROUP DBCC_GROUP DATABASE_OWNERSHIP_CHANGE_GROUP DATABASE_CHANGE_GROUP LEDGER_OPERATION_GROUP These are groups that cover all sql statements and stored procedures executed against the database, and should not be used in combination with other groups as this will result in duplicate audit logs. For more information, see [Database-Level Audit Action Groups](https://docs.microsoft.com/en-us/sql/relational-databases/security/auditing/sql-server-audit-action-groups-and-actions#database-level-audit-action-groups). For Database auditing policy, specific Actions can also be specified (note that Actions cannot be specified for Server auditing policy). The supported actions to audit are: SELECT UPDATE INSERT DELETE EXECUTE RECEIVE REFERENCES The general form for defining an action to be audited is: {action} ON {object} BY {principal} Note that <object> in the above format can refer to an object like a table, view, or stored procedure, or an entire database or schema. For the latter cases, the forms DATABASE::{db_name} and SCHEMA::{schema_name} are used, respectively. For example: SELECT on dbo.myTable by public SELECT on DATABASE::myDatabase by public SELECT on SCHEMA::mySchema by public For more information, see [Database-Level Audit Actions](https://docs.microsoft.com/en-us/sql/relational-databases/security/auditing/sql-server-audit-action-groups-and-actions#database-level-audit-actions)'})  # fmt: skip
+    is_azure_monitor_target_enabled: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether audit events are sent to Azure Monitor. In order to send the events to Azure Monitor, specify State as Enabled and IsAzureMonitorTargetEnabled as true. When using REST API to configure auditing, Diagnostic Settings with SQLSecurityAuditEvents diagnostic logs category on the database should be also created. Note that for server level audit you should use the master database as {databaseName}. Diagnostic Settings URI format: PUT https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Sql/servers/{serverName}/databases/{databaseName}/providers/microsoft.insights/diagnosticSettings/{settingsName}?api-version=2017-05-01-preview For more information, see [Diagnostic Settings REST API](https://go.microsoft.com/fwlink/?linkid=2033207) or [Diagnostic Settings PowerShell](https://go.microsoft.com/fwlink/?linkid=2033043) '})  # fmt: skip
+    is_devops_audit_enabled: Optional[bool] = field(default=None, metadata={'description': 'Specifies the state of devops audit. If state is Enabled, devops logs will be sent to Azure Monitor. In order to send the events to Azure Monitor, specify State as Enabled , IsAzureMonitorTargetEnabled as true and IsDevopsAuditEnabled as true When using REST API to configure auditing, Diagnostic Settings with DevOpsOperationsAudit diagnostic logs category on the master database should also be created. Diagnostic Settings URI format: PUT https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Sql/servers/{serverName}/databases/master/providers/microsoft.insights/diagnosticSettings/{settingsName}?api-version=2017-05-01-preview For more information, see [Diagnostic Settings REST API](https://go.microsoft.com/fwlink/?linkid=2033207) or [Diagnostic Settings PowerShell](https://go.microsoft.com/fwlink/?linkid=2033043) '})  # fmt: skip
+    is_managed_identity_in_use: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether Managed Identity is used to access blob storage'})  # fmt: skip
+    is_storage_secondary_key_in_use: Optional[bool] = field(default=None, metadata={'description': 'Specifies whether storageAccountAccessKey value is the storage s secondary key.'})  # fmt: skip
+    queue_delay_ms: Optional[int] = field(default=None, metadata={'description': 'Specifies the amount of time in milliseconds that can elapse before audit actions are forced to be processed. The default minimum value is 1000 (1 second). The maximum is 2,147,483,647.'})  # fmt: skip
+    retention_days: Optional[int] = field(default=None, metadata={'description': 'Specifies the number of days to keep in the audit logs in the storage account.'})  # fmt: skip
+    state: Optional[str] = field(default=None, metadata={'description': 'Specifies the state of the audit. If state is Enabled, storageEndpoint or isAzureMonitorTargetEnabled are required.'})  # fmt: skip
+    storage_account_access_key: Optional[str] = field(default=None, metadata={'description': 'Specifies the identifier key of the auditing storage account. If state is Enabled and storageEndpoint is specified, not specifying the storageAccountAccessKey will use SQL server system-assigned managed identity to access the storage. Prerequisites for using managed identity authentication: 1. Assign SQL Server a system-assigned managed identity in Azure Active Directory (AAD). 2. Grant SQL Server identity access to the storage account by adding Storage Blob Data Contributor RBAC role to the server identity. For more information, see [Auditing to storage using Managed Identity authentication](https://go.microsoft.com/fwlink/?linkid=2114355)'})  # fmt: skip
+    storage_account_subscription_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the blob storage subscription Id.'})  # fmt: skip
+    storage_endpoint: Optional[str] = field(default=None, metadata={'description': 'Specifies the blob storage endpoint (e.g. https://MyAccount.blob.core.windows.net). If state is Enabled, storageEndpoint or isAzureMonitorTargetEnabled is required.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureSqlEncryptionProtector:
+    kind: ClassVar[str] = "azure_sql_encryption_protector"
+    # version="2021-11-01",
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "auto_rotation_enabled": S("properties", "autoRotationEnabled"),
+        "protector_kind": S("kind"),
+        "server_key_name": S("properties", "serverKeyName"),
+        "server_key_type": S("properties", "serverKeyType"),
+        "subregion": S("properties", "subregion"),
+        "thumbprint": S("properties", "thumbprint"),
+        "uri": S("properties", "uri"),
+    }
+    auto_rotation_enabled: Optional[bool] = field(default=None, metadata={'description': 'Key auto rotation opt-in flag. Either true or false.'})  # fmt: skip
+    protector_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of encryption protector. This is metadata used for the Azure portal experience.'})  # fmt: skip
+    server_key_name: Optional[str] = field(default=None, metadata={"description": "The name of the server key."})
+    server_key_type: Optional[str] = field(default=None, metadata={'description': 'The encryption protector type like ServiceManaged , AzureKeyVault .'})  # fmt: skip
+    subregion: Optional[str] = field(default=None, metadata={"description": "Subregion of the encryption protector."})
+    thumbprint: Optional[str] = field(default=None, metadata={"description": "Thumbprint of the server key."})
+    uri: Optional[str] = field(default=None, metadata={"description": "The URI of the server key."})
+
+
+@define(eq=False, slots=False)
 class AzureSqlServer(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -1247,18 +1299,21 @@ class AzureSqlServer(MicrosoftResource):
     workspace_feature: Optional[str] = field(default=None, metadata={'description': 'Whether or not existing server has a workspace created and if it allows connection from workspace'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    blob_auditing_policy: Optional[AzureSqlServerBlobAuditingPolicy] = field(default=None, metadata={'description': 'The blob auditing policy for the server.'})  # fmt: skip
+    encryption_protector: Optional[AzureSqlEncryptionProtector] = field(default=None, metadata={'description': 'The encryption protector for the server.'})  # fmt: skip
 
     def _collect_items(
         self,
         graph_builder: GraphBuilder,
         server_id: str,
         resource_type: str,
+        version: str,
         class_instance: MicrosoftResource,
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
             service="sql",
-            version="2021-11-01",
+            version=version,
             path=path,
             path_parameters=[],
             query_parameters=["api-version"],
@@ -1266,39 +1321,53 @@ class AzureSqlServer(MicrosoftResource):
             expect_array=True,
         )
         items = graph_builder.client.list(api_spec)
-        if not items:
-            return
-        collected = class_instance.collect(items, graph_builder)
-        for clazz in collected:
-            graph_builder.add_edge(
-                self,
-                edge_type=EdgeType.default,
-                id=clazz.id,
-                clazz=class_instance,
-            )
+        for resource in class_instance.collect(items, graph_builder):
+            graph_builder.add_edge(self, node=resource)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+
+        def fetch_nested_prop(sid: str, cls: Type[Any], path_part: str, version: str, prop: str) -> None:
+            api_spec = AzureResourceSpec(
+                service="sql",
+                version=version,
+                path=f"{sid}/{path_part}",
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            # albeit this is a list API, it will only return one element
+            if items := graph_builder.client.list(api_spec):
+                for item in items:
+                    setattr(self, prop, parse_json(item, cls, graph_builder, cls.mapping))
+
         if server_id := self.id:
             resources_to_collect = [
-                ("databases", AzureSqlServerDatabase),
-                ("elasticPools", AzureSqlServerElasticPool),
-                ("privateEndpointConnections", AzureSqlServerPrivateEndpointConnection),
-                ("failoverGroups", AzureSqlServerFailoverGroup),
-                ("firewallRules", AzureSqlServerFirewallRule),
-                ("jobAgents", AzureSqlServerJobAgent),
-                ("virtualNetworkRules", AzureSqlServerVirtualNetworkRule),
-                ("advisors?$expand=recommendedActions", AzureSqlServerAdvisor),
+                ("databases", AzureSqlServerDatabase, "2021-11-01"),
+                ("elasticPools", AzureSqlServerElasticPool, "2021-11-01"),
+                ("privateEndpointConnections", AzureSqlServerPrivateEndpointConnection, "2021-11-01"),
+                ("failoverGroups", AzureSqlServerFailoverGroup, "2021-11-01"),
+                ("firewallRules", AzureSqlServerFirewallRule, "2021-11-01"),
+                ("jobAgents", AzureSqlServerJobAgent, "2021-11-01"),
+                ("virtualNetworkRules", AzureSqlServerVirtualNetworkRule, "2021-11-01"),
+                ("advisors?$expand=recommendedActions", AzureSqlServerAdvisor, "2021-11-01"),
             ]
-
-            for resource_type, resource_class in resources_to_collect:
+            for resource_type, resource_class, resource_version in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
                     self._collect_items,
                     graph_builder,
                     server_id,
                     resource_type,
+                    resource_version,
                     resource_class,
                 )
+
+            props_to_set = [
+                (AzureSqlServerBlobAuditingPolicy, "auditingSettings", "2022-05-01-preview", "blob_auditing_policy"),
+                (AzureSqlEncryptionProtector, "encryptionProtector", "2021-11-01", "encryption_protector"),
+            ]
+            for args in props_to_set:
+                graph_builder.submit_work(service_name, fetch_nested_prop, server_id, *args)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # principal: collected via ms graph -> create a deferred edge

@@ -20,7 +20,10 @@ def test_sql_managed_instance(builder: GraphBuilder) -> None:
 
 def test_sql_server(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureSqlServer, builder)
+    builder.executor.wait_for_submitted_work()
     assert len(collected) == 1
+    assert collected[0].blob_auditing_policy is not None
+    assert collected[0].encryption_protector is not None
 
 
 def test_sql_virtual_cluster(builder: GraphBuilder) -> None:
