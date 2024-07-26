@@ -12,15 +12,15 @@ from networkx import MultiDiGraph
 from pytest import mark, raises
 
 from fixcore.analytics import CoreEvent, InMemoryEventSender
+from fixcore.db.db_access import DbAccess
 from fixcore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryChange
 from fixcore.db.model import QueryModel, GraphUpdate
-from fixcore.db.db_access import DbAccess
 from fixcore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from fixcore.ids import NodeId, GraphName
 from fixcore.model.graph_access import GraphAccess, EdgeTypes, Section
 from fixcore.model.model import Model, UsageDatapoint
 from fixcore.model.typed_model import from_js, to_js
-from fixcore.query.model import Query, P, Navigation, Predicate, IsTerm, AllTerm
+from fixcore.query.model import Query, P, Navigation, Predicate, IsTerm
 from fixcore.query.query_parser import parse_query, predicate_term
 from fixcore.report import SecurityIssue, ReportSeverity
 from fixcore.types import JsonElement, EdgeType
