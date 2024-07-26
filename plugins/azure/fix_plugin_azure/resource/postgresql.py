@@ -190,11 +190,12 @@ class AzurePostgresqlCapability(MicrosoftResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
+        expected_error_codes=["InternalServerError"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("zone"),
         "tags": S("tags", default={}),
-        "name": S("name"),
+        "name": S("zone"),
         "ctime": S("systemData", "createdAt"),
         "mtime": S("systemData", "lastModifiedAt"),
         "fast_provisioning_supported": S("fastProvisioningSupported"),
