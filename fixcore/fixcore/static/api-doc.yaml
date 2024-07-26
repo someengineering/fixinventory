@@ -1365,80 +1365,12 @@ paths:
           description: "The result of this search in the defined format"
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Node"
-            application/x-ndjson:
-              schema:
-                $ref: "#/components/schemas/Node"
               example: |
-                {"type": "node", "id": "root", "revision": "123", "reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "root"}}
-                {"type": "node", "id": "cloud_id",  "revision": "12", "reported": {"kind": "cloud", "id": "onelogin", "tags": {}, "name": "onelogin", "ctime": "2021-12-14T08:49:52Z", "age": "6d7h"}}
-                {"type": "edge", "from": "root", "to": "cloud_id", "edge_type": "default"}
-            text/plain:
-              example: |
-                reported:
-                  kind: graph_root
-                  id: root
-                  tags: {}
-                  name: root
-                metadata:
-                  cleaned: false
-                  phantom: true
-                  protected: false
-            application/yaml:
-              example: |
-                id: root
-                type: node
-                revision: _daGy-Bu---
-                reported:
-                    kind: graph_root
-                    id: root
-                    tags: { }
-                    name: root
-                metadata:
-                    python_type: fixlib.baseresources.GraphRoot
-                    cleaned: false
-                    phantom: true
-                    protected: false
-                kinds:
-                    - graph_root
-                ---
-                id: 2RZlTX9yzeBwTNT_H1KZVA
-                type: node
-                revision: _daGy-Bi---
-                reported:
-                    kind: cloud
-                    id: onelogin
-                    tags: { }
-                    name: onelogin
-                    ctime: '2021-12-14T08:49:52Z'
-                    age: 6d7h
-                metadata:
-                    python_type: fixlib.baseresources.Cloud
-                    cleaned: false
-                    phantom: false
-                    protected: false
-                    descendant_summary:
-                        onelogin_account: 1
-                        onelogin_region: 1
-                        onelogin_user: 1034
-                    descendant_count: 1036
-                ancestors:
-                    cloud:
-                        reported:
-                            name: onelogin
-                            id: onelogin
-                kinds:
-                    - cloud
-                    - base_cloud
-                    - resource
-                ---
-                type: edge
-                from: root
-                to: 2RZlTX9yzeBwTNT_H1KZVA
-                edge_type: default
+                [
+                  { "at": "2024-07-14T00:00:00.000Z", "group": { "change": "node_created" }, "v": 170 },
+                  { "at": "2024-07-15T00:00:00.000Z", "group": { "change": "node_updated" }, "v": 833 },
+                  { "at": "2024-07-15T00:00:00.000Z", "group": { "change": "node_created" }, "v": 1166 }
+                ]
   /graph/{graph_id}/search/history/list:
     post:
       summary: "Search all history events and return them."
