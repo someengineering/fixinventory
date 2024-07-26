@@ -848,11 +848,8 @@ async def core_metadata(
             if cmd in lookup and alias not in lookup:
                 cmds.append(evolve(lookup[cmd], name=alias, is_alias=True))
         return cmds, visible_kinds, sorted(known_props)
-    except Exception as ex:
-        log.warning(
-            f"Can not load metadata from core: {ex}. No suggestions as fallback.",
-            exc_info=ex,
-        )
+    except Exception:
+        log.info("Can not load metadata. Possible Reason: no data collected. No suggestions as fallback.")
         return [], [], []
 
 

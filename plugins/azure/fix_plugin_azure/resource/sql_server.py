@@ -1,19 +1,27 @@
+import logging
 from datetime import datetime
 from typing import Any, ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import AzureSku, GraphBuilder, MicrosoftResource, parse_json
+from fix_plugin_azure.resource.base import (
+    AzurePrivateLinkServiceConnectionState,
+    AzureSku,
+    GraphBuilder,
+    MicrosoftResource,
+    parse_json
+)
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
-from fixlib.baseresources import EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json import value_in_path
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum
 from fixlib.types import Json
 
 service_name = "azure_sql"
+log = logging.getLogger("fix.plugins.azure")
 
 
 class AzureUserIdentity:
@@ -39,16 +47,34 @@ class AzureResourceIdentity:
 
 
 @define(eq=False, slots=False)
-class AzurePrivateLinkServiceConnectionStateProperty:
-    kind: ClassVar[str] = "azure_private_link_service_connection_state_property"
+class AzureSqlServerADAdministrator(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_ad_administrator"
+    # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "type": S("type"),
+        "administrator_type": S("properties", "administratorType"),
+        "azure_ad_only_authentication": S("properties", "azureADOnlyAuthentication"),
+        "login": S("properties", "login"),
+        "sid": S("properties", "sid"),
+        "tenant_id": S("properties", "tenantId"),
     }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'The actions required for private link service connection.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The private link service connection description.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={'description': 'The private link service connection status.'})  # fmt: skip
+    administrator_type: Optional[str] = field(default=None, metadata={'description': 'Type of the sever administrator.'})  # fmt: skip
+    azure_ad_only_authentication: Optional[bool] = field(default=None, metadata={'description': 'Azure Active Directory only Authentication enabled.'})  # fmt: skip
+    login: Optional[str] = field(default=None, metadata={"description": "Login name of the server administrator."})
+    sid: Optional[str] = field(default=None, metadata={"description": "SID (object ID) of the server administrator."})
+    tenant_id: Optional[str] = field(default=None, metadata={"description": "Tenant ID of the administrator."})
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if user_id := self.sid:
+            builder.add_deferred_edge(
+                from_node=self,
+                to_node=BySearchCriteria(f'is({MicrosoftGraphUser.kind}) and reported.id=="{user_id}"'),
+            )
 
 
 @define(eq=False, slots=False)
@@ -73,7 +99,7 @@ class AzureDatabaseIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureSqlServerDatabase(MicrosoftResource):
+class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_database"
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
@@ -138,6 +164,41 @@ class AzureSqlServerDatabase(MicrosoftResource):
         "source_resource_id": S("properties", "sourceResourceId"),
         "status": S("properties", "status"),
         "zone_redundant": S("properties", "zoneRedundant"),
+        "db_type": K("sql"),
+        "db_status": S("properties", "state")
+        >> MapEnum(
+            {
+                "AutoClosed": DatabaseInstanceStatus.STOPPED,
+                "Copying": DatabaseInstanceStatus.BUSY,
+                "Creating": DatabaseInstanceStatus.BUSY,
+                "Disabled": DatabaseInstanceStatus.STOPPED,
+                "EmergencyMode": DatabaseInstanceStatus.FAILED,
+                "Inaccessible": DatabaseInstanceStatus.FAILED,
+                "Offline": DatabaseInstanceStatus.STOPPED,
+                "OfflineChangingDwPerformanceTiers": DatabaseInstanceStatus.BUSY,
+                "OfflineSecondary": DatabaseInstanceStatus.STOPPED,
+                "Online": DatabaseInstanceStatus.AVAILABLE,
+                "OnlineChangingDwPerformanceTiers": DatabaseInstanceStatus.BUSY,
+                "Paused": DatabaseInstanceStatus.STOPPED,
+                "Pausing": DatabaseInstanceStatus.BUSY,
+                "Recovering": DatabaseInstanceStatus.BUSY,
+                "RecoveryPending": DatabaseInstanceStatus.BUSY,
+                "Restoring": DatabaseInstanceStatus.BUSY,
+                "Resuming": DatabaseInstanceStatus.BUSY,
+                "Scaling": DatabaseInstanceStatus.BUSY,
+                "Shutdown": DatabaseInstanceStatus.STOPPED,
+                "Standby": DatabaseInstanceStatus.AVAILABLE,
+                "Starting": DatabaseInstanceStatus.BUSY,
+                "Stopped": DatabaseInstanceStatus.STOPPED,
+                "Stopping": DatabaseInstanceStatus.BUSY,
+                "Suspect": DatabaseInstanceStatus.FAILED,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
+        "instance_type": S("sku", "name"),
+        # Convert bytes to gigabytes
+        "volume_size": S("properties", "maxSizeBytes") >> F(lambda size: size // 1_073_741_824),
+        "volume_encrypted": S("properties", "isInfraEncryptionEnabled"),
     }
     auto_pause_delay: Optional[int] = field(default=None, metadata={'description': 'Time in minutes after which database is automatically paused. A value of -1 means that automatic pause is disabled'})  # fmt: skip
     catalog_collation: Optional[str] = field(default=None, metadata={'description': 'Collation of the metadata catalog.'})  # fmt: skip
@@ -319,12 +380,12 @@ class AzureSqlServerPrivateEndpointConnection(MicrosoftResource):
         "group_ids": S("properties", "groupIds"),
         "private_endpoint_id": S("properties", "privateEndpoint", "id"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionStateProperty.mapping),
+        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
     }
     group_ids: Optional[List[str]] = field(default=None, metadata={"description": "Group IDs."})
     private_endpoint_id: Optional[str] = field(default=None, metadata={"description": "Private endpoint ID."})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionStateProperty] = field(default=None, metadata={'description': ''})  # fmt: skip
+    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': ''})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the private endpoint connection.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
@@ -575,7 +636,36 @@ class AzureSqlServerJobAgent(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSqlServerManagedInstanceDatabase(MicrosoftResource):
+class AzureSqlServerManagedInstanceADAdministrator(MicrosoftResource):
+    kind: ClassVar[str] = "azure_sql_server_managed_instance_ad_administrator"
+    # Collect via AzureSqlManagedInstance()
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "type": S("type"),
+        "administrator_type": S("properties", "administratorType"),
+        "login": S("properties", "login"),
+        "sid": S("properties", "sid"),
+        "tenant_id": S("properties", "tenantId"),
+    }
+    administrator_type: Optional[str] = field(default=None, metadata={'description': 'Type of the managed instance administrator.'})  # fmt: skip
+    login: Optional[str] = field(default=None, metadata={'description': 'Login name of the managed instance administrator.'})  # fmt: skip
+    sid: Optional[str] = field(default=None, metadata={'description': 'SID (object ID) of the managed instance administrator.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={'description': 'Tenant ID of the managed instance administrator.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if user_id := self.sid:
+            builder.add_deferred_edge(
+                from_node=self,
+                to_node=BySearchCriteria(f'is({MicrosoftGraphUser.kind}) and reported.id=="{user_id}"'),
+            )
+
+
+@define(eq=False, slots=False)
+class AzureSqlServerManagedInstanceDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_database"
     # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -602,6 +692,20 @@ class AzureSqlServerManagedInstanceDatabase(MicrosoftResource):
         "status": S("properties", "status"),
         "storage_container_sas_token": S("properties", "storageContainerSasToken"),
         "storage_container_uri": S("properties", "storageContainerUri"),
+        "db_type": K("sql"),
+        "db_status": S("properties", "state")
+        >> MapEnum(
+            {
+                "Creating": DatabaseInstanceStatus.BUSY,
+                "Inaccessible": DatabaseInstanceStatus.FAILED,
+                "Offline": DatabaseInstanceStatus.STOPPED,
+                "Online": DatabaseInstanceStatus.AVAILABLE,
+                "Restoring": DatabaseInstanceStatus.BUSY,
+                "Shutdown": DatabaseInstanceStatus.STOPPED,
+                "Updating": DatabaseInstanceStatus.BUSY,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
     }
     auto_complete_restore: Optional[bool] = field(default=None, metadata={'description': 'Whether to auto complete restore of this managed database.'})  # fmt: skip
     catalog_collation: Optional[str] = field(default=None, metadata={'description': 'Collation of the metadata catalog.'})  # fmt: skip
@@ -622,6 +726,33 @@ class AzureSqlServerManagedInstanceDatabase(MicrosoftResource):
     storage_container_uri: Optional[str] = field(default=None, metadata={'description': 'Conditional. If createMode is RestoreExternalBackup, this value is required. Specifies the uri of the storage container where backups for this restore are stored.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if database_id := self.id:
+
+            def set_encryption_status() -> None:
+                api_spec = AzureResourceSpec(
+                    service="sql",
+                    version="2021-11-01",
+                    path=f"{database_id}/transparentDataEncryption",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                try:
+                    state = items[0]["properties"]["state"]
+                    if state == "Enabled":
+                        self.volume_encrypted = True
+                    else:
+                        self.volume_encrypted = False
+                except KeyError as e:
+                    log.warning(f"An error occured while setting volume_encrypted: {e}")
+
+            graph_builder.submit_work(service_name, set_encryption_status)
 
 
 @define(eq=False, slots=False)
@@ -707,6 +838,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
                 "azure_sql_server_private_endpoint_connection",
                 "microsoft_graph_service_principal",
                 "microsoft_graph_user",
+                "azure_sql_server_managed_instance_ad_administrator",
             ]
         },
         "predecessors": {"default": ["azure_sql_server_managed_instance_pool", "azure_subnet"]},
@@ -807,6 +939,12 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             return
         collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
+            if isinstance(clazz, AzureSqlServerManagedInstanceDatabase):
+                clazz.db_publicly_accessible = self.public_data_endpoint_enabled
+                if self.managed_instance_sku and self.managed_instance_sku.name:
+                    clazz.instance_type = self.managed_instance_sku.name
+                clazz.volume_size = self.storage_size_in_gb
+                clazz.db_endpoint = self.fully_qualified_domain_name
             graph_builder.add_edge(
                 self,
                 edge_type=EdgeType.default,
@@ -815,10 +953,11 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             )
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if database_id := self.id:
+        if server_id := self.id:
             resources_to_collect = [
                 ("databases", AzureSqlServerManagedInstanceDatabase),
                 ("serverTrustGroups", AzureSqlServerTrustGroup),
+                ("administrators", AzureSqlServerManagedInstanceADAdministrator),
             ]
 
             for resource_type, resource_class in resources_to_collect:
@@ -826,7 +965,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
                     service_name,
                     self._collect_items,
                     graph_builder,
-                    database_id,
+                    server_id,
                     resource_type,
                     resource_class,
                 )
@@ -1157,13 +1296,13 @@ class AzureServerPrivateEndpointConnection:
         "id": S("id"),
         "private_endpoint": S("properties", "privateEndpoint", "id"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionStateProperty.mapping),
+        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
     }
     group_ids: Optional[List[str]] = field(default=None, metadata={"description": "Group IDs."})
     id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
     private_endpoint: Optional[str] = field(default=None, metadata={"description": ""})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionStateProperty] = field(default=None, metadata={'description': ''})  # fmt: skip
+    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': ''})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the private endpoint connection.'})  # fmt: skip
 
 
@@ -1331,6 +1470,14 @@ class AzureSqlServer(MicrosoftResource):
         )
         items = graph_builder.client.list(api_spec)
         for resource in class_instance.collect(items, graph_builder):
+            # In case if we collect DB, then set properties
+            if isinstance(clazz, AzureSqlServerDatabase):
+                if self.public_network_access == "Enabled":
+                    clazz.db_publicly_accessible = True
+                else:
+                    clazz.db_publicly_accessible = False
+                clazz.db_version = self.version
+                clazz.db_endpoint = self.fully_qualified_domain_name
             graph_builder.add_edge(self, node=resource)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
@@ -1359,6 +1506,7 @@ class AzureSqlServer(MicrosoftResource):
                 ("jobAgents", AzureSqlServerJobAgent, "2021-11-01"),
                 ("virtualNetworkRules", AzureSqlServerVirtualNetworkRule, "2021-11-01"),
                 ("advisors?$expand=recommendedActions", AzureSqlServerAdvisor, "2021-11-01"),
+                ("administrators", AzureSqlServerADAdministrator),
             ]
             for resource_type, resource_class, resource_version in resources_to_collect:
                 graph_builder.submit_work(
@@ -1398,6 +1546,7 @@ class AzureSqlServer(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
+    AzureSqlServerADAdministrator,
     AzureSqlServerDatabase,
     AzureSqlServerElasticPool,
     AzureSqlServerPrivateEndpointConnection,
@@ -1407,6 +1556,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureSqlServerManagedInstanceFailoverGroup,
     AzureSqlServerManagedInstancePool,
     AzureSqlServerJobAgent,
+    AzureSqlServerManagedInstanceADAdministrator,
     AzureSqlServerManagedInstanceDatabase,
     AzureSqlServerManagedInstance,
     AzureSqlServer,

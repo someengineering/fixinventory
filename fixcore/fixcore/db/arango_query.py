@@ -137,6 +137,23 @@ def history_query(db: Any, query_model: QueryModel) -> Tuple[str, Json]:
     return f"""{query_str} FOR result in {cursor}{last_limit} RETURN UNSET(result, {unset_props})""", ctx.bind_vars
 
 
+def history_query_histogram(db: Any, query_model: QueryModel, granularity: timedelta) -> Tuple[str, Json]:
+    ctx = ArangoQueryContext()
+    query = rewrite_query(query_model)
+    in_cursor, query_str = query_string(
+        db, query, query_model, f"`{db.name}_node_history`", False, ctx, id_column="id", use_fulltext_index=False
+    )
+    crs = ctx.next_crs()
+    slot = ctx.add_bind_var(granularity.total_seconds() * 1000)
+    query_str += (
+        f" FOR {crs} IN {in_cursor} "
+        f"COLLECT change={crs}.change, at=DATE_ISO8601(FLOOR(DATE_TIMESTAMP({crs}.changed_at) / @{slot}) * @{slot}) "
+        f"WITH COUNT INTO v SORT at ASC "
+        'RETURN {"at": at, "group": {"change": change}, "v": v}'
+    )
+    return query_str, ctx.bind_vars
+
+
 def query_view_string(
     db: Any,
     query: Query,

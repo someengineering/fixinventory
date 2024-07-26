@@ -2079,14 +2079,17 @@ class AzureRestorePointCollection(MicrosoftResource):
         "provisioning_state": S("properties", "provisioningState"),
         "restore_point_collection_id": S("properties", "restorePointCollectionId"),
         "restore_points": S("properties", "restorePoints") >> ForallBend(AzureRestorePoint.mapping),
-        "source": S("properties", "source") >> Bend(AzureRestorePointCollectionSourceProperties.mapping),
+        "restore_point_collection_resource": S("properties", "source")
+        >> Bend(AzureRestorePointCollectionSourceProperties.mapping),
     }
     restore_point_collection_id: Optional[str] = field(default=None, metadata={'description': 'The unique id of the restore point collection.'})  # fmt: skip
     restore_points: Optional[List[AzureRestorePoint]] = field(default=None, metadata={'description': 'A list containing all restore points created under this restore point collection.'})  # fmt: skip
-    source: Optional[AzureRestorePointCollectionSourceProperties] = field(default=None, metadata={'description': 'The properties of the source resource that this restore point collection is created from.'})  # fmt: skip
+    restore_point_collection_resource: Optional[AzureRestorePointCollectionSourceProperties] = field(default=None, metadata={'description': 'The properties of the source resource that this restore point collection is created from.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if (source_id := self.source) and (vm_id := source_id.id):
+        if (restore_point_collection_source := self.restore_point_collection_resource) and (
+            vm_id := restore_point_collection_source.id
+        ):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
 
 

@@ -133,6 +133,7 @@ from fixcore.worker_task_queue import (
     WorkerTaskInProgress,
 )
 from fixlib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
+from fixlib.durations import parse_duration
 from fixlib.jwt import encode_jwt
 from fixlib.x509 import cert_to_bytes
 
@@ -246,6 +247,7 @@ class Api(Service):
                 web.post(prefix + "/graph/{graph_id}/search/aggregate", require(self.query_aggregation, r)),
                 web.post(prefix + "/graph/{graph_id}/search/history/list", require(self.query_history, r)),
                 web.post(prefix + "/graph/{graph_id}/search/history/aggregate", require(self.query_history, r)),
+                web.post(prefix + "/graph/{graph_id}/search/history/timeline", require(self.history_timeline, r)),
                 web.post(prefix + "/graph/{graph_id}/property/attributes", require(self.possible_values, r)),
                 web.post(prefix + "/graph/{graph_id}/property/values", require(self.possible_values, r)),
                 web.post(prefix + "/graph/{graph_id}/property/path/complete", require(self.property_path_complete, r)),
@@ -1234,6 +1236,23 @@ class Api(Service):
     async def query_aggregation(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         graph_db, query_model = await self.graph_query_model_from_request(request, deps)
         async with await graph_db.search_aggregation(query_model) as cursor:
+            return await self.stream_response_from_gen(
+                request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
+            )
+
+    async def history_timeline(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        graph_db, query_model = await self.graph_query_model_from_request(request, deps)
+        before = request.query.getone("before")
+        after = request.query.getone("after")
+        granularity = request.query.get("granularity")
+        changes = if_set(request.query.get("change"), lambda x: x.split(","))
+        async with await graph_db.history_timeline(
+            query=query_model,
+            before=parse_utc(before),
+            after=parse_utc(after),
+            granularity=parse_duration(granularity) if granularity else None,
+            changes=[HistoryChange[change] for change in changes] if changes else None,
+        ) as cursor:
             return await self.stream_response_from_gen(
                 request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
             )
