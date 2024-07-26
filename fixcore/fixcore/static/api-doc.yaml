@@ -1310,6 +1310,135 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EstimatedSearchCost"
+  /graph/{graph_id}/search/history/timeline:
+    post:
+      summary: "Search history events and provide the number of events over time."
+      description: |
+        Search all history events and a histogram over time.
+        A section can be defined (defaults to `/` == root) to interpret relative property paths.
+        Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
+      tags:
+        - graph_search
+      parameters:
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
+        - name: before
+          in: query
+          description: "Count all history events before the given timestamp"
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: after
+          in: query
+          description: "Count all history events after the given timestamp"
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          description: "Optional parameter to define the granularity of the timeline"
+          required: false
+          schema:
+            type: string
+            format: duration
+        - name: change
+          in: query
+          description: "Optional parameter to get all history events with the given change type"
+          required: false
+          schema:
+            type: string
+            enum:
+              - node_created
+              - node_updated
+              - node_deleted
+      requestBody:
+        description: "The search to perform"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: is(volume) and reported.volume_size>100
+      responses:
+        "200":
+          description: "The result of this search in the defined format"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Node"
+            application/x-ndjson:
+              schema:
+                $ref: "#/components/schemas/Node"
+              example: |
+                {"type": "node", "id": "root", "revision": "123", "reported": {"kind": "graph_root", "id": "root", "tags": {}, "name": "root"}}
+                {"type": "node", "id": "cloud_id",  "revision": "12", "reported": {"kind": "cloud", "id": "onelogin", "tags": {}, "name": "onelogin", "ctime": "2021-12-14T08:49:52Z", "age": "6d7h"}}
+                {"type": "edge", "from": "root", "to": "cloud_id", "edge_type": "default"}
+            text/plain:
+              example: |
+                reported:
+                  kind: graph_root
+                  id: root
+                  tags: {}
+                  name: root
+                metadata:
+                  cleaned: false
+                  phantom: true
+                  protected: false
+            application/yaml:
+              example: |
+                id: root
+                type: node
+                revision: _daGy-Bu---
+                reported:
+                    kind: graph_root
+                    id: root
+                    tags: { }
+                    name: root
+                metadata:
+                    python_type: fixlib.baseresources.GraphRoot
+                    cleaned: false
+                    phantom: true
+                    protected: false
+                kinds:
+                    - graph_root
+                ---
+                id: 2RZlTX9yzeBwTNT_H1KZVA
+                type: node
+                revision: _daGy-Bi---
+                reported:
+                    kind: cloud
+                    id: onelogin
+                    tags: { }
+                    name: onelogin
+                    ctime: '2021-12-14T08:49:52Z'
+                    age: 6d7h
+                metadata:
+                    python_type: fixlib.baseresources.Cloud
+                    cleaned: false
+                    phantom: false
+                    protected: false
+                    descendant_summary:
+                        onelogin_account: 1
+                        onelogin_region: 1
+                        onelogin_user: 1034
+                    descendant_count: 1036
+                ancestors:
+                    cloud:
+                        reported:
+                            name: onelogin
+                            id: onelogin
+                kinds:
+                    - cloud
+                    - base_cloud
+                    - resource
+                ---
+                type: edge
+                from: root
+                to: 2RZlTX9yzeBwTNT_H1KZVA
+                edge_type: default
   /graph/{graph_id}/search/history/list:
     post:
       summary: "Search all history events and return them."
