@@ -17,7 +17,7 @@ from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
-service_name = "azure_mysql"
+service_name = "azure_postgresql"
 
 
 @define(eq=False, slots=False)
@@ -485,7 +485,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
-            service="sql",
+            service="postgresql",
             version="2022-12-01",
             path=path,
             path_parameters=[],
