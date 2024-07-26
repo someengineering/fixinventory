@@ -849,7 +849,7 @@ async def core_metadata(
                 cmds.append(evolve(lookup[cmd], name=alias, is_alias=True))
         return cmds, visible_kinds, sorted(known_props)
     except Exception:
-        log.info(f"Can not load metadata. Possible Reason: no data collected. No suggestions as fallback.")
+        log.info("Can not load metadata. Possible Reason: no data collected. No suggestions as fallback.")
         return [], [], []
 
 
