@@ -813,7 +813,7 @@ class ArangoGraphDB(GraphDB):
         if query.query.aggregate is not None:
             query = evolve(query, query=evolve(query.query, aggregate=None))
         # in case no granularity is provided we will compute one: 1/25 of the time range but at least one hour
-        gran = granularity or max(abs(before - after) / 25, timedelta(hours=1))
+        gran = max(granularity or abs(before - after) / 25, timedelta(hours=1))
         query = self._history_query_model(query, changes, before, after)
         q_string, bind = arango_query.history_query_histogram(self, query, gran)
         ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
