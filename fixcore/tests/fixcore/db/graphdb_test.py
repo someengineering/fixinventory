@@ -12,9 +12,9 @@ from networkx import MultiDiGraph
 from pytest import mark, raises
 
 from fixcore.analytics import CoreEvent, InMemoryEventSender
+from fixcore.db.db_access import DbAccess
 from fixcore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB, HistoryChange
 from fixcore.db.model import QueryModel, GraphUpdate
-from fixcore.db.db_access import DbAccess
 from fixcore.error import ConflictingChangeInProgress, NoSuchChangeError, InvalidBatchUpdate
 from fixcore.ids import NodeId, GraphName
 from fixcore.model.graph_access import GraphAccess, EdgeTypes, Section
@@ -432,6 +432,22 @@ async def test_query_history(filled_graph_db: ArangoGraphDB, foo_model: Model) -
     assert len(await nodes(Query.by("foo"), before=five_min_ago)) == 0
     assert len(await nodes(Query.by("foo"), after=five_min_ago, changes=[HistoryChange.node_created])) == 10
     assert len(await nodes(Query.by("foo"), after=five_min_ago, changes=[HistoryChange.node_deleted])) == 0
+
+
+@mark.asyncio
+async def test_query_history_timeline(filled_graph_db: ArangoGraphDB, foo_model: Model) -> None:
+    async def nodes(query: Query, **args: Any) -> List[Json]:
+        async with await filled_graph_db.history_timeline(QueryModel(query, foo_model), **args) as crsr:
+            return [x async for x in crsr]
+
+    now_plus_60 = utc() + timedelta(minutes=60)
+    now_min_60 = now_plus_60 - timedelta(minutes=120)
+    slices = await nodes(Query.by("foo"), after=now_min_60, before=now_plus_60)
+    assert len(slices) == 1
+    assert slices[0]["v"] == 10
+    slices = await nodes(Query.by("bla"), after=now_min_60, before=now_plus_60)
+    assert len(slices) == 1
+    assert slices[0]["v"] == 100
 
 
 @mark.asyncio

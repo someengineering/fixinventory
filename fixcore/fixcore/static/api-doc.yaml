@@ -1310,6 +1310,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EstimatedSearchCost"
+  /graph/{graph_id}/search/history/timeline:
+    post:
+      summary: "Search history events and provide the number of events over time."
+      description: |
+        Search all history events and a histogram over time.
+        A section can be defined (defaults to `/` == root) to interpret relative property paths.
+        Example: is(volume) and (reported.age>23d or desired.clean==true or metadata.version==2)
+      tags:
+        - graph_search
+      parameters:
+        - $ref: "#/components/parameters/graph_id"
+        - $ref: "#/components/parameters/section"
+        - name: before
+          in: query
+          description: "Count all history events before the given timestamp"
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: after
+          in: query
+          description: "Count all history events after the given timestamp"
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          description: "Optional parameter to define the granularity of the timeline"
+          required: false
+          schema:
+            type: string
+            format: duration
+        - name: change
+          in: query
+          description: "Optional parameter to get all history events with the given change type"
+          required: false
+          schema:
+            type: string
+            enum:
+              - node_created
+              - node_updated
+              - node_deleted
+      requestBody:
+        description: "The search to perform"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: is(volume) and reported.volume_size>100
+      responses:
+        "200":
+          description: "The result of this search in the defined format"
+          content:
+            application/json:
+              example: |
+                [
+                  { "at": "2024-07-14T00:00:00.000Z", "group": { "change": "node_created" }, "v": 170 },
+                  { "at": "2024-07-15T00:00:00.000Z", "group": { "change": "node_updated" }, "v": 833 },
+                  { "at": "2024-07-15T00:00:00.000Z", "group": { "change": "node_created" }, "v": 1166 }
+                ]
   /graph/{graph_id}/search/history/list:
     post:
       summary: "Search all history events and return them."
