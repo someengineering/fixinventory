@@ -6,6 +6,7 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzurePrivateLinkServiceConnectionState,
+    AzureSku,
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
@@ -420,14 +421,6 @@ class AzureMySQLServerIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureMySQLServerSku:
-    kind: ClassVar[str] = "azure_my_sql_server_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the sku, e.g. Standard_D32s_v3."})
-    tier: Optional[str] = field(default=None, metadata={'description': 'The tier of the particular SKU, e.g. GeneralPurpose.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureDataEncryption:
     kind: ClassVar[str] = "azure_data_encryption"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -587,7 +580,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         "replica_capacity": S("properties", "replicaCapacity"),
         "replication_role": S("properties", "replicationRole"),
         "restore_point_in_time": S("properties", "restorePointInTime"),
-        "server_sku": S("sku") >> Bend(AzureMySQLServerSku.mapping),
+        "server_sku": S("sku") >> Bend(AzureSku.mapping),
         "source_server_resource_id": S("properties", "sourceServerResourceId"),
         "state": S("properties", "state"),
         "storage": S("properties", "storage") >> Bend(AzureStorage.mapping),
@@ -635,7 +628,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     replica_capacity: Optional[int] = field(default=None, metadata={'description': 'The maximum number of replicas that a primary server can have.'})  # fmt: skip
     replication_role: Optional[str] = field(default=None, metadata={"description": "The replication role."})
     restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from.'})  # fmt: skip
-    server_sku: Optional[AzureMySQLServerSku] = field(default=None, metadata={'description': 'Billing information related properties of a server.'})  # fmt: skip
+    server_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Billing information related properties of a server.'})  # fmt: skip
     source_server_resource_id: Optional[str] = field(default=None, metadata={'description': 'The source MySQL server id.'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={"description": "The state of a server."})
     storage: Optional[AzureStorage] = field(default=None, metadata={'description': 'Storage Profile properties of a server'})  # fmt: skip

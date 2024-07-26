@@ -5,7 +5,8 @@ from typing import Any, ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import AzureResourceIdentity, (
+from fix_plugin_azure.resource.base import (
+    AzureResourceIdentity,
     AzurePrivateLinkServiceConnectionState,
     AzureSku,
     GraphBuilder,
