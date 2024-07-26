@@ -8,10 +8,12 @@ from fix_plugin_azure.resource.base import (
     AzureProxyResource,
     AzureSku,
     AzureTrackedResource,
+    GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
 )
 from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.types import Json
 
 service_name = "azure_mysql"
 
@@ -19,15 +21,7 @@ service_name = "azure_mysql"
 @define(eq=False, slots=False)
 class AzurePostgresqlServerADAdministrator(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_ad_administrator"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="postgresql",
-        version="2022-12-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforPostgreSQL/flexibleServers/{serverName}/administrators",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -230,15 +224,7 @@ class AzurePostgresqlCapability(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_configuration"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="postgresql",
-        version="2022-12-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforPostgreSQL/flexibleServers/{serverName}/configurations",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -275,6 +261,7 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_database"
+    # Collect via AzurePostgresqlServer()
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="postgresql",
         version="2022-12-01",
@@ -300,15 +287,7 @@ class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerFirewallRule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_firewall_rule"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="postgresql",
-        version="2022-12-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforPostgreSQL/flexibleServers/{serverName}/firewallRules",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -504,19 +483,55 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of a server."})
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        server_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+    ) -> None:
+        path = f"{server_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="sql",
+            version="2022-12-01",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if server_id := self.id:
+            resources_to_collect = [
+                ("administrators", AzurePostgresqlServerADAdministrator),
+                ("configurations", AzurePostgresqlServerConfiguration),
+                ("databases", AzurePostgresqlServerDatabase),
+                ("firewallRules", AzurePostgresqlServerFirewallRule),
+                ("backups", AzurePostgresqlServerBackup),
+            ]
+
+            for resource_type, resource_class in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    server_id,
+                    resource_type,
+                    resource_class,
+                )
+
 
 @define(eq=False, slots=False)
 class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_backup"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="postgresql",
-        version="2022-12-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforPostgreSQL/flexibleServers/{serverName}/backups",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
