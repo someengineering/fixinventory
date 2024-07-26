@@ -148,7 +148,7 @@ def history_query_histogram(db: Any, query_model: QueryModel, granularity: timed
     query_str += (
         f" FOR {crs} IN {in_cursor} "
         f"COLLECT change={crs}.change, at=DATE_ISO8601(FLOOR(DATE_TIMESTAMP({crs}.changed_at) / @{slot}) * @{slot}) "
-        f"WITH COUNT INTO v SORT v ASC "
+        f"WITH COUNT INTO v SORT at ASC "
         'RETURN {"at": at, "group": {"change": change}, "v": v}'
     )
     return query_str, ctx.bind_vars

@@ -1251,7 +1251,7 @@ class Api(Service):
             before=parse_utc(before),
             after=parse_utc(after),
             granularity=parse_duration(granularity) if granularity else None,
-            change=[HistoryChange[change] for change in changes] if changes else None,
+            changes=[HistoryChange[change] for change in changes] if changes else None,
         ) as cursor:
             return await self.stream_response_from_gen(
                 request, cursor, count=cursor.count(), total_count=cursor.full_count(), query_stats=cursor.stats()
