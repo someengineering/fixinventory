@@ -36,6 +36,7 @@ from fix_plugin_azure.resource.network import (
 )
 from fix_plugin_azure.resource.mysql import AzureMysqlCapability, AzureMysqlServerType, resources as mysql_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
+from fix_plugin_azure.resource.postgresql import AzurePostgresqlCapability, resources as postgresql_resources
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -55,13 +56,14 @@ def resource_with_params(clazz: Type[MicrosoftResource], param: str) -> bool:
 
 subscription_resources: List[Type[MicrosoftResource]] = (
     base_resources
-    + authorization_resources
-    + compute_resources
-    + network_resources
-    + aks_resources
-    + security_resources
-    + storage_resources
-    + sql_resources
+    # + authorization_resources
+    # + compute_resources
+    # + network_resources
+    # + aks_resources
+    # + security_resources
+    # + storage_resources
+    # + sql_resources
+    + postgresql_resources
     + mysql_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
@@ -235,6 +237,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
         rm_nodes(AzureDiskType, AzureLocation)
         rm_nodes(AzureStorageSku, AzureLocation)
+        rm_nodes(AzurePostgresqlCapability, AzureLocation)
         rm_nodes(AzureMysqlServerType, AzureLocation)
         remove_usage_zero_value()
 

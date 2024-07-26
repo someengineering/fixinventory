@@ -6,12 +6,14 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureProxyResource,
+    AzureResourceIdentity,
     AzureSku,
     AzureTrackedResource,
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
 )
+from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -183,8 +185,8 @@ class AzurePostgresqlCapability(MicrosoftResource):
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="postgresql",
         version="2022-12-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforPostgreSQL/locations/{locationName}/capabilities",
-        path_parameters=["subscriptionId", "locationName"],
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforPostgreSQL/locations/{location}/capabilities",
+        path_parameters=["subscriptionId", "location"],
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
@@ -219,6 +221,11 @@ class AzurePostgresqlCapability(MicrosoftResource):
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
     zone_redundant_ha_and_geo_backup_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can have geo-backups to paired region.'})  # fmt: skip
     zone_redundant_ha_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can support multi zone HA.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
+
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if builder_location := graph_builder.location:
+            self.location = builder_location.long_name
 
 
 @define(eq=False, slots=False)
@@ -239,7 +246,7 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
         "is_config_pending_restart": S("properties", "isConfigPendingRestart"),
         "is_dynamic_config": S("properties", "isDynamicConfig"),
         "is_read_only": S("properties", "isReadOnly"),
-        "source": S("properties", "source"),
+        "configuration_source": S("properties", "source"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "unit": S("properties", "unit"),
         "value": S("properties", "value"),
@@ -252,7 +259,7 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
     is_config_pending_restart: Optional[bool] = field(default=None, metadata={'description': 'Configuration is pending restart or not.'})  # fmt: skip
     is_dynamic_config: Optional[bool] = field(default=None, metadata={'description': 'Configuration dynamic or static.'})  # fmt: skip
     is_read_only: Optional[bool] = field(default=None, metadata={"description": "Configuration read-only or not."})
-    source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
+    configuration_source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     unit: Optional[str] = field(default=None, metadata={"description": "Configuration unit."})
     value: Optional[str] = field(default=None, metadata={"description": "Value of the configuration."})
@@ -262,15 +269,6 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
 class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_database"
     # Collect via AzurePostgresqlServer()
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="postgresql",
-        version="2022-12-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DBforPostgreSQL/flexibleServers/{serverName}/databases",
-        path_parameters=["subscriptionId", "resourceGroupName", "serverName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -316,27 +314,6 @@ class AzureOperationDisplay:
     operation: Optional[str] = field(default=None, metadata={'description': 'Localized friendly name for the operation.'})  # fmt: skip
     provider: Optional[str] = field(default=None, metadata={"description": "Operation resource provider name."})
     resource: Optional[str] = field(default=None, metadata={'description': 'Resource on which the operation is performed.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureUserIdentity:
-    kind: ClassVar[str] = "azure_user_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
-    client_id: Optional[str] = field(default=None, metadata={'description': 'the client identifier of the Service Principal which this identity represents.'})  # fmt: skip
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'the object identifier of the Service Principal which this identity represents.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureUserAssignedIdentity:
-    kind: ClassVar[str] = "azure_user_assigned_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "tenant_id": S("tenantId"),
-        "type": S("type"),
-        "user_assigned_identities": S("userAssignedIdentities"),
-    }
-    tenant_id: Optional[str] = field(default=None, metadata={"description": "Tenant id of the server."})
-    type: Optional[str] = field(default=None, metadata={'description': 'the types of identities associated with this resource; currently restricted to None and UserAssigned '})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzureUserIdentity]] = field(default=None, metadata={'description': 'Defines a map that contains user assigned identities.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -431,6 +408,17 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_postgresql_ad_administrator",
+                "azure_postgresql_server_configuration",
+                "azure_postgresql_server_database",
+                "azure_postgresql_server_firewall_rule",
+                "azure_postgresql_server_backup",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -441,22 +429,22 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
         "administrator_login_password": S("properties", "administratorLoginPassword"),
         "auth_config": S("properties", "authConfig") >> Bend(AzureAuthConfig.mapping),
         "availability_zone": S("properties", "availabilityZone"),
-        "backup": S("properties", "backup") >> Bend(AzureBackup.mapping),
+        "server_backup": S("properties", "backup") >> Bend(AzureBackup.mapping),
         "create_mode": S("properties", "createMode"),
         "data_encryption": S("properties", "dataEncryption") >> Bend(AzureDataEncryption.mapping),
         "fully_qualified_domain_name": S("properties", "fullyQualifiedDomainName"),
         "high_availability": S("properties", "highAvailability") >> Bend(AzureHighAvailability.mapping),
-        "identity": S("identity") >> Bend(AzureUserAssignedIdentity.mapping),
-        "maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
+        "user_identity": S("identity") >> Bend(AzureResourceIdentity.mapping),
+        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
         "minor_version": S("properties", "minorVersion"),
-        "network": S("properties", "network") >> Bend(AzureNetwork.mapping),
+        "server_network": S("properties", "network") >> Bend(AzureNetwork.mapping),
         "point_in_time_utc": S("properties", "pointInTimeUTC"),
         "replica_capacity": S("properties", "replicaCapacity"),
         "replication_role": S("properties", "replicationRole"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "server_sku": S("sku") >> Bend(AzureSku.mapping),
         "source_server_resource_id": S("properties", "sourceServerResourceId"),
         "state": S("properties", "state"),
-        "storage": S("properties", "storage", "storageSizeGB"),
+        "storage_size_gb": S("properties", "storage", "storageSizeGB"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "version": S("properties", "version"),
     }
@@ -464,22 +452,26 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The administrator login password (required for server creation).'})  # fmt: skip
     auth_config: Optional[AzureAuthConfig] = field(default=None, metadata={'description': 'Authentication configuration properties of a server'})  # fmt: skip
     availability_zone: Optional[str] = field(default=None, metadata={'description': 'availability zone information of the server.'})  # fmt: skip
-    backup: Optional[AzureBackup] = field(default=None, metadata={"description": "Backup properties of a server"})
+    server_backup: Optional[AzureBackup] = field(
+        default=None, metadata={"description": "Backup properties of a server"}
+    )
     create_mode: Optional[str] = field(default=None, metadata={'description': 'The mode to create a new PostgreSQL server.'})  # fmt: skip
     data_encryption: Optional[AzureDataEncryption] = field(default=None, metadata={'description': 'Data encryption properties of a server'})  # fmt: skip
     fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of a server.'})  # fmt: skip
     high_availability: Optional[AzureHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
-    identity: Optional[AzureUserAssignedIdentity] = field(default=None, metadata={'description': 'Information describing the identities associated with this application.'})  # fmt: skip
-    maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window properties of a server.'})  # fmt: skip
+    user_identity: Optional[AzureResourceIdentity] = field(default=None, metadata={'description': 'Information describing the identities associated with this application.'})  # fmt: skip
+    server_maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window properties of a server.'})  # fmt: skip
     minor_version: Optional[str] = field(default=None, metadata={"description": "The minor version of the server."})
-    network: Optional[AzureNetwork] = field(default=None, metadata={"description": "Network properties of a server."})
+    server_network: Optional[AzureNetwork] = field(
+        default=None, metadata={"description": "Network properties of a server."}
+    )
     point_in_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from. It s required when createMode is PointInTimeRestore or GeoRestore .'})  # fmt: skip
     replica_capacity: Optional[int] = field(default=None, metadata={"description": "Replicas allowed for a server."})
     replication_role: Optional[str] = field(default=None, metadata={'description': 'Used to indicate role of the server in replication set.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Sku information related properties of a server.'})  # fmt: skip
+    server_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Sku information related properties of a server.'})  # fmt: skip
     source_server_resource_id: Optional[str] = field(default=None, metadata={'description': 'The source server resource ID to restore from. It s required when createMode is PointInTimeRestore or GeoRestore or Replica . This property is returned only for Replica server'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={'description': 'A state of a server that is visible to user.'})  # fmt: skip
-    storage: Optional[int] = field(default=None, metadata={"description": "Storage properties of a server"})
+    storage_size_gb: Optional[int] = field(default=None, metadata={"description": "Storage properties of a server"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of a server."})
 
@@ -527,6 +519,15 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
                     resource_class,
                 )
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if location := self.location:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                clazz=AzurePostgresqlCapability,
+                location=location,
+            )
+
 
 @define(eq=False, slots=False)
 class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
@@ -540,12 +541,12 @@ class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
         "mtime": S("systemData", "lastModifiedAt"),
         "backup_type": S("properties", "backupType"),
         "completed_time": S("properties", "completedTime"),
-        "source": S("properties", "source"),
+        "backup_source": S("properties", "source"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
     backup_type: Optional[str] = field(default=None, metadata={"description": "Backup type."})
     completed_time: Optional[datetime] = field(default=None, metadata={'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
-    source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
+    backup_source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 

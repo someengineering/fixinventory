@@ -6,6 +6,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
+    AzureProxyResource,
     MicrosoftResource,
     MicrosoftResourceType,
     GraphBuilder,
@@ -1582,15 +1583,6 @@ class AzureRestorePointCollectionSourceProperties:
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "location": S("location")}
     id: Optional[str] = field(default=None, metadata={'description': 'Resource id of the source resource used to create this restore point collection.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'Location of the source resource used to create this restore point collection.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureProxyResource:
-    kind: ClassVar[str] = "azure_proxy_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "type": S("type")}
-    id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
-    name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
-    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
 
 @define(eq=False, slots=False)
