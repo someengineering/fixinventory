@@ -10,7 +10,7 @@ from fix_plugin_azure.resource.base import (
     AzureSku,
     GraphBuilder,
     MicrosoftResource,
-    parse_json
+    parse_json,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
@@ -1471,13 +1471,13 @@ class AzureSqlServer(MicrosoftResource):
         items = graph_builder.client.list(api_spec)
         for resource in class_instance.collect(items, graph_builder):
             # In case if we collect DB, then set properties
-            if isinstance(clazz, AzureSqlServerDatabase):
+            if isinstance(resource, AzureSqlServerDatabase):
                 if self.public_network_access == "Enabled":
-                    clazz.db_publicly_accessible = True
+                    resource.db_publicly_accessible = True
                 else:
-                    clazz.db_publicly_accessible = False
-                clazz.db_version = self.version
-                clazz.db_endpoint = self.fully_qualified_domain_name
+                    resource.db_publicly_accessible = False
+                resource.db_version = self.version
+                resource.db_endpoint = self.fully_qualified_domain_name
             graph_builder.add_edge(self, node=resource)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
@@ -1506,7 +1506,7 @@ class AzureSqlServer(MicrosoftResource):
                 ("jobAgents", AzureSqlServerJobAgent, "2021-11-01"),
                 ("virtualNetworkRules", AzureSqlServerVirtualNetworkRule, "2021-11-01"),
                 ("advisors?$expand=recommendedActions", AzureSqlServerAdvisor, "2021-11-01"),
-                ("administrators", AzureSqlServerADAdministrator),
+                ("administrators", AzureSqlServerADAdministrator, "2021-11-01"),
             ]
             for resource_type, resource_class, resource_version in resources_to_collect:
                 graph_builder.submit_work(
