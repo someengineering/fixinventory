@@ -482,6 +482,79 @@ class AzureUserIdentity:
 
 
 @define(eq=False, slots=False)
+class AzureServerDataEncryption:
+    kind: ClassVar[str] = "azure_server_data_encryption"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "geo_backup_key_uri": S("geoBackupKeyURI"),
+        "geo_backup_user_assigned_identity_id": S("geoBackupUserAssignedIdentityId"),
+        "primary_key_uri": S("primaryKeyURI"),
+        "primary_user_assigned_identity_id": S("primaryUserAssignedIdentityId"),
+        "type": S("type"),
+    }
+    geo_backup_key_uri: Optional[str] = field(default=None, metadata={'description': 'Geo backup key uri as key vault can t cross region, need cmk in same region as geo backup'})  # fmt: skip
+    geo_backup_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Geo backup user identity resource id as identity can t cross region, need identity in same region as geo backup'})  # fmt: skip
+    primary_key_uri: Optional[str] = field(default=None, metadata={"description": "Primary key uri"})
+    primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Primary user identity resource id'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The key type, AzureKeyVault for enable cmk, SystemManaged for disable cmk.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerBackup:
+    kind: ClassVar[str] = "azure_server_backup"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "backup_interval_hours": S("backupIntervalHours"),
+        "backup_retention_days": S("backupRetentionDays"),
+        "earliest_restore_date": S("earliestRestoreDate"),
+        "geo_redundant_backup": S("geoRedundantBackup"),
+    }
+    backup_interval_hours: Optional[int] = field(default=None, metadata={'description': 'Backup interval hours for the server.'})  # fmt: skip
+    backup_retention_days: Optional[int] = field(default=None, metadata={'description': 'Backup retention days for the server.'})  # fmt: skip
+    earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore point creation time (ISO8601 format)'})  # fmt: skip
+    geo_redundant_backup: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerNetwork:
+    kind: ClassVar[str] = "azure_server_network"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "delegated_subnet_resource_id": S("delegatedSubnetResourceId"),
+        "private_dns_zone_resource_id": S("privateDnsZoneResourceId"),
+        "public_network_access": S("publicNetworkAccess"),
+    }
+    delegated_subnet_resource_id: Optional[str] = field(default=None, metadata={'description': 'Delegated subnet resource id used to setup vnet for a server.'})  # fmt: skip
+    private_dns_zone_resource_id: Optional[str] = field(default=None, metadata={'description': 'Private DNS zone resource id.'})  # fmt: skip
+    public_network_access: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerHighAvailability:
+    kind: ClassVar[str] = "azure_server_high_availability"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "mode": S("mode"),
+        "standby_availability_zone": S("standbyAvailabilityZone"),
+        "state": S("state"),
+    }
+    mode: Optional[str] = field(default=None, metadata={"description": "High availability mode for a server."})
+    standby_availability_zone: Optional[str] = field(default=None, metadata={'description': 'Availability zone of the standby server.'})  # fmt: skip
+    state: Optional[str] = field(default=None, metadata={"description": "The state of server high availability."})
+
+
+@define(eq=False, slots=False)
+class AzureServerMaintenanceWindow:
+    kind: ClassVar[str] = "azure_server_maintenance_window"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "custom_window": S("customWindow"),
+        "day_of_week": S("dayOfWeek"),
+        "start_hour": S("startHour"),
+        "start_minute": S("startMinute"),
+    }
+    custom_window: Optional[str] = field(default=None, metadata={'description': 'indicates whether custom window is enabled or disabled'})  # fmt: skip
+    day_of_week: Optional[int] = field(default=None, metadata={"description": "day of week for maintenance window"})
+    start_hour: Optional[int] = field(default=None, metadata={"description": "start hour for maintenance window"})
+    start_minute: Optional[int] = field(default=None, metadata={"description": "start minute for maintenance window"})
+
+
+@define(eq=False, slots=False)
 class AzureResourceIdentity:
     kind: ClassVar[str] = "azure_resource_identity"
     mapping: ClassVar[Dict[str, Bender]] = {

@@ -7,6 +7,11 @@ from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureProxyResource,
     AzureResourceIdentity,
+    AzureServerBackup,
+    AzureServerDataEncryption,
+    AzureServerHighAvailability,
+    AzureServerMaintenanceWindow,
+    AzureServerNetwork,
     AzureSku,
     AzureTrackedResource,
     GraphBuilder,
@@ -79,8 +84,8 @@ class AzureStorageMBCapability:
 
 
 @define(eq=False, slots=False)
-class AzureStorageEditionCapability:
-    kind: ClassVar[str] = "azure_storage_edition_capability"
+class AzureServerStorageEditionCapability:
+    kind: ClassVar[str] = "azure_server_storage_edition_capability"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "status": S("status"),
@@ -109,8 +114,8 @@ class AzureVcoreCapability:
 
 
 @define(eq=False, slots=False)
-class AzureServerVersionCapability:
-    kind: ClassVar[str] = "azure_server_version_capability"
+class AzureSupportedServerVersionCapability:
+    kind: ClassVar[str] = "azure_supported_server_version_capability"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "status": S("status"),
@@ -129,14 +134,15 @@ class AzureFlexibleServerEditionCapability:
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name"),
         "status": S("status"),
-        "supported_server_versions": S("supportedServerVersions") >> ForallBend(AzureServerVersionCapability.mapping),
+        "supported_server_versions": S("supportedServerVersions")
+        >> ForallBend(AzureSupportedServerVersionCapability.mapping),
         "supported_storage_editions": S("supportedStorageEditions")
-        >> ForallBend(AzureStorageEditionCapability.mapping),
+        >> ForallBend(AzureServerStorageEditionCapability.mapping),
     }
     name: Optional[str] = field(default=None, metadata={"description": "Server edition name"})
     status: Optional[str] = field(default=None, metadata={"description": "The status"})
-    supported_server_versions: Optional[List[AzureServerVersionCapability]] = field(default=None, metadata={'description': 'The list of server versions supported by this server edition.'})  # fmt: skip
-    supported_storage_editions: Optional[List[AzureStorageEditionCapability]] = field(default=None, metadata={'description': 'The list of editions supported by this server edition.'})  # fmt: skip
+    supported_server_versions: Optional[List[AzureSupportedServerVersionCapability]] = field(default=None, metadata={'description': 'The list of server versions supported by this server edition.'})  # fmt: skip
+    supported_storage_editions: Optional[List[AzureServerStorageEditionCapability]] = field(default=None, metadata={'description': 'The list of editions supported by this server edition.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -155,15 +161,16 @@ class AzureHyperscaleNodeEditionCapability:
         "name": S("name"),
         "status": S("status"),
         "supported_node_types": S("supportedNodeTypes") >> ForallBend(AzureNodeTypeCapability.mapping),
-        "supported_server_versions": S("supportedServerVersions") >> ForallBend(AzureServerVersionCapability.mapping),
+        "supported_server_versions": S("supportedServerVersions")
+        >> ForallBend(AzureSupportedServerVersionCapability.mapping),
         "supported_storage_editions": S("supportedStorageEditions")
-        >> ForallBend(AzureStorageEditionCapability.mapping),
+        >> ForallBend(AzureServerStorageEditionCapability.mapping),
     }
     name: Optional[str] = field(default=None, metadata={"description": "Server edition name"})
     status: Optional[str] = field(default=None, metadata={"description": "The status"})
     supported_node_types: Optional[List[AzureNodeTypeCapability]] = field(default=None, metadata={'description': 'The list of Node Types supported by this server edition.'})  # fmt: skip
-    supported_server_versions: Optional[List[AzureServerVersionCapability]] = field(default=None, metadata={'description': 'The list of server versions supported by this server edition.'})  # fmt: skip
-    supported_storage_editions: Optional[List[AzureStorageEditionCapability]] = field(default=None, metadata={'description': 'The list of editions supported by this server edition.'})  # fmt: skip
+    supported_server_versions: Optional[List[AzureSupportedServerVersionCapability]] = field(default=None, metadata={'description': 'The list of server versions supported by this server edition.'})  # fmt: skip
+    supported_storage_editions: Optional[List[AzureServerStorageEditionCapability]] = field(default=None, metadata={'description': 'The list of editions supported by this server edition.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -203,7 +210,7 @@ class AzurePostgresqlCapability(MicrosoftResource):
         "status": S("status"),
         "supported_fast_provisioning_editions": S("supportedFastProvisioningEditions")
         >> ForallBend(AzureFastProvisioningEditionCapability.mapping),
-        "supported_flexible_server_editions": S("supportedFlexibleServerEditions")
+        "supported_psql_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureFlexibleServerEditionCapability.mapping),
         "supported_ha_mode": S("supportedHAMode"),
         "supported_hyperscale_node_editions": S("supportedHyperscaleNodeEditions")
@@ -216,7 +223,7 @@ class AzurePostgresqlCapability(MicrosoftResource):
     geo_backup_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can have geo-backups to paired region.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status"})
     supported_fast_provisioning_editions: Optional[List[AzureFastProvisioningEditionCapability]] = field(default=None, metadata={'description': ''})  # fmt: skip
-    supported_flexible_server_editions: Optional[List[AzureFlexibleServerEditionCapability]] = field(default=None, metadata={'description': ''})  # fmt: skip
+    supported_psql_flexible_server_editions: Optional[List[AzureFlexibleServerEditionCapability]] = field(default=None, metadata={'description': ''})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     supported_hyperscale_node_editions: Optional[List[AzureHyperscaleNodeEditionCapability]] = field(default=None, metadata={'description': ''})  # fmt: skip
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
@@ -331,73 +338,6 @@ class AzureAuthConfig:
 
 
 @define(eq=False, slots=False)
-class AzureDataEncryption:
-    kind: ClassVar[str] = "azure_data_encryption"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "primary_key_uri": S("primaryKeyURI"),
-        "primary_user_assigned_identity_id": S("primaryUserAssignedIdentityId"),
-        "type": S("type"),
-    }
-    primary_key_uri: Optional[str] = field(default=None, metadata={'description': 'URI for the key for data encryption for primary server.'})  # fmt: skip
-    primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Resource Id for the User assigned identity to be used for data encryption for primary server.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'Data encryption type to depict if it is System Managed vs Azure Key vault.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureBackup:
-    kind: ClassVar[str] = "azure_backup"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "backup_retention_days": S("backupRetentionDays"),
-        "earliest_restore_date": S("earliestRestoreDate"),
-        "geo_redundant_backup": S("geoRedundantBackup"),
-    }
-    backup_retention_days: Optional[int] = field(default=None, metadata={'description': 'Backup retention days for the server.'})  # fmt: skip
-    earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'The earliest restore point time (ISO8601 format) for server.'})  # fmt: skip
-    geo_redundant_backup: Optional[str] = field(default=None, metadata={'description': 'A value indicating whether Geo-Redundant backup is enabled on the server.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureNetwork:
-    kind: ClassVar[str] = "azure_network"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "delegated_subnet_resource_id": S("delegatedSubnetResourceId"),
-        "private_dns_zone_arm_resource_id": S("privateDnsZoneArmResourceId"),
-        "public_network_access": S("publicNetworkAccess"),
-    }
-    delegated_subnet_resource_id: Optional[str] = field(default=None, metadata={'description': 'Delegated subnet arm resource id. This is required to be passed during create, in case we want the server to be VNET injected, i.e. Private access server. During update, pass this only if we want to update the value for Private DNS zone.'})  # fmt: skip
-    private_dns_zone_arm_resource_id: Optional[str] = field(default=None, metadata={'description': 'Private dns zone arm resource id. This is required to be passed during create, in case we want the server to be VNET injected, i.e. Private access server. During update, pass this only if we want to update the value for Private DNS zone.'})  # fmt: skip
-    public_network_access: Optional[str] = field(default=None, metadata={'description': 'public network access is enabled or not'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureHighAvailability:
-    kind: ClassVar[str] = "azure_high_availability"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "mode": S("mode"),
-        "standby_availability_zone": S("standbyAvailabilityZone"),
-        "state": S("state"),
-    }
-    mode: Optional[str] = field(default=None, metadata={"description": "The HA mode for the server."})
-    standby_availability_zone: Optional[str] = field(default=None, metadata={'description': 'availability zone information of the standby.'})  # fmt: skip
-    state: Optional[str] = field(default=None, metadata={'description': 'A state of a HA server that is visible to user.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMaintenanceWindow:
-    kind: ClassVar[str] = "azure_maintenance_window"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "custom_window": S("customWindow"),
-        "day_of_week": S("dayOfWeek"),
-        "start_hour": S("startHour"),
-        "start_minute": S("startMinute"),
-    }
-    custom_window: Optional[str] = field(default=None, metadata={'description': 'indicates whether custom window is enabled or disabled'})  # fmt: skip
-    day_of_week: Optional[int] = field(default=None, metadata={"description": "day of week for maintenance window"})
-    start_hour: Optional[int] = field(default=None, metadata={"description": "start hour for maintenance window"})
-    start_minute: Optional[int] = field(default=None, metadata={"description": "start minute for maintenance window"})
-
-
-@define(eq=False, slots=False)
 class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_postgresql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -430,15 +370,15 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
         "administrator_login_password": S("properties", "administratorLoginPassword"),
         "auth_config": S("properties", "authConfig") >> Bend(AzureAuthConfig.mapping),
         "availability_zone": S("properties", "availabilityZone"),
-        "server_backup": S("properties", "backup") >> Bend(AzureBackup.mapping),
+        "server_backup": S("properties", "backup") >> Bend(AzureServerBackup.mapping),
         "create_mode": S("properties", "createMode"),
-        "data_encryption": S("properties", "dataEncryption") >> Bend(AzureDataEncryption.mapping),
+        "data_encryption": S("properties", "dataEncryption") >> Bend(AzureServerDataEncryption.mapping),
         "fully_qualified_domain_name": S("properties", "fullyQualifiedDomainName"),
-        "high_availability": S("properties", "highAvailability") >> Bend(AzureHighAvailability.mapping),
+        "high_availability": S("properties", "highAvailability") >> Bend(AzureServerHighAvailability.mapping),
         "user_identity": S("identity") >> Bend(AzureResourceIdentity.mapping),
-        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
+        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureServerMaintenanceWindow.mapping),
         "minor_version": S("properties", "minorVersion"),
-        "server_network": S("properties", "network") >> Bend(AzureNetwork.mapping),
+        "server_network": S("properties", "network") >> Bend(AzureServerNetwork.mapping),
         "point_in_time_utc": S("properties", "pointInTimeUTC"),
         "replica_capacity": S("properties", "replicaCapacity"),
         "replication_role": S("properties", "replicationRole"),
@@ -453,17 +393,17 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The administrator login password (required for server creation).'})  # fmt: skip
     auth_config: Optional[AzureAuthConfig] = field(default=None, metadata={'description': 'Authentication configuration properties of a server'})  # fmt: skip
     availability_zone: Optional[str] = field(default=None, metadata={'description': 'availability zone information of the server.'})  # fmt: skip
-    server_backup: Optional[AzureBackup] = field(
+    server_backup: Optional[AzureServerBackup] = field(
         default=None, metadata={"description": "Backup properties of a server"}
     )
     create_mode: Optional[str] = field(default=None, metadata={'description': 'The mode to create a new PostgreSQL server.'})  # fmt: skip
-    data_encryption: Optional[AzureDataEncryption] = field(default=None, metadata={'description': 'Data encryption properties of a server'})  # fmt: skip
+    data_encryption: Optional[AzureServerDataEncryption] = field(default=None, metadata={'description': 'Data encryption properties of a server'})  # fmt: skip
     fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of a server.'})  # fmt: skip
-    high_availability: Optional[AzureHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
+    high_availability: Optional[AzureServerHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
     user_identity: Optional[AzureResourceIdentity] = field(default=None, metadata={'description': 'Information describing the identities associated with this application.'})  # fmt: skip
-    server_maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window properties of a server.'})  # fmt: skip
+    server_maintenance_window: Optional[AzureServerMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window properties of a server.'})  # fmt: skip
     minor_version: Optional[str] = field(default=None, metadata={"description": "The minor version of the server."})
-    server_network: Optional[AzureNetwork] = field(
+    server_network: Optional[AzureServerNetwork] = field(
         default=None, metadata={"description": "Network properties of a server."}
     )
     point_in_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from. It s required when createMode is PointInTimeRestore or GeoRestore .'})  # fmt: skip

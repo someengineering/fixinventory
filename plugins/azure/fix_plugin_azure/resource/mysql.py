@@ -6,6 +6,11 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzurePrivateLinkServiceConnectionState,
+    AzureServerBackup,
+    AzureServerDataEncryption,
+    AzureServerHighAvailability,
+    AzureServerMaintenanceWindow,
+    AzureServerNetwork,
     AzureSku,
     GraphBuilder,
     MicrosoftResource,
@@ -421,23 +426,6 @@ class AzureMySQLServerIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureDataEncryption:
-    kind: ClassVar[str] = "azure_data_encryption"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "geo_backup_key_uri": S("geoBackupKeyURI"),
-        "geo_backup_user_assigned_identity_id": S("geoBackupUserAssignedIdentityId"),
-        "primary_key_uri": S("primaryKeyURI"),
-        "primary_user_assigned_identity_id": S("primaryUserAssignedIdentityId"),
-        "type": S("type"),
-    }
-    geo_backup_key_uri: Optional[str] = field(default=None, metadata={'description': 'Geo backup key uri as key vault can t cross region, need cmk in same region as geo backup'})  # fmt: skip
-    geo_backup_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Geo backup user identity resource id as identity can t cross region, need identity in same region as geo backup'})  # fmt: skip
-    primary_key_uri: Optional[str] = field(default=None, metadata={"description": "Primary key uri"})
-    primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Primary user identity resource id'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The key type, AzureKeyVault for enable cmk, SystemManaged for disable cmk.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureStorage:
     kind: ClassVar[str] = "azure_storage"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -454,62 +442,6 @@ class AzureStorage:
     log_on_disk: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
     storage_size_gb: Optional[int] = field(default=None, metadata={'description': 'Max storage size allowed for a server.'})  # fmt: skip
     storage_sku: Optional[str] = field(default=None, metadata={"description": "The sku name of the server storage."})
-
-
-@define(eq=False, slots=False)
-class AzureBackup:
-    kind: ClassVar[str] = "azure_backup"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "backup_interval_hours": S("backupIntervalHours"),
-        "backup_retention_days": S("backupRetentionDays"),
-        "earliest_restore_date": S("earliestRestoreDate"),
-        "geo_redundant_backup": S("geoRedundantBackup"),
-    }
-    backup_interval_hours: Optional[int] = field(default=None, metadata={'description': 'Backup interval hours for the server.'})  # fmt: skip
-    backup_retention_days: Optional[int] = field(default=None, metadata={'description': 'Backup retention days for the server.'})  # fmt: skip
-    earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore point creation time (ISO8601 format)'})  # fmt: skip
-    geo_redundant_backup: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureHighAvailability:
-    kind: ClassVar[str] = "azure_high_availability"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "mode": S("mode"),
-        "standby_availability_zone": S("standbyAvailabilityZone"),
-        "state": S("state"),
-    }
-    mode: Optional[str] = field(default=None, metadata={"description": "High availability mode for a server."})
-    standby_availability_zone: Optional[str] = field(default=None, metadata={'description': 'Availability zone of the standby server.'})  # fmt: skip
-    state: Optional[str] = field(default=None, metadata={"description": "The state of server high availability."})
-
-
-@define(eq=False, slots=False)
-class AzureNetwork:
-    kind: ClassVar[str] = "azure_network"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "delegated_subnet_resource_id": S("delegatedSubnetResourceId"),
-        "private_dns_zone_resource_id": S("privateDnsZoneResourceId"),
-        "public_network_access": S("publicNetworkAccess"),
-    }
-    delegated_subnet_resource_id: Optional[str] = field(default=None, metadata={'description': 'Delegated subnet resource id used to setup vnet for a server.'})  # fmt: skip
-    private_dns_zone_resource_id: Optional[str] = field(default=None, metadata={'description': 'Private DNS zone resource id.'})  # fmt: skip
-    public_network_access: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMaintenanceWindow:
-    kind: ClassVar[str] = "azure_maintenance_window"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "custom_window": S("customWindow"),
-        "day_of_week": S("dayOfWeek"),
-        "start_hour": S("startHour"),
-        "start_minute": S("startMinute"),
-    }
-    custom_window: Optional[str] = field(default=None, metadata={'description': 'indicates whether custom window is enabled or disabled'})  # fmt: skip
-    day_of_week: Optional[int] = field(default=None, metadata={"description": "day of week for maintenance window"})
-    start_hour: Optional[int] = field(default=None, metadata={"description": "start hour for maintenance window"})
-    start_minute: Optional[int] = field(default=None, metadata={"description": "start minute for maintenance window"})
 
 
 @define(eq=False, slots=False)
@@ -565,16 +497,16 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         "administrator_login": S("properties", "administratorLogin"),
         "administrator_login_password": S("properties", "administratorLoginPassword"),
         "availability_zone": S("properties", "availabilityZone"),
-        "backup": S("properties", "backup") >> Bend(AzureBackup.mapping),
+        "backup": S("properties", "backup") >> Bend(AzureServerBackup.mapping),
         "create_mode": S("properties", "createMode"),
-        "data_encryption": S("properties", "dataEncryption") >> Bend(AzureDataEncryption.mapping),
+        "data_encryption": S("properties", "dataEncryption") >> Bend(AzureServerDataEncryption.mapping),
         "fully_qualified_domain_name": S("properties", "fullyQualifiedDomainName"),
-        "high_availability": S("properties", "highAvailability") >> Bend(AzureHighAvailability.mapping),
+        "high_availability": S("properties", "highAvailability") >> Bend(AzureServerHighAvailability.mapping),
         "mysql_server_identity": S("identity") >> Bend(AzureMySQLServerIdentity.mapping),
         "import_source_properties": S("properties", "importSourceProperties")
         >> Bend(AzureImportSourceProperties.mapping),
-        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
-        "server_network": S("properties", "network") >> Bend(AzureNetwork.mapping),
+        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureServerMaintenanceWindow.mapping),
+        "server_network": S("properties", "network") >> Bend(AzureServerNetwork.mapping),
         "mysql_server_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "replica_capacity": S("properties", "replicaCapacity"),
@@ -615,15 +547,15 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login name of a server. Can only be specified when the server is being created (and is required for creation).'})  # fmt: skip
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The password of the administrator login (required for server creation).'})  # fmt: skip
     availability_zone: Optional[str] = field(default=None, metadata={'description': 'availability Zone information of the server.'})  # fmt: skip
-    backup: Optional[AzureBackup] = field(default=None, metadata={'description': 'Storage Profile properties of a server'})  # fmt: skip
+    backup: Optional[AzureServerBackup] = field(default=None, metadata={'description': 'Storage Profile properties of a server'})  # fmt: skip
     create_mode: Optional[str] = field(default=None, metadata={'description': 'The mode to create a new MySQL server.'})  # fmt: skip
-    data_encryption: Optional[AzureDataEncryption] = field(default=None, metadata={'description': 'The date encryption for cmk.'})  # fmt: skip
+    data_encryption: Optional[AzureServerDataEncryption] = field(default=None, metadata={'description': 'The date encryption for cmk.'})  # fmt: skip
     fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of a server.'})  # fmt: skip
-    high_availability: Optional[AzureHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
+    high_availability: Optional[AzureServerHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
     mysql_server_identity: Optional[AzureMySQLServerIdentity] = field(default=None, metadata={'description': 'Properties to configure Identity for Bring your Own Keys'})  # fmt: skip
     import_source_properties: Optional[AzureImportSourceProperties] = field(default=None, metadata={'description': 'Import source related properties.'})  # fmt: skip
-    server_maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window of a server.'})  # fmt: skip
-    server_network: Optional[AzureNetwork] = field(default=None, metadata={'description': 'Network related properties of a server'})  # fmt: skip
+    server_maintenance_window: Optional[AzureServerMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window of a server.'})  # fmt: skip
+    server_network: Optional[AzureServerNetwork] = field(default=None, metadata={'description': 'Network related properties of a server'})  # fmt: skip
     mysql_server_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'PrivateEndpointConnections related properties of a server.'})  # fmt: skip
     replica_capacity: Optional[int] = field(default=None, metadata={'description': 'The maximum number of replicas that a primary server can have.'})  # fmt: skip
     replication_role: Optional[str] = field(default=None, metadata={"description": "The replication role."})
