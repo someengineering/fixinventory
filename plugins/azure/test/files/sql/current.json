@@ -1,0 +1,8 @@
+{
+    "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/foo/providers/Microsoft.Sql/servers/test-server111/databases/master/transparentDataEncryption/Current",
+    "name": "Current",
+    "properties": {
+        "state": "Disabled"
+    },
+    "type": "Microsoft.Sql/servers/databases/transparentDataEncryption"
+}
