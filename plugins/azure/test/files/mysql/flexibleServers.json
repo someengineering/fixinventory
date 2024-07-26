@@ -1,0 +1,51 @@
+{
+    "value": [
+        {
+            "sku": {
+                "name": "Standard_B1ms",
+                "tier": "Burstable"
+            },
+            "properties": {
+                "administratorLogin": "cloudsa",
+                "storage": {
+                    "storageSizeGB": 23,
+                    "iops": 369,
+                    "autoGrow": "Enabled",
+                    "storageSku": "Premium_LRS"
+                },
+                "version": "5.7",
+                "state": "Ready",
+                "fullyQualifiedDomainName": "mysqltestserver1.database.mysql.azure.com",
+                "availabilityZone": "1",
+                "maintenanceWindow": {
+                    "customWindow": "Disabled",
+                    "dayOfWeek": 0,
+                    "startHour": 0,
+                    "startMinute": 0
+                },
+                "replicationRole": "None",
+                "replicaCapacity": 10,
+                "network": {
+                    "publicNetworkAccess": "Enabled"
+                },
+                "backup": {
+                    "backupRetentionDays": 7,
+                    "backupIntervalHours": 24,
+                    "geoRedundantBackup": "Disabled",
+                    "earliestRestoreDate": "2021-06-17T07:08:17.4259886+00:00"
+                },
+                "highAvailability": {
+                    "mode": "Disabled",
+                    "state": "NotEnabled"
+                }
+            },
+            "location": "Southeast Asia",
+            "tags": {
+                "num": "1"
+            },
+            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/TestGroup/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver1",
+            "name": "mysqltestserver1",
+            "type": "Microsoft.DBforMySQL/flexibleServers"
+        }
+    ]
+}

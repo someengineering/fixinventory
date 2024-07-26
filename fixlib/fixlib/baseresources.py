@@ -1095,6 +1095,14 @@ class DatabaseInstanceStatus(Enum):
 
 
 @define(eq=False, slots=False)
+class BaseDatabaseInstanceType(BaseInstanceType):
+    kind: ClassVar[str] = "database_instance_type"
+    kind_display: ClassVar[str] = "Database Instance Type"
+    kind_description: ClassVar[str] = "A database instance type."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+
+
+@define(eq=False, slots=False)
 class BaseDatabase(BaseResource):
     kind: ClassVar[str] = "database"
     kind_display: ClassVar[str] = "Database"

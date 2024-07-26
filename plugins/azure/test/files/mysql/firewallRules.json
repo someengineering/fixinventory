@@ -1,0 +1,22 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/TestGroup/providers/Microsoft.DBforMySQL/flexibleServers/testserver/firewallRules/rule1",
+            "name": "rule1",
+            "type": "Microsoft.DBforMySQL/flexibleServers/firewallRules",
+            "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "255.255.255.255"
+            }
+        },
+        {
+            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/TestGroup/providers/Microsoft.DBforMySQL/flexibleServers/testserver/firewallRules/rule2",
+            "name": "rule2",
+            "type": "Microsoft.DBforMySQL/flexibleServers/firewallRules",
+            "properties": {
+                "startIpAddress": "1.0.0.0",
+                "endIpAddress": "255.0.0.0"
+            }
+        }
+    ]
+}

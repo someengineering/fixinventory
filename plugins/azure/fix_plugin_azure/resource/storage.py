@@ -360,8 +360,8 @@ class AzureServiceSpecification:
 
 
 @define(eq=False, slots=False)
-class AzureSKUCapability:
-    kind: ClassVar[str] = "azure_sku_capability"
+class AzureStorageSkuCapability:
+    kind: ClassVar[str] = "azure_storage_sku_capability"
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
     name: Optional[str] = field(default=None, metadata={'description': 'The name of capability, The capability information in the specified SKU, including file encryption, network ACLs, change notification, etc.'})  # fmt: skip
     value: Optional[str] = field(default=None, metadata={'description': 'A string value to indicate states of given capability. Possibly true or false .'})  # fmt: skip
@@ -392,7 +392,7 @@ class AzureStorageSku(MicrosoftResource):
         "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "sku_capabilities": S("capabilities") >> ForallBend(AzureSKUCapability.mapping),
+        "sku_capabilities": S("capabilities") >> ForallBend(AzureStorageSkuCapability.mapping),
         "resource_kind": S("kind"),
         "locations": S("locations"),
         "resource_type": S("resourceType"),
@@ -400,7 +400,7 @@ class AzureStorageSku(MicrosoftResource):
         "tier": S("tier"),
     }
     _is_provider_link: ClassVar[bool] = False
-    sku_capabilities: Optional[List[AzureSKUCapability]] = field(default=None, metadata={'description': 'The capability information in the specified SKU, including file encryption, network ACLs, change notification, etc.'})  # fmt: skip
+    sku_capabilities: Optional[List[AzureStorageSkuCapability]] = field(default=None, metadata={'description': 'The capability information in the specified SKU, including file encryption, network ACLs, change notification, etc.'})  # fmt: skip
     resource_kind: Optional[str] = field(
         default=None, metadata={"description": "Indicates the type of storage account."}
     )
@@ -677,8 +677,8 @@ class AzureGeoReplicationStats:
 
 
 @define(eq=False, slots=False)
-class AzurePrivateEndpointConnection:
-    kind: ClassVar[str] = "azure_private_endpoint_connection"
+class AzureStoragePrivateEndpointConnection:
+    kind: ClassVar[str] = "azure_storage_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -840,7 +840,7 @@ class AzureStorageAccount(MicrosoftResource):
         "primary_endpoints": S("properties", "primaryEndpoints") >> Bend(AzureEndpoints.mapping),
         "primary_location": S("properties", "primaryLocation"),
         "storage_private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzurePrivateEndpointConnection.mapping),
+        >> ForallBend(AzureStoragePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
         "routing_preference": S("properties", "routingPreference") >> Bend(AzureRoutingPreference.mapping),
@@ -898,7 +898,7 @@ class AzureStorageAccount(MicrosoftResource):
     )
     primary_endpoints: Optional[AzureEndpoints] = field(default=None, metadata={'description': 'The URIs that are used to perform a retrieval of a public blob, queue, table, web or dfs object.'})  # fmt: skip
     primary_location: Optional[str] = field(default=None, metadata={'description': 'Gets the location of the primary data center for the storage account.'})  # fmt: skip
-    storage_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connection associated with the specified storage account'})  # fmt: skip
+    storage_private_endpoint_connections: Optional[List[AzureStoragePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connection associated with the specified storage account'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Allow or disallow public network access to Storage Account. Value is optional but if passed in, must be Enabled or Disabled .'})  # fmt: skip
     routing_preference: Optional[AzureRoutingPreference] = field(default=None, metadata={'description': 'Routing preference defines the type of network, either microsoft or internet routing to be used to deliver the user data, the default option is microsoft routing'})  # fmt: skip
     sas_policy: Optional[AzureSasPolicy] = field(default=None, metadata={'description': 'SasPolicy assigned to the storage account.'})  # fmt: skip

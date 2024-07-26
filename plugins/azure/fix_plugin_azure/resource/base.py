@@ -23,7 +23,7 @@ from fixlib.baseresources import (
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey, NodeSelector, ByNodeId
-from fixlib.json_bender import Bender, bend, S, ForallBend, Bend
+from fixlib.json_bender import AsFloat, Bender, bend, S, ForallBend, Bend
 from fixlib.lock import RWLock
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
@@ -294,6 +294,9 @@ class AzureLocation(MicrosoftResource, BaseRegion):
         "location_metadata": S("metadata") >> Bend(AzureLocationMetadata.mapping),
         "regional_display_name": S("regionalDisplayName"),
         "subscription_id": S("subscriptionId"),
+        "long_name": S("displayName"),
+        "latitude": S("metadata", "latitude") >> AsFloat(),
+        "longitude": S("metadata", "longitude") >> AsFloat(),
     }
     availability_zone_mappings: Optional[List[AzureAvailabilityZoneMappings]] = field(default=None, metadata={'description': 'The availability zone mappings for this region.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The display name of the location."})
