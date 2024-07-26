@@ -590,6 +590,30 @@ class AzureSystemData:
 
 
 @define(eq=False, slots=False)
+class AzureTrackedResource:
+    kind: ClassVar[str] = "azure_tracked_resource"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "location": S("location"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "type": S("type"),
+    }
+    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureProxyResource:
+    kind: ClassVar[str] = "azure_proxy_resource"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "type": S("type"),
+    }
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AzureSku:
     kind: ClassVar[str] = "azure_sku"
     mapping: ClassVar[Dict[str, Bender]] = {
