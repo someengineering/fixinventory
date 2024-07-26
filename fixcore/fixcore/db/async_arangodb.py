@@ -201,6 +201,10 @@ class AsyncArangoDBBase:
         stream: Optional[bool] = None,
         skip_inaccessible_cols: Optional[bool] = None,
         max_runtime: Optional[Number] = None,
+        fill_block_cache: Optional[bool] = None,
+        allow_dirty_read: bool = False,
+        allow_retry: bool = False,
+        force_one_shard_attribute_value: Optional[str] = None,
     ) -> AsyncCursorContext:
         cursor: Cursor = await run_async(
             self.db.aql.execute,  # type: ignore
@@ -224,6 +228,10 @@ class AsyncArangoDBBase:
             stream,
             skip_inaccessible_cols,
             max_runtime,
+            fill_block_cache,
+            allow_dirty_read,
+            allow_retry,
+            force_one_shard_attribute_value,
         )
         return AsyncCursorContext(
             AsyncCursor(
