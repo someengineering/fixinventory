@@ -849,10 +849,7 @@ async def core_metadata(
                 cmds.append(evolve(lookup[cmd], name=alias, is_alias=True))
         return cmds, visible_kinds, sorted(known_props)
     except Exception as ex:
-        log.warning(
-            f"Can not load metadata from core: {ex}. No suggestions as fallback.",
-            exc_info=ex,
-        )
+        log.info(f"Can not load metadata from core. No graph? No suggestions as fallback. {ex}")
         return [], [], []
 
 
