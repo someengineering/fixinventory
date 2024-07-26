@@ -186,6 +186,19 @@ class GraphDB(ABC):
         pass
 
     @abstractmethod
+    async def history_timeline(
+        self,
+        query: QueryModel,
+        before: datetime,
+        after: datetime,
+        granularity: Optional[timedelta] = None,
+        changes: Optional[List[HistoryChange]] = None,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        pass
+
+    @abstractmethod
     async def list_possible_values(
         self,
         query: QueryModel,
@@ -731,6 +744,31 @@ class ArangoGraphDB(GraphDB):
             ttl=cast(Number, int(timeout.total_seconds())) if timeout else None,
         )
 
+    def _history_query_model(
+        self,
+        query: QueryModel,
+        changes: Optional[List[HistoryChange]] = None,
+        before: Optional[datetime] = None,
+        after: Optional[datetime] = None,
+    ) -> QueryModel:
+        more_than_one = len(query.query.parts) > 1
+        has_invalid_terms = any(query.query.find_terms(lambda t: isinstance(t, (FulltextTerm, MergeTerm))))
+        has_navigation = any(p.navigation for p in query.query.parts)
+        if more_than_one or has_invalid_terms or has_navigation:
+            raise AttributeError("Fulltext, merge terms and navigation is not supported in history queries!")
+        if before and after and before < after:
+            raise AttributeError("Before marks the end and should be greater than after!")
+
+        # adjust query
+        term = query.query.current_part.term
+        if changes:
+            term = term.and_term(P.single("change").is_in([c.value for c in changes]))
+        if after:
+            term = term.and_term(P.single("changed_at").gt(utc_str(after)))
+        if before:
+            term = term.and_term(P.single("changed_at").lt(utc_str(before)))
+        return QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
+
     async def search_history(
         self,
         query: QueryModel,
@@ -741,29 +779,13 @@ class ArangoGraphDB(GraphDB):
         timeout: Optional[timedelta] = None,
         **kwargs: Any,
     ) -> AsyncCursorContext:
-        more_than_one = len(query.query.parts) > 1
-        has_invalid_terms = any(query.query.find_terms(lambda t: isinstance(t, (FulltextTerm, MergeTerm))))
-        has_navigation = any(p.navigation for p in query.query.parts)
-        if more_than_one or has_invalid_terms or has_navigation:
-            raise AttributeError("Fulltext, merge terms and navigation is not supported in history queries!")
-        # adjust query
-        term = query.query.current_part.term
-        if changes:
-            term = term.and_term(P.single("change").is_in([c.value for c in changes]))
-        if after:
-            term = term.and_term(P.single("changed_at").gt(utc_str(after)))
-        if before:
-            term = term.and_term(P.single("changed_at").lt(utc_str(before)))
-        query = QueryModel(evolve(query.query, parts=[evolve(query.query.current_part, term=term)]), query.model)
+        query = self._history_query_model(query, changes, before, after)
         q_string, bind = arango_query.history_query(self, query)
         trafo = (
             None
             if query.query.aggregate
             else self.document_to_instance_fn(
-                query.model,
-                query,
-                ["change", "changed_at", "before", "diff"],
-                id_column="id",
+                query.model, query, ["change", "changed_at", "before", "diff"], id_column="id"
             )
         )
         ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
@@ -776,6 +798,26 @@ class ArangoGraphDB(GraphDB):
             batch_size=10000,
             ttl=ttl,
         )
+
+    async def history_timeline(
+        self,
+        query: QueryModel,
+        before: datetime,
+        after: datetime,
+        granularity: Optional[timedelta] = None,
+        changes: Optional[List[HistoryChange]] = None,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        # ignore aggregates functions for timelines
+        if query.query.aggregate is not None:
+            query = evolve(query, query=evolve(query.query, aggregate=None))
+        # in case no granularity is provided we will compute one: 1/25 of the time range but at least one hour
+        gran = max(granularity or abs(before - after) / 25, timedelta(hours=1))
+        query = self._history_query_model(query, changes, before, after)
+        q_string, bind = arango_query.history_query_histogram(self, query, gran)
+        ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
+        return await self.db.aql_cursor(query=q_string, bind_vars=bind, batch_size=10000, ttl=ttl)
 
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
@@ -1848,6 +1890,18 @@ class EventGraphDB(GraphDB):
         counters, context = query.query.analytics()
         await self.event_sender.core_event(CoreEvent.HistoryQuery, context, **counters)
         return await self.real.search_history(query, changes, before, after, with_count, timeout, **kwargs)
+
+    async def history_timeline(
+        self,
+        query: QueryModel,
+        before: datetime,
+        after: datetime,
+        granularity: Optional[timedelta] = None,
+        changes: Optional[List[HistoryChange]] = None,
+        timeout: Optional[timedelta] = None,
+        **kwargs: Any,
+    ) -> AsyncCursorContext:
+        return await self.real.history_timeline(query, before, after, granularity, changes, timeout, **kwargs)
 
     async def search_graph_gen(
         self, query: QueryModel, with_count: bool = False, timeout: Optional[timedelta] = None, **kwargs: Any
