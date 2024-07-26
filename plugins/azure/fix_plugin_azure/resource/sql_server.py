@@ -9,6 +9,7 @@ from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrinc
 from fix_plugin_azure.resource.network import AzureSubnet
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
+from fixlib.json import value_in_path
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -181,6 +182,7 @@ class AzureSqlServerDatabase(MicrosoftResource):
     source_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the source associated with the create operation of this database. This property is only supported for DataWarehouse edition and allows to restore across subscriptions. When sourceResourceId is specified, sourceDatabaseId, recoverableDatabaseId, restorableDroppedDatabaseId and sourceDatabaseDeletionDate must not be specified and CreateMode must be PointInTimeRestore, Restore or Recover. When createMode is PointInTimeRestore, sourceResourceId must be the resource ID of the existing database or existing sql pool, and restorePointInTime must be specified. When createMode is Restore, sourceResourceId must be the resource ID of restorable dropped database or restorable dropped sql pool. When createMode is Recover, sourceResourceId must be the resource ID of recoverable database or recoverable sql pool. When source subscription belongs to a different tenant than target subscription, “x-ms-authorization-auxiliary” header must contain authentication token for the source tenant. For more details about “x-ms-authorization-auxiliary” header see https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/authenticate-multi-tenant '})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the database."})
     zone_redundant: Optional[bool] = field(default=None, metadata={'description': 'Whether or not this database is zone redundant, which means the replicas of this database will be spread across multiple availability zones.'})  # fmt: skip
+    transparent_data_encryption_status: Optional[str] = field(default=None, metadata={'description': 'The transparent data encryption status for this database.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
@@ -204,19 +206,26 @@ class AzureSqlServerDatabase(MicrosoftResource):
             expected_error_codes=expected_error_codes or [],
         )
         items = graph_builder.client.list(api_spec)
-        if not items:
-            return
         collected = class_instance.collect(items, graph_builder)
-        for clazz in collected:
-            graph_builder.add_edge(
-                self,
-                edge_type=EdgeType.default,
-                id=clazz.id,
-                clazz=class_instance,
-            )
+        for resource in collected:
+            graph_builder.add_edge(self, node=resource)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def fetch_data_encryption_status(sid: str) -> None:
+            api_spec = AzureResourceSpec(
+                service="sql",
+                version="2021-11-01",
+                path=f"{sid}/transparentDataEncryption/current",
+                query_parameters=["api-version"],
+                expect_array=True,
+            )
+            # albeit this is a list API, it will only return one element
+            if items := graph_builder.client.list(api_spec):
+                for item in items:
+                    self.transparent_data_encryption_status = value_in_path(item, ["properties", "state"])
+
         if database_id := self.id:
+            graph_builder.submit_work(service_name, fetch_data_encryption_status, database_id)
             resources_to_collect = [
                 ("geoBackupPolicies", AzureSqlServerDatabaseGeoBackupPolicy, None),
                 ("advisors?$expand=recommendedAction", AzureSqlServerAdvisor, None),
