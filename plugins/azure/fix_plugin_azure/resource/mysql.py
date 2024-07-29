@@ -16,7 +16,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
-from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphUser
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fixlib.baseresources import (
     BaseDatabase,
     BaseDatabaseInstanceType,
@@ -470,6 +470,8 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 "azure_mysql_server_configuration",
                 "azure_mysql_server_ad_administrator",
                 "azure_mysql_server_type",
+                "microsoft_graph_service_principal",
+                "microsoft_graph_user",
             ]
         },
     }
@@ -656,6 +658,23 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 server_version=version,
                 id=sku_type,
             )
+
+        # principal: collected via ms graph -> create a deferred edge
+        if mii := self.mysql_server_identity:
+            if pid := mii.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := mii.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
