@@ -1,5 +1,7 @@
+from concurrent.futures import as_completed
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Any
+import logging
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
@@ -18,11 +20,12 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
-from fixlib.baseresources import BaseDatabaseInstanceType, EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabaseInstanceType, ModelReference
 from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 service_name = "azure_postgresql"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -235,36 +238,48 @@ class AzurePostgresqlCapability(MicrosoftResource):
         if builder_location := graph_builder.location:
             self.location = builder_location.long_name
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        server_types = []
+    def collect_types(self, graph_builder: GraphBuilder, source: Json) -> List["AzurePostgresqlServerType"]:
+        collected_types = []
+        futures = []
+
+        def collect_editions(edition: AzureFlexibleServerEditionCapability) -> List[AzurePostgresqlServerType]:
+            server_types = []
+            for version in edition.supported_server_versions or []:
+                for sku in version.supported_vcores or []:
+                    for supported_storage in edition.supported_storage_editions or []:
+                        for storage in supported_storage.supported_storage_mb or []:
+                            server_type = {
+                                "id": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
+                                "name": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
+                                "sku": {
+                                    "name": sku.name,
+                                    "tier": edition.name,
+                                    "vCores": sku.v_cores,
+                                    "memoryPerVCoreMb": sku.supported_memory_per_vcore_mb,
+                                },
+                                "storage": {
+                                    "iops": storage.supported_iops,
+                                    "storageSizeGb": (
+                                        storage.storage_size_mb // 1024 if storage.storage_size_mb else 0
+                                    ),
+                                },
+                                "location": self.location,
+                            }
+                            server_types.append(server_type)
+            return AzurePostgresqlServerType.collect(server_types, graph_builder)
+
         if self.supported_psql_flexible_server_editions:
             for edition in self.supported_psql_flexible_server_editions:
-                for version in edition.supported_server_versions or []:
-                    for sku in version.supported_vcores or []:
-                        for supported_storage in edition.supported_storage_editions or []:
-                            for storage in supported_storage.supported_storage_mb or []:
-                                for upgradable_tier in storage.supported_upgradable_tier_list or []:
-                                    server_type = {
-                                        "id": f"{edition.name}_{version.name}_{sku.name}_{storage.name}_{upgradable_tier.tier_name}",
-                                        "name": f"{edition.name}_{version.name}_{sku.name}_{storage.name}_{upgradable_tier.tier_name}",
-                                        "sku": {
-                                            "name": sku.name,
-                                            "tier": edition.name,
-                                            "vCores": sku.v_cores,
-                                            "memoryPerVCoreMb": sku.supported_memory_per_vcore_mb,
-                                        },
-                                        "storage": {
-                                            "iops": upgradable_tier.iops,
-                                            "storageSizeGb": (
-                                                storage.storage_size_mb // 1024 if storage.storage_size_mb else 0
-                                            ),
-                                            "tier": upgradable_tier.tier_name,
-                                        },
-                                        "location": self.location,
-                                    }
-                                    server_types.append(server_type)
+                futures.append(graph_builder.submit_work(service_name, collect_editions, edition))
 
-        AzurePostgresqlServerType.collect(server_types, graph_builder)
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                collected_types.extend(result)
+            except Exception as e:
+                logging.warning(f"An error occurred while collecting AzurePostgresqlServerType: {e}")
+
+        return collected_types
 
 
 @define(eq=False, slots=False)
@@ -346,35 +361,27 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
-        "geo_backup_supported": S("geo_backup_supported"),
-        "zone_redundant_ha_supported": S("zone_redundant_ha_supported"),
-        "supported_ha_mode": S("supported_ha_mode"),
-        "server_edition_name": S("server_edition_name"),
-        "storage_mb": S("storage_mb"),
-        "supported_iops": S("supported_iops"),
-        "storage_size_mb": S("storage_size_mb"),
-        "supported_upgradable_tier_list": S("supported_upgradable_tier_list"),
-        "server_version": S("server_version"),
-        "vcore_name": S("vcore_name"),
-        "v_cores": S("v_cores"),
-        "supported_memory_per_vcore_mb": S("supported_memory_per_vcore_mb"),
+        "sku_name": S("sku", "name"),
+        "sku_tier": S("sku", "tier"),
+        "state": S("state"),
+        "storage_auto_grow": S("storage", "autoGrow"),
+        "storage_iops": S("storage", "iops"),
+        "storage_size_gb": S("storage", "storageSizeGb"),
+        "storage_tier": S("storage", "tier"),
+        "storage_type": S("storage", "type"),
         "display_location": S("location"),
-        # "instance_cores": S("v_cores"),
-        # "instance_memory": S("supported_memory_per_vcore_mb") >> F(lambda mb: mb / 1024),
+        "instance_cores": S("sku", "vCores"),
+        "instance_memory": S("sku", "memoryPerVCoreMb") >> F(lambda mb: mb // 1024),
     }
 
-    geo_backup_supported: Optional[bool] = field(default=None)
-    zone_redundant_ha_supported: Optional[bool] = field(default=None)
-    supported_ha_mode: Optional[List[str]] = field(default=None)
-    server_edition_name: Optional[str] = field(default=None)
-    storage_mb: Optional[str] = field(default=None)
-    supported_iops: Optional[int] = field(default=None)
-    storage_size_mb: Optional[int] = field(default=None)
-    supported_upgradable_tier_list: Optional[List[Dict]] = field(default=None)
-    server_version: Optional[str] = field(default=None)
-    vcore_name: Optional[str] = field(default=None)
-    v_cores: Optional[int] = field(default=None)
-    supported_memory_per_vcore_mb: Optional[int] = field(default=None)
+    sku_name: Optional[str] = field(default=None)
+    sku_tier: Optional[str] = field(default=None)
+    state: Optional[str] = field(default=None)
+    storage_auto_grow: Optional[str] = field(default=None)
+    storage_iops: Optional[int] = field(default=None)
+    storage_size_gb: Optional[int] = field(default=None)
+    storage_tier: Optional[str] = field(default=None)
+    storage_type: Optional[str] = field(default=None)
     display_location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
 
@@ -544,13 +551,13 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
             and (sku_tier := sku.tier)
             and (storage_size := self.storage_size_gb)
         ):
-            builder.add_edge(
-                self,
-                edge_type=EdgeType.default,
-                clazz=AzurePostgresqlServerType,
-                display_location=location,
-                id=f"{sku_tier}_{vesion}_{sku_name}_{storage_size * 1024}_{self.storage_tier}",
-            )
+            capability = builder.node(clazz=AzurePostgresqlCapability, location=location)
+            if capability:
+                collected_types = capability.collect_types(builder, source)
+                for clazz in collected_types:
+                    if clazz.id == f"{sku_tier}_{vesion}_{sku_name}_{storage_size * 1024}":
+                        builder.add_edge(self, node=clazz)
+                        break
 
 
 @define(eq=False, slots=False)

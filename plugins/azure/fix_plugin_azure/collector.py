@@ -241,7 +241,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
         rm_nodes(AzureDiskType, AzureLocation)
         rm_nodes(AzureStorageSku, AzureLocation)
-        rm_nodes(AzurePostgresqlServerType, AzureLocation)
+        rm_nodes(AzurePostgresqlServerType, AzureSubscription)
         rm_nodes(AzureMysqlServerType, AzureLocation)
         remove_usage_zero_value()
 
