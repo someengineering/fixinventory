@@ -19,7 +19,9 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fixlib.baseresources import BaseDatabase, BaseDatabaseInstanceType, DatabaseInstanceStatus, ModelReference
+from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
@@ -408,6 +410,8 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                 "azure_postgresql_server_firewall_rule",
                 "azure_postgresql_server_backup",
                 "azure_postgresql_server_type",
+                "microsoft_graph_service_principal",
+                "microsoft_graph_user",
             ]
         },
     }
@@ -586,6 +590,22 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                 id=f"{sku_tier}_{vesion}_{sku_name}_{storage_size * 1024}",
                 clazz=AzurePostgresqlServerType,
             )
+        # principal: collected via ms graph -> create a deferred edge
+        if mii := self.user_identity:
+            if pid := mii.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := mii.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)

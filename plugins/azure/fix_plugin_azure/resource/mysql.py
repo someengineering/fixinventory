@@ -140,15 +140,6 @@ class AzureServerEditionCapability:
 @define(eq=False, slots=False)
 class AzureMysqlCapability(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_capability"
-    # api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-    #     service="mysql",
-    #     version="2023-12-30",
-    #     path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{location}/capabilities",
-    #     path_parameters=["subscriptionId", "location"],
-    #     query_parameters=["api-version"],
-    #     access_path="value",
-    #     expect_array=True,
-    # )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("zone"),
         "name": S("zone"),
