@@ -36,7 +36,7 @@ class StaticFileMicrosoftClient(MicrosoftClient):
                 js = json.load(f)
 
                 if spec.expect_array:
-                    js = js[spec.access_path]
+                    js = js[spec.access_path] if spec.access_path else [js]
                 if spec.expect_array and isinstance(js, list):
                     return js
                 else:

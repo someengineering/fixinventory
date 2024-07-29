@@ -389,6 +389,9 @@ class AzureRestSpec:
                     "subscriptionId",
                     "location",
                     "scope",
+                    # "databaseName",
+                    # "serverName",
+                    # "resourceGroupName",
                 }
                 if len(param_names) == 0:
                     schema = method["responses"]["200"]["schema"]
@@ -420,9 +423,8 @@ class AzureRestSpec:
                     )
                     if ssh := simple_shape(type_definition):
                         yield AzureRestSpec(ssh, info, type_definition, file)
-                    else:
-                        name = type_definition["ref"]  # name is added in the ref parser
-                        yield AzureRestSpec(name, info, type_definition, file)
+                    elif tdef := type_definition.get("ref"):
+                        yield AzureRestSpec(tdef, info, type_definition, file)
 
 
 class AzureModel:
@@ -617,7 +619,7 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"security"}), key=lambda x: x.name)}
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"sql"}), key=lambda x: x.name)}
     models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":

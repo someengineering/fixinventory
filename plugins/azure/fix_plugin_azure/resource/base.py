@@ -23,6 +23,7 @@ from fixlib.baseresources import (
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, EdgeKey, NodeSelector, ByNodeId
+from fixlib.json import from_json
 from fixlib.json_bender import AsFloat, Bender, bend, S, ForallBend, Bend
 from fixlib.lock import RWLock
 from fixlib.threading import ExecutorQueue
@@ -48,6 +49,30 @@ def get_client(subscription_id: str) -> MicrosoftClient:
 
 
 T = TypeVar("T")
+
+
+def parse_json(
+    json: Json, clazz: Type[T], builder: GraphBuilder, mapping: Optional[Dict[str, Bender]] = None
+) -> Optional[T]:
+    """
+    Use this method to parse json into a class. If the json can not be parsed, the error is reported to the core.
+    Based on configuration, either the exception is raised or None is returned.
+    :param json: the json to parse.
+    :param clazz: the class to parse into.
+    :param builder: the graph builder.
+    :param mapping: the optional mapping to apply before parsing.
+    :return: The parsed object or None.
+    """
+    try:
+        mapped = bend(mapping, json) if mapping is not None else json
+        return from_json(mapped, clazz)
+    except Exception as e:
+        # report and log the error
+        builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}", log)
+        # based on the strict flag, either raise the exception or return None
+        if builder.config.discard_account_on_resource_error:
+            raise
+        return None
 
 
 class MicrosoftResource(BaseResource):
