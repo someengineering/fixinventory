@@ -281,8 +281,8 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
                 error_code = error.code or "Unknown"
                 if error_code == "ResourceNotFoundError":
                     return False  # Resource not found
-                elif error_code == "ResourceExistsError":
-                    return False  # Tag for update/delete does not exist
+                elif error_code == "ResourceExstsError":
+                    return False  # Tag for updiate/delete does not exist
                 else:
                     msg = f"An Azure API error occurred during the updating or deletion tag of a resource: {e}"
                     self.accumulator.add_error(

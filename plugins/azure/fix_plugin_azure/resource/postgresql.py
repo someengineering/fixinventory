@@ -1,4 +1,3 @@
-from concurrent.futures import as_completed
 from datetime import datetime
 import logging
 from typing import ClassVar, Dict, Optional, List, Type
@@ -192,16 +191,6 @@ class AzureFastProvisioningEditionCapability:
 @define(eq=False, slots=False)
 class AzurePostgresqlCapability(MicrosoftResource):
     kind: ClassVar[str] = "azure_postgresql_capability"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="postgresql",
-        version="2022-12-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforPostgreSQL/locations/{location}/capabilities",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-        expected_error_codes=["InternalServerError"],
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("zone"),
         "tags": S("tags", default={}),
@@ -221,6 +210,7 @@ class AzurePostgresqlCapability(MicrosoftResource):
         "capability_zone": S("zone"),
         "zone_redundant_ha_and_geo_backup_supported": S("zoneRedundantHaAndGeoBackupSupported"),
         "zone_redundant_ha_supported": S("zoneRedundantHaSupported"),
+        "location": S("location"),
     }
     fast_provisioning_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether fast provisioning is supported in this region.'})  # fmt: skip
     geo_backup_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can have geo-backups to paired region.'})  # fmt: skip
@@ -234,15 +224,9 @@ class AzurePostgresqlCapability(MicrosoftResource):
     zone_redundant_ha_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can support multi zone HA.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
 
-    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if builder_location := graph_builder.location:
-            self.location = builder_location.long_name
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
 
-    def collect_types(self, graph_builder: GraphBuilder, source: Json) -> List["AzurePostgresqlServerType"]:
-        collected_types = []
-        futures = []
-
-        def collect_editions(edition: AzureFlexibleServerEditionCapability) -> List[AzurePostgresqlServerType]:
+        def collect_editions(edition: AzureFlexibleServerEditionCapability) -> None:
             server_types = []
             for version in edition.supported_server_versions or []:
                 for sku in version.supported_vcores or []:
@@ -266,20 +250,12 @@ class AzurePostgresqlCapability(MicrosoftResource):
                                 "location": self.location,
                             }
                             server_types.append(server_type)
-            return AzurePostgresqlServerType.collect(server_types, graph_builder)
+
+            AzurePostgresqlServerType.collect(server_types, graph_builder)
 
         if self.supported_psql_flexible_server_editions:
             for edition in self.supported_psql_flexible_server_editions:
-                futures.append(graph_builder.submit_work(service_name, collect_editions, edition))
-
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-                collected_types.extend(result)
-            except Exception as e:
-                logging.warning(f"An error occurred while collecting AzurePostgresqlServerType: {e}")
-
-        return collected_types
+                graph_builder.submit_work(service_name, collect_editions, edition)
 
 
 @define(eq=False, slots=False)
@@ -364,7 +340,6 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "sku_name": S("sku", "name"),
         "sku_tier": S("sku", "tier"),
         "state": S("state"),
-        "storage_auto_grow": S("storage", "autoGrow"),
         "storage_iops": S("storage", "iops"),
         "storage_size_gb": S("storage", "storageSizeGb"),
         "storage_tier": S("storage", "tier"),
@@ -377,7 +352,6 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     sku_name: Optional[str] = field(default=None)
     sku_tier: Optional[str] = field(default=None)
     state: Optional[str] = field(default=None)
-    storage_auto_grow: Optional[str] = field(default=None)
     storage_iops: Optional[int] = field(default=None)
     storage_size_gb: Optional[int] = field(default=None)
     storage_tier: Optional[str] = field(default=None)
@@ -541,6 +515,30 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
                     resource_class,
                     expected_errors,
                 )
+        if server_location := self.location:
+
+            def collect_capabilities() -> None:
+
+                api_spec = AzureResourceSpec(
+                    service="postgresql",
+                    version="2022-12-01",
+                    path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforPostgreSQL/locations/"
+                    + f"{server_location}/capabilities",
+                    path_parameters=["subscriptionId"],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                    expected_error_codes=["InternalServerError"],
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                # Set location for further connect_in_graph method
+                for item in items:
+                    item["location"] = server_location
+                AzurePostgresqlCapability.collect(items, graph_builder)
+
+            graph_builder.submit_work(service_name, collect_capabilities)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
@@ -551,13 +549,12 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
             and (sku_tier := sku.tier)
             and (storage_size := self.storage_size_gb)
         ):
-            capability = builder.node(clazz=AzurePostgresqlCapability, location=location)
-            if capability:
-                collected_types = capability.collect_types(builder, source)
-                for clazz in collected_types:
-                    if clazz.id == f"{sku_tier}_{vesion}_{sku_name}_{storage_size * 1024}":
-                        builder.add_edge(self, node=clazz)
-                        break
+            builder.add_edge(
+                self,
+                display_location=location,
+                id=f"{sku_tier}_{vesion}_{sku_name}_{storage_size * 1024}",
+                clazz=AzurePostgresqlServerType,
+            )
 
 
 @define(eq=False, slots=False)
