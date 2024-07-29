@@ -355,14 +355,14 @@ class GcpAutoscaler(GcpResource, BaseAutoScalingGroup):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "autoscaler_autoscaling_policy": S("autoscalingPolicy", default={}) >> Bend(GcpAutoscalingPolicy.mapping),
-        "autoscaler_recommended_size": S("recommendedSize"),
+        "autoscaler_recommended_size": S("recommendedSize") >> AsInt(),
         "autoscaler_scaling_schedule_status": S("scalingScheduleStatus", default={})
         >> MapDict(value_bender=Bend(GcpScalingScheduleStatus.mapping)),
         "autoscaler_status": S("status"),
         "autoscaler_status_details": S("statusDetails", default=[]) >> ForallBend(GcpAutoscalerStatusDetails.mapping),
         "autoscaler_target": S("target"),
-        "min_size": S("autoscalingPolicy", "minNumReplicas"),
-        "max_size": S("autoscalingPolicy" "maxNumReplicas"),
+        "min_size": S("autoscalingPolicy", "minNumReplicas") >> AsInt(),
+        "max_size": S("autoscalingPolicy" "maxNumReplicas") >> AsInt(),
     }
     autoscaler_autoscaling_policy: Optional[GcpAutoscalingPolicy] = field(default=None)
     autoscaler_recommended_size: Optional[int] = field(default=None)
@@ -1135,12 +1135,12 @@ class GcpDisk(GcpResource, BaseVolume):
         "location_hint": S("locationHint"),
         "options": S("options"),
         "disk_params": S("params", default={}) >> Bend(GcpDiskParams.mapping),
-        "physical_block_size_bytes": S("physicalBlockSizeBytes"),
+        "physical_block_size_bytes": S("physicalBlockSizeBytes") >> AsInt(),
         "provisioned_iops": S("provisionedIops") >> AsInt(),
         "replica_zones": S("replicaZones", default=[]),
         "resource_policies": S("resourcePolicies", default=[]),
         "satisfies_pzs": S("satisfiesPzs"),
-        "size_gb": S("sizeGb"),
+        "size_gb": S("sizeGb") >> AsInt(),
         "source_disk": S("sourceDisk"),
         "source_disk_id": S("sourceDiskId"),
         "source_image": S("sourceImage"),
@@ -1167,9 +1167,9 @@ class GcpDisk(GcpResource, BaseVolume):
             },
             default=VolumeStatus.UNKNOWN,
         ),
-        "volume_size": S("sizeGb") >> F(float),
+        "volume_size": S("sizeGb") >> AsInt(),
         "volume_type": S("type"),
-        "volume_iops": S("provisionedIops"),
+        "volume_iops": S("provisionedIops") >> AsInt(),
         "volume_encrypted": S("diskEncryptionKey") >> F(lambda x: x is not None),
     }
 
@@ -1183,12 +1183,12 @@ class GcpDisk(GcpResource, BaseVolume):
     location_hint: Optional[str] = field(default=None)
     options: Optional[str] = field(default=None)
     disk_params: Optional[GcpDiskParams] = field(default=None)
-    physical_block_size_bytes: Optional[str] = field(default=None)
+    physical_block_size_bytes: Optional[int] = field(default=None)
     provisioned_iops: Optional[int] = field(default=None)
     replica_zones: Optional[List[str]] = field(default=None)
     resource_policies: Optional[List[str]] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
-    size_gb: Optional[str] = field(default=None)
+    size_gb: Optional[int] = field(default=None)
     source_disk: Optional[str] = field(default=None)
     source_disk_id: Optional[str] = field(default=None)
     source_image: Optional[str] = field(default=None)
@@ -7088,9 +7088,9 @@ class GcpSnapshot(GcpResource, BaseSnapshot):
         "snapshot_architecture": S("architecture"),
         "snapshot_auto_created": S("autoCreated"),
         "snapshot_chain_name": S("chainName"),
-        "snapshot_creation_size_bytes": S("creationSizeBytes"),
+        "snapshot_creation_size_bytes": S("creationSizeBytes") >> AsInt(),
         "snapshot_disk_size_gb": S("diskSizeGb") >> AsInt(),
-        "snapshot_download_bytes": S("downloadBytes"),
+        "snapshot_download_bytes": S("downloadBytes") >> AsInt(),
         "snapshot_license_codes": S("licenseCodes", default=[]),
         "snapshot_licenses": S("licenses", default=[]),
         "snapshot_location_hint": S("locationHint"),
@@ -7105,18 +7105,18 @@ class GcpSnapshot(GcpResource, BaseSnapshot):
         "snapshot_source_snapshot_schedule_policy": S("sourceSnapshotSchedulePolicy"),
         "snapshot_source_snapshot_schedule_policy_id": S("sourceSnapshotSchedulePolicyId"),
         "snapshot_status": S("status"),
-        "snapshot_storage_bytes": S("storageBytes"),
+        "snapshot_storage_bytes": S("storageBytes") >> AsInt(),
         "snapshot_storage_bytes_status": S("storageBytesStatus"),
         "snapshot_storage_locations": S("storageLocations", default=[]),
         "volume_id": S("sourceDiskId"),
-        "volume_size": S("diskSizeGb"),
+        "volume_size": S("diskSizeGb") >> AsInt(),
     }
     snapshot_architecture: Optional[str] = field(default=None)
     snapshot_auto_created: Optional[bool] = field(default=None)
     snapshot_chain_name: Optional[str] = field(default=None)
-    snapshot_creation_size_bytes: Optional[str] = field(default=None)
+    snapshot_creation_size_bytes: Optional[int] = field(default=None)
     snapshot_disk_size_gb: Optional[int] = field(default=None)
-    snapshot_download_bytes: Optional[str] = field(default=None)
+    snapshot_download_bytes: Optional[int] = field(default=None)
     snapshot_license_codes: Optional[List[str]] = field(default=None)
     snapshot_licenses: Optional[List[str]] = field(default=None)
     snapshot_location_hint: Optional[str] = field(default=None)
@@ -7128,7 +7128,7 @@ class GcpSnapshot(GcpResource, BaseSnapshot):
     snapshot_source_disk_id: Optional[str] = field(default=None)
     snapshot_source_snapshot_schedule_policy: Optional[str] = field(default=None)
     snapshot_source_snapshot_schedule_policy_id: Optional[str] = field(default=None)
-    snapshot_storage_bytes: Optional[str] = field(default=None)
+    snapshot_storage_bytes: Optional[int] = field(default=None)
     snapshot_storage_bytes_status: Optional[str] = field(default=None)
     snapshot_storage_locations: Optional[List[str]] = field(default=None)
 
