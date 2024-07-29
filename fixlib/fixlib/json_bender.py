@@ -353,7 +353,7 @@ class AsInt(Bender):
             return source
         else:
             try:
-                return int(source)
+                return round(float(source))
             except Exception:
                 return None
 
