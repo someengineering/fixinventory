@@ -241,8 +241,8 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
         rm_nodes(AzureDiskType, AzureLocation)
         rm_nodes(AzureStorageSku, AzureLocation)
+        rm_nodes(AzureMysqlServerType, AzureSubscription)
         rm_nodes(AzurePostgresqlServerType, AzureSubscription)
-        rm_nodes(AzureMysqlServerType, AzureLocation)
         remove_usage_zero_value()
 
     def after_collect(self) -> None:

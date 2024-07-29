@@ -140,15 +140,15 @@ class AzureServerEditionCapability:
 @define(eq=False, slots=False)
 class AzureMysqlCapability(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_capability"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{location}/capabilities",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
+    #     service="mysql",
+    #     version="2023-12-30",
+    #     path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{location}/capabilities",
+    #     path_parameters=["subscriptionId", "location"],
+    #     query_parameters=["api-version"],
+    #     access_path="value",
+    #     expect_array=True,
+    # )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("zone"),
         "name": S("zone"),
@@ -158,16 +158,13 @@ class AzureMysqlCapability(MicrosoftResource):
         "supported_geo_backup_regions": S("supportedGeoBackupRegions"),
         "supported_ha_mode": S("supportedHAMode"),
         "capability_zone": S("zone"),
+        "location": S("location"),
     }
     supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
-    location_name: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-
-    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if builder_location := graph_builder.location:
-            self.location_name = builder_location.long_name
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         # Create a list of all possible database configurations
@@ -209,7 +206,7 @@ class AzureMysqlCapability(MicrosoftResource):
                                 "storage_edition": storage_edition_dict,
                                 "server_version": version_name,
                                 "sku": sku_dict,
-                                "location": self.location_name,
+                                "location": self.location,
                             }
                             server_types.append(server_type)
         AzureMysqlServerType.collect(server_types, graph_builder)
@@ -629,6 +626,29 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
             self.volume_encrypted = True
         else:
             self.volume_encrypted = False
+
+        if location := self.location:
+
+            def collect_capabilities() -> None:
+                api_spec = AzureResourceSpec(
+                    service="mysql",
+                    version="2023-12-30",
+                    path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/"
+                    + f"{location}/capabilities",
+                    path_parameters=["subscriptionId"],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                # Set location for further connect_in_graph method
+                for item in items:
+                    item["location"] = location
+                AzureMysqlCapability.collect(items, graph_builder)
+
+            graph_builder.submit_work(service_name, collect_capabilities)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
