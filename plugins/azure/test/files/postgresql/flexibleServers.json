@@ -14,7 +14,8 @@
                 "state": "Ready",
                 "availabilityZone": "1",
                 "storage": {
-                    "storageSizeGB": 512
+                    "storageSizeGB": 512,
+                    "tier": "P4"
                 },
                 "authConfig": {
                     "activeDirectoryAuth": "Disabled",
@@ -36,7 +37,7 @@
                     "standbyAvailabilityZone": "2"
                 }
             },
-            "location": "westus",
+            "location": "East US 2",
             "tags": {
                 "ElasticServer": "1"
             },

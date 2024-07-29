@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -18,8 +18,8 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
-from fixlib.baseresources import EdgeType, ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.baseresources import BaseDatabaseInstanceType, EdgeType, ModelReference
+from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 service_name = "azure_postgresql"
@@ -235,6 +235,37 @@ class AzurePostgresqlCapability(MicrosoftResource):
         if builder_location := graph_builder.location:
             self.location = builder_location.long_name
 
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        server_types = []
+        if self.supported_psql_flexible_server_editions:
+            for edition in self.supported_psql_flexible_server_editions:
+                for version in edition.supported_server_versions or []:
+                    for sku in version.supported_vcores or []:
+                        for supported_storage in edition.supported_storage_editions or []:
+                            for storage in supported_storage.supported_storage_mb or []:
+                                for upgradable_tier in storage.supported_upgradable_tier_list or []:
+                                    server_type = {
+                                        "id": f"{edition.name}_{version.name}_{sku.name}_{storage.name}_{upgradable_tier.tier_name}",
+                                        "name": f"{edition.name}_{version.name}_{sku.name}_{storage.name}_{upgradable_tier.tier_name}",
+                                        "sku": {
+                                            "name": sku.name,
+                                            "tier": edition.name,
+                                            "vCores": sku.v_cores,
+                                            "memoryPerVCoreMb": sku.supported_memory_per_vcore_mb,
+                                        },
+                                        "storage": {
+                                            "iops": upgradable_tier.iops,
+                                            "storageSizeGb": (
+                                                storage.storage_size_mb // 1024 if storage.storage_size_mb else 0
+                                            ),
+                                            "tier": upgradable_tier.tier_name,
+                                        },
+                                        "location": self.location,
+                                    }
+                                    server_types.append(server_type)
+
+        AzurePostgresqlServerType.collect(server_types, graph_builder)
+
 
 @define(eq=False, slots=False)
 class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
@@ -310,6 +341,44 @@ class AzurePostgresqlServerFirewallRule(MicrosoftResource, AzureProxyResource):
 
 
 @define(eq=False, slots=False)
+class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
+    kind: ClassVar[str] = "azure_postgresql_server_type"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "name": S("name"),
+        "geo_backup_supported": S("geo_backup_supported"),
+        "zone_redundant_ha_supported": S("zone_redundant_ha_supported"),
+        "supported_ha_mode": S("supported_ha_mode"),
+        "server_edition_name": S("server_edition_name"),
+        "storage_mb": S("storage_mb"),
+        "supported_iops": S("supported_iops"),
+        "storage_size_mb": S("storage_size_mb"),
+        "supported_upgradable_tier_list": S("supported_upgradable_tier_list"),
+        "server_version": S("server_version"),
+        "vcore_name": S("vcore_name"),
+        "v_cores": S("v_cores"),
+        "supported_memory_per_vcore_mb": S("supported_memory_per_vcore_mb"),
+        "display_location": S("location"),
+        # "instance_cores": S("v_cores"),
+        # "instance_memory": S("supported_memory_per_vcore_mb") >> F(lambda mb: mb / 1024),
+    }
+
+    geo_backup_supported: Optional[bool] = field(default=None)
+    zone_redundant_ha_supported: Optional[bool] = field(default=None)
+    supported_ha_mode: Optional[List[str]] = field(default=None)
+    server_edition_name: Optional[str] = field(default=None)
+    storage_mb: Optional[str] = field(default=None)
+    supported_iops: Optional[int] = field(default=None)
+    storage_size_mb: Optional[int] = field(default=None)
+    supported_upgradable_tier_list: Optional[List[Dict]] = field(default=None)
+    server_version: Optional[str] = field(default=None)
+    vcore_name: Optional[str] = field(default=None)
+    v_cores: Optional[int] = field(default=None)
+    supported_memory_per_vcore_mb: Optional[int] = field(default=None)
+    display_location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+
+
+@define(eq=False, slots=False)
 class AzureOperationDisplay:
     kind: ClassVar[str] = "azure_operation_display"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -342,7 +411,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_postgresql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="postgresql",
-        version="2022-12-01",
+        version="2023-06-01-preview",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforPostgreSQL/flexibleServers",
         path_parameters=["subscriptionId"],
         query_parameters=["api-version"],
@@ -357,6 +426,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
                 "azure_postgresql_server_database",
                 "azure_postgresql_server_firewall_rule",
                 "azure_postgresql_server_backup",
+                "azure_postgresql_server_type",
             ]
         },
     }
@@ -386,6 +456,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
         "source_server_resource_id": S("properties", "sourceServerResourceId"),
         "state": S("properties", "state"),
         "storage_size_gb": S("properties", "storage", "storageSizeGB"),
+        "storage_tier": S("properties", "storage", "tier"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "version": S("properties", "version"),
     }
@@ -413,6 +484,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     source_server_resource_id: Optional[str] = field(default=None, metadata={'description': 'The source server resource ID to restore from. It s required when createMode is PointInTimeRestore or GeoRestore or Replica . This property is returned only for Replica server'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={'description': 'A state of a server that is visible to user.'})  # fmt: skip
     storage_size_gb: Optional[int] = field(default=None, metadata={"description": "Storage properties of a server"})
+    storage_tier: Optional[str] = field(default=None, metadata={"description": "Storage properties of a server"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of a server."})
 
@@ -422,6 +494,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
         server_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -432,6 +505,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
+            expected_error_codes=expected_errors or [],
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -443,14 +517,14 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if server_id := self.id:
             resources_to_collect = [
-                ("administrators", AzurePostgresqlServerADAdministrator),
-                ("configurations", AzurePostgresqlServerConfiguration),
-                ("databases", AzurePostgresqlServerDatabase),
-                ("firewallRules", AzurePostgresqlServerFirewallRule),
-                ("backups", AzurePostgresqlServerBackup),
+                ("administrators", AzurePostgresqlServerADAdministrator, ["InternalServerError"]),
+                ("configurations", AzurePostgresqlServerConfiguration, ["ServerStoppedError"]),
+                ("databases", AzurePostgresqlServerDatabase, ["ServerStoppedError"]),
+                ("firewallRules", AzurePostgresqlServerFirewallRule, None),
+                ("backups", AzurePostgresqlServerBackup, None),
             ]
 
-            for resource_type, resource_class in resources_to_collect:
+            for resource_type, resource_class, expected_errors in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
                     self._collect_items,
@@ -458,15 +532,24 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
                     server_id,
                     resource_type,
                     resource_class,
+                    expected_errors,
                 )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if location := self.location:
+        if (
+            (location := self.location)
+            and (vesion := self.version)
+            and (sku := self.server_sku)
+            and (sku_name := sku.name)
+            and (sku_tier := sku.tier)
+            and (storage_size := self.storage_size_gb)
+        ):
             builder.add_edge(
                 self,
                 edge_type=EdgeType.default,
-                clazz=AzurePostgresqlCapability,
-                location=location,
+                clazz=AzurePostgresqlServerType,
+                display_location=location,
+                id=f"{sku_tier}_{vesion}_{sku_name}_{storage_size * 1024}_{self.storage_tier}",
             )
 
 
@@ -498,5 +581,6 @@ resources: List[Type[MicrosoftResource]] = [
     AzurePostgresqlServerDatabase,
     AzurePostgresqlServerFirewallRule,
     AzurePostgresqlServer,
+    AzurePostgresqlServerType,
     AzurePostgresqlServerBackup,
 ]

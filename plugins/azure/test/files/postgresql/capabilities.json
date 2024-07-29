@@ -11,7 +11,7 @@
             ],
             "supportedFlexibleServerEditions": [
                 {
-                    "name": "Burstable",
+                    "name": "GeneralPurpose",
                     "supportedStorageEditions": [
                         {
                             "name": "ManagedDisk",
@@ -270,7 +270,7 @@
                             "name": "12",
                             "supportedVcores": [
                                 {
-                                    "name": "Standard_B1ms",
+                                    "name": "Standard_D4s_v3",
                                     "vCores": 1,
                                     "supportedIops": 640,
                                     "supportedMemoryPerVcoreMB": 2048,
