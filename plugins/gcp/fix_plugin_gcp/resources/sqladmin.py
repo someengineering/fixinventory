@@ -8,7 +8,7 @@ from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from fix_plugin_gcp.resources.compute import GcpSslCertificate
 from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, ModelReference
-from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum, AsInt
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
@@ -671,7 +671,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
         "backend_type": S("backendType"),
         "connection_name": S("connectionName"),
         "create_time": S("createTime"),
-        "current_disk_size": S("currentDiskSize"),
+        "current_disk_size": S("currentDiskSize") >> AsInt(),
         "database_installed_version": S("databaseInstalledVersion"),
         "database_version": S("databaseVersion"),
         "disk_encryption_configuration": S("diskEncryptionConfiguration", "kmsKeyName"),
@@ -684,7 +684,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
         "ipv6_address": S("ipv6Address"),
         "maintenance_version": S("maintenanceVersion"),
         "master_instance_name": S("masterInstanceName"),
-        "max_disk_size": S("maxDiskSize"),
+        "max_disk_size": S("maxDiskSize") >> AsInt(),
         "on_premises_configuration": S("onPremisesConfiguration", default={})
         >> Bend(GcpSqlOnPremisesConfiguration.mapping),
         "out_of_disk_report": S("outOfDiskReport", default={}) >> Bend(GcpSqlSqlOutOfDiskReport.mapping),
@@ -714,13 +714,13 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
             default=DatabaseInstanceStatus.UNKNOWN,
         ),
         "db_version": S("databaseVersion"),
-        "volume_size": S("settings", "dataDiskSizeGb") >> F(int),
+        "volume_size": S("settings", "dataDiskSizeGb") >> AsInt(),
     }
     available_maintenance_versions: Optional[List[str]] = field(default=None)
     backend_type: Optional[str] = field(default=None)
     connection_name: Optional[str] = field(default=None)
     create_time: Optional[datetime] = field(default=None)
-    current_disk_size: Optional[str] = field(default=None)
+    current_disk_size: Optional[int] = field(default=None)
     database_installed_version: Optional[str] = field(default=None)
     database_version: Optional[str] = field(default=None)
     disk_encryption_configuration: Optional[str] = field(default=None)
@@ -732,7 +732,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
     ipv6_address: Optional[str] = field(default=None)
     maintenance_version: Optional[str] = field(default=None)
     master_instance_name: Optional[str] = field(default=None)
-    max_disk_size: Optional[str] = field(default=None)
+    max_disk_size: Optional[int] = field(default=None)
     on_premises_configuration: Optional[GcpSqlOnPremisesConfiguration] = field(default=None)
     out_of_disk_report: Optional[GcpSqlSqlOutOfDiskReport] = field(default=None)
     project: Optional[str] = field(default=None)
