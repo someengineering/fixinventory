@@ -19,8 +19,8 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
 )
-from fixlib.baseresources import BaseDatabaseInstanceType, ModelReference
-from fixlib.json_bender import F, Bender, S, ForallBend, Bend
+from fixlib.baseresources import BaseDatabase, BaseDatabaseInstanceType, DatabaseInstanceStatus, ModelReference
+from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_postgresql"
@@ -388,7 +388,7 @@ class AzureAuthConfig:
 
 
 @define(eq=False, slots=False)
-class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
+class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabase):
     kind: ClassVar[str] = "azure_postgresql_server"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="postgresql",
@@ -440,6 +440,32 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
         "storage_tier": S("properties", "storage", "tier"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "version": S("properties", "version"),
+        "db_type": K("pg"),
+        "db_status": S("properties", "state")
+        >> MapEnum(
+            {
+                "Disabled": DatabaseInstanceStatus.FAILED,
+                "Dropping": DatabaseInstanceStatus.TERMINATED,
+                "Ready": DatabaseInstanceStatus.AVAILABLE,
+                "Starting": DatabaseInstanceStatus.BUSY,
+                "Stopped": DatabaseInstanceStatus.STOPPED,
+                "Stopping": DatabaseInstanceStatus.BUSY,
+                "Updating": DatabaseInstanceStatus.BUSY,
+            }
+        ),
+        "db_endpoint": S("properties", "fullyQualifiedDomainName"),
+        "db_version": S("properties", "version"),
+        "db_publicly_accessible": S("properties", "network", "publicNetworkAccess")
+        >> MapValue(
+            {
+                "Disabled": False,
+                "Enabled": True,
+            },
+            default=False,
+        ),
+        "instance_type": S("sku", "name"),
+        "volume_size": S("properties", "storage", "storageSizeGB"),
+        "volume_iops": S("properties", "storage", "iops"),
     }
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login name of a server. Can only be specified when the server is being created (and is required for creation).'})  # fmt: skip
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The administrator login password (required for server creation).'})  # fmt: skip
@@ -515,6 +541,11 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource):
                     resource_class,
                     expected_errors,
                 )
+        if self.data_encryption:
+            self.volume_encrypted = True
+        else:
+            self.volume_encrypted = False
+
         if server_location := self.location:
 
             def collect_capabilities() -> None:
