@@ -2939,6 +2939,29 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                 if not instance_status_set:
                     self.instance_status = InstanceStatus.UNKNOWN
 
+        if location := self.location:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="compute",
+                    version="2023-03-01",
+                    path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/"
+                    + f"{location}/vmSizes",
+                    path_parameters=["subscriptionId"],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                # Set location for further connect_in_graph method
+                for item in items:
+                    item["location"] = location
+                AzureVirtualMachineSize.collect(items, graph_builder)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
+
         graph_builder.submit_work(service_name, collect_instance_status)
 
     @classmethod
@@ -3655,15 +3678,6 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
 @define(eq=False, slots=False)
 class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_virtual_machine_size"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="compute",
-        version="2023-03-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("tags", default={}),
@@ -3676,6 +3690,7 @@ class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
         "instance_type": S("name"),
         "instance_cores": S("numberOfCores"),
         "instance_memory": S("memoryInMB") >> F(lambda x: int(x) / 1024),
+        "location": S("location"),
     }
     _is_provider_link: ClassVar[bool] = False
     max_data_disk_count: Optional[int] = field(default=None, metadata={'description': 'The maximum number of data disks that can be attached to the virtual machine size.'})  # fmt: skip
@@ -3684,9 +3699,6 @@ class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-
-    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        self.location = graph_builder.location.name if graph_builder.location else ""
 
     def after_collect(self, builder: GraphBuilder, source: Json) -> None:
         if (location := self.location) and (sku_name := self.name):

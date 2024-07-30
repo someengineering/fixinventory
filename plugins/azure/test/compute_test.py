@@ -161,24 +161,6 @@ def test_virtual_machine_scale_set(builder: GraphBuilder) -> None:
     assert len(builder.edges_of(AzureLoadBalancer, AzureVirtualMachineScaleSet)) == 1
 
 
-def test_virtual_machine_size(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualMachineSize, builder)
-    assert len(collected) == 12
-
-    resource_types: List[Type[MicrosoftResource]] = [
-        AzureVirtualMachine,
-    ]
-    connect_resources(builder, resource_types)
-    assert len(builder.edges_of(AzureVirtualMachine, AzureVirtualMachineSize)) == 2
-
-
-def test_virtual_machine_size_resources(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualMachineSize, builder)[0]
-    assert collected.instance_type == "Standard_A1_V2"
-    assert collected.instance_cores == 1.0
-    assert collected.instance_memory == 2.0
-
-
 def test_snapshot(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureVirtualMachineSnapshot, builder)
     assert len(collected) == 2

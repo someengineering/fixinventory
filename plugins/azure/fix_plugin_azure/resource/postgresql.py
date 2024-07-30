@@ -681,7 +681,6 @@ class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
 
 resources: List[Type[MicrosoftResource]] = [
     AzurePostgresqlServerADAdministrator,
-    # AzurePostgresqlCapability,
     AzurePostgresqlServerConfiguration,
     AzurePostgresqlServerDatabase,
     AzurePostgresqlServerFirewallRule,
