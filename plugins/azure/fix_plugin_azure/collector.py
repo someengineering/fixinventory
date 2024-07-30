@@ -37,7 +37,6 @@ from fix_plugin_azure.resource.network import (
 from fix_plugin_azure.resource.mysql import AzureMysqlCapability, AzureMysqlServerType, resources as mysql_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.postgresql import (
-    AzurePostgresqlCapability,
     AzurePostgresqlServerType,
     resources as postgresql_resources,
 )
@@ -251,7 +250,6 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         node_types = (
             AzureDiskTypePricing,
             AzureMysqlCapability,
-            AzurePostgresqlCapability,
         )
 
         for node in self.graph.nodes:

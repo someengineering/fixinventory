@@ -1,3 +1,4 @@
+from concurrent.futures import as_completed
 from datetime import datetime
 import logging
 from typing import ClassVar, Dict, Optional, List, Type
@@ -13,6 +14,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
+    MicrosoftResourceType,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.mysql import (
@@ -193,73 +195,148 @@ class AzureFastProvisioningEditionCapability:
 
 
 @define(eq=False, slots=False)
-class AzurePostgresqlCapability(MicrosoftResource):
-    kind: ClassVar[str] = "azure_postgresql_capability"
+class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
+    kind: ClassVar[str] = "azure_postgresql_server_type"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("zone"),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": S("zone"),
-        "ctime": S("systemData", "createdAt"),
-        "mtime": S("systemData", "lastModifiedAt"),
-        "fast_provisioning_supported": S("fastProvisioningSupported"),
-        "geo_backup_supported": S("geoBackupSupported"),
-        "status": S("status"),
-        "supported_fast_provisioning_editions": S("supportedFastProvisioningEditions")
+        "name": S("name"),
+        "_fast_provisioning_supported": S("fastProvisioningSupported"),
+        "_geo_backup_supported": S("geoBackupSupported"),
+        "_status": S("status"),
+        "_supported_fast_provisioning_editions": S("supportedFastProvisioningEditions")
         >> ForallBend(AzureFastProvisioningEditionCapability.mapping),
-        "supported_psql_flexible_server_editions": S("supportedFlexibleServerEditions")
+        "_supported_psql_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureFlexibleServerEditionCapability.mapping),
-        "supported_ha_mode": S("supportedHAMode"),
-        "supported_hyperscale_node_editions": S("supportedHyperscaleNodeEditions")
+        "_supported_ha_mode": S("supportedHAMode"),
+        "_supported_hyperscale_node_editions": S("supportedHyperscaleNodeEditions")
         >> ForallBend(AzureHyperscaleNodeEditionCapability.mapping),
-        "capability_zone": S("zone"),
-        "zone_redundant_ha_and_geo_backup_supported": S("zoneRedundantHaAndGeoBackupSupported"),
-        "zone_redundant_ha_supported": S("zoneRedundantHaSupported"),
+        "_capability_zone": S("zone"),
+        "_zone_redundant_ha_and_geo_backup_supported": S("zoneRedundantHaAndGeoBackupSupported"),
+        "_zone_redundant_ha_supported": S("zoneRedundantHaSupported"),
+        "sku_name": S("sku", "name"),
+        "sku_tier": S("sku", "tier"),
+        "state": S("state"),
+        "storage_iops": S("storage", "iops"),
+        "storage_size_gb": S("storage", "storageSizeGb"),
+        "storage_tier": S("storage", "tier"),
+        "storage_type": S("storage", "type"),
         "location": S("location"),
+        "instance_cores": S("sku", "vCores").or_else(K(0)),
+        "instance_memory": S("sku", "memoryPerVCoreMb").or_else(K(0)) >> F(lambda mb: mb // 1024 if mb else 0),
     }
-    fast_provisioning_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether fast provisioning is supported in this region.'})  # fmt: skip
-    geo_backup_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can have geo-backups to paired region.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The status"})
-    supported_fast_provisioning_editions: Optional[List[AzureFastProvisioningEditionCapability]] = field(default=None, metadata={'description': ''})  # fmt: skip
-    supported_psql_flexible_server_editions: Optional[List[AzureFlexibleServerEditionCapability]] = field(default=None, metadata={'description': ''})  # fmt: skip
-    supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
-    supported_hyperscale_node_editions: Optional[List[AzureHyperscaleNodeEditionCapability]] = field(default=None, metadata={'description': ''})  # fmt: skip
-    capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
-    zone_redundant_ha_and_geo_backup_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can have geo-backups to paired region.'})  # fmt: skip
-    zone_redundant_ha_supported: Optional[bool] = field(default=None, metadata={'description': 'A value indicating whether a new server in this region can support multi zone HA.'})  # fmt: skip
-    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
+    _fast_provisioning_supported: Optional[bool] = field(
+        default=None,
+        metadata={"description": "A value indicating whether fast provisioning is supported in this region."},
+    )
+    _geo_backup_supported: Optional[bool] = field(
+        default=None,
+        metadata={
+            "description": "A value indicating whether a new server in this region can have geo-backups to paired region."
+        },
+    )
+    _status: Optional[str] = field(default=None, metadata={"description": "The status"})
+    _supported_fast_provisioning_editions: Optional[List[AzureFastProvisioningEditionCapability]] = field(
+        default=None, metadata={"description": ""}
+    )
+    _supported_psql_flexible_server_editions: Optional[List[AzureFlexibleServerEditionCapability]] = field(
+        default=None, metadata={"description": ""}
+    )
+    _supported_ha_mode: Optional[List[str]] = field(
+        default=None, metadata={"description": "Supported high availability mode"}
+    )
+    _supported_hyperscale_node_editions: Optional[List[AzureHyperscaleNodeEditionCapability]] = field(
+        default=None, metadata={"description": ""}
+    )
+    _capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
+    _zone_redundant_ha_and_geo_backup_supported: Optional[bool] = field(
+        default=None,
+        metadata={
+            "description": "A value indicating whether a new server in this region can have geo-backups to paired region."
+        },
+    )
+    _zone_redundant_ha_supported: Optional[bool] = field(
+        default=None,
+        metadata={"description": "A value indicating whether a new server in this region can support multi zone HA."},
+    )
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    sku_name: Optional[str] = field(default=None)
+    sku_tier: Optional[str] = field(default=None)
+    state: Optional[str] = field(default=None)
+    storage_iops: Optional[int] = field(default=None)
+    storage_size_gb: Optional[int] = field(default=None)
+    storage_tier: Optional[str] = field(default=None)
+    storage_type: Optional[str] = field(default=None)
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+    @classmethod
+    def collect(
+        cls: Type[MicrosoftResourceType],
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List[MicrosoftResourceType]:
+        result: List[MicrosoftResourceType] = []
+        futures = []
 
-        def collect_editions(edition: AzureFlexibleServerEditionCapability) -> None:
-            server_types = []
-            for version in edition.supported_server_versions or []:
-                for sku in version.supported_vcores or []:
-                    for supported_storage in edition.supported_storage_editions or []:
-                        for storage in supported_storage.supported_storage_mb or []:
-                            server_type = {
-                                "id": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
-                                "name": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
-                                "sku": {
-                                    "name": sku.name,
-                                    "tier": edition.name,
-                                    "vCores": sku.v_cores,
-                                    "memoryPerVCoreMb": sku.supported_memory_per_vcore_mb,
-                                },
-                                "storage": {
-                                    "iops": storage.supported_iops,
-                                    "storageSizeGb": (
-                                        storage.storage_size_mb // 1024 if storage.storage_size_mb else 0
-                                    ),
-                                },
-                                "location": self.location,
-                            }
-                            server_types.append(server_type)
+        for js in raw:
+            instance = cls.from_api(js)
 
-            AzurePostgresqlServerType.collect(server_types, graph_builder)
+            if isinstance(instance, AzurePostgresqlServerType) and instance._supported_psql_flexible_server_editions:
+                location = instance.location
+                capability_additional_fiels = {
+                    "fast_provisioning_supported": instance._fast_provisioning_supported,
+                    "geo_backup_supported": instance._geo_backup_supported,
+                    "status": instance._status,
+                    "supported_ha_mode": instance._supported_ha_mode,
+                    "capability_zone": instance._capability_zone,
+                    "zone_redundant_ha_and_geo_backup_supported": instance._zone_redundant_ha_and_geo_backup_supported,
+                    "zone_redundant_ha_supported": instance._zone_redundant_ha_supported,
+                }
+                for edition in instance._supported_psql_flexible_server_editions:
+                    futures.append(builder.submit_work(service_name, cls._collect_editions, edition, location, builder, js, capability_additional_fiels))  # type: ignore
 
-        if self.supported_psql_flexible_server_editions:
-            for edition in self.supported_psql_flexible_server_editions:
-                graph_builder.submit_work(service_name, collect_editions, edition)
+        for future in as_completed(futures):
+            try:
+                instances = future.result()
+                if isinstance(instances, list):
+                    result.extend(instances)
+            except Exception as e:
+                log.warning(f"An error occurred while collecting AzurePostgresqlServerType: {e}")
+
+        return result
+
+    @classmethod
+    def _collect_editions(
+        cls,
+        edition: AzureFlexibleServerEditionCapability,
+        location: str,
+        builder: GraphBuilder,
+        js: Json,
+        capability_additional_fiels: Json,
+    ) -> List["AzurePostgresqlServerType"]:
+        server_types = []
+        for version in edition.supported_server_versions or []:
+            for sku in version.supported_vcores or []:
+                for supported_storage in edition.supported_storage_editions or []:
+                    for storage in supported_storage.supported_storage_mb or []:
+                        server_type = {
+                            "id": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
+                            "name": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
+                            "sku": {
+                                "name": sku.name,
+                                "tier": edition.name,
+                                "vCores": sku.v_cores,
+                                "memoryPerVCoreMb": sku.supported_memory_per_vcore_mb,
+                            },
+                            "storage": {
+                                "iops": storage.supported_iops,
+                                "storageSizeGb": (storage.storage_size_mb // 1024 if storage.storage_size_mb else 0),
+                            },
+                            "location": location,
+                            **capability_additional_fiels,
+                        }
+                        server_types.append(server_type)
+
+        return [instance for st in server_types if (instance := builder.add_node(cls.from_api(st), js)) is not None]
 
 
 @define(eq=False, slots=False)
@@ -333,34 +410,6 @@ class AzurePostgresqlServerFirewallRule(MicrosoftResource, AzureProxyResource):
     end_ip_address: Optional[str] = field(default=None, metadata={'description': 'The end IP address of the server firewall rule. Must be IPv4 format.'})  # fmt: skip
     start_ip_address: Optional[str] = field(default=None, metadata={'description': 'The start IP address of the server firewall rule. Must be IPv4 format.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
-    kind: ClassVar[str] = "azure_postgresql_server_type"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "name": S("name"),
-        "sku_name": S("sku", "name"),
-        "sku_tier": S("sku", "tier"),
-        "state": S("state"),
-        "storage_iops": S("storage", "iops"),
-        "storage_size_gb": S("storage", "storageSizeGb"),
-        "storage_tier": S("storage", "tier"),
-        "storage_type": S("storage", "type"),
-        "display_location": S("location"),
-        "instance_cores": S("sku", "vCores"),
-        "instance_memory": S("sku", "memoryPerVCoreMb") >> F(lambda mb: mb // 1024),
-    }
-
-    sku_name: Optional[str] = field(default=None)
-    sku_tier: Optional[str] = field(default=None)
-    state: Optional[str] = field(default=None)
-    storage_iops: Optional[int] = field(default=None)
-    storage_size_gb: Optional[int] = field(default=None)
-    storage_tier: Optional[str] = field(default=None)
-    storage_type: Optional[str] = field(default=None)
-    display_location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
 
 @define(eq=False, slots=False)
@@ -573,7 +622,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                 # Set location for further connect_in_graph method
                 for item in items:
                     item["location"] = server_location
-                AzurePostgresqlCapability.collect(items, graph_builder)
+                AzurePostgresqlServerType.collect(items, graph_builder)
 
             graph_builder.submit_work(service_name, collect_capabilities)
 
@@ -588,7 +637,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         ):
             builder.add_edge(
                 self,
-                display_location=location,
+                location=location,
                 id=f"{sku_tier}_{vesion}_{sku_name}_{storage_size * 1024}",
                 clazz=AzurePostgresqlServerType,
             )
@@ -633,7 +682,7 @@ class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
 
 resources: List[Type[MicrosoftResource]] = [
     AzurePostgresqlServerADAdministrator,
-    AzurePostgresqlCapability,
+    # AzurePostgresqlCapability,
     AzurePostgresqlServerConfiguration,
     AzurePostgresqlServerDatabase,
     AzurePostgresqlServerFirewallRule,
