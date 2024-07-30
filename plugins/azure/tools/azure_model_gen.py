@@ -394,6 +394,7 @@ class AzureRestSpec:
                     "scope",
                     # "databaseName",
                     # "serverName",
+                    "vaultName",
                     "resourceGroupName",
                 }
                 if len(param_names) == 0:
@@ -625,8 +626,8 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"monitor"}), key=lambda x: x.name)}
-    models = classes_from_model(shapes)
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"keyvault"}), key=lambda x: x.name)}
+    models = classes_from_model(shapes, {"Key"})
     for model in models.values():
         if model.name != "Resource":
             print(model.to_class())

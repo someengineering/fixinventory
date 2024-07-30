@@ -36,6 +36,7 @@ from fix_plugin_azure.resource.network import (
     resources as network_resources,
 )
 from fix_plugin_azure.resource.mysql import AzureMysqlCapability, AzureMysqlServerType, resources as mysql_resources
+from fix_plugin_azure.resource.keyvault import resources as keyvault_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
@@ -65,6 +66,7 @@ subscription_resources: List[Type[MicrosoftResource]] = (
     + sql_resources
     + mysql_resources
     + monitor_resources
+    + keyvault_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
