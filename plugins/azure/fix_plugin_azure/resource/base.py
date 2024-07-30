@@ -524,6 +524,7 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
         "id": S("subscriptionId"),
         "tags": S("tags", default={}),
         "authorization_source": S("authorizationSource"),
+        "name": S("displayName"),
         "display_name": S("displayName"),
         "managed_by_tenants": S("managedByTenants", default=[]) >> ForallBend(S("tenantId")),
         "state": S("state"),
