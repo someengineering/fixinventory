@@ -197,6 +197,7 @@ class AzureFastProvisioningEditionCapability:
 @define(eq=False, slots=False)
 class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_postgresql_server_type"
+    # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),

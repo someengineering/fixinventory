@@ -780,16 +780,7 @@ class AzureDiskTypePricing(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureDiskType(MicrosoftResource, BaseVolumeType):
     kind: ClassVar[str] = "azure_disk_type"
-    # Define api spec to collect as regional resources
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="compute",
-        version="2023-01-01-preview",
-        path="",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=[],
-        access_path="Items",
-        expect_array=True,
-    )
+    # Collect via AzureDisk()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("skuName"),
         "name": S("skuName"),
@@ -952,29 +943,6 @@ class AzureDiskType(MicrosoftResource, BaseVolumeType):
                     seen_hashes.add(hash_value)
         AzureDiskType.collect(disk_sizes, builder)
 
-    @classmethod
-    def collect_resources(
-        cls: Type[MicrosoftResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[MicrosoftResourceType]:
-        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
-        product_names = {"Standard SSD Managed Disks", "Premium SSD Managed Disks", "Standard HDD Managed Disks"}
-        sku_items = []
-        for product_name in product_names:
-            api_spec = AzureResourceSpec(
-                service="compute",
-                version="2023-01-01-preview",
-                path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq "
-                + "'{location}' and unitOfMeasure eq '1/Month' and serviceFamily eq 'Storage' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
-                path_parameters=["location"],
-                query_parameters=["api-version"],
-                access_path="Items",
-                expect_array=True,
-            )
-
-            items = builder.client.list(api_spec, **kwargs)
-            sku_items.extend(items)
-        return cls.collect(sku_items, builder)
-
 
 VolumeStatusMapping = {
     "ActiveSAS": VolumeStatus.IN_USE,
@@ -1109,6 +1077,34 @@ class AzureDisk(MicrosoftResource, BaseVolume):
                     log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
             return collected
         return []
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if location := self.location:
+
+            def collect_disk_types() -> None:
+                log.debug(f"[Azure:{graph_builder.account.id}] Collecting AzureDiskType")
+                product_names = {
+                    "Standard SSD Managed Disks",
+                    "Premium SSD Managed Disks",
+                    "Standard HDD Managed Disks",
+                }
+                sku_items = []
+                for product_name in product_names:
+                    api_spec = AzureResourceSpec(
+                        service="compute",
+                        version="2023-01-01-preview",
+                        path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq '{location}' and unitOfMeasure eq '1/Month' and serviceFamily eq 'Storage' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
+                        path_parameters=[],
+                        query_parameters=["api-version"],
+                        access_path="Items",
+                        expect_array=True,
+                    )
+
+                    items = graph_builder.client.list(api_spec)
+                    sku_items.extend(items)
+                AzureDiskType.collect(sku_items, graph_builder)
+
+            graph_builder.submit_work(service_name, collect_disk_types)
 
     @classmethod
     def collect_usage_metrics(

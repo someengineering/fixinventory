@@ -62,18 +62,6 @@ def test_disks_resource(builder: GraphBuilder) -> None:
     assert collected.volume_encrypted is True
 
 
-def test_disk_type(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureDiskType, builder, check_correct_ser=False)
-    assert len(collected) > 0
-
-    roundtrip_check(AzureDisk, builder)
-
-    resource_types: List[Type[MicrosoftResource]] = [AzureDisk]
-    connect_resources(builder, resource_types)
-
-    assert len(builder.edges_of(AzureDisk, AzureDiskType)) == 2
-
-
 def test_disk_access(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureDiskAccess, builder)
     assert len(collected) == 2

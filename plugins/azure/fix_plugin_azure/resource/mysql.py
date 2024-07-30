@@ -212,6 +212,7 @@ class AzureServerEditionCapability:
 @define(eq=False, slots=False)
 class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_mysql_server_type"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),

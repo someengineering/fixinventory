@@ -238,7 +238,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureVirtualMachineSize, AzureLocation)
         rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
-        rm_nodes(AzureDiskType, AzureLocation)
+        rm_nodes(AzureDiskType, AzureSubscription)
         rm_nodes(AzureStorageSku, AzureLocation)
         rm_nodes(AzureMysqlServerType, AzureSubscription)
         rm_nodes(AzurePostgresqlServerType, AzureSubscription)
