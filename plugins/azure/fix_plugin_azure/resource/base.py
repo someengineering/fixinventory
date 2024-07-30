@@ -75,6 +75,7 @@ def parse_json(
         return None
 
 
+@define(eq=False, slots=False)
 class MicrosoftResource(BaseResource):
     kind: ClassVar[str] = "microsoft_resource"
     # The mapping to transform the incoming API json into the internal representation.
@@ -482,21 +483,6 @@ class AzurePrincipalClient:
 
 
 @define(eq=False, slots=False)
-class AzureManagedServiceIdentity:
-    kind: ClassVar[str] = "azure_managed_service_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
-        "type": S("type"),
-        "user_assigned_identities": S("userAssignedIdentities"),
-    }
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of identity used for the resource. The type SystemAssigned, UserAssigned includes both an implicitly created identity and a set of user assigned identities. The type None will remove any identities from the virtual machine.'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzurePrincipalClient]] = field(default=None, metadata={'description': 'The list of user identities associated with resource. The user identity dictionary key references will be ARM resource ids in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzurePrivateLinkServiceConnectionState:
     kind: ClassVar[str] = "azure_private_link_service_connection_state"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -587,6 +573,23 @@ class AzureSystemData:
     last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
     last_modified_by: Optional[str] = field(default=None, metadata={'description': 'The identity that last modified the resource.'})  # fmt: skip
     last_modified_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureIdentity:
+    kind: ClassVar[str] = "azure_identity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "client_id": S("clientId"),
+        "principal_id": S("principalId"),
+        "tenant_id": S("tenantId"),
+        "type": S("type"),
+        "user_assigned_identities": S("userAssignedIdentities"),
+    }
+    client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
+    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal ID of resource identity.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={"description": "The tenant ID of resource."})
+    type: Optional[str] = field(default=None, metadata={"description": "Type of managed service identity."})
+    user_assigned_identities: Optional[Dict[str, AzureUserAssignedIdentity]] = field(default=None, metadata={'description': 'The list of user identities associated with the resource. The user identity dictionary key references will be ARM resource ids in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

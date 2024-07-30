@@ -386,7 +386,6 @@ class AzureSqlServerPrivateEndpointConnection(MicrosoftResource):
     group_ids: Optional[List[str]] = field(default=None, metadata={"description": "Group IDs."})
     private_endpoint_id: Optional[str] = field(default=None, metadata={"description": "Private endpoint ID."})
     private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': ''})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the private endpoint connection.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
 
@@ -900,7 +899,6 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
     minimal_tls_version: Optional[str] = field(default=None, metadata={'description': 'Minimal TLS version. Allowed values: None , 1.0 , 1.1 , 1.2 '})  # fmt: skip
     primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of a user assigned identity to be used by default.'})  # fmt: skip
     instance_private_endpoint_connections: Optional[List[AzureManagedInstancePecProperty]] = field(default=None, metadata={'description': 'List of private endpoint connections on a managed instance.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={"description": ""})
     proxy_override: Optional[str] = field(default=None, metadata={'description': 'Connection type used for connecting to the instance.'})  # fmt: skip
     public_data_endpoint_enabled: Optional[bool] = field(default=None, metadata={'description': 'Whether or not the public data endpoint is enabled.'})  # fmt: skip
     requested_backup_storage_redundancy: Optional[str] = field(default=None, metadata={'description': 'The storage account type to be used to store backups for this instance. The options are Local (LocallyRedundantStorage), Zone (ZoneRedundantStorage), Geo (GeoRedundantStorage) and GeoZone(GeoZoneRedundantStorage)'})  # fmt: skip

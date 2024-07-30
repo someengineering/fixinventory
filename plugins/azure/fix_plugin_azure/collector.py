@@ -28,6 +28,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
     resources as graph_resources,
     MicrosoftGraphOrganizationRoot,
 )
+from fix_plugin_azure.resource.monitor import resources as monitor_resources
 from fix_plugin_azure.resource.network import (
     AzureExpressRoutePortsLocation,
     AzureNetworkVirtualApplianceSku,
@@ -63,6 +64,7 @@ subscription_resources: List[Type[MicrosoftResource]] = (
     + storage_resources
     + sql_resources
     + mysql_resources
+    + monitor_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 

@@ -214,6 +214,9 @@ def type_name(s: Json, name_hint: Optional[str] = None) -> str:
         return s["ref"]
     elif s.get("type") == "object" and "properties" not in s:
         return "any"
+    elif allOf := s.get("allOf"):
+        # combine a name of all ingredients
+        return "".join(sorted(type_name(a) for a in allOf))
     else:
         name = name_hint or "_".join(s.get("properties", {}))
         return pascalcase(name) if name else "nameless"
@@ -338,7 +341,7 @@ def class_method(
                 add_types(class_method(spec, prop_shape, model, result, set()))
                 prop_type = type_name(prop_shape)
                 if prop_name in unfold_props and is_complex_type(prop_shape) and prop_type in result:
-                    for npn, np in result.pop(prop_type).props.items():
+                    for npn, np in result[prop_type].props.items():
                         add_prop(
                             AzureProperty(
                                 np.name,
@@ -391,7 +394,7 @@ class AzureRestSpec:
                     "scope",
                     # "databaseName",
                     # "serverName",
-                    # "resourceGroupName",
+                    "resourceGroupName",
                 }
                 if len(param_names) == 0:
                     schema = method["responses"]["200"]["schema"]
@@ -441,19 +444,22 @@ class AzureModel:
         def walk_dir(service: str, part: Path) -> Iterator[AzureRestSpec]:
             for child in part.iterdir():
                 if specs := is_spec_dir(child):
-                    spec_dir = specs.get("stable") or specs.get("preview")
-                    sub_dir = sorted((d for d in spec_dir.iterdir() if d.is_dir()), reverse=True)
-                    spec_by_version = {}
-                    for version_path in sub_dir:
-                        for file in version_path.iterdir():
-                            if file.is_file() and file.name.endswith(".json") and file.name not in spec_by_version:
-                                spec_by_version[file.name] = version_path
+                    for kd in sorted(specs, reverse=True):
+                        spec_dir = specs[kd]
+                        sub_dir = sorted((d for d in spec_dir.iterdir() if d.is_dir()), reverse=True)
+                        spec_by_version = {}
+                        for version_path in sub_dir:
+                            for file in version_path.iterdir():
+                                if file.is_file() and file.name.endswith(".json") and file.name not in spec_by_version:
+                                    spec_by_version[file.name] = version_path
 
-                    for file_name, version_path in spec_by_version.items():
-                        file = version_path / file_name
-                        parsed = ResolvingRefParser(str(file))
-                        for aspec in AzureRestSpec.parse_spec(service, version_path.name, parsed.specification, file):
-                            yield aspec
+                        for file_name, version_path in spec_by_version.items():
+                            file = version_path / file_name
+                            parsed = ResolvingRefParser(str(file))
+                            for aspec in AzureRestSpec.parse_spec(
+                                service, version_path.name, parsed.specification, file
+                            ):
+                                yield aspec
                 elif child.is_dir():
                     yield from walk_dir(service, child)
 
@@ -619,7 +625,7 @@ if __name__ == "__main__":
         "Checkout https://github.com/Azure/azure-rest-api-specs and set path in env"
     )
     model = AzureModel(Path(specs_path))
-    shapes = {spec.name: spec for spec in sorted(model.list_specs({"sql"}), key=lambda x: x.name)}
+    shapes = {spec.name: spec for spec in sorted(model.list_specs({"monitor"}), key=lambda x: x.name)}
     models = classes_from_model(shapes)
     for model in models.values():
         if model.name != "Resource":

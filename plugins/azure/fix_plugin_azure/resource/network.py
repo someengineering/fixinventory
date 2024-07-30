@@ -11,7 +11,7 @@ from fix_plugin_azure.resource.base import (
     AzureSku,
     AzureExtendedLocation,
     AzurePrivateLinkServiceConnectionState,
-    AzureManagedServiceIdentity,
+    AzureIdentity,
     MicrosoftResource,
 )
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
@@ -1019,7 +1019,7 @@ class AzureApplicationGateway(MicrosoftResource, BaseGateway):
         "global_configuration": S("properties", "globalConfiguration")
         >> Bend(AzureApplicationGatewayGlobalConfiguration.mapping),
         "http_listeners": S("properties", "httpListeners") >> ForallBend(AzureApplicationGatewayHttpListener.mapping),
-        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
+        "identity": S("identity") >> Bend(AzureIdentity.mapping),
         "listeners": S("properties", "listeners") >> ForallBend(AzureApplicationGatewayListener.mapping),
         "load_distribution_policies": S("properties", "loadDistributionPolicies")
         >> ForallBend(AzureApplicationGatewayLoadDistributionPolicy.mapping),
@@ -1067,7 +1067,7 @@ class AzureApplicationGateway(MicrosoftResource, BaseGateway):
     application_gateway_ip_configurations: Optional[List[AzureApplicationGatewayIPConfiguration]] = field(default=None, metadata={'description': 'Subnets of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     global_configuration: Optional[AzureApplicationGatewayGlobalConfiguration] = field(default=None, metadata={'description': 'Application Gateway global configuration.'})  # fmt: skip
     http_listeners: Optional[List[AzureApplicationGatewayHttpListener]] = field(default=None, metadata={'description': 'Http listeners of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
-    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     listeners: Optional[List[AzureApplicationGatewayListener]] = field(default=None, metadata={'description': 'Listeners of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     load_distribution_policies: Optional[List[AzureApplicationGatewayLoadDistributionPolicy]] = field(default=None, metadata={'description': 'Load distribution policies of the application gateway resource.'})  # fmt: skip
     operational_state: Optional[str] = field(default=None, metadata={'description': 'Operational state of the application gateway resource.'})  # fmt: skip
@@ -3294,7 +3294,7 @@ class AzureExpressRoutePort(MicrosoftResource):
         "encapsulation": S("properties", "encapsulation"),
         "etag": S("etag"),
         "ether_type": S("properties", "etherType"),
-        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
+        "identity": S("identity") >> Bend(AzureIdentity.mapping),
         "links": S("properties", "links") >> ForallBend(AzureExpressRouteLink.mapping),
         "mtu": S("properties", "mtu") >> AsInt(),
         "peering_location": S("properties", "peeringLocation"),
@@ -3308,7 +3308,7 @@ class AzureExpressRoutePort(MicrosoftResource):
     circuits: Optional[List[str]] = field(default=None, metadata={'description': 'Reference the ExpressRoute circuit(s) that are provisioned on this ExpressRoutePort resource.'})  # fmt: skip
     encapsulation: Optional[str] = field(default=None, metadata={'description': 'Encapsulation method on physical ports.'})  # fmt: skip
     ether_type: Optional[str] = field(default=None, metadata={"description": "Ether type of the physical port."})
-    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     links: Optional[List[AzureExpressRouteLink]] = field(default=None, metadata={'description': 'The set of physical links of the ExpressRoutePort resource.'})  # fmt: skip
     mtu: Optional[int] = field(default=None, metadata={'description': 'Maximum transmission unit of the physical port pair(s).'})  # fmt: skip
     peering_location: Optional[str] = field(default=None, metadata={'description': 'The name of the peering location that the ExpressRoutePort is mapped to physically.'})  # fmt: skip
@@ -3530,7 +3530,7 @@ class AzureFirewallPolicy(MicrosoftResource, BasePolicy):
         "etag": S("etag"),
         "explicit_proxy": S("properties", "explicitProxy") >> Bend(AzureExplicitProxy.mapping),
         "firewalls": S("properties") >> S("firewalls", default=[]) >> ForallBend(S("id")),
-        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
+        "identity": S("identity") >> Bend(AzureIdentity.mapping),
         "insights": S("properties", "insights") >> Bend(AzureFirewallPolicyInsights.mapping),
         "intrusion_detection": S("properties", "intrusionDetection")
         >> Bend(AzureFirewallPolicyIntrusionDetection.mapping),
@@ -3551,7 +3551,7 @@ class AzureFirewallPolicy(MicrosoftResource, BasePolicy):
     firewall_policy_dns_settings_settings: Optional[AzureDnsSettings] = field(default=None, metadata={'description': 'DNS Proxy Settings in Firewall Policy.'})  # fmt: skip
     explicit_proxy: Optional[AzureExplicitProxy] = field(default=None, metadata={'description': 'Explicit Proxy Settings in Firewall Policy.'})  # fmt: skip
     firewalls: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to Azure Firewalls that this Firewall Policy is associated with.'})  # fmt: skip
-    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     insights: Optional[AzureFirewallPolicyInsights] = field(default=None, metadata={'description': 'Firewall Policy Insights.'})  # fmt: skip
     intrusion_detection: Optional[AzureFirewallPolicyIntrusionDetection] = field(default=None, metadata={'description': 'Configuration for intrusion detection mode and rules.'})  # fmt: skip
     rule_collection_groups: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to FirewallPolicyRuleCollectionGroups.'})  # fmt: skip
@@ -4265,7 +4265,7 @@ class AzureNetworkVirtualAppliance(MicrosoftResource):
         "delegation": S("properties", "delegation") >> Bend(AzureDelegationProperties.mapping),
         "deployment_type": S("properties", "deploymentType"),
         "etag": S("etag"),
-        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
+        "identity": S("identity") >> Bend(AzureIdentity.mapping),
         "inbound_security_rules": S("properties") >> S("inboundSecurityRules", default=[]) >> ForallBend(S("id")),
         "nva_sku": S("properties", "nvaSku") >> Bend(AzureVirtualApplianceSkuProperties.mapping),
         "partner_managed_resource": S("properties", "partnerManagedResource")
@@ -4288,7 +4288,7 @@ class AzureNetworkVirtualAppliance(MicrosoftResource):
     cloud_init_configuration_blobs: Optional[List[str]] = field(default=None, metadata={'description': 'CloudInitConfigurationBlob storage URLs.'})  # fmt: skip
     delegation: Optional[AzureDelegationProperties] = field(default=None, metadata={'description': 'Properties of the delegation.'})  # fmt: skip
     deployment_type: Optional[str] = field(default=None, metadata={'description': 'The deployment type. PartnerManaged for the SaaS NVA'})  # fmt: skip
-    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     inbound_security_rules: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to InboundSecurityRules.'})  # fmt: skip
     nva_sku: Optional[AzureVirtualApplianceSkuProperties] = field(default=None, metadata={'description': 'Network Virtual Appliance Sku Properties.'})  # fmt: skip
     partner_managed_resource: Optional[AzurePartnerManagedResourceProperties] = field(default=None, metadata={'description': 'Properties of the partner managed resource.'})  # fmt: skip
@@ -6077,7 +6077,7 @@ class AzureVirtualNetworkGateway(MicrosoftResource, BaseGateway):
         "gateway_default_site": S("properties", "gatewayDefaultSite", "id"),
         "gateway_type": S("properties", "gatewayType"),
         "id": S("id"),
-        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
+        "identity": S("identity") >> Bend(AzureIdentity.mapping),
         "inbound_dns_forwarding_endpoint": S("properties", "inboundDnsForwardingEndpoint"),
         "ip_configurations": S("properties", "ipConfigurations")
         >> ForallBend(AzureVirtualNetworkGatewayIPConfiguration.mapping),
@@ -6112,7 +6112,7 @@ class AzureVirtualNetworkGateway(MicrosoftResource, BaseGateway):
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'ExtendedLocation complex type.'})  # fmt: skip
     gateway_default_site: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     gateway_type: Optional[str] = field(default=None, metadata={'description': 'The type of this virtual network gateway.'})  # fmt: skip
-    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     inbound_dns_forwarding_endpoint: Optional[str] = field(default=None, metadata={'description': 'The IP address allocated by the gateway to which dns requests can be sent.'})  # fmt: skip
     ip_configurations: Optional[List[AzureVirtualNetworkGatewayIPConfiguration]] = field(default=None, metadata={'description': 'IP configurations for virtual network gateway.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})

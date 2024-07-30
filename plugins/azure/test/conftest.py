@@ -159,11 +159,12 @@ def roundtrip_check(
     *,
     all_props: bool = False,
     check_correct_ser: bool = True,
+    ignore_props: Optional[Set[str]] = None,
 ) -> List[MicrosoftResourceType]:
     resources = resource_clazz.collect_resources(builder)
     assert len(resources) > 0
     if all_props:
-        all_props_set(resources[0])
+        all_props_set(resources[0], ignore_props)
     # Check correct json serialization
     if check_correct_ser:
         for resource in resources:
