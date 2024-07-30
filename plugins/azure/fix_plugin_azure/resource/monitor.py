@@ -5,10 +5,11 @@ from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
+from jsons import snakecase
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, AzureIdentity, AzureExtendedLocation
-from fixlib.json_bender import Bender, S, ForallBend, Bend, K
+from fixlib.json_bender import Bender, S, ForallBend, Bend, K, MapDict, F
 
 log = logging.getLogger("fix.plugins.azure")
 
@@ -1275,21 +1276,8 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMonitorSubscriptionLogSettings:
-    kind: ClassVar[str] = "azure_monitor_subscription_log_settings"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "category": S("category"),
-        "category_group": S("categoryGroup"),
-        "enabled": S("enabled"),
-    }
-    category: Optional[str] = field(default=None, metadata={'description': 'Name of a Subscription Diagnostic Log category for a resource type this setting is applied to.'})  # fmt: skip
-    category_group: Optional[str] = field(default=None, metadata={'description': 'Name of a Subscription Diagnostic Log category group for a resource type this setting is applied to.'})  # fmt: skip
-    enabled: Optional[bool] = field(default=None, metadata={'description': 'a value indicating whether this log is enabled.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureMonitorSubscriptionDiagnosticSettings(MicrosoftResource):
-    kind: ClassVar[str] = "azure_monitor_subscription_diagnostic_settings_resource"
+    kind: ClassVar[str] = "azure_monitor_subscription_diagnostic_settings"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2021-05-01-preview",
@@ -1307,7 +1295,7 @@ class AzureMonitorSubscriptionDiagnosticSettings(MicrosoftResource):
         "name": S("name"),
         "event_hub_authorization_rule_id": S("properties", "eventHubAuthorizationRuleId"),
         "event_hub_name": S("properties", "eventHubName"),
-        "logs": S("properties", "logs") >> ForallBend(AzureMonitorSubscriptionLogSettings.mapping),
+        "logs": S("properties", "logs") >> MapDict(S("category") >> F(snakecase), S("enabled")),
         "marketplace_partner_id": S("properties", "marketplacePartnerId"),
         "service_bus_rule_id": S("properties", "serviceBusRuleId"),
         "storage_account_id": S("properties", "storageAccountId"),
@@ -1316,7 +1304,7 @@ class AzureMonitorSubscriptionDiagnosticSettings(MicrosoftResource):
     }
     event_hub_authorization_rule_id: Optional[str] = field(default=None, metadata={'description': 'The resource Id for the event hub authorization rule.'})  # fmt: skip
     event_hub_name: Optional[str] = field(default=None, metadata={'description': 'The name of the event hub. If none is specified, the default event hub will be selected.'})  # fmt: skip
-    logs: Optional[List[AzureMonitorSubscriptionLogSettings]] = field(default=None, metadata={'description': 'The list of logs settings.'})  # fmt: skip
+    logs: Optional[Dict[str, bool]] = field(default=None, metadata={'description': 'The list of logs settings.'})  # fmt: skip
     marketplace_partner_id: Optional[str] = field(default=None, metadata={'description': 'The full ARM resource ID of the Marketplace resource to which you would like to send Diagnostic Logs.'})  # fmt: skip
     service_bus_rule_id: Optional[str] = field(default=None, metadata={'description': 'The service bus rule Id of the diagnostic setting. This is here to maintain backwards compatibility.'})  # fmt: skip
     storage_account_id: Optional[str] = field(default=None, metadata={'description': 'The resource ID of the storage account to which you would like to send Diagnostic Logs.'})  # fmt: skip
