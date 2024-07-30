@@ -599,8 +599,13 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 ("maintenances", AzureMysqlServerMaintenance, "2023-12-30", None),
                 ("logFiles", AzureMysqlServerLogFile, "2023-12-30", ["ServerNotExist"]),
                 ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01", None),
-                ("databases", AzureMysqlServerDatabase, "2021-05-01", ["ServerUnavailableForOperation"]),
-                ("configurations", AzureMysqlServerConfiguration, "2023-12-30", ["ServerUnavailableForOperation"]),
+                ("databases", AzureMysqlServerDatabase, "2021-05-01", ["ServerUnavailableForOperation", "ServiceBusy"]),
+                (
+                    "configurations",
+                    AzureMysqlServerConfiguration,
+                    "2023-12-30",
+                    ["ServerUnavailableForOperation", "ServiceBusy"],
+                ),
                 ("administrators", AzureMysqlServerADAdministrator, "2023-12-30", None),
             ]
 

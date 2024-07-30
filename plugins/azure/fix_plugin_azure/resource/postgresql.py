@@ -529,8 +529,8 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         if server_id := self.id:
             resources_to_collect = [
                 ("administrators", AzurePostgresqlServerADAdministrator, ["InternalServerError"]),
-                ("configurations", AzurePostgresqlServerConfiguration, ["ServerStoppedError"]),
-                ("databases", AzurePostgresqlServerDatabase, ["ServerStoppedError"]),
+                ("configurations", AzurePostgresqlServerConfiguration, ["ServerStoppedError", "InternalServerError"]),
+                ("databases", AzurePostgresqlServerDatabase, ["ServerStoppedError", "InternalServerError"]),
                 ("firewallRules", AzurePostgresqlServerFirewallRule, None),
                 ("backups", AzurePostgresqlServerBackup, None),
             ]
