@@ -8,11 +8,6 @@ from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureProxyResource,
     AzureResourceIdentity,
-    AzureServerBackup,
-    AzureServerDataEncryption,
-    AzureServerHighAvailability,
-    AzureServerMaintenanceWindow,
-    AzureServerNetwork,
     AzureSku,
     AzureTrackedResource,
     GraphBuilder,
@@ -20,6 +15,13 @@ from fix_plugin_azure.resource.base import (
     AzureSystemData,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
+from fix_plugin_azure.resource.mysql import (
+    AzureServerBackup,
+    AzureServerDataEncryption,
+    AzureServerHighAvailability,
+    AzureServerMaintenanceWindow,
+    AzureServerNetwork,
+)
 from fixlib.baseresources import BaseDatabase, BaseDatabaseInstanceType, DatabaseInstanceStatus, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum, MapValue
