@@ -230,6 +230,7 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "instance_cores": S("sku", "vCores").or_else(K(0)),
         "instance_memory": S("sku", "supportedMemoryPerVCoreMB").or_else(K(0)) >> F(lambda mb: mb / 1024),
     }
+    _is_provider_link: ClassVar[bool] = False
     _supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip

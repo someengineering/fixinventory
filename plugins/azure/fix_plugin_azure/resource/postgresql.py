@@ -226,6 +226,7 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "instance_cores": S("sku", "vCores").or_else(K(0)),
         "instance_memory": S("sku", "memoryPerVCoreMb").or_else(K(0)) >> F(lambda mb: mb // 1024 if mb else 0),
     }
+    _is_provider_link: ClassVar[bool] = False
     fast_provisioning_supported: Optional[bool] = field(
         default=None,
         metadata={"description": "A value indicating whether fast provisioning is supported in this region."},
