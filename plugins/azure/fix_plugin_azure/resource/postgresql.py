@@ -201,19 +201,19 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "_fast_provisioning_supported": S("fastProvisioningSupported"),
-        "_geo_backup_supported": S("geoBackupSupported"),
-        "_status": S("status"),
+        "fast_provisioning_supported": S("fastProvisioningSupported"),
+        "geo_backup_supported": S("geoBackupSupported"),
+        "status": S("status"),
         "_supported_fast_provisioning_editions": S("supportedFastProvisioningEditions")
         >> ForallBend(AzureFastProvisioningEditionCapability.mapping),
         "_supported_psql_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureFlexibleServerEditionCapability.mapping),
-        "_supported_ha_mode": S("supportedHAMode"),
+        "supported_ha_mode": S("supportedHAMode"),
         "_supported_hyperscale_node_editions": S("supportedHyperscaleNodeEditions")
         >> ForallBend(AzureHyperscaleNodeEditionCapability.mapping),
-        "_capability_zone": S("zone"),
-        "_zone_redundant_ha_and_geo_backup_supported": S("zoneRedundantHaAndGeoBackupSupported"),
-        "_zone_redundant_ha_supported": S("zoneRedundantHaSupported"),
+        "capability_zone": S("zone"),
+        "zone_redundant_ha_and_geo_backup_supported": S("zoneRedundantHaAndGeoBackupSupported"),
+        "zone_redundant_ha_supported": S("zoneRedundantHaSupported"),
         "sku_name": S("sku", "name"),
         "sku_tier": S("sku", "tier"),
         "state": S("state"),
@@ -225,44 +225,43 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "instance_cores": S("sku", "vCores").or_else(K(0)),
         "instance_memory": S("sku", "memoryPerVCoreMb").or_else(K(0)) >> F(lambda mb: mb // 1024 if mb else 0),
     }
-    _fast_provisioning_supported: Optional[bool] = field(
+    fast_provisioning_supported: Optional[bool] = field(
         default=None,
         metadata={"description": "A value indicating whether fast provisioning is supported in this region."},
     )
-    _geo_backup_supported: Optional[bool] = field(
+    geo_backup_supported: Optional[bool] = field(
         default=None,
         metadata={
             "description": "A value indicating whether a new server in this region can have geo-backups to paired region."
         },
     )
-    _status: Optional[str] = field(default=None, metadata={"description": "The status"})
+    status: Optional[str] = field(default=None, metadata={"description": "The status"})
     _supported_fast_provisioning_editions: Optional[List[AzureFastProvisioningEditionCapability]] = field(
         default=None, metadata={"description": ""}
     )
     _supported_psql_flexible_server_editions: Optional[List[AzureFlexibleServerEditionCapability]] = field(
         default=None, metadata={"description": ""}
     )
-    _supported_ha_mode: Optional[List[str]] = field(
+    supported_ha_mode: Optional[List[str]] = field(
         default=None, metadata={"description": "Supported high availability mode"}
     )
     _supported_hyperscale_node_editions: Optional[List[AzureHyperscaleNodeEditionCapability]] = field(
         default=None, metadata={"description": ""}
     )
-    _capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
-    _zone_redundant_ha_and_geo_backup_supported: Optional[bool] = field(
+    capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
+    zone_redundant_ha_and_geo_backup_supported: Optional[bool] = field(
         default=None,
         metadata={
             "description": "A value indicating whether a new server in this region can have geo-backups to paired region."
         },
     )
-    _zone_redundant_ha_supported: Optional[bool] = field(
+    zone_redundant_ha_supported: Optional[bool] = field(
         default=None,
         metadata={"description": "A value indicating whether a new server in this region can support multi zone HA."},
     )
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     sku_name: Optional[str] = field(default=None)
     sku_tier: Optional[str] = field(default=None)
-    state: Optional[str] = field(default=None)
     storage_iops: Optional[int] = field(default=None)
     storage_size_gb: Optional[int] = field(default=None)
     storage_tier: Optional[str] = field(default=None)
@@ -283,13 +282,13 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
             if isinstance(instance, AzurePostgresqlServerType) and instance._supported_psql_flexible_server_editions:
                 location = instance.location
                 capability_additional_fiels = {
-                    "fast_provisioning_supported": instance._fast_provisioning_supported,
-                    "geo_backup_supported": instance._geo_backup_supported,
-                    "status": instance._status,
-                    "supported_ha_mode": instance._supported_ha_mode,
-                    "capability_zone": instance._capability_zone,
-                    "zone_redundant_ha_and_geo_backup_supported": instance._zone_redundant_ha_and_geo_backup_supported,
-                    "zone_redundant_ha_supported": instance._zone_redundant_ha_supported,
+                    "fastProvisioningSupported": instance.fast_provisioning_supported,
+                    "geoBackupSupported": instance.geo_backup_supported,
+                    "status": instance.status,
+                    "supportedHAMode": instance.supported_ha_mode,
+                    "zone": instance.capability_zone,
+                    "zoneRedundantHaAndGeoBackupSupported": instance.zone_redundant_ha_and_geo_backup_supported,
+                    "zoneRedundantHaSupported": instance.zone_redundant_ha_supported,
                 }
                 for edition in instance._supported_psql_flexible_server_editions:
                     futures.append(builder.submit_work(service_name, cls._collect_editions, edition, location, builder, js, capability_additional_fiels))  # type: ignore

@@ -34,7 +34,7 @@ from fix_plugin_azure.resource.network import (
     AzureNetworkUsage,
     resources as network_resources,
 )
-from fix_plugin_azure.resource.mysql import AzureMysqlCapability, AzureMysqlServerType, resources as mysql_resources
+from fix_plugin_azure.resource.mysql import AzureMysqlServerType, resources as mysql_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.postgresql import (
     AzurePostgresqlServerType,
@@ -247,10 +247,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
     def after_collect(self) -> None:
         # Filter unnecessary nodes such as AzureDiskTypePricing
         nodes_to_remove = []
-        node_types = (
-            AzureDiskTypePricing,
-            AzureMysqlCapability,
-        )
+        node_types = (AzureDiskTypePricing,)
 
         for node in self.graph.nodes:
             if not isinstance(node, node_types):

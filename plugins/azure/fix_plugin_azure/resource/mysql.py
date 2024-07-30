@@ -1,4 +1,6 @@
+from concurrent.futures import as_completed
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
@@ -10,6 +12,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
+    MicrosoftResourceType,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fixlib.baseresources import (
@@ -24,6 +27,7 @@ from fixlib.json_bender import F, K, AsBool, Bender, S, ForallBend, Bend, MapEnu
 from fixlib.types import Json
 
 service_name = "azure_mysql"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -206,69 +210,115 @@ class AzureServerEditionCapability:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlCapability(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_capability"
+class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
+    kind: ClassVar[str] = "azure_mysql_server_type"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("zone"),
-        "name": S("zone"),
+        "id": S("id"),
+        "name": S("name"),
         "tags": S("tags", default={}),
-        "supported_flexible_server_editions": S("supportedFlexibleServerEditions")
+        "_supported_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapability.mapping),
         "supported_geo_backup_regions": S("supportedGeoBackupRegions"),
         "supported_ha_mode": S("supportedHAMode"),
         "capability_zone": S("zone"),
         "location": S("location"),
+        "server_edition_name": S("server_edition_name"),
+        "storage_edition": S("storage_edition") >> Bend(AzureStorageEditionCapability.mapping),
+        "server_version": S("server_version"),
+        "capability_sku": S("sku") >> Bend(AzureSkuCapability.mapping),
+        "instance_cores": S("sku", "vCores").or_else(K(0)),
+        "instance_memory": S("sku", "supportedMemoryPerVCoreMB").or_else(K(0)) >> F(lambda mb: mb / 1024),
     }
-    supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
+    _supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    server_edition_name: Optional[str] = field(default=None)
+    storage_edition: Optional[AzureStorageEditionCapability] = field(default=None)
+    server_version: Optional[str] = field(default=None)
+    capability_sku: Optional[AzureSkuCapability] = field(default=None)
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+    @classmethod
+    def collect(
+        cls: Type[MicrosoftResourceType],
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List[MicrosoftResourceType]:
+        result: List[MicrosoftResourceType] = []
+        futures = []
+
+        for js in raw:
+            instance = cls.from_api(js)
+
+            if isinstance(instance, AzureMysqlServerType) and instance._supported_flexible_server_editions:
+                location = instance.location
+                capability_additional_fiels = {
+                    "zone": instance.capability_zone,
+                    "supportedHAMode": instance.supported_ha_mode,
+                    "supportedGeoBackupRegions": instance.supported_geo_backup_regions,
+                }
+                for edition in instance._supported_flexible_server_editions:
+                    futures.append(builder.submit_work(service_name, cls._collect_editions, edition, location, builder, js, capability_additional_fiels))  # type: ignore
+
+        for future in as_completed(futures):
+            try:
+                instances = future.result()
+                if isinstance(instances, list):
+                    result.extend(instances)
+            except Exception as e:
+                log.warning(f"An error occurred while collecting AzureMysqlServerType: {e}")
+
+        return result
+
+    @classmethod
+    def _collect_editions(
+        cls,
+        edition: AzureServerEditionCapability,
+        location: str,
+        builder: GraphBuilder,
+        js: Json,
+        capability_additional_fiels: Json,
+    ) -> List["AzureMysqlServerType"]:
         # Create a list of all possible database configurations
         # This method goes through all the options for MySQL databases and lists every possible combination
         server_types = []
-        if self.supported_flexible_server_editions:
-            for edition in self.supported_flexible_server_editions:
-                edition_name = edition.name
-                storage_editions = edition.supported_storage_editions or []
-                server_versions = edition.supported_server_versions or []
+        edition_name = edition.name
+        storage_editions = edition.supported_storage_editions or []
+        server_versions = edition.supported_server_versions or []
+        for storage_edition in storage_editions:
+            storage_edition_dict = {
+                "maxBackupIntervalHours": storage_edition.max_backup_interval_hours,
+                "maxBackupRetentionDays": storage_edition.max_backup_retention_days,
+                "maxStorageSize": storage_edition.max_storage_size,
+                "minBackupIntervalHours": storage_edition.min_backup_interval_hours,
+                "minBackupRetentionDays": storage_edition.min_backup_retention_days,
+                "minStorageSize": storage_edition.min_storage_size,
+                "name": storage_edition.name,
+            }
+            for version in server_versions:
+                version_name = version.name
+                skus = version.supported_skus or []
 
-                for storage_edition in storage_editions:
-                    storage_edition_dict = {
-                        "maxBackupIntervalHours": storage_edition.max_backup_interval_hours,
-                        "maxBackupRetentionDays": storage_edition.max_backup_retention_days,
-                        "maxStorageSize": storage_edition.max_storage_size,
-                        "minBackupIntervalHours": storage_edition.min_backup_interval_hours,
-                        "minBackupRetentionDays": storage_edition.min_backup_retention_days,
-                        "minStorageSize": storage_edition.min_storage_size,
-                        "name": storage_edition.name,
+                for sku in skus:
+                    sku_dict = {
+                        "name": sku.name,
+                        "vCores": sku.v_cores,
+                        "supportedIops": sku.supported_iops,
+                        "supportedMemoryPerVCoreMB": sku.supported_memory_per_v_core_mb,
                     }
-                    for version in server_versions:
-                        version_name = version.name
-                        skus = version.supported_skus or []
-
-                        for sku in skus:
-                            sku_dict = {
-                                "name": sku.name,
-                                "vCores": sku.v_cores,
-                                "supportedIops": sku.supported_iops,
-                                "supportedMemoryPerVCoreMB": sku.supported_memory_per_v_core_mb,
-                            }
-                            server_type = {
-                                "id": f"{sku.name}",
-                                "name": f"{edition_name}_{sku.name}",
-                                "capability_zone": self.capability_zone,
-                                "supported_ha_mode": self.supported_ha_mode,
-                                "server_edition_name": edition_name,
-                                "storage_edition": storage_edition_dict,
-                                "server_version": version_name,
-                                "sku": sku_dict,
-                                "location": self.location,
-                            }
-                            server_types.append(server_type)
-        AzureMysqlServerType.collect(server_types, graph_builder)
+                    server_type = {
+                        "id": f"{sku.name}",
+                        "name": f"{edition_name}_{sku.name}",
+                        "server_edition_name": edition_name,
+                        "storage_edition": storage_edition_dict,
+                        "server_version": version_name,
+                        "sku": sku_dict,
+                        "location": location,
+                        **capability_additional_fiels,
+                    }
+                    server_types.append(server_type)
+        return [instance for st in server_types if (instance := builder.add_node(cls.from_api(st), js)) is not None]
 
 
 @define(eq=False, slots=False)
@@ -414,32 +464,6 @@ class AzureMysqlServerMaintenance(MicrosoftResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
-    kind: ClassVar[str] = "azure_mysql_server_type"
-    # Collect via AzureMysqlCapability()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "name": S("name"),
-        "capability_zone": S("capability_zone"),
-        "supported_ha_mode": S("supported_ha_mode"),
-        "server_edition_name": S("server_edition_name"),
-        "storage_edition": S("storage_edition") >> Bend(AzureStorageEditionCapability.mapping),
-        "server_version": S("server_version"),
-        "capability_sku": S("sku") >> Bend(AzureSkuCapability.mapping),
-        "display_location": S("location"),
-        "instance_cores": S("sku", "vCores"),
-        "instance_memory": S("sku", "supportedMemoryPerVCoreMB") >> F(lambda mb: mb / 1024),
-    }
-    capability_zone: Optional[str] = field(default=None)
-    supported_ha_mode: Optional[List[str]] = field(default=None)
-    server_edition_name: Optional[str] = field(default=None)
-    storage_edition: Optional[AzureStorageEditionCapability] = field(default=None)
-    server_version: Optional[str] = field(default=None)
-    capability_sku: Optional[AzureSkuCapability] = field(default=None)
-    display_location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
 
 @define(eq=False, slots=False)
@@ -712,7 +736,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 # Set location for further connect_in_graph method
                 for item in items:
                     item["location"] = location
-                AzureMysqlCapability.collect(items, graph_builder)
+                AzureMysqlServerType.collect(items, graph_builder)
 
             graph_builder.submit_work(service_name, collect_capabilities)
 
@@ -727,7 +751,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 self,
                 edge_type=EdgeType.default,
                 clazz=AzureMysqlServerType,
-                display_location=location,
+                location=location,
                 server_version=version,
                 id=sku_type,
             )
@@ -779,7 +803,6 @@ class AzureMysqlServerBackup(MicrosoftResource):
 
 resources: List[Type[MicrosoftResource]] = [
     AzureMysqlServerADAdministrator,
-    AzureMysqlCapability,
     AzureMysqlServerType,
     AzureMysqlServerConfiguration,
     AzureMysqlServerDatabase,
