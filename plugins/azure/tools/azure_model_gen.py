@@ -341,7 +341,7 @@ def class_method(
                 add_types(class_method(spec, prop_shape, model, result, set()))
                 prop_type = type_name(prop_shape)
                 if prop_name in unfold_props and is_complex_type(prop_shape) and prop_type in result:
-                    for npn, np in result[prop_type].props.items():
+                    for np in result[prop_type].props.values():
                         add_prop(
                             AzureProperty(
                                 np.name,
