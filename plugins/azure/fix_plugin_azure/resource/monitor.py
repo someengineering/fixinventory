@@ -8,8 +8,16 @@ from attr import define, field
 from jsons import snakecase
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, AzureIdentity, AzureExtendedLocation
+from fix_plugin_azure.resource.base import (
+    MicrosoftResource,
+    AzureSystemData,
+    AzureIdentity,
+    AzureExtendedLocation,
+    GraphBuilder,
+)
+from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fixlib.json_bender import Bender, S, ForallBend, Bend, K, MapDict, F
+from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
 
@@ -191,6 +199,7 @@ class AzureMonitorEventHubReceiver:
 @define(eq=False, slots=False)
 class AzureMonitorActionGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_action_group"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2023-01-01",
@@ -281,6 +290,7 @@ class AzureMonitorActionGroupRef:
 @define(eq=False, slots=False)
 class AzureMonitorActivityLogAlert(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_activity_log_alert_resource"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2020-10-01",
@@ -338,6 +348,7 @@ class AzureMonitorRuleCondition:
 @define(eq=False, slots=False)
 class AzureMonitorAlertRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_alert_rule_resource"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2016-03-01",
@@ -432,6 +443,7 @@ class AzureMonitorAccessModeSettings:
 @define(eq=False, slots=False)
 class AzureMonitorPrivateLinkScope(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_private_link_scope"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2021-07-01-preview",
@@ -710,6 +722,7 @@ class AzureMonitorDataFlow:
 @define(eq=False, slots=False)
 class AzureMonitorWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_workspace"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2023-04-03",
@@ -744,6 +757,7 @@ class AzureMonitorWorkspace(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMonitorDataCollectionRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_data_collection_rule"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2023-03-11",
@@ -801,6 +815,7 @@ class AzureMonitorRetentionPolicy:
 @define(eq=False, slots=False)
 class AzureMonitorLogProfile(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_log_profile"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2016-03-01",
@@ -841,6 +856,7 @@ class AzureMetricAlertAction:
 @define(eq=False, slots=False)
 class AzureMetricAlert(MicrosoftResource):
     kind: ClassVar[str] = "azure_metric_alert_resource"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2018-03-01",
@@ -1102,6 +1118,7 @@ class AzureMonitorNetworkingConfiguration:
 @define(eq=False, slots=False)
 class AzureMonitorPipelineGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_pipeline_group"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2023-10-01-preview",
@@ -1211,6 +1228,7 @@ class AzureMonitorRuleResolveConfiguration:
 @define(eq=False, slots=False)
 class AzureMonitorScheduledQueryRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_scheduled_query_rule_resource"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2024-01-01-preview",
@@ -1278,6 +1296,7 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMonitorSubscriptionDiagnosticSettings(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_subscription_diagnostic_settings"
+    _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2021-05-01-preview",
@@ -1310,6 +1329,12 @@ class AzureMonitorSubscriptionDiagnosticSettings(MicrosoftResource):
     storage_account_id: Optional[str] = field(default=None, metadata={'description': 'The resource ID of the storage account to which you would like to send Diagnostic Logs.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     workspace_id: Optional[str] = field(default=None, metadata={'description': 'The full ARM resource ID of the Log Analytics workspace to which you would like to send Diagnostic Logs. Example: /subscriptions/4b9e8510-67ab-4e9a-95a9-e2f1e570ea9c/resourceGroups/insights-integration/providers/Microsoft.OperationalInsights/workspaces/viruela2'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if rid := self.storage_account_id:
+            builder.add_edge(self, clazz=AzureStorageAccount, id=rid)
+        if rid := self.workspace_id:
+            builder.add_edge(self, clazz=AzureMonitorWorkspace, id=rid)
 
 
 resources: List[Type[MicrosoftResource]] = [
