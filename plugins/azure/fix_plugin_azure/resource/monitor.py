@@ -16,6 +16,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
 )
 from fix_plugin_azure.resource.storage import AzureStorageAccount
+from fixlib.baseresources import ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend, K, MapDict, F
 from fixlib.types import Json
 
@@ -1307,6 +1308,9 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [AzureStorageAccount.kind, AzureMonitorWorkspace.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "ctime": S("systemData", "createdAt"),

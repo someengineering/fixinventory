@@ -1,19 +1,6 @@
 from conftest import roundtrip_check
 from fix_plugin_azure.resource.base import GraphBuilder
 from fix_plugin_azure.resource.keyvault import AzureKeyVault, AzureManagedHsm, AzureKey
-from fix_plugin_azure.resource.monitor import (
-    AzureMonitorActionGroup,
-    AzureMonitorActivityLogAlert,
-    AzureMonitorAlertRule,
-    AzureMonitorLogProfile,
-    AzureMetricAlert,
-    AzureMonitorPrivateLinkScope,
-    AzureMonitorWorkspace,
-    AzureMonitorDataCollectionRule,
-    AzureMonitorPipelineGroup,
-    AzureMonitorScheduledQueryRule,
-    AzureMonitorDiagnosticSettings,
-)
 
 
 def test_key_vault(builder: GraphBuilder) -> None:

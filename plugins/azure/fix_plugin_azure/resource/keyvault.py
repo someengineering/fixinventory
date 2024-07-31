@@ -344,7 +344,6 @@ class AzureKeyVault(MicrosoftResource):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": [AzureKey.kind, AzureMonitorDiagnosticSettings.kind]},
     }
-
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
