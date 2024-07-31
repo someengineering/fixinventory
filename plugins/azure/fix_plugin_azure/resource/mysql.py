@@ -11,6 +11,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
+    MicrosoftResourceType,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fixlib.baseresources import (
@@ -21,7 +22,7 @@ from fixlib.baseresources import (
     ModelReference,
 )
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
+from fixlib.json_bender import K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_mysql"
@@ -314,43 +315,61 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         return result
 
 
+def from_str_to_typed(config_type: str, value: str) -> Any:
+    def set_bool(val: str) -> bool:
+        if val == "ON":
+            return True
+        return False
+
+    type_mapping = {
+        "Enumeration": lambda x: set_bool(x) if x in ["ON", "OFF"] else str(x),
+        "Integer": int,
+        "Numeric": float,
+        "Set": lambda x: x.split(","),
+        "String": str,
+    }
+    try:
+        return type_mapping[config_type](value)  # type: ignore
+    except Exception as e:
+        log.warning(f"An error occured while defining type of configuration value: {e}")
+        return None
+
+
 @define(eq=False, slots=False)
 class AzureMysqlServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_configuration"
     # Collect via AzureMysqlServer()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "type": S("type"),
-        "ctime": S("systemData", "createdAt"),
-        "mtime": S("systemData", "lastModifiedAt"),
-        "allowed_values": S("properties", "allowedValues"),
-        "current_value": S("properties", "currentValue"),
-        "data_type": S("properties", "dataType"),
-        "default_value": S("properties", "defaultValue"),
-        "description": S("properties", "description"),
-        "documentation_link": S("properties", "documentationLink"),
-        "is_config_pending_restart": S("properties", "isConfigPendingRestart") >> AsBool(),
-        "is_dynamic_config": S("properties", "isDynamicConfig") >> AsBool(),
-        "is_read_only": S("properties", "isReadOnly") >> AsBool(),
-        "source": S("properties", "source"),
-        "value": S("properties", "value"),
-    }
-    allowed_values: Optional[str] = field(default=None, metadata={'description': 'Allowed values of the configuration.'})  # fmt: skip
-    current_value: Optional[str] = field(default=None, metadata={"description": "Current value of the configuration."})
-    data_type: Optional[str] = field(default=None, metadata={"description": "Data type of the configuration."})
-    default_value: Optional[str] = field(default=None, metadata={"description": "Default value of the configuration."})
-    description: Optional[str] = field(default=None, metadata={"description": "Description of the configuration."})
-    documentation_link: Optional[str] = field(default=None, metadata={'description': 'The link used to get the document from community or Azure site.'})  # fmt: skip
-    is_config_pending_restart: Optional[bool] = field(default=None, metadata={'description': 'If is the configuration pending restart or not.'})  # fmt: skip
-    is_dynamic_config: Optional[bool] = field(default=None, metadata={'description': 'If is the configuration dynamic.'})  # fmt: skip
-    is_read_only: Optional[bool] = field(default=None, metadata={"description": "If is the configuration read only."})
-    source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
-    value: Optional[str] = field(default=None, metadata={"description": "Value of the configuration."})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+    config: Json = field(factory=dict)
+
+    @classmethod
+    def collect(
+        cls: Type[MicrosoftResourceType],
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List[MicrosoftResourceType]:
+        if not raw:
+            return []
+        server_id = raw[0].get("serverID")
+        if not server_id:
+            return []
+        configuration_instance = cls(id=server_id)
+        if isinstance(configuration_instance, AzureMysqlServerConfiguration):
+            for js in raw:
+                properties = js.get("properties")
+                if not properties:
+                    continue
+                if (
+                    (data_type := properties.get("dataType"))
+                    and (val := properties.get("currentValue"))
+                    and (config_name := js.get("name"))
+                ):
+                    value = from_str_to_typed(data_type, val)
+                    if not value:
+                        continue
+                    configuration_instance.config[config_name] = value
+            if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
+                return [added]  # type: ignore
+        return []
 
 
 @define(eq=False, slots=False)
@@ -667,14 +686,12 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         items = graph_builder.client.list(api_spec)
         if not items:
             return
+        if issubclass(class_instance, AzureMysqlServerConfiguration):  # type: ignore
+            for item in items:
+                item["serverID"] = self.id
         collected = class_instance.collect(items, graph_builder)
-        for clazz in collected:
-            graph_builder.add_edge(
-                self,
-                edge_type=EdgeType.default,
-                id=clazz.id,
-                clazz=class_instance,
-            )
+        for resource in collected:
+            graph_builder.add_edge(self, node=resource)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if server_id := self.id:

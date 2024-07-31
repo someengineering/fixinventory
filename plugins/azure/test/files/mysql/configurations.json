@@ -2,131 +2,99 @@
     "value": [
         {
             "properties": {
-                "value": "OFF",
-                "description": "Tell the server to enable or disable archive engine.",
-                "defaultValue": "OFF",
-                "dataType": "Enumeration",
                 "allowedValues": "ON,OFF",
-                "source": "system-default",
-                "isConfigPendingRestart": "False",
-                "isDynamicConfig": "False",
-                "isReadOnly": "True"
-            },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/archive",
-            "name": "archive",
-            "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
-        },
-        {
-            "properties": {
-                "value": "OFF",
-                "description": "Allow to audit the log.",
-                "defaultValue": "OFF",
+                "currentValue": "ON",
                 "dataType": "Enumeration",
-                "allowedValues": "ON,OFF",
-                "source": "system-default",
-                "isConfigPendingRestart": "False",
-                "isDynamicConfig": "True",
-                "isReadOnly": "False"
-            },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/audit_log_enabled",
-            "name": "audit_log_enabled",
-            "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
-        },
-        {
-            "properties": {
-                "value": "CONNECTION",
-                "description": "Select the events to audit logs.",
-                "defaultValue": "CONNECTION",
-                "dataType": "Set",
-                "allowedValues": "DDL,DML_SELECT,DML_NONSELECT,DCL,ADMIN,DML,GENERAL,CONNECTION,TABLE_ACCESS",
-                "source": "system-default",
-                "isConfigPendingRestart": "False",
-                "isDynamicConfig": "True",
-                "isReadOnly": "False"
-            },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/audit_log_events",
-            "name": "audit_log_events",
-            "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
-        },
-        {
-            "properties": {
-                "value": "azure_superuser",
-                "description": "The comma-separated user list whose commands will not be in the audit logs.",
-                "defaultValue": "azure_superuser",
-                "dataType": "String",
-                "allowedValues": "",
-                "source": "system-default",
-                "isConfigPendingRestart": "False",
-                "isDynamicConfig": "True",
-                "isReadOnly": "False"
-            },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/audit_log_exclude_users",
-            "name": "audit_log_exclude_users",
-            "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
-        },
-        {
-            "properties": {
-                "value": "",
-                "description": "The comma-separated user list whose commands will be in the audit logs. It takes higher priority if the same user name is found in audit_log_exclude_users.",
-                "defaultValue": "",
-                "dataType": "String",
-                "allowedValues": "",
-                "source": "system-default",
-                "isConfigPendingRestart": "False",
-                "isDynamicConfig": "True",
-                "isReadOnly": "False"
-            },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/audit_log_include_users",
-            "name": "audit_log_include_users",
-            "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
-        },
-        {
-            "properties": {
-                "value": "ON",
-                "description": "Allow to audit the slow log.",
                 "defaultValue": "ON",
-                "dataType": "Enumeration",
-                "allowedValues": "ON,OFF",
-                "source": "system-default",
+                "description": "Whether to enable automatic activation of all granted roles when users log in to the server.",
+                "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_activate_all_roles_on_login",
                 "isConfigPendingRestart": "False",
                 "isDynamicConfig": "True",
-                "isReadOnly": "True"
+                "isReadOnly": "False",
+                "source": "system-default",
+                "value": "ON"
             },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/audit_slow_log_enabled",
-            "name": "audit_slow_log_enabled",
-            "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
+            "type": "Microsoft.DBforMySQL/flexibleServers/configurations",
+            "resourceGroup": "foo",
+            "id": "/subscriptions/subid/resourceGroups/foo/providers/Microsoft.DBforMySQL/flexibleServers/test/configurations/activate_all_roles_on_login",
+            "name": "activate_all_roles_on_login"
         },
         {
             "properties": {
-                "value": "OFF",
-                "description": "Controls whether the server autogenerates SSL key and certificate files in the data directory, if they do not already exist.",
-                "defaultValue": "OFF",
-                "dataType": "Enumeration",
-                "allowedValues": "ON,OFF",
-                "source": "system-default",
+                "allowedValues": "0-65535",
+                "currentValue": "33062",
+                "dataType": "Integer",
+                "defaultValue": "33062",
+                "description": "The TCP/IP port number to use for connections on the administrative network interface.",
+                "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_admin_port",
                 "isConfigPendingRestart": "False",
                 "isDynamicConfig": "False",
-                "isReadOnly": "True"
+                "isReadOnly": "True",
+                "source": "system-default",
+                "value": "33062"
             },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/auto_generate_certs",
-            "name": "auto_generate_certs",
+            "type": "Microsoft.DBforMySQL/flexibleServers/configurations",
+            "id": "/subscriptions/subid/resourceGroups/foo/providers/Microsoft.DBforMySQL/flexibleServers/test/configurations/admin_port",
+            "name": "admin_port",
+            "resourceGroup": "foo"
+        },
+        {
+            "properties": {
+                "allowedValues": "",
+                "currentValue": "log_filter_internal; log_sink_internal",
+                "dataType": "String",
+                "defaultValue": "",
+                "description": "The admin_ssl_ca system variable is like ssl_ca, except that it applies to the administrative connection interface rather than the main connection interface.",
+                "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_admin_ssl_ca",
+                "isConfigPendingRestart": "False",
+                "isDynamicConfig": "True",
+                "isReadOnly": "True",
+                "source": "system-default",
+                "systemData": null,
+                "value": ""
+            },
+            "id": "/subscriptions/subid/resourceGroups/foo/providers/Microsoft.DBforMySQL/flexibleServers/test/configurations/admin_ssl_ca",
+            "name": "admin_ssl_ca",
+            "resourceGroup": "foo",
             "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
         },
         {
             "properties": {
-                "value": "1",
-                "description": "The auto_increment_increment is intended for use with source-to-source replication, and can be used to control the operation of AUTO_INCREMENT columns.",
-                "defaultValue": "1",
-                "dataType": "Integer",
-                "allowedValues": "1-65535",
                 "source": "system-default",
+                "value": "TLSv1.2",
+                "allowedValues": "TLSv1.2,TLSv1.3",
+                "currentValue": "TLSv1.2",
+                "dataType": "Set",
+                "defaultValue": "TLSv1.2",
+                "description": "The admin_tls_version system variable is like tls_version, except that it applies to the administrative connection interface rather than the main connection interface.",
+                "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_admin_tls_version",
                 "isConfigPendingRestart": "False",
                 "isDynamicConfig": "True",
-                "isReadOnly": "False"
+                "isReadOnly": "True"
             },
-            "id": "/subscriptions/ffffffff-ffff-ffff-ffff-ffffffffffff/resourceGroups/testrg/providers/Microsoft.DBforMySQL/flexibleServers/mysqltestserver/configurations/auto_increment_increment",
-            "name": "auto_increment_increment",
-            "type": "Microsoft.DBforMySQL/flexibleServers/configurations"
+            "id": "/subscriptions/subid/resourceGroups/foo/providers/Microsoft.DBforMySQL/flexibleServers/test/configurations/admin_tls_version",
+            "name": "admin_tls_version",
+            "type": "Microsoft.DBforMySQL/flexibleServers/configurations",
+            "resourceGroup": "foo"
+        },
+        {
+            "properties": {
+                "source": "system-default",
+                "value": "90",
+                "isConfigPendingRestart": "False",
+                "isDynamicConfig": "True",
+                "isReadOnly": "False",
+                "allowedValues": "0-99.99",
+                "currentValue": "90",
+                "dataType": "Numeric",
+                "defaultValue": "90",
+                "description": "InnoDB tries to flush data from the buffer pool so that the percentage of dirty pages does not exceed this value.",
+                "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_max_dirty_pages_pct"
+            },
+            "type": "Microsoft.DBforMySQL/flexibleServers/configurations",
+            "resourceGroup": "foo",
+            "id": "/subscriptions/subid/resourceGroups/foo/providers/Microsoft.DBforMySQL/flexibleServers/test/configurations/innodb_max_dirty_pages_pct",
+            "name": "innodb_max_dirty_pages_pct"
         }
     ]
 }
