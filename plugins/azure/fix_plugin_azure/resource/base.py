@@ -52,7 +52,7 @@ T = TypeVar("T")
 
 
 def parse_json(
-    json: Json, clazz: Type[T], builder: GraphBuilder, mapping: Optional[Dict[str, Bender]] = None
+    json: Json, clazz: Type[T], builder: Optional[GraphBuilder] = None, mapping: Optional[Dict[str, Bender]] = None
 ) -> Optional[T]:
     """
     Use this method to parse json into a class. If the json can not be parsed, the error is reported to the core.
@@ -67,11 +67,15 @@ def parse_json(
         mapped = bend(mapping, json) if mapping is not None else json
         return from_json(mapped, clazz)
     except Exception as e:
-        # report and log the error
-        builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}", log)
-        # based on the strict flag, either raise the exception or return None
-        if builder.config.discard_account_on_resource_error:
-            raise
+        message = f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}"
+        if builder:
+            # report and log the error
+            builder.core_feedback.error(message, log)
+            # based on the strict flag, either raise the exception or return None
+            if builder.config.discard_account_on_resource_error:
+                raise
+        else:
+            log.warning(message)
         return None
 
 
@@ -225,7 +229,7 @@ class MicrosoftResource(BaseResource):
         result: List[MicrosoftResourceType] = []
         for js in raw:
             # map from api
-            instance = cls.from_api(js)
+            instance = cls.from_api(js, builder)
             instance.pre_process(builder, js)
             # add to graph
             if (added := builder.add_node(instance, js)) is not None:
@@ -235,9 +239,10 @@ class MicrosoftResource(BaseResource):
         return result
 
     @classmethod
-    def from_api(cls: Type[MicrosoftResourceType], json: Json) -> MicrosoftResourceType:
-        mapped = bend(cls.mapping, json)
-        return cls.from_json(mapped)
+    def from_api(
+        cls: Type[MicrosoftResourceType], json: Json, builder: Optional[GraphBuilder] = None
+    ) -> MicrosoftResourceType:
+        return parse_json(json, cls, builder, cls.mapping)  # type: ignore
 
     @classmethod
     def called_collect_apis(cls) -> List[MicrosoftRestSpec]:

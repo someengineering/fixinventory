@@ -11,7 +11,7 @@ from fix_plugin_azure.resource.monitor import (
     AzureMonitorDataCollectionRule,
     AzureMonitorPipelineGroup,
     AzureMonitorScheduledQueryRule,
-    AzureMonitorSubscriptionDiagnosticSettings,
+    AzureMonitorDiagnosticSettings,
 )
 
 
@@ -66,5 +66,5 @@ def test_scheduled_query_rule(builder: GraphBuilder) -> None:
 
 
 def test_subscription_diagnostic(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureMonitorSubscriptionDiagnosticSettings, builder)
+    collected = roundtrip_check(AzureMonitorDiagnosticSettings, builder)
     assert len(collected) == 1

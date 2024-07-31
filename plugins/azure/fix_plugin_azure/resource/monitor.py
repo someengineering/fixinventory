@@ -20,6 +20,7 @@ from fixlib.json_bender import Bender, S, ForallBend, Bend, K, MapDict, F
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
+service_name = "monitor"
 
 
 @define(eq=False, slots=False)
@@ -1294,8 +1295,8 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMonitorSubscriptionDiagnosticSettings(MicrosoftResource):
-    kind: ClassVar[str] = "azure_monitor_subscription_diagnostic_settings"
+class AzureMonitorDiagnosticSettings(MicrosoftResource):
+    kind: ClassVar[str] = "azure_monitor_diagnostic_settings"
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -1336,6 +1337,25 @@ class AzureMonitorSubscriptionDiagnosticSettings(MicrosoftResource):
         if rid := self.workspace_id:
             builder.add_edge(self, clazz=AzureMonitorWorkspace, id=rid)
 
+    @staticmethod
+    def fetch_diagnostics(builder: GraphBuilder, resource: MicrosoftResource) -> None:
+        def execute() -> None:
+            for setting in builder.client.list(
+                AzureResourceSpec(
+                    service="monitor",
+                    version="2021-05-01-preview",
+                    path=f"{resource.id}/providers/Microsoft.Insights/diagnosticSettings",
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+            ):
+                instance = AzureMonitorDiagnosticSettings.from_api(setting, builder)
+                builder.add_node(instance, setting)
+                builder.add_edge(resource, node=instance)
+
+        builder.submit_work(service_name, execute)
+
 
 resources: List[Type[MicrosoftResource]] = [
     AzureMonitorActionGroup,
@@ -1348,5 +1368,5 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMonitorWorkspace,
     AzureMonitorPipelineGroup,
     AzureMonitorScheduledQueryRule,
-    AzureMonitorSubscriptionDiagnosticSettings,
+    AzureMonitorDiagnosticSettings,
 ]

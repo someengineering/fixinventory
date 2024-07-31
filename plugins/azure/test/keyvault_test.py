@@ -12,7 +12,7 @@ from fix_plugin_azure.resource.monitor import (
     AzureMonitorDataCollectionRule,
     AzureMonitorPipelineGroup,
     AzureMonitorScheduledQueryRule,
-    AzureMonitorSubscriptionDiagnosticSettings,
+    AzureMonitorDiagnosticSettings,
 )
 
 

@@ -1105,7 +1105,7 @@ class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
     @classmethod
     def deferred_edge_to_subscription(cls, builder: GraphBuilder) -> None:
         for js in builder.client.list(cls.api_spec):
-            org = cls.from_api(js)
+            org = cls.from_api(js, builder)
             builder.add_deferred_edge(
                 BySearchCriteria(f'is({cls.kind}) and reported.id=="{org.id}"'), ByNodeId(builder.account.chksum)
             )
