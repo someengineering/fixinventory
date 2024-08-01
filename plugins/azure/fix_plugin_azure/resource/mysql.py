@@ -227,8 +227,6 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "storage_edition": S("storage_edition") >> Bend(AzureStorageEditionCapability.mapping),
         "server_version": S("server_version"),
         "capability_sku": S("sku") >> Bend(AzureSkuCapability.mapping),
-        "instance_cores": S("sku", "vCores").or_else(K(0)),
-        "instance_memory": S("sku", "supportedMemoryPerVCoreMB").or_else(K(0)) >> F(lambda mb: mb / 1024),
     }
     _is_provider_link: ClassVar[bool] = False
     _supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
@@ -257,8 +255,8 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
                 location = instance.location
                 capability_additional_fiels = {
                     "zone": instance.capability_zone,
-                    "supportedHAMode": instance.supported_ha_mode,
-                    "supportedGeoBackupRegions": instance.supported_geo_backup_regions,
+                    "supported_ha_mode": instance.supported_ha_mode,
+                    "supported_geo_backup_regions": instance.supported_geo_backup_regions,
                 }
                 for edition in instance._supported_flexible_server_editions:
                     futures.append(builder.submit_work(service_name, cls._collect_editions, edition, location, builder, js, capability_additional_fiels))  # type: ignore
@@ -289,13 +287,13 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         storage_editions = edition.supported_storage_editions or []
         server_versions = edition.supported_server_versions or []
         for storage_edition in storage_editions:
-            storage_edition_dict = {
-                "maxBackupIntervalHours": storage_edition.max_backup_interval_hours,
-                "maxBackupRetentionDays": storage_edition.max_backup_retention_days,
-                "maxStorageSize": storage_edition.max_storage_size,
-                "minBackupIntervalHours": storage_edition.min_backup_interval_hours,
-                "minBackupRetentionDays": storage_edition.min_backup_retention_days,
-                "minStorageSize": storage_edition.min_storage_size,
+            storage_edition_dict: Json = {
+                "max_backup_interval_hours": storage_edition.max_backup_interval_hours,
+                "max_backup_retention_days": storage_edition.max_backup_retention_days,
+                "max_storage_size": storage_edition.max_storage_size,
+                "min_backup_interval_hours": storage_edition.min_backup_interval_hours,
+                "min_backup_retention_days": storage_edition.min_backup_retention_days,
+                "min_storage_size": storage_edition.min_storage_size,
                 "name": storage_edition.name,
             }
             for version in server_versions:
@@ -303,24 +301,32 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
                 skus = version.supported_skus or []
 
                 for sku in skus:
-                    sku_dict = {
+                    sku_dict: Json = {
                         "name": sku.name,
-                        "vCores": sku.v_cores,
-                        "supportedIops": sku.supported_iops,
-                        "supportedMemoryPerVCoreMB": sku.supported_memory_per_v_core_mb,
+                        "v_cores": sku.v_cores,
+                        "supported_iops": sku.supported_iops,
+                        "supported_memory_per_v_core_mb": sku.supported_memory_per_v_core_mb,
                     }
-                    server_type = {
-                        "id": f"{sku.name}",
-                        "name": f"{edition_name}_{sku.name}",
-                        "server_edition_name": edition_name,
-                        "storage_edition": storage_edition_dict,
-                        "server_version": version_name,
-                        "sku": sku_dict,
-                        "location": location,
+                    instance_cores = sku_dict.get("v_cores") or 0
+                    supported_memory_per_v_core_mb = sku_dict.get("supported_memory_per_v_core_mb")
+                    if supported_memory_per_v_core_mb is not None:
+                        instance_memory = supported_memory_per_v_core_mb // 1024
+                    else:
+                        instance_memory = 0
+                    server_type = AzureMysqlServerType(
+                        id=f"{sku.name}",
+                        name=f"{edition_name}_{sku.name}",
+                        server_edition_name=edition_name,
+                        storage_edition=AzureStorageEditionCapability(**storage_edition_dict),
+                        server_version=version_name,
+                        capability_sku=AzureSkuCapability(**sku_dict),
+                        location=location,
+                        instance_cores=instance_cores,
+                        instance_memory=instance_memory,
                         **capability_additional_fiels,
-                    }
+                    )
                     server_types.append(server_type)
-        return [instance for st in server_types if (instance := builder.add_node(cls.from_api(st), js)) is not None]
+        return [instance for st in server_types if (instance := builder.add_node(st, js)) is not None]
 
 
 @define(eq=False, slots=False)

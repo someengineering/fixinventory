@@ -217,14 +217,7 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "zone_redundant_ha_supported": S("zoneRedundantHaSupported"),
         "sku_name": S("sku", "name"),
         "sku_tier": S("sku", "tier"),
-        "state": S("state"),
-        "storage_iops": S("storage", "iops"),
-        "storage_size_gb": S("storage", "storageSizeGb"),
-        "storage_tier": S("storage", "tier"),
-        "storage_type": S("storage", "type"),
         "location": S("location"),
-        "instance_cores": S("sku", "vCores").or_else(K(0)),
-        "instance_memory": S("sku", "memoryPerVCoreMb").or_else(K(0)) >> F(lambda mb: mb // 1024 if mb else 0),
     }
     _is_provider_link: ClassVar[bool] = False
     fast_provisioning_supported: Optional[bool] = field(
@@ -284,13 +277,13 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
             if isinstance(instance, AzurePostgresqlServerType) and instance._supported_psql_flexible_server_editions:
                 location = instance.location
                 capability_additional_fiels = {
-                    "fastProvisioningSupported": instance.fast_provisioning_supported,
-                    "geoBackupSupported": instance.geo_backup_supported,
+                    "fast_provisioning_supported": instance.fast_provisioning_supported,
+                    "geo_backup_supported": instance.geo_backup_supported,
                     "status": instance.status,
-                    "supportedHAMode": instance.supported_ha_mode,
+                    "supported_ha_mode": instance.supported_ha_mode,
                     "zone": instance.capability_zone,
-                    "zoneRedundantHaAndGeoBackupSupported": instance.zone_redundant_ha_and_geo_backup_supported,
-                    "zoneRedundantHaSupported": instance.zone_redundant_ha_supported,
+                    "zone_redundant_ha_and_geo_backup_supported": instance.zone_redundant_ha_and_geo_backup_supported,
+                    "zone_redundant_ha_supported": instance.zone_redundant_ha_supported,
                 }
                 for edition in instance._supported_psql_flexible_server_editions:
                     futures.append(builder.submit_work(service_name, cls._collect_editions, edition, location, builder, js, capability_additional_fiels))  # type: ignore
@@ -319,25 +312,23 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
             for sku in version.supported_vcores or []:
                 for supported_storage in edition.supported_storage_editions or []:
                     for storage in supported_storage.supported_storage_mb or []:
-                        server_type = {
-                            "id": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
-                            "name": f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
-                            "sku": {
-                                "name": sku.name,
-                                "tier": edition.name,
-                                "vCores": sku.v_cores,
-                                "memoryPerVCoreMb": sku.supported_memory_per_vcore_mb,
-                            },
-                            "storage": {
-                                "iops": storage.supported_iops,
-                                "storageSizeGb": (storage.storage_size_mb // 1024 if storage.storage_size_mb else 0),
-                            },
-                            "location": location,
+                        server_type = AzurePostgresqlServerType(
+                            id=f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
+                            name=f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
+                            sku_name=sku.name,
+                            sku_tier=edition.name,
+                            instance_cores=sku.v_cores or 0,
+                            instance_memory=(
+                                sku.supported_memory_per_vcore_mb // 1024 if sku.supported_memory_per_vcore_mb else 0
+                            ),
+                            storage_iops=storage.supported_iops,
+                            storage_size_gb=storage.storage_size_mb // 1024 if storage.storage_size_mb else 0,
+                            location=location,
                             **capability_additional_fiels,
-                        }
+                        )
                         server_types.append(server_type)
 
-        return [instance for st in server_types if (instance := builder.add_node(cls.from_api(st), js)) is not None]
+        return [instance for st in server_types if (instance := builder.add_node(st, js)) is not None]
 
 
 @define(eq=False, slots=False)
