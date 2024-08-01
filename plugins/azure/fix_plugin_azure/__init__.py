@@ -132,7 +132,7 @@ def list_all(resource: Type[T], config: AzureConfig, credentials: AzureCredentia
     if resource.api_spec is None:
         return []
     client = MicrosoftClient.create(config, credentials, "global")
-    return [resource.from_api(js) for js in client.list(resource.api_spec)]
+    return [rs for js in client.list(resource.api_spec) if (rs := resource.from_api(js))]
 
 
 def collect_account_proxy(collector_arg: AzureCollectorArg, queue: multiprocessing.Queue) -> None:  # type: ignore

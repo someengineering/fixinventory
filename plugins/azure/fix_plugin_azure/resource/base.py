@@ -229,20 +229,20 @@ class MicrosoftResource(BaseResource):
         result: List[MicrosoftResourceType] = []
         for js in raw:
             # map from api
-            instance = cls.from_api(js, builder)
-            instance.pre_process(builder, js)
-            # add to graph
-            if (added := builder.add_node(instance, js)) is not None:
-                # post process
-                added.post_process(builder, js)
-                result.append(added)
+            if instance := cls.from_api(js, builder):
+                instance.pre_process(builder, js)
+                # add to graph
+                if (added := builder.add_node(instance, js)) is not None:
+                    # post process
+                    added.post_process(builder, js)
+                    result.append(added)
         return result
 
     @classmethod
     def from_api(
         cls: Type[MicrosoftResourceType], json: Json, builder: Optional[GraphBuilder] = None
-    ) -> MicrosoftResourceType:
-        return parse_json(json, cls, builder, cls.mapping)  # type: ignore
+    ) -> Optional[MicrosoftResourceType]:
+        return parse_json(json, cls, builder, cls.mapping)
 
     @classmethod
     def called_collect_apis(cls) -> List[MicrosoftRestSpec]:

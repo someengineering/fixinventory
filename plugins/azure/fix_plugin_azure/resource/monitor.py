@@ -290,8 +290,11 @@ class AzureMonitorActionGroupRef:
 
 
 @define(eq=False, slots=False)
-class AzureMonitorActivityLogAlert(MicrosoftResource):
-    kind: ClassVar[str] = "azure_monitor_activity_log_alert_resource"
+class AzureActivityLogAlert(MicrosoftResource):
+    kind: ClassVar[str] = "azure_activity_log_alert"
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": [AzureMonitorActionGroup.kind]},
+    }
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -317,6 +320,10 @@ class AzureMonitorActivityLogAlert(MicrosoftResource):
     description: Optional[str] = field(default=None, metadata={'description': 'A description of this Activity Log Alert rule.'})  # fmt: skip
     enabled: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether this Activity Log Alert rule is enabled. If an Activity Log Alert rule is not enabled, then none of its actions will be activated.'})  # fmt: skip
     scopes: Optional[List[str]] = field(default=None, metadata={'description': 'A list of resource IDs that will be used as prefixes. The alert will only apply to Activity Log events with resource IDs that fall under one of these prefixes. This list must include at least one item.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        for ref in self.action_groups:
+            builder.add_edge(self, reverse=True, clazz=AzureMonitorActionGroup, id=ref.action_group_id)
 
 
 @define(eq=False, slots=False)
@@ -349,7 +356,7 @@ class AzureMonitorRuleCondition:
 
 @define(eq=False, slots=False)
 class AzureMonitorAlertRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_monitor_alert_rule_resource"
+    kind: ClassVar[str] = "azure_monitor_alert_rule"
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -857,7 +864,7 @@ class AzureMetricAlertAction:
 
 @define(eq=False, slots=False)
 class AzureMetricAlert(MicrosoftResource):
-    kind: ClassVar[str] = "azure_metric_alert_resource"
+    kind: ClassVar[str] = "azure_metric_alert"
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -1229,7 +1236,7 @@ class AzureMonitorRuleResolveConfiguration:
 
 @define(eq=False, slots=False)
 class AzureMonitorScheduledQueryRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_monitor_scheduled_query_rule_resource"
+    kind: ClassVar[str] = "azure_monitor_scheduled_query_rule"
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -1295,6 +1302,29 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
     window_size: Optional[str] = field(default=None, metadata={'description': 'The period of time (in ISO 8601 duration format) on which the Alert query will be executed (bin size). Relevant and required only for rules of the kind LogAlert.'})  # fmt: skip
 
 
+@define(eq=False, slots=True)
+class AzureDiagnosticLogRetentionPolicy:
+    kind: ClassVar[str] = "azure_diagnostic_retention_policy"
+    mapping: ClassVar[Dict[str, Bender]] = {"days": S("category"), "enabled": S("enabled")}
+    days: Optional[int] = field(default=None, metadata={'description': 'The number of days to keep the logs.'})  # fmt: skip
+    enabled: Optional[bool] = field(default=None, metadata={'description': 'The flag which indicates whether the retention policy is enabled.'})  # fmt: skip
+
+
+@define(eq=False, slots=True)
+class AzureDiagnosticLogSetting:
+    kind: ClassVar[str] = "azure_diagnostic_log_setting"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "category": S("category"),
+        "category_group": S("categoryGroup"),
+        "enabled": S("enabled"),
+        "retention_policy": S("retentionPolicy") >> Bend(AzureDiagnosticLogRetentionPolicy.mapping),
+    }
+    category: Optional[str] = field(default=None, metadata={'description': 'The category of the log setting.'})  # fmt: skip
+    category_group: Optional[str] = field(default=None, metadata={'description': 'The category group of the log setting.'})  # fmt: skip
+    enabled: Optional[bool] = field(default=None, metadata={'description': 'The flag which indicates whether the log setting is enabled.'})  # fmt: skip
+    retention_policy: Optional[AzureDiagnosticLogRetentionPolicy] = field(default=None, metadata={'description': 'The retention policy of the log setting.'})  # fmt: skip
+
+
 @define(eq=False, slots=False)
 class AzureMonitorDiagnosticSettings(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_diagnostic_settings"
@@ -1319,7 +1349,8 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
         "name": S("name"),
         "event_hub_authorization_rule_id": S("properties", "eventHubAuthorizationRuleId"),
         "event_hub_name": S("properties", "eventHubName"),
-        "logs": S("properties", "logs") >> MapDict(S("category") >> F(snakecase), S("enabled")),
+        "logs": S("properties", "logs")
+        >> MapDict(S("category").or_else(S("categoryGroup")) >> F(snakecase), Bend(AzureDiagnosticLogSetting.mapping)),
         "marketplace_partner_id": S("properties", "marketplacePartnerId"),
         "service_bus_rule_id": S("properties", "serviceBusRuleId"),
         "storage_account_id": S("properties", "storageAccountId"),
@@ -1328,7 +1359,7 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
     }
     event_hub_authorization_rule_id: Optional[str] = field(default=None, metadata={'description': 'The resource Id for the event hub authorization rule.'})  # fmt: skip
     event_hub_name: Optional[str] = field(default=None, metadata={'description': 'The name of the event hub. If none is specified, the default event hub will be selected.'})  # fmt: skip
-    logs: Optional[Dict[str, bool]] = field(default=None, metadata={'description': 'The list of logs settings.'})  # fmt: skip
+    logs: Optional[Dict[str, AzureDiagnosticLogSetting]] = field(default=None, metadata={'description': 'The list of logs settings.'})  # fmt: skip
     marketplace_partner_id: Optional[str] = field(default=None, metadata={'description': 'The full ARM resource ID of the Marketplace resource to which you would like to send Diagnostic Logs.'})  # fmt: skip
     service_bus_rule_id: Optional[str] = field(default=None, metadata={'description': 'The service bus rule Id of the diagnostic setting. This is here to maintain backwards compatibility.'})  # fmt: skip
     storage_account_id: Optional[str] = field(default=None, metadata={'description': 'The resource ID of the storage account to which you would like to send Diagnostic Logs.'})  # fmt: skip
@@ -1354,16 +1385,16 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
                     expect_array=True,
                 )
             ):
-                instance = AzureMonitorDiagnosticSettings.from_api(setting, builder)
-                builder.add_node(instance, setting)
-                builder.add_edge(resource, node=instance)
+                if instance := AzureMonitorDiagnosticSettings.from_api(setting, builder):
+                    builder.add_node(instance, setting)
+                    builder.add_edge(resource, node=instance)
 
         builder.submit_work(service_name, execute)
 
 
 resources: List[Type[MicrosoftResource]] = [
     AzureMonitorActionGroup,
-    AzureMonitorActivityLogAlert,
+    AzureActivityLogAlert,
     AzureMonitorAlertRule,
     AzureMonitorDataCollectionRule,
     AzureMonitorLogProfile,

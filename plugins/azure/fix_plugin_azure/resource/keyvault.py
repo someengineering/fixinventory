@@ -400,9 +400,9 @@ class AzureKeyVault(MicrosoftResource):
                     expect_array=True,
                 )
             ):
-                key = AzureKey.from_api(key_json, graph_builder)
-                graph_builder.add_node(key)
-                graph_builder.add_edge(self, node=key)
+                if key := AzureKey.from_api(key_json, graph_builder):
+                    graph_builder.add_node(key)
+                    graph_builder.add_edge(self, node=key)
 
         graph_builder.submit_work(service_name, collect_keys)
         AzureMonitorDiagnosticSettings.fetch_diagnostics(graph_builder, self)
