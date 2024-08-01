@@ -36,7 +36,7 @@ from fixlib.baseresources import (
     ModelReference,
     EdgeType,
 )
-from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber
+from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber, Upper, Lower
 from fixlib.types import Json
 
 service_name = "azure_network"
@@ -1612,8 +1612,8 @@ class AzureQosIpRange:
 
 
 @define(eq=False, slots=False)
-class AzureQosPortRange:
-    kind: ClassVar[str] = "azure_qos_port_range"
+class AzurePortRange:
+    kind: ClassVar[str] = "azure_port_range"
     mapping: ClassVar[Dict[str, Bender]] = {"end": S("end"), "start": S("start")}
     end: Optional[int] = field(default=None, metadata={"description": "Qos Port Range end."})
     start: Optional[int] = field(default=None, metadata={"description": "Qos Port Range start."})
@@ -1624,21 +1624,29 @@ class AzureQosDefinition:
     kind: ClassVar[str] = "azure_qos_definition"
     mapping: ClassVar[Dict[str, Bender]] = {
         "destination_ip_ranges": S("destinationIpRanges") >> ForallBend(AzureQosIpRange.mapping),
-        "destination_port_ranges": S("destinationPortRanges") >> ForallBend(AzureQosPortRange.mapping),
+        "destination_port_ranges": S("destinationPortRanges") >> ForallBend(AzurePortRange.mapping),
         "markings": S("markings"),
         "protocol": S("protocol"),
         "source_ip_ranges": S("sourceIpRanges") >> ForallBend(AzureQosIpRange.mapping),
-        "source_port_ranges": S("sourcePortRanges") >> ForallBend(AzureQosPortRange.mapping),
+        "source_port_ranges": S("sourcePortRanges") >> ForallBend(AzurePortRange.mapping),
     }
     destination_ip_ranges: Optional[List[AzureQosIpRange]] = field(default=None, metadata={'description': 'Destination IP ranges.'})  # fmt: skip
-    destination_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Destination port ranges.'})  # fmt: skip
+    destination_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={'description': 'Destination port ranges.'})  # fmt: skip
     markings: Optional[List[int]] = field(default=None, metadata={'description': 'List of markings to be used in the configuration.'})  # fmt: skip
     protocol: Optional[str] = field(default=None, metadata={"description": "RNM supported protocol types."})
     source_ip_ranges: Optional[List[AzureQosIpRange]] = field(
         default=None, metadata={"description": "Source IP ranges."}
     )
-    source_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
+    source_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
 
+def parse_port_range(port_range: str) -> Json:
+    if port_range == "*":
+        return dict(start=0, end=65535)
+    if "-" in port_range:
+        start, end = port_range.split("-")
+        return dict(start=int(start), end=int(end))
+    port = int(port_range)
+    return dict(start=port, end=port)
 
 @define(eq=False, slots=False)
 class AzureSecurityRule(AzureSubResource):
@@ -1646,24 +1654,22 @@ class AzureSecurityRule(AzureSubResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
         "access": S("properties", "access"),
         "description": S("properties", "description"),
-        "destination_address_prefix": S("properties", "destinationAddressPrefix"),
+        "destination_address_prefix": S("properties", "destinationAddressPrefix") >> Lower,
         "destination_address_prefixes": S("properties", "destinationAddressPrefixes"),
         "destination_application_security_groups": S("properties", "destinationApplicationSecurityGroups")
         >> ForallBend(AzureApplicationSecurityGroup.mapping),
-        "destination_port_range": S("properties", "destinationPortRange"),
-        "destination_port_ranges": S("properties", "destinationPortRanges"),
+        "destination_port_ranges": (S("properties", "destinationPortRange") >> F(lambda x: [parse_port_range(x)])).or_else(S("properties", "destinationPortRanges") >> ForallBend(F(parse_port_range))),
         "direction": S("properties", "direction"),
         "etag": S("etag"),
         "name": S("name"),
         "priority": S("properties", "priority"),
-        "protocol": S("properties", "protocol"),
+        "protocol": S("properties", "protocol") >> Upper,
         "provisioning_state": S("properties", "provisioningState"),
-        "source_address_prefix": S("properties", "sourceAddressPrefix"),
+        "source_address_prefix": S("properties", "sourceAddressPrefix") >> Lower,
         "source_address_prefixes": S("properties", "sourceAddressPrefixes"),
         "source_application_security_groups": S("properties", "sourceApplicationSecurityGroups")
         >> ForallBend(AzureApplicationSecurityGroup.mapping),
-        "source_port_range": S("properties", "sourcePortRange"),
-        "source_port_ranges": S("properties", "sourcePortRanges"),
+        "source_port_ranges": (S("properties", "sourcePortRange") >> F(lambda x: [parse_port_range(x)])).or_else(S("properties", "sourcePortRanges") >> ForallBend(F(parse_port_range))),
         "type": S("type"),
     }
     access: Optional[str] = field(default=None, metadata={'description': 'Whether network traffic is allowed or denied.'})  # fmt: skip
@@ -1671,8 +1677,7 @@ class AzureSecurityRule(AzureSubResource):
     destination_address_prefix: Optional[str] = field(default=None, metadata={'description': 'The destination address prefix. CIDR or destination IP range. Asterisk * can also be used to match all source IPs. Default tags such as VirtualNetwork , AzureLoadBalancer and Internet can also be used.'})  # fmt: skip
     destination_address_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'The destination address prefixes. CIDR or destination IP ranges.'})  # fmt: skip
     destination_application_security_groups: Optional[List[AzureApplicationSecurityGroup]] = field(default=None, metadata={'description': 'The application security group specified as destination.'})  # fmt: skip
-    destination_port_range: Optional[str] = field(default=None, metadata={'description': 'The destination port or range. Integer or range between 0 and 65535. Asterisk * can also be used to match all ports.'})  # fmt: skip
-    destination_port_ranges: Optional[List[str]] = field(default=None, metadata={'description': 'The destination port ranges.'})  # fmt: skip
+    destination_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={'description': 'The destination port ranges.'})  # fmt: skip
     direction: Optional[str] = field(default=None, metadata={'description': 'The direction of the rule. The direction specifies if rule will be evaluated on incoming or outgoing traffic.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
@@ -1682,8 +1687,7 @@ class AzureSecurityRule(AzureSubResource):
     source_address_prefix: Optional[str] = field(default=None, metadata={'description': 'The CIDR or source IP range. Asterisk * can also be used to match all source IPs. Default tags such as VirtualNetwork , AzureLoadBalancer and Internet can also be used. If this is an ingress rule, specifies where network traffic originates from.'})  # fmt: skip
     source_address_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'The CIDR or source IP ranges.'})  # fmt: skip
     source_application_security_groups: Optional[List[AzureApplicationSecurityGroup]] = field(default=None, metadata={'description': 'The application security group specified as source.'})  # fmt: skip
-    source_port_range: Optional[str] = field(default=None, metadata={'description': 'The source port or range. Integer or range between 0 and 65535. Asterisk * can also be used to match all ports.'})  # fmt: skip
-    source_port_ranges: Optional[List[str]] = field(default=None, metadata={"description": "The source port ranges."})
+    source_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={"description": "The source port ranges."})
     type: Optional[str] = field(default=None, metadata={"description": "The type of the resource."})
 
 
@@ -2671,7 +2675,7 @@ class AzureDscpConfiguration(MicrosoftResource):
         "_associated_network_interface_ids": S("properties", "associatedNetworkInterfaces", default=[])
         >> ForallBend(S("id")),
         "destination_ip_ranges": S("properties", "destinationIpRanges") >> ForallBend(AzureQosIpRange.mapping),
-        "destination_port_ranges": S("properties", "destinationPortRanges") >> ForallBend(AzureQosPortRange.mapping),
+        "destination_port_ranges": S("properties", "destinationPortRanges") >> ForallBend(AzurePortRange.mapping),
         "etag": S("etag"),
         "markings": S("properties", "markings"),
         "protocol": S("properties", "protocol"),
@@ -2681,11 +2685,11 @@ class AzureDscpConfiguration(MicrosoftResource):
         >> ForallBend(AzureQosDefinition.mapping),
         "resource_guid": S("properties", "resourceGuid"),
         "source_ip_ranges": S("properties", "sourceIpRanges") >> ForallBend(AzureQosIpRange.mapping),
-        "source_port_ranges": S("properties", "sourcePortRanges") >> ForallBend(AzureQosPortRange.mapping),
+        "source_port_ranges": S("properties", "sourcePortRanges") >> ForallBend(AzurePortRange.mapping),
     }
     _associated_network_interface_ids: Optional[List[str]] = field(default=None, metadata={'description': 'Associated Network Interfaces to the DSCP Configuration.'})  # fmt: skip
     destination_ip_ranges: Optional[List[AzureQosIpRange]] = field(default=None, metadata={'description': 'Destination IP ranges.'})  # fmt: skip
-    destination_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Destination port ranges.'})  # fmt: skip
+    destination_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={'description': 'Destination port ranges.'})  # fmt: skip
     markings: Optional[List[int]] = field(default=None, metadata={'description': 'List of markings to be used in the configuration.'})  # fmt: skip
     protocol: Optional[str] = field(default=None, metadata={"description": "RNM supported protocol types."})
     qos_collection_id: Optional[str] = field(default=None, metadata={'description': 'Qos Collection ID generated by RNM.'})  # fmt: skip
@@ -2694,7 +2698,7 @@ class AzureDscpConfiguration(MicrosoftResource):
     source_ip_ranges: Optional[List[AzureQosIpRange]] = field(
         default=None, metadata={"description": "Source IP ranges."}
     )
-    source_port_ranges: Optional[List[AzureQosPortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
+    source_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if network_interfaces := self._associated_network_interface_ids:
