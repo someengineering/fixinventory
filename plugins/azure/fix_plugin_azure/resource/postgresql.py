@@ -343,7 +343,7 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
                         continue
                     configuration_instance.config[config_name] = value
             if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
-                return [added]  # type: ignore
+                return [added]
         return []
 
 

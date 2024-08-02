@@ -11,7 +11,6 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
-    MicrosoftResourceType,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.utils import from_str_to_typed
@@ -349,7 +348,7 @@ class AzureMysqlServerConfiguration(MicrosoftResource):
                         continue
                     configuration_instance.config[config_name] = value
             if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
-                return [added]  # type: ignore
+                return [added]
         return []
 
 
