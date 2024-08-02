@@ -1,4 +1,3 @@
-from concurrent.futures import as_completed
 from datetime import datetime
 import logging
 from typing import ClassVar, Dict, Optional, List, Any, Type
@@ -12,7 +11,6 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
-    MicrosoftResourceType,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fixlib.baseresources import (
@@ -255,8 +253,13 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
             instance = cls.from_api(js)
             if isinstance(instance, AzureMysqlServerType) and instance._supported_flexible_server_editions:
                 location = instance.location
+                expected_sku_name = js.get("expected_sku_name")
+                expected_sku_tier = js.get("expected_sku_tier")
+                expected_version = js.get("expected_version")
                 for edition in instance._supported_flexible_server_editions:
                     edition_name = edition.name
+                    if edition_name != expected_sku_tier:
+                        continue
                     storage_editions = edition.supported_storage_editions or []
                     server_versions = edition.supported_server_versions or []
                     for storage_edition in storage_editions:
@@ -271,9 +274,13 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
                         }
                         for version in server_versions:
                             version_name = version.name
+                            if version_name != expected_version:
+                                continue
                             skus = version.supported_skus or []
 
                             for sku in skus:
+                                if sku.name != expected_sku_name:
+                                    continue
                                 sku_dict: Json = {
                                     "name": sku.name,
                                     "v_cores": sku.v_cores,
@@ -297,6 +304,7 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
                                     location=location,
                                     instance_cores=instance_cores,
                                     instance_memory=instance_memory,
+                                    instance_type=sku.name,
                                     capability_zone=instance.capability_zone,
                                     supported_ha_mode=instance.supported_ha_mode,
                                     supported_geo_backup_regions=instance.supported_geo_backup_regions,
@@ -702,7 +710,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         else:
             self.volume_encrypted = False
 
-        if location := self.location:
+        if (location := self.location) and (sku := self.server_sku) and (version := self.version):
 
             def collect_capabilities() -> None:
                 api_spec = AzureResourceSpec(
@@ -718,9 +726,13 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 items = graph_builder.client.list(api_spec)
                 if not items:
                     return
-                # Set location for further connect_in_graph method
                 for item in items:
+                    # Set location for further connect_in_graph method
                     item["location"] = location
+                    # Set sku name and tier for SKUs filtering
+                    item["expected_sku_name"] = sku.name
+                    item["expected_sku_tier"] = sku.tier
+                    item["expected_version"] = version
                 AzureMysqlServerType.collect(items, graph_builder)
 
             graph_builder.submit_work(service_name, collect_capabilities)

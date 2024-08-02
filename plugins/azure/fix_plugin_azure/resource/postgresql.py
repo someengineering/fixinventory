@@ -265,12 +265,22 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         result = []
 
         for js in raw:
+            # Get server's sku name and sku tier
+            expected_sku_name = js.get("expected_sku_name")
+            expected_sku_tier = js.get("expected_sku_tier")
+            expected_version = js.get("expected_version")
             instance = cls.from_api(js)
             if isinstance(instance, AzurePostgresqlServerType) and instance._supported_psql_flexible_server_editions:
                 location = instance.location
                 for edition in instance._supported_psql_flexible_server_editions:
+                    if edition.name != expected_sku_tier:
+                        continue
                     for version in edition.supported_server_versions or []:
+                        if version.name != expected_version:
+                            continue
                         for sku in version.supported_vcores or []:
+                            if sku.name != expected_sku_name:
+                                continue
                             for supported_storage in edition.supported_storage_editions or []:
                                 for storage in supported_storage.supported_storage_mb or []:
                                     # use this instance as a template and create a new one for each supported edition
@@ -286,6 +296,7 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
                                             if sku.supported_memory_per_vcore_mb
                                             else 0
                                         ),
+                                        instance_type=sku.name,
                                         storage_iops=storage.supported_iops,
                                         storage_size_gb=(
                                             storage.storage_size_mb // 1024 if storage.storage_size_mb else 0
@@ -560,7 +571,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         else:
             self.volume_encrypted = False
 
-        if server_location := self.location:
+        if (server_location := self.location) and (sku := self.server_sku) and (version := self.version):
 
             def collect_capabilities() -> None:
 
@@ -578,9 +589,13 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                 items = graph_builder.client.list(api_spec)
                 if not items:
                     return
-                # Set location for further connect_in_graph method
                 for item in items:
+                    # Set location for further connect_in_graph method
                     item["location"] = server_location
+                    # Set sku name and tier for SKUs filtering
+                    item["expected_sku_name"] = sku.name
+                    item["expected_sku_tier"] = sku.tier
+                    item["expected_version"] = version
                 AzurePostgresqlServerType.collect(items, graph_builder)
 
             graph_builder.submit_work(service_name, collect_capabilities)
