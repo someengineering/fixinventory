@@ -273,7 +273,7 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
                         for sku in version.supported_vcores or []:
                             for supported_storage in edition.supported_storage_editions or []:
                                 for storage in supported_storage.supported_storage_mb or []:
-                                    # use this instance as template and create a new one for each supported editions
+                                    # use this instance as a template and create a new one for each supported edition
                                     server_type = evolve(
                                         instance,
                                         id=f"{edition.name}_{version.name}_{sku.name}_{storage.name}",
