@@ -6,6 +6,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
+    AzureProxyResource,
     MicrosoftResource,
     MicrosoftResourceType,
     GraphBuilder,
@@ -779,16 +780,7 @@ class AzureDiskTypePricing(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureDiskType(MicrosoftResource, BaseVolumeType):
     kind: ClassVar[str] = "azure_disk_type"
-    # Define api spec to collect as regional resources
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="compute",
-        version="2023-01-01-preview",
-        path="",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=[],
-        access_path="Items",
-        expect_array=True,
-    )
+    # Collect via AzureDisk()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("skuName"),
         "name": S("skuName"),
@@ -951,29 +943,6 @@ class AzureDiskType(MicrosoftResource, BaseVolumeType):
                     seen_hashes.add(hash_value)
         AzureDiskType.collect(disk_sizes, builder)
 
-    @classmethod
-    def collect_resources(
-        cls: Type[MicrosoftResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[MicrosoftResourceType]:
-        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
-        product_names = {"Standard SSD Managed Disks", "Premium SSD Managed Disks", "Standard HDD Managed Disks"}
-        sku_items = []
-        for product_name in product_names:
-            api_spec = AzureResourceSpec(
-                service="compute",
-                version="2023-01-01-preview",
-                path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq "
-                + "'{location}' and unitOfMeasure eq '1/Month' and serviceFamily eq 'Storage' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
-                path_parameters=["location"],
-                query_parameters=["api-version"],
-                access_path="Items",
-                expect_array=True,
-            )
-
-            items = builder.client.list(api_spec, **kwargs)
-            sku_items.extend(items)
-        return cls.collect(sku_items, builder)
-
 
 VolumeStatusMapping = {
     "ActiveSAS": VolumeStatus.IN_USE,
@@ -1108,6 +1077,34 @@ class AzureDisk(MicrosoftResource, BaseVolume):
                     log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
             return collected
         return []
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if location := self.location:
+
+            def collect_disk_types() -> None:
+                log.debug(f"[Azure:{graph_builder.account.id}] Collecting AzureDiskType")
+                product_names = {
+                    "Standard SSD Managed Disks",
+                    "Premium SSD Managed Disks",
+                    "Standard HDD Managed Disks",
+                }
+                sku_items = []
+                for product_name in product_names:
+                    api_spec = AzureResourceSpec(
+                        service="compute",
+                        version="2023-01-01-preview",
+                        path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq '{location}' and unitOfMeasure eq '1/Month' and serviceFamily eq 'Storage' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
+                        path_parameters=[],
+                        query_parameters=["api-version"],
+                        access_path="Items",
+                        expect_array=True,
+                    )
+
+                    items = graph_builder.client.list(api_spec)
+                    sku_items.extend(items)
+                AzureDiskType.collect(sku_items, graph_builder)
+
+            graph_builder.submit_work(service_name, collect_disk_types)
 
     @classmethod
     def collect_usage_metrics(
@@ -1582,15 +1579,6 @@ class AzureRestorePointCollectionSourceProperties:
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "location": S("location")}
     id: Optional[str] = field(default=None, metadata={'description': 'Resource id of the source resource used to create this restore point collection.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'Location of the source resource used to create this restore point collection.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureProxyResource:
-    kind: ClassVar[str] = "azure_proxy_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "type": S("type")}
-    id: Optional[str] = field(default=None, metadata={"description": "Resource id."})
-    name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
-    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
 
 @define(eq=False, slots=False)
@@ -2947,6 +2935,29 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                 if not instance_status_set:
                     self.instance_status = InstanceStatus.UNKNOWN
 
+        if location := self.location:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="compute",
+                    version="2023-03-01",
+                    path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/"
+                    + f"{location}/vmSizes",
+                    path_parameters=["subscriptionId"],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                # Set location for further connect_in_graph method
+                for item in items:
+                    item["location"] = location
+                AzureVirtualMachineSize.collect(items, graph_builder)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
+
         graph_builder.submit_work(service_name, collect_instance_status)
 
     @classmethod
@@ -3663,15 +3674,6 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
 @define(eq=False, slots=False)
 class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_virtual_machine_size"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="compute",
-        version="2023-03-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/{location}/vmSizes",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("tags", default={}),
@@ -3684,6 +3686,7 @@ class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
         "instance_type": S("name"),
         "instance_cores": S("numberOfCores"),
         "instance_memory": S("memoryInMB") >> F(lambda x: int(x) / 1024),
+        "location": S("location"),
     }
     _is_provider_link: ClassVar[bool] = False
     max_data_disk_count: Optional[int] = field(default=None, metadata={'description': 'The maximum number of data disks that can be attached to the virtual machine size.'})  # fmt: skip
@@ -3692,9 +3695,6 @@ class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     os_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The os disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     resource_disk_size_in_mb: Optional[int] = field(default=None, metadata={'description': 'The resource disk size, in mb, allowed by the virtual machine size.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-
-    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        self.location = graph_builder.location.name if graph_builder.location else ""
 
     def after_collect(self, builder: GraphBuilder, source: Json) -> None:
         if (location := self.location) and (sku_name := self.name):

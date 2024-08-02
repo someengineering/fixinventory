@@ -6,8 +6,8 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
+    AzureTrackedResource,
     MicrosoftResource,
-    AzureSystemData,
     GraphBuilder,
     AzureExtendedLocation,
     AzureUserAssignedIdentity,
@@ -20,25 +20,6 @@ from fixlib.types import Json
 
 service = "azure_container_service"
 log = logging.getLogger("fix.plugins.azure")
-
-
-@define(eq=False, slots=False)
-class AzureTrackedResource:
-    kind: ClassVar[str] = "azure_tracked_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "location": S("location"),
-        "name": S("name"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "tags": S("tags"),
-        "type": S("type"),
-    }
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'})  # fmt: skip
-    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags."})
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -913,21 +894,6 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
             for vmss in builder.nodes(clazz=AzureVirtualMachineScaleSet)
             if (poolname := vmss.tags.get("aks-managed-poolName")) and (vmss_id := vmss.id)
         ]
-
-
-@define(eq=False, slots=False)
-class AzureProxyResource:
-    kind: ClassVar[str] = "azure_proxy_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "name": S("name"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "type": S("type"),
-    }
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. Ex - /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
 
 @define(eq=False, slots=False)
