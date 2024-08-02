@@ -212,8 +212,8 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "sku_name": S("sku", "name"),
         "sku_tier": S("sku", "tier"),
         "location": S("location"),
-        # NOTE: Azure defines location aware capabilities for several editions.
-        # Separate resources are created from used used editions.
+        # NOTE: Azure defines location-aware capabilities for several editions.
+        # Separate server types are created for all used editions.
         "_supported_fast_provisioning_editions": S("supportedFastProvisioningEditions")
         >> ForallBend(AzureFastProvisioningEditionCapability.mapping),
         "_supported_psql_flexible_server_editions": S("supportedFlexibleServerEditions")
