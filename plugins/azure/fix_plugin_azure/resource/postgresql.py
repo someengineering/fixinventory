@@ -24,6 +24,7 @@ from fix_plugin_azure.resource.mysql import (
     AzureServerMaintenanceWindow,
     AzureServerNetwork,
 )
+from fix_plugin_azure.utils import from_str_to_typed
 from fixlib.baseresources import BaseDatabase, BaseDatabaseInstanceType, DatabaseInstanceStatus, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import K, Bender, S, ForallBend, Bend, MapEnum, MapValue
@@ -313,37 +314,37 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
 class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_configuration"
     # Collect via AzurePostgresqlServer()
-    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": S("systemData", "createdAt"),
-        "mtime": S("systemData", "lastModifiedAt"),
-        "allowed_values": S("properties", "allowedValues"),
-        "data_type": S("properties", "dataType"),
-        "default_value": S("properties", "defaultValue"),
-        "description": S("properties", "description"),
-        "documentation_link": S("properties", "documentationLink"),
-        "is_config_pending_restart": S("properties", "isConfigPendingRestart"),
-        "is_dynamic_config": S("properties", "isDynamicConfig"),
-        "is_read_only": S("properties", "isReadOnly"),
-        "configuration_source": S("properties", "source"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "unit": S("properties", "unit"),
-        "value": S("properties", "value"),
-    }
-    allowed_values: Optional[str] = field(default=None, metadata={'description': 'Allowed values of the configuration.'})  # fmt: skip
-    data_type: Optional[str] = field(default=None, metadata={"description": "Data type of the configuration."})
-    default_value: Optional[str] = field(default=None, metadata={"description": "Default value of the configuration."})
-    description: Optional[str] = field(default=None, metadata={"description": "Description of the configuration."})
-    documentation_link: Optional[str] = field(default=None, metadata={'description': 'Configuration documentation link.'})  # fmt: skip
-    is_config_pending_restart: Optional[bool] = field(default=None, metadata={'description': 'Configuration is pending restart or not.'})  # fmt: skip
-    is_dynamic_config: Optional[bool] = field(default=None, metadata={'description': 'Configuration dynamic or static.'})  # fmt: skip
-    is_read_only: Optional[bool] = field(default=None, metadata={"description": "Configuration read-only or not."})
-    configuration_source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    unit: Optional[str] = field(default=None, metadata={"description": "Configuration unit."})
-    value: Optional[str] = field(default=None, metadata={"description": "Value of the configuration."})
+    config: Json = field(factory=dict)
+
+    @classmethod
+    def collect(
+        cls,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List[AzurePostgresqlServerConfiguration]:
+        if not raw:
+            return []
+        server_id = raw[0].get("serverID")
+        if not server_id:
+            return []
+        configuration_instance = cls(id=server_id)
+        if isinstance(configuration_instance, AzurePostgresqlServerConfiguration):
+            for js in raw:
+                properties = js.get("properties")
+                if not properties:
+                    continue
+                if (
+                    (data_type := properties.get("dataType"))
+                    and (val := properties.get("value"))
+                    and (config_name := js.get("name"))
+                ):
+                    value = from_str_to_typed(data_type, val)
+                    if not value:
+                        continue
+                    configuration_instance.config[config_name] = value
+            if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
+                return [added]  # type: ignore
+        return []
 
 
 @define(eq=False, slots=False)
@@ -542,6 +543,9 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         items = graph_builder.client.list(api_spec)
         if not items:
             return
+        if issubclass(class_instance, AzurePostgresqlServerConfiguration):  # type: ignore
+            for item in items:
+                item["serverID"] = self.id
         collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
             graph_builder.add_edge(self, node=clazz)

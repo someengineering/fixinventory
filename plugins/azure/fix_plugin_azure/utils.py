@@ -44,6 +44,26 @@ def case_insensitive_eq(left: T, right: T) -> bool:
         return left == right
 
 
+def from_str_to_typed(config_type: str, value: str) -> Any:
+    def set_bool(val: str) -> bool:
+        if val.lower() == "on":
+            return True
+        return False
+
+    type_mapping = {
+        "Enumeration": lambda x: set_bool(x) if x in ["ON", "OFF", "on", "off"] else str(x),
+        "Integer": int,
+        "Numeric": float,
+        "Set": lambda x: x.split(","),
+        "String": str,
+        "Boolean": set_bool,
+    }
+    try:
+        return type_mapping[config_type](value)  # type: ignore
+    except Exception:
+        return None
+
+
 @frozen(kw_only=True)
 class MetricNormalization:
     metric_name: MetricName

@@ -14,6 +14,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResourceType,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
+from fix_plugin_azure.utils import from_str_to_typed
 from fixlib.baseresources import (
     BaseDatabase,
     BaseDatabaseInstanceType,
@@ -315,26 +316,6 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         return result
 
 
-def from_str_to_typed(config_type: str, value: str) -> Any:
-    def set_bool(val: str) -> bool:
-        if val == "ON":
-            return True
-        return False
-
-    type_mapping = {
-        "Enumeration": lambda x: set_bool(x) if x in ["ON", "OFF"] else str(x),
-        "Integer": int,
-        "Numeric": float,
-        "Set": lambda x: x.split(","),
-        "String": str,
-    }
-    try:
-        return type_mapping[config_type](value)  # type: ignore
-    except Exception as e:
-        log.warning(f"An error occured while defining type of configuration value: {e}")
-        return None
-
-
 @define(eq=False, slots=False)
 class AzureMysqlServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_configuration"
@@ -343,10 +324,10 @@ class AzureMysqlServerConfiguration(MicrosoftResource):
 
     @classmethod
     def collect(
-        cls: Type[MicrosoftResourceType],
+        cls,
         raw: List[Json],
         builder: GraphBuilder,
-    ) -> List[MicrosoftResourceType]:
+    ) -> List["AzureMysqlServerConfiguration"]:
         if not raw:
             return []
         server_id = raw[0].get("serverID")
@@ -360,7 +341,7 @@ class AzureMysqlServerConfiguration(MicrosoftResource):
                     continue
                 if (
                     (data_type := properties.get("dataType"))
-                    and (val := properties.get("currentValue"))
+                    and (val := properties.get("currentValue") or properties.get("value"))
                     and (config_name := js.get("name"))
                 ):
                     value = from_str_to_typed(data_type, val)
