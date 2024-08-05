@@ -15,6 +15,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
 )
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.utils import rgetattr
 from fixlib.baseresources import (
     BaseDNSRecordSet,
@@ -1743,19 +1744,24 @@ class AzureTrafficAnalyticsProperties:
 
 
 @define(eq=False, slots=False)
-class AzureFlowLog:
+class AzureFlowLog(MicrosoftResource):
     kind: ClassVar[str] = "azure_flow_log"
+    # Collect via AzureNetworkWatcher()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["azure_storage_account"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("properties", "enabled"),
         "etag": S("etag"),
         "flow_analytics_configuration": S("properties", "flowAnalyticsConfiguration")
         >> Bend(AzureTrafficAnalyticsProperties.mapping),
-        "format": S("properties", "format") >> Bend(AzureFlowLogFormatParameters.mapping),
+        "flow_log_format": S("properties", "format") >> Bend(AzureFlowLogFormatParameters.mapping),
         "id": S("id"),
         "location": S("location"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
-        "retention_policy": S("properties", "retentionPolicy") >> Bend(AzureRetentionPolicyParameters.mapping),
+        "retention_policy_parameters": S("properties", "retentionPolicy")
+        >> Bend(AzureRetentionPolicyParameters.mapping),
         "storage_id": S("properties", "storageId"),
         "tags": S("tags", default={}),
         "target_resource_guid": S("properties", "targetResourceGuid"),
@@ -1765,17 +1771,17 @@ class AzureFlowLog:
     enabled: Optional[bool] = field(default=None, metadata={"description": "Flag to enable/disable flow logging."})
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     flow_analytics_configuration: Optional[AzureTrafficAnalyticsProperties] = field(default=None, metadata={'description': 'Parameters that define the configuration of traffic analytics.'})  # fmt: skip
-    format: Optional[AzureFlowLogFormatParameters] = field(default=None, metadata={'description': 'Parameters that define the flow log format.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
+    flow_log_format: Optional[AzureFlowLogFormatParameters] = field(default=None, metadata={'description': 'Parameters that define the flow log format.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-    name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    retention_policy: Optional[AzureRetentionPolicyParameters] = field(default=None, metadata={'description': 'Parameters that define the retention policy for flow log.'})  # fmt: skip
+    retention_policy_parameters: Optional[AzureRetentionPolicyParameters] = field(default=None, metadata={'description': 'Parameters that define the retention policy for flow log.'})  # fmt: skip
     storage_id: Optional[str] = field(default=None, metadata={'description': 'ID of the storage account which is used to store the flow log.'})  # fmt: skip
-    tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags."})
     target_resource_guid: Optional[str] = field(default=None, metadata={'description': 'Guid of network security group to which flow log will be applied.'})  # fmt: skip
     target_resource_id: Optional[str] = field(default=None, metadata={'description': 'ID of network security group to which flow log will be applied.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if storage_id := self.storage_id:
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureStorageAccount, id=storage_id)
 
 
 @define(eq=False, slots=False)
@@ -1790,23 +1796,31 @@ class AzureNetworkSecurityGroup(MicrosoftResource, BaseSecurityGroup):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["azure_flow_log"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "default_security_rules": S("properties", "defaultSecurityRules") >> ForallBend(AzureSecurityRule.mapping),
         "etag": S("etag"),
-        "flow_logs": S("properties", "flowLogs") >> ForallBend(AzureFlowLog.mapping),
+        "flow_log_ids": S("properties", "flowLogs") >> ForallBend(S("id")),
         "flush_connection": S("properties", "flushConnection"),
         "provisioning_state": S("properties", "provisioningState"),
         "resource_guid": S("properties", "resourceGuid"),
         "security_rules": S("properties", "securityRules") >> ForallBend(AzureSecurityRule.mapping),
     }
     default_security_rules: Optional[List[AzureSecurityRule]] = field(default=None, metadata={'description': 'The default security rules of network security group.'})  # fmt: skip
-    flow_logs: Optional[List[AzureFlowLog]] = field(default=None, metadata={'description': 'A collection of references to flow log resources.'})  # fmt: skip
+    flow_log_ids: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of references to flow log resources.'})  # fmt: skip
     flush_connection: Optional[bool] = field(default=None, metadata={'description': 'When enabled, flows created from Network Security Group connections will be re-evaluated when rules are updates. Initial enablement will trigger re-evaluation.'})  # fmt: skip
     resource_guid: Optional[str] = field(default=None, metadata={'description': 'The resource GUID property of the network security group resource.'})  # fmt: skip
     security_rules: Optional[List[AzureSecurityRule]] = field(default=None, metadata={'description': 'A collection of security rules of the network security group.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if flow_log_ids := self.flow_log_ids:
+            for flow_log_id in flow_log_ids:
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureFlowLog, id=flow_log_id)
 
 
 @define(eq=False, slots=False)
@@ -4411,6 +4425,7 @@ class AzureNetworkWatcher(MicrosoftResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_virtual_network"]},
+        "successors": {"default": ["azure_flow_log"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -4440,6 +4455,28 @@ class AzureNetworkWatcher(MicrosoftResource):
             for network in builder.nodes(clazz=AzureVirtualNetwork)
             if (vn_location := network.location) and (vn_id := network.id)
         ]
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if watcher_id := self.id:
+
+            def collect_flow_logs() -> None:
+                api_spec = AzureResourceSpec(
+                    service="network",
+                    version="2024-01-01",
+                    path=f"{watcher_id}/flowLogs",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureFlowLog.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_flow_logs)
 
 
 @define(eq=False, slots=False)
@@ -6470,6 +6507,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureNetworkVirtualAppliance,
     AzureNetworkVirtualApplianceSku,
     AzureNetworkWatcher,
+    AzureFlowLog,
     AzureP2SVpnGateway,
     AzurePrivateLinkService,
     AzurePublicIPAddress,
