@@ -1,16 +1,18 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
-from attr import define, field
+from attr import define, evolve, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzurePrivateLinkServiceConnectionState,
+    AzureSku,
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
 )
-from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphUser
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fixlib.baseresources import (
     BaseDatabase,
     BaseDatabaseInstanceType,
@@ -19,10 +21,84 @@ from fixlib.baseresources import (
     ModelReference,
 )
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import F, K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
+from fixlib.json_bender import K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_mysql"
+log = logging.getLogger("fix.plugins.azure")
+
+
+@define(eq=False, slots=False)
+class AzureServerDataEncryption:
+    kind: ClassVar[str] = "azure_server_data_encryption"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "geo_backup_key_uri": S("geoBackupKeyURI"),
+        "geo_backup_user_assigned_identity_id": S("geoBackupUserAssignedIdentityId"),
+        "primary_key_uri": S("primaryKeyURI"),
+        "primary_user_assigned_identity_id": S("primaryUserAssignedIdentityId"),
+        "type": S("type"),
+    }
+    geo_backup_key_uri: Optional[str] = field(default=None, metadata={'description': 'Geo backup key uri as key vault can t cross region, need cmk in same region as geo backup'})  # fmt: skip
+    geo_backup_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Geo backup user identity resource id as identity can t cross region, need identity in same region as geo backup'})  # fmt: skip
+    primary_key_uri: Optional[str] = field(default=None, metadata={"description": "Primary key uri"})
+    primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Primary user identity resource id'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The key type, AzureKeyVault for enable cmk, SystemManaged for disable cmk.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerBackup:
+    kind: ClassVar[str] = "azure_server_backup"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "backup_interval_hours": S("backupIntervalHours"),
+        "backup_retention_days": S("backupRetentionDays"),
+        "earliest_restore_date": S("earliestRestoreDate"),
+        "geo_redundant_backup": S("geoRedundantBackup"),
+    }
+    backup_interval_hours: Optional[int] = field(default=None, metadata={'description': 'Backup interval hours for the server.'})  # fmt: skip
+    backup_retention_days: Optional[int] = field(default=None, metadata={'description': 'Backup retention days for the server.'})  # fmt: skip
+    earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore point creation time (ISO8601 format)'})  # fmt: skip
+    geo_redundant_backup: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerNetwork:
+    kind: ClassVar[str] = "azure_server_network"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "delegated_subnet_resource_id": S("delegatedSubnetResourceId"),
+        "private_dns_zone_resource_id": S("privateDnsZoneResourceId"),
+        "public_network_access": S("publicNetworkAccess"),
+    }
+    delegated_subnet_resource_id: Optional[str] = field(default=None, metadata={'description': 'Delegated subnet resource id used to setup vnet for a server.'})  # fmt: skip
+    private_dns_zone_resource_id: Optional[str] = field(default=None, metadata={'description': 'Private DNS zone resource id.'})  # fmt: skip
+    public_network_access: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerHighAvailability:
+    kind: ClassVar[str] = "azure_server_high_availability"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "mode": S("mode"),
+        "standby_availability_zone": S("standbyAvailabilityZone"),
+        "state": S("state"),
+    }
+    mode: Optional[str] = field(default=None, metadata={"description": "High availability mode for a server."})
+    standby_availability_zone: Optional[str] = field(default=None, metadata={'description': 'Availability zone of the standby server.'})  # fmt: skip
+    state: Optional[str] = field(default=None, metadata={"description": "The state of server high availability."})
+
+
+@define(eq=False, slots=False)
+class AzureServerMaintenanceWindow:
+    kind: ClassVar[str] = "azure_server_maintenance_window"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "custom_window": S("customWindow"),
+        "day_of_week": S("dayOfWeek"),
+        "start_hour": S("startHour"),
+        "start_minute": S("startMinute"),
+    }
+    custom_window: Optional[str] = field(default=None, metadata={'description': 'indicates whether custom window is enabled or disabled'})  # fmt: skip
+    day_of_week: Optional[int] = field(default=None, metadata={"description": "day of week for maintenance window"})
+    start_hour: Optional[int] = field(default=None, metadata={"description": "start hour for maintenance window"})
+    start_minute: Optional[int] = field(default=None, metadata={"description": "start minute for maintenance window"})
 
 
 @define(eq=False, slots=False)
@@ -132,81 +208,110 @@ class AzureServerEditionCapability:
 
 
 @define(eq=False, slots=False)
-class AzureMysqlCapability(MicrosoftResource):
-    kind: ClassVar[str] = "azure_mysql_capability"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="mysql",
-        version="2023-12-30",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/{location}/capabilities",
-        path_parameters=["subscriptionId", "location"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
+    kind: ClassVar[str] = "azure_mysql_server_type"
+    # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("zone"),
-        "name": S("zone"),
+        "id": S("id"),
+        "name": S("name"),
         "tags": S("tags", default={}),
-        "supported_flexible_server_editions": S("supportedFlexibleServerEditions")
-        >> ForallBend(AzureServerEditionCapability.mapping),
         "supported_geo_backup_regions": S("supportedGeoBackupRegions"),
         "supported_ha_mode": S("supportedHAMode"),
         "capability_zone": S("zone"),
+        "server_edition_name": S("server_edition_name"),
+        "storage_edition": S("storage_edition") >> Bend(AzureStorageEditionCapability.mapping),
+        "server_version": S("server_version"),
+        "capability_sku": S("sku") >> Bend(AzureSkuCapability.mapping),
+        "location": S("location"),
+        # NOTE: Azure defines location-aware capabilities for several editions.
+        # Separate server types are created for all used editions.
+        "_supported_flexible_server_editions": S("supportedFlexibleServerEditions")
+        >> ForallBend(AzureServerEditionCapability.mapping),
     }
-    supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
+    _is_provider_link: ClassVar[bool] = False
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
-    location_name: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    # See mapping note: The following properties are not coming from the API directly.
+    server_edition_name: Optional[str] = field(default=None)
+    storage_edition: Optional[AzureStorageEditionCapability] = field(default=None)
+    server_version: Optional[str] = field(default=None)
+    capability_sku: Optional[AzureSkuCapability] = field(default=None)
+    # See mapping note: only here to map to separate resources for all used editions
+    _supported_flexible_server_editions: Optional[List[AzureServerEditionCapability]] = field(default=None, metadata={'description': 'A list of supported flexible server editions.'})  # fmt: skip
 
-    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if builder_location := graph_builder.location:
-            self.location_name = builder_location.long_name
+    @classmethod
+    def collect(
+        cls,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List["AzureMysqlServerType"]:
+        result = []
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        # Create a list of all possible database configurations
-        # This method goes through all the options for MySQL databases and lists every possible combination
-        server_types = []
-        if self.supported_flexible_server_editions:
-            for edition in self.supported_flexible_server_editions:
-                edition_name = edition.name
-                storage_editions = edition.supported_storage_editions or []
-                server_versions = edition.supported_server_versions or []
+        for js in raw:
+            instance = cls.from_api(js)
+            if isinstance(instance, AzureMysqlServerType) and instance._supported_flexible_server_editions:
+                location = instance.location
+                expected_sku_name = js.get("expected_sku_name")
+                expected_sku_tier = js.get("expected_sku_tier")
+                expected_version = js.get("expected_version")
+                for edition in instance._supported_flexible_server_editions:
+                    edition_name = edition.name
+                    if edition_name != expected_sku_tier:
+                        continue
+                    storage_editions = edition.supported_storage_editions or []
+                    server_versions = edition.supported_server_versions or []
+                    for storage_edition in storage_editions:
+                        storage_edition_dict: Json = {
+                            "max_backup_interval_hours": storage_edition.max_backup_interval_hours,
+                            "max_backup_retention_days": storage_edition.max_backup_retention_days,
+                            "max_storage_size": storage_edition.max_storage_size,
+                            "min_backup_interval_hours": storage_edition.min_backup_interval_hours,
+                            "min_backup_retention_days": storage_edition.min_backup_retention_days,
+                            "min_storage_size": storage_edition.min_storage_size,
+                            "name": storage_edition.name,
+                        }
+                        for version in server_versions:
+                            version_name = version.name
+                            if version_name != expected_version:
+                                continue
+                            skus = version.supported_skus or []
 
-                for storage_edition in storage_editions:
-                    storage_edition_dict = {
-                        "maxBackupIntervalHours": storage_edition.max_backup_interval_hours,
-                        "maxBackupRetentionDays": storage_edition.max_backup_retention_days,
-                        "maxStorageSize": storage_edition.max_storage_size,
-                        "minBackupIntervalHours": storage_edition.min_backup_interval_hours,
-                        "minBackupRetentionDays": storage_edition.min_backup_retention_days,
-                        "minStorageSize": storage_edition.min_storage_size,
-                        "name": storage_edition.name,
-                    }
-                    for version in server_versions:
-                        version_name = version.name
-                        skus = version.supported_skus or []
-
-                        for sku in skus:
-                            sku_dict = {
-                                "name": sku.name,
-                                "vCores": sku.v_cores,
-                                "supportedIops": sku.supported_iops,
-                                "supportedMemoryPerVCoreMB": sku.supported_memory_per_v_core_mb,
-                            }
-                            server_type = {
-                                "id": f"{sku.name}",
-                                "name": f"{edition_name}_{sku.name}",
-                                "capability_zone": self.capability_zone,
-                                "supported_ha_mode": self.supported_ha_mode,
-                                "server_edition_name": edition_name,
-                                "storage_edition": storage_edition_dict,
-                                "server_version": version_name,
-                                "sku": sku_dict,
-                                "location": self.location_name,
-                            }
-                            server_types.append(server_type)
-        AzureMysqlServerType.collect(server_types, graph_builder)
+                            for sku in skus:
+                                if sku.name != expected_sku_name:
+                                    continue
+                                sku_dict: Json = {
+                                    "name": sku.name,
+                                    "v_cores": sku.v_cores,
+                                    "supported_iops": sku.supported_iops,
+                                    "supported_memory_per_v_core_mb": sku.supported_memory_per_v_core_mb,
+                                }
+                                instance_cores = sku_dict.get("v_cores") or 0
+                                supported_memory_per_v_core_mb = sku_dict.get("supported_memory_per_v_core_mb")
+                                if supported_memory_per_v_core_mb is not None:
+                                    instance_memory = supported_memory_per_v_core_mb // 1024
+                                else:
+                                    instance_memory = 0
+                                server_type = evolve(
+                                    instance,
+                                    id=f"{sku.name}",
+                                    name=f"{edition_name}_{sku.name}",
+                                    server_edition_name=edition_name,
+                                    storage_edition=AzureStorageEditionCapability(**storage_edition_dict),
+                                    server_version=version_name,
+                                    capability_sku=AzureSkuCapability(**sku_dict),
+                                    location=location,
+                                    instance_cores=instance_cores,
+                                    instance_memory=instance_memory,
+                                    instance_type=sku.name,
+                                    capability_zone=instance.capability_zone,
+                                    supported_ha_mode=instance.supported_ha_mode,
+                                    supported_geo_backup_regions=instance.supported_geo_backup_regions,
+                                )
+                                if graph_node := builder.add_node(server_type, js):
+                                    result.append(graph_node)
+        return result
 
 
 @define(eq=False, slots=False)
@@ -355,32 +460,6 @@ class AzureMysqlServerMaintenance(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
-    kind: ClassVar[str] = "azure_mysql_server_type"
-    # Collect via AzureMysqlCapability()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "name": S("name"),
-        "capability_zone": S("capability_zone"),
-        "supported_ha_mode": S("supported_ha_mode"),
-        "server_edition_name": S("server_edition_name"),
-        "storage_edition": S("storage_edition") >> Bend(AzureStorageEditionCapability.mapping),
-        "server_version": S("server_version"),
-        "capability_sku": S("sku") >> Bend(AzureSkuCapability.mapping),
-        "display_location": S("location"),
-        "instance_cores": S("sku", "vCores"),
-        "instance_memory": S("sku", "supportedMemoryPerVCoreMB") >> F(lambda mb: mb / 1024),
-    }
-    capability_zone: Optional[str] = field(default=None)
-    supported_ha_mode: Optional[List[str]] = field(default=None)
-    server_edition_name: Optional[str] = field(default=None)
-    storage_edition: Optional[AzureStorageEditionCapability] = field(default=None)
-    server_version: Optional[str] = field(default=None)
-    capability_sku: Optional[AzureSkuCapability] = field(default=None)
-    display_location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-
-
-@define(eq=False, slots=False)
 class AzurePrivateEndpointConnection:
     kind: ClassVar[str] = "azure_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -420,31 +499,6 @@ class AzureMySQLServerIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureMySQLServerSku:
-    kind: ClassVar[str] = "azure_my_sql_server_sku"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the sku, e.g. Standard_D32s_v3."})
-    tier: Optional[str] = field(default=None, metadata={'description': 'The tier of the particular SKU, e.g. GeneralPurpose.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureDataEncryption:
-    kind: ClassVar[str] = "azure_data_encryption"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "geo_backup_key_uri": S("geoBackupKeyURI"),
-        "geo_backup_user_assigned_identity_id": S("geoBackupUserAssignedIdentityId"),
-        "primary_key_uri": S("primaryKeyURI"),
-        "primary_user_assigned_identity_id": S("primaryUserAssignedIdentityId"),
-        "type": S("type"),
-    }
-    geo_backup_key_uri: Optional[str] = field(default=None, metadata={'description': 'Geo backup key uri as key vault can t cross region, need cmk in same region as geo backup'})  # fmt: skip
-    geo_backup_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Geo backup user identity resource id as identity can t cross region, need identity in same region as geo backup'})  # fmt: skip
-    primary_key_uri: Optional[str] = field(default=None, metadata={"description": "Primary key uri"})
-    primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'Primary user identity resource id'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The key type, AzureKeyVault for enable cmk, SystemManaged for disable cmk.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureStorage:
     kind: ClassVar[str] = "azure_storage"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -461,62 +515,6 @@ class AzureStorage:
     log_on_disk: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
     storage_size_gb: Optional[int] = field(default=None, metadata={'description': 'Max storage size allowed for a server.'})  # fmt: skip
     storage_sku: Optional[str] = field(default=None, metadata={"description": "The sku name of the server storage."})
-
-
-@define(eq=False, slots=False)
-class AzureBackup:
-    kind: ClassVar[str] = "azure_backup"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "backup_interval_hours": S("backupIntervalHours"),
-        "backup_retention_days": S("backupRetentionDays"),
-        "earliest_restore_date": S("earliestRestoreDate"),
-        "geo_redundant_backup": S("geoRedundantBackup"),
-    }
-    backup_interval_hours: Optional[int] = field(default=None, metadata={'description': 'Backup interval hours for the server.'})  # fmt: skip
-    backup_retention_days: Optional[int] = field(default=None, metadata={'description': 'Backup retention days for the server.'})  # fmt: skip
-    earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore point creation time (ISO8601 format)'})  # fmt: skip
-    geo_redundant_backup: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureHighAvailability:
-    kind: ClassVar[str] = "azure_high_availability"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "mode": S("mode"),
-        "standby_availability_zone": S("standbyAvailabilityZone"),
-        "state": S("state"),
-    }
-    mode: Optional[str] = field(default=None, metadata={"description": "High availability mode for a server."})
-    standby_availability_zone: Optional[str] = field(default=None, metadata={'description': 'Availability zone of the standby server.'})  # fmt: skip
-    state: Optional[str] = field(default=None, metadata={"description": "The state of server high availability."})
-
-
-@define(eq=False, slots=False)
-class AzureNetwork:
-    kind: ClassVar[str] = "azure_network"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "delegated_subnet_resource_id": S("delegatedSubnetResourceId"),
-        "private_dns_zone_resource_id": S("privateDnsZoneResourceId"),
-        "public_network_access": S("publicNetworkAccess"),
-    }
-    delegated_subnet_resource_id: Optional[str] = field(default=None, metadata={'description': 'Delegated subnet resource id used to setup vnet for a server.'})  # fmt: skip
-    private_dns_zone_resource_id: Optional[str] = field(default=None, metadata={'description': 'Private DNS zone resource id.'})  # fmt: skip
-    public_network_access: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMaintenanceWindow:
-    kind: ClassVar[str] = "azure_maintenance_window"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "custom_window": S("customWindow"),
-        "day_of_week": S("dayOfWeek"),
-        "start_hour": S("startHour"),
-        "start_minute": S("startMinute"),
-    }
-    custom_window: Optional[str] = field(default=None, metadata={'description': 'indicates whether custom window is enabled or disabled'})  # fmt: skip
-    day_of_week: Optional[int] = field(default=None, metadata={"description": "day of week for maintenance window"})
-    start_hour: Optional[int] = field(default=None, metadata={"description": "start hour for maintenance window"})
-    start_minute: Optional[int] = field(default=None, metadata={"description": "start minute for maintenance window"})
 
 
 @define(eq=False, slots=False)
@@ -557,6 +555,8 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 "azure_mysql_server_configuration",
                 "azure_mysql_server_ad_administrator",
                 "azure_mysql_server_type",
+                "microsoft_graph_service_principal",
+                "microsoft_graph_user",
             ]
         },
     }
@@ -572,22 +572,22 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         "administrator_login": S("properties", "administratorLogin"),
         "administrator_login_password": S("properties", "administratorLoginPassword"),
         "availability_zone": S("properties", "availabilityZone"),
-        "backup": S("properties", "backup") >> Bend(AzureBackup.mapping),
+        "backup": S("properties", "backup") >> Bend(AzureServerBackup.mapping),
         "create_mode": S("properties", "createMode"),
-        "data_encryption": S("properties", "dataEncryption") >> Bend(AzureDataEncryption.mapping),
+        "data_encryption": S("properties", "dataEncryption") >> Bend(AzureServerDataEncryption.mapping),
         "fully_qualified_domain_name": S("properties", "fullyQualifiedDomainName"),
-        "high_availability": S("properties", "highAvailability") >> Bend(AzureHighAvailability.mapping),
+        "high_availability": S("properties", "highAvailability") >> Bend(AzureServerHighAvailability.mapping),
         "mysql_server_identity": S("identity") >> Bend(AzureMySQLServerIdentity.mapping),
         "import_source_properties": S("properties", "importSourceProperties")
         >> Bend(AzureImportSourceProperties.mapping),
-        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
-        "server_network": S("properties", "network") >> Bend(AzureNetwork.mapping),
+        "server_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureServerMaintenanceWindow.mapping),
+        "server_network": S("properties", "network") >> Bend(AzureServerNetwork.mapping),
         "mysql_server_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "replica_capacity": S("properties", "replicaCapacity"),
         "replication_role": S("properties", "replicationRole"),
         "restore_point_in_time": S("properties", "restorePointInTime"),
-        "server_sku": S("sku") >> Bend(AzureMySQLServerSku.mapping),
+        "server_sku": S("sku") >> Bend(AzureSku.mapping),
         "source_server_resource_id": S("properties", "sourceServerResourceId"),
         "state": S("properties", "state"),
         "storage": S("properties", "storage") >> Bend(AzureStorage.mapping),
@@ -622,20 +622,20 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login name of a server. Can only be specified when the server is being created (and is required for creation).'})  # fmt: skip
     administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The password of the administrator login (required for server creation).'})  # fmt: skip
     availability_zone: Optional[str] = field(default=None, metadata={'description': 'availability Zone information of the server.'})  # fmt: skip
-    backup: Optional[AzureBackup] = field(default=None, metadata={'description': 'Storage Profile properties of a server'})  # fmt: skip
+    backup: Optional[AzureServerBackup] = field(default=None, metadata={'description': 'Storage Profile properties of a server'})  # fmt: skip
     create_mode: Optional[str] = field(default=None, metadata={'description': 'The mode to create a new MySQL server.'})  # fmt: skip
-    data_encryption: Optional[AzureDataEncryption] = field(default=None, metadata={'description': 'The date encryption for cmk.'})  # fmt: skip
+    data_encryption: Optional[AzureServerDataEncryption] = field(default=None, metadata={'description': 'The date encryption for cmk.'})  # fmt: skip
     fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of a server.'})  # fmt: skip
-    high_availability: Optional[AzureHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
+    high_availability: Optional[AzureServerHighAvailability] = field(default=None, metadata={'description': 'High availability properties of a server'})  # fmt: skip
     mysql_server_identity: Optional[AzureMySQLServerIdentity] = field(default=None, metadata={'description': 'Properties to configure Identity for Bring your Own Keys'})  # fmt: skip
     import_source_properties: Optional[AzureImportSourceProperties] = field(default=None, metadata={'description': 'Import source related properties.'})  # fmt: skip
-    server_maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window of a server.'})  # fmt: skip
-    server_network: Optional[AzureNetwork] = field(default=None, metadata={'description': 'Network related properties of a server'})  # fmt: skip
+    server_maintenance_window: Optional[AzureServerMaintenanceWindow] = field(default=None, metadata={'description': 'Maintenance window of a server.'})  # fmt: skip
+    server_network: Optional[AzureServerNetwork] = field(default=None, metadata={'description': 'Network related properties of a server'})  # fmt: skip
     mysql_server_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'PrivateEndpointConnections related properties of a server.'})  # fmt: skip
     replica_capacity: Optional[int] = field(default=None, metadata={'description': 'The maximum number of replicas that a primary server can have.'})  # fmt: skip
     replication_role: Optional[str] = field(default=None, metadata={"description": "The replication role."})
     restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from.'})  # fmt: skip
-    server_sku: Optional[AzureMySQLServerSku] = field(default=None, metadata={'description': 'Billing information related properties of a server.'})  # fmt: skip
+    server_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Billing information related properties of a server.'})  # fmt: skip
     source_server_resource_id: Optional[str] = field(default=None, metadata={'description': 'The source MySQL server id.'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={"description": "The state of a server."})
     storage: Optional[AzureStorage] = field(default=None, metadata={'description': 'Storage Profile properties of a server'})  # fmt: skip
@@ -684,8 +684,13 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 ("maintenances", AzureMysqlServerMaintenance, "2023-12-30", None),
                 ("logFiles", AzureMysqlServerLogFile, "2023-12-30", ["ServerNotExist"]),
                 ("firewallRules", AzureMysqlServerFirewallRule, "2021-05-01", None),
-                ("databases", AzureMysqlServerDatabase, "2021-05-01", ["ServerUnavailableForOperation"]),
-                ("configurations", AzureMysqlServerConfiguration, "2023-12-30", ["ServerUnavailableForOperation"]),
+                ("databases", AzureMysqlServerDatabase, "2021-05-01", ["ServerUnavailableForOperation", "ServiceBusy"]),
+                (
+                    "configurations",
+                    AzureMysqlServerConfiguration,
+                    "2023-12-30",
+                    ["ServerUnavailableForOperation", "ServiceBusy"],
+                ),
                 ("administrators", AzureMysqlServerADAdministrator, "2023-12-30", None),
             ]
 
@@ -705,6 +710,33 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         else:
             self.volume_encrypted = False
 
+        if (location := self.location) and (sku := self.server_sku) and (version := self.version):
+
+            def collect_capabilities() -> None:
+                api_spec = AzureResourceSpec(
+                    service="mysql",
+                    version="2023-12-30",
+                    path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/"
+                    + f"{location}/capabilities",
+                    path_parameters=["subscriptionId"],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                for item in items:
+                    # Set location for further connect_in_graph method
+                    item["location"] = location
+                    # Set sku name and tier for SKUs filtering
+                    item["expected_sku_name"] = sku.name
+                    item["expected_sku_tier"] = sku.tier
+                    item["expected_version"] = version
+                AzureMysqlServerType.collect(items, graph_builder)
+
+            graph_builder.submit_work(service_name, collect_capabilities)
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
             (location := self.location)
@@ -716,10 +748,27 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 self,
                 edge_type=EdgeType.default,
                 clazz=AzureMysqlServerType,
-                display_location=location,
+                location=location,
                 server_version=version,
                 id=sku_type,
             )
+
+        # principal: collected via ms graph -> create a deferred edge
+        if mii := self.mysql_server_identity:
+            if pid := mii.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := mii.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
@@ -751,7 +800,6 @@ class AzureMysqlServerBackup(MicrosoftResource):
 
 resources: List[Type[MicrosoftResource]] = [
     AzureMysqlServerADAdministrator,
-    AzureMysqlCapability,
     AzureMysqlServerType,
     AzureMysqlServerConfiguration,
     AzureMysqlServerDatabase,

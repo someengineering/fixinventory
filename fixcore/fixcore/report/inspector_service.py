@@ -272,7 +272,7 @@ class InspectorService(Inspector, Service):
             # store the security score of an account
             if account_ids := context.accounts:
                 async with await db.search_list(  # lookup node ids for all given accounts
-                    QueryModel(Query.by("account", P("reported.id").is_in(account_ids)), model)
+                    QueryModel(Query.by("account", P("reported.id").is_in(account_ids)), model), consistent=True
                 ) as crsr:
                     async for acc in crsr:
                         if (node_id := value_in_path(acc, NodePath.node_id)) and (

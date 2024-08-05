@@ -6,6 +6,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
+    AzureResourceIdentity,
     AzurePrivateLinkServiceConnectionState,
     AzureSku,
     GraphBuilder,
@@ -22,28 +23,6 @@ from fixlib.types import Json
 
 service_name = "azure_sql"
 log = logging.getLogger("fix.plugins.azure")
-
-
-class AzureUserIdentity:
-    kind: ClassVar[str] = "azure_user_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
-    client_id: Optional[str] = field(default=None, metadata={"description": "The Azure Active Directory client id."})
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The Azure Active Directory principal id.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureResourceIdentity:
-    kind: ClassVar[str] = "azure_resource_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
-        "type": S("type"),
-        "user_assigned_identities": S("userAssignedIdentities"),
-    }
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The Azure Active Directory principal id.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={"description": "The Azure Active Directory tenant id."})
-    type: Optional[str] = field(default=None, metadata={'description': 'The identity type. Set this to SystemAssigned in order to automatically create and assign an Azure Active Directory principal for the resource.'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzureUserIdentity]] = field(default=None, metadata={'description': 'The resource ids of the user assigned identities to use'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

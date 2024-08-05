@@ -480,6 +480,29 @@ class AzureUserAssignedIdentity:
 
 
 @define(eq=False, slots=False)
+class AzureUserIdentity:
+    kind: ClassVar[str] = "azure_user_identity"
+    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
+    client_id: Optional[str] = field(default=None, metadata={'description': 'the client identifier of the Service Principal which this identity represents.'})  # fmt: skip
+    principal_id: Optional[str] = field(default=None, metadata={'description': 'the object identifier of the Service Principal which this identity represents.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureResourceIdentity:
+    kind: ClassVar[str] = "azure_resource_identity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "principal_id": S("principalId"),
+        "tenant_id": S("tenantId"),
+        "type": S("type"),
+        "user_assigned_identities": S("userAssignedIdentities"),
+    }
+    principal_id: Optional[str] = field(default=None, metadata={'description': 'The Azure Active Directory principal id.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={"description": "The Azure Active Directory tenant id."})
+    type: Optional[str] = field(default=None, metadata={'description': 'The identity type. Set this to SystemAssigned in order to automatically create and assign an Azure Active Directory principal for the resource.'})  # fmt: skip
+    user_assigned_identities: Optional[Dict[str, AzureUserIdentity]] = field(default=None, metadata={'description': 'The resource ids of the user assigned identities to use'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AzurePrincipalClient:
     kind: ClassVar[str] = "azure_principal_client"
     mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "principal_id": S("principalId")}
@@ -579,6 +602,30 @@ class AzureSystemData:
     last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
     last_modified_by: Optional[str] = field(default=None, metadata={'description': 'The identity that last modified the resource.'})  # fmt: skip
     last_modified_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureTrackedResource:
+    kind: ClassVar[str] = "azure_tracked_resource"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "location": S("location"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "type": S("type"),
+    }
+    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureProxyResource:
+    kind: ClassVar[str] = "azure_proxy_resource"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "type": S("type"),
+    }
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
 
 @define(eq=False, slots=False)

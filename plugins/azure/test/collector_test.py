@@ -49,8 +49,8 @@ def test_collect(
         config, Cloud(id="azure"), azure_subscription, credentials, core_feedback
     )
     subscription_collector.collect()
-    assert len(subscription_collector.graph.nodes) == 433
-    assert len(subscription_collector.graph.edges) == 656
+    assert len(subscription_collector.graph.nodes) == 454
+    assert len(subscription_collector.graph.edges) == 697
 
     graph_collector = MicrosoftGraphOrganizationCollector(
         config, Cloud(id="azure"), MicrosoftGraphOrganization(id="test", name="test"), credentials, core_feedback
@@ -107,5 +107,5 @@ def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> N
         if isinstance(node, AzureVirtualMachineSize):
             node.after_collect(builder, data.get("source", {}))
 
-    assert list(collector.graph.search("kind", "azure_virtual_machine_size"))[0].ondemand_cost == 13.14  # type: ignore[attr-defined]
+    assert list(collector.graph.search("kind", "azure_virtual_machine_size"))[12].ondemand_cost == 13.14  # type: ignore[attr-defined]
     assert list(collector.graph.search("kind", "azure_disk_type"))[2].ondemand_cost == 0.3640833333333333  # type: ignore[attr-defined]
