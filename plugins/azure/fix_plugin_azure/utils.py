@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Dict, TypeVar, Any
 from attr import frozen
 import functools
@@ -6,6 +7,7 @@ from fixlib.baseresources import StatName, MetricName, MetricUnit
 
 
 T = TypeVar("T")
+log = logging.getLogger("fix.plugins.azure")
 
 
 def rgetattr(obj: Any, attr: str, *args: Any) -> Any:
@@ -51,7 +53,7 @@ def from_str_to_typed(config_type: str, value: str) -> Any:
         return False
 
     type_mapping = {
-        "Enumeration": lambda x: set_bool(x) if x in ["ON", "OFF", "on", "off"] else str(x),
+        "Enumeration": lambda x: set_bool(x) if x.lower() in ["on", "off"] else str(x),
         "Integer": int,
         "Numeric": float,
         "Set": lambda x: x.split(","),
@@ -60,7 +62,8 @@ def from_str_to_typed(config_type: str, value: str) -> Any:
     }
     try:
         return type_mapping[config_type](value)  # type: ignore
-    except Exception:
+    except Exception as e:
+        log.warning(f"An error occured while typing value: {e}")
         return None
 
 

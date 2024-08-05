@@ -317,33 +317,30 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
     config: Json = field(factory=dict)
 
     @classmethod
-    def collect(
+    def collect_configs(
         cls,
+        server_id: str,
         raw: List[Json],
         builder: GraphBuilder,
     ) -> List[AzurePostgresqlServerConfiguration]:
         if not raw:
             return []
-        server_id = raw[0].get("serverID")
-        if not server_id:
-            return []
-        configuration_instance = cls(id=server_id)
-        if isinstance(configuration_instance, AzurePostgresqlServerConfiguration):
-            for js in raw:
-                properties = js.get("properties")
-                if not properties:
+        configuration_instance = AzurePostgresqlServerConfiguration(id=server_id)
+        for js in raw:
+            properties = js.get("properties")
+            if not properties:
+                continue
+            if (
+                (data_type := properties.get("dataType"))
+                and (val := properties.get("value"))
+                and (config_name := js.get("name"))
+            ):
+                value = from_str_to_typed(data_type, val)
+                if not value:
                     continue
-                if (
-                    (data_type := properties.get("dataType"))
-                    and (val := properties.get("value"))
-                    and (config_name := js.get("name"))
-                ):
-                    value = from_str_to_typed(data_type, val)
-                    if not value:
-                        continue
-                    configuration_instance.config[config_name] = value
-            if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
-                return [added]
+                configuration_instance.config[config_name] = value
+        if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
+            return [added]
         return []
 
 
@@ -543,10 +540,10 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         items = graph_builder.client.list(api_spec)
         if not items:
             return
-        if issubclass(class_instance, AzurePostgresqlServerConfiguration):  # type: ignore
-            for item in items:
-                item["serverID"] = self.id
-        collected = class_instance.collect(items, graph_builder)
+        if issubclass(AzurePostgresqlServerConfiguration, class_instance):  # type: ignore
+            collected = class_instance.collect_configs(self.id, items, graph_builder)  # type: ignore
+        else:
+            collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
             graph_builder.add_edge(self, node=clazz)
 
