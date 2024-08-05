@@ -13,6 +13,7 @@ from fix_plugin_azure.resource.base import (
     AzureSystemData,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
+from fix_plugin_azure.utils import from_str_to_typed
 from fixlib.baseresources import (
     BaseDatabase,
     BaseDatabaseInstanceType,
@@ -21,7 +22,7 @@ from fixlib.baseresources import (
     ModelReference,
 )
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import K, AsBool, Bender, S, ForallBend, Bend, MapEnum, MapValue
+from fixlib.json_bender import K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_mysql"
@@ -318,39 +319,34 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
 class AzureMysqlServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_configuration"
     # Collect via AzureMysqlServer()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "type": S("type"),
-        "ctime": S("systemData", "createdAt"),
-        "mtime": S("systemData", "lastModifiedAt"),
-        "allowed_values": S("properties", "allowedValues"),
-        "current_value": S("properties", "currentValue"),
-        "data_type": S("properties", "dataType"),
-        "default_value": S("properties", "defaultValue"),
-        "description": S("properties", "description"),
-        "documentation_link": S("properties", "documentationLink"),
-        "is_config_pending_restart": S("properties", "isConfigPendingRestart") >> AsBool(),
-        "is_dynamic_config": S("properties", "isDynamicConfig") >> AsBool(),
-        "is_read_only": S("properties", "isReadOnly") >> AsBool(),
-        "source": S("properties", "source"),
-        "value": S("properties", "value"),
-    }
-    allowed_values: Optional[str] = field(default=None, metadata={'description': 'Allowed values of the configuration.'})  # fmt: skip
-    current_value: Optional[str] = field(default=None, metadata={"description": "Current value of the configuration."})
-    data_type: Optional[str] = field(default=None, metadata={"description": "Data type of the configuration."})
-    default_value: Optional[str] = field(default=None, metadata={"description": "Default value of the configuration."})
-    description: Optional[str] = field(default=None, metadata={"description": "Description of the configuration."})
-    documentation_link: Optional[str] = field(default=None, metadata={'description': 'The link used to get the document from community or Azure site.'})  # fmt: skip
-    is_config_pending_restart: Optional[bool] = field(default=None, metadata={'description': 'If is the configuration pending restart or not.'})  # fmt: skip
-    is_dynamic_config: Optional[bool] = field(default=None, metadata={'description': 'If is the configuration dynamic.'})  # fmt: skip
-    is_read_only: Optional[bool] = field(default=None, metadata={"description": "If is the configuration read only."})
-    source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
-    value: Optional[str] = field(default=None, metadata={"description": "Value of the configuration."})
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+    config: Json = field(factory=dict)
+
+    @classmethod
+    def collect_configs(
+        cls,
+        server_id: str,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List["AzureMysqlServerConfiguration"]:
+        if not raw:
+            return []
+        configuration_instance = AzureMysqlServerConfiguration(id=server_id)
+        for js in raw:
+            properties = js.get("properties")
+            if not properties:
+                continue
+            if (
+                (data_type := properties.get("dataType"))
+                and (val := properties.get("currentValue") or properties.get("value"))
+                and (config_name := js.get("name"))
+            ):
+                value = from_str_to_typed(data_type, val)
+                if not value:
+                    continue
+                configuration_instance.config[config_name] = value
+        if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
+            return [added]
+        return []
 
 
 @define(eq=False, slots=False)
@@ -667,14 +663,12 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         items = graph_builder.client.list(api_spec)
         if not items:
             return
-        collected = class_instance.collect(items, graph_builder)
-        for clazz in collected:
-            graph_builder.add_edge(
-                self,
-                edge_type=EdgeType.default,
-                id=clazz.id,
-                clazz=class_instance,
-            )
+        if issubclass(AzureMysqlServerConfiguration, class_instance):  # type: ignore
+            collected = class_instance.collect_configs(self.id, items, graph_builder)  # type: ignore
+        else:
+            collected = class_instance.collect(items, graph_builder)
+        for resource in collected:
+            graph_builder.add_edge(self, node=resource)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if server_id := self.id:
