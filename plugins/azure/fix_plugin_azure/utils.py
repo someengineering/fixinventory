@@ -56,7 +56,7 @@ def from_str_to_typed(config_type: str, value: str) -> Any:
         "Enumeration": lambda x: set_bool(x) if x.lower() in ["on", "off"] else str(x),
         "Integer": int,
         "Numeric": float,
-        "Set": lambda x: x.split(","),
+        "Set": lambda x: [s.strip() for s in x.split(",")],
         "String": str,
         "Boolean": set_bool,
     }
