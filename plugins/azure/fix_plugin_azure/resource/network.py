@@ -1639,6 +1639,7 @@ class AzureQosDefinition:
     )
     source_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={'description': 'Sources port ranges.'})  # fmt: skip
 
+
 def parse_port_range(port_range: str) -> Json:
     if port_range == "*":
         return dict(start=0, end=65535)
@@ -1647,6 +1648,7 @@ def parse_port_range(port_range: str) -> Json:
         return dict(start=int(start), end=int(end))
     port = int(port_range)
     return dict(start=port, end=port)
+
 
 @define(eq=False, slots=False)
 class AzureSecurityRule(AzureSubResource):
@@ -1658,7 +1660,9 @@ class AzureSecurityRule(AzureSubResource):
         "destination_address_prefixes": S("properties", "destinationAddressPrefixes"),
         "destination_application_security_groups": S("properties", "destinationApplicationSecurityGroups")
         >> ForallBend(AzureApplicationSecurityGroup.mapping),
-        "destination_port_ranges": (S("properties", "destinationPortRange") >> F(lambda x: [parse_port_range(x)])).or_else(S("properties", "destinationPortRanges") >> ForallBend(F(parse_port_range))),
+        "destination_port_ranges": (
+            S("properties", "destinationPortRange") >> F(lambda x: [parse_port_range(x)])
+        ).or_else(S("properties", "destinationPortRanges") >> ForallBend(F(parse_port_range))),
         "direction": S("properties", "direction"),
         "etag": S("etag"),
         "name": S("name"),
@@ -1669,7 +1673,9 @@ class AzureSecurityRule(AzureSubResource):
         "source_address_prefixes": S("properties", "sourceAddressPrefixes"),
         "source_application_security_groups": S("properties", "sourceApplicationSecurityGroups")
         >> ForallBend(AzureApplicationSecurityGroup.mapping),
-        "source_port_ranges": (S("properties", "sourcePortRange") >> F(lambda x: [parse_port_range(x)])).or_else(S("properties", "sourcePortRanges") >> ForallBend(F(parse_port_range))),
+        "source_port_ranges": (S("properties", "sourcePortRange") >> F(lambda x: [parse_port_range(x)])).or_else(
+            S("properties", "sourcePortRanges") >> ForallBend(F(parse_port_range))
+        ),
         "type": S("type"),
     }
     access: Optional[str] = field(default=None, metadata={'description': 'Whether network traffic is allowed or denied.'})  # fmt: skip
@@ -1687,7 +1693,9 @@ class AzureSecurityRule(AzureSubResource):
     source_address_prefix: Optional[str] = field(default=None, metadata={'description': 'The CIDR or source IP range. Asterisk * can also be used to match all source IPs. Default tags such as VirtualNetwork , AzureLoadBalancer and Internet can also be used. If this is an ingress rule, specifies where network traffic originates from.'})  # fmt: skip
     source_address_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'The CIDR or source IP ranges.'})  # fmt: skip
     source_application_security_groups: Optional[List[AzureApplicationSecurityGroup]] = field(default=None, metadata={'description': 'The application security group specified as source.'})  # fmt: skip
-    source_port_ranges: Optional[List[AzurePortRange]] = field(default=None, metadata={"description": "The source port ranges."})
+    source_port_ranges: Optional[List[AzurePortRange]] = field(
+        default=None, metadata={"description": "The source port ranges."}
+    )
     type: Optional[str] = field(default=None, metadata={"description": "The type of the resource."})
 
 

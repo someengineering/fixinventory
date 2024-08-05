@@ -322,7 +322,7 @@ class AzureActivityLogAlert(MicrosoftResource):
     scopes: Optional[List[str]] = field(default=None, metadata={'description': 'A list of resource IDs that will be used as prefixes. The alert will only apply to Activity Log events with resource IDs that fall under one of these prefixes. This list must include at least one item.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        for ref in self.action_groups:
+        for ref in self.action_groups or []:
             builder.add_edge(self, reverse=True, clazz=AzureMonitorActionGroup, id=ref.action_group_id)
 
 
