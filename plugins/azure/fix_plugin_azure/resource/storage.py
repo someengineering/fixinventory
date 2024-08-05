@@ -11,9 +11,9 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResourceType,
     GraphBuilder,
     AzureExtendedLocation,
-    AzureUserAssignedIdentity,
     AzurePrivateLinkServiceConnectionState,
     AzureSku,
+    AzureIdentity,
 )
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.utils import MetricNormalization
@@ -408,21 +408,6 @@ class AzureStorageSku(MicrosoftResource):
     resource_type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource, usually it is storageAccounts .'})  # fmt: skip
     sku_restrictions: Optional[List[AzureRestriction]] = field(default=None, metadata={'description': 'The restrictions because of which SKU cannot be used. This is empty if there are no restrictions.'})  # fmt: skip
     tier: Optional[str] = field(default=None, metadata={"description": "The SKU tier. This is based on the SKU name."})
-
-
-@define(eq=False, slots=False)
-class AzureIdentity:
-    kind: ClassVar[str] = "azure_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
-        "type": S("type"),
-        "user_assigned_identities": S("userAssignedIdentities"),
-    }
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal ID of resource identity.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={"description": "The tenant ID of resource."})
-    type: Optional[str] = field(default=None, metadata={"description": "The identity type."})
-    user_assigned_identities: Optional[Dict[str, AzureUserAssignedIdentity]] = field(default=None, metadata={'description': 'Gets or sets a list of key value pairs that describe the set of User Assigned identities that will be used with this storage account. The key is the ARM resource identifier of the identity. Only 1 User Assigned identity is permitted here.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

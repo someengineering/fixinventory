@@ -52,7 +52,7 @@ T = TypeVar("T")
 
 
 def parse_json(
-    json: Json, clazz: Type[T], builder: GraphBuilder, mapping: Optional[Dict[str, Bender]] = None
+    json: Json, clazz: Type[T], builder: Optional[GraphBuilder] = None, mapping: Optional[Dict[str, Bender]] = None
 ) -> Optional[T]:
     """
     Use this method to parse json into a class. If the json can not be parsed, the error is reported to the core.
@@ -67,14 +67,19 @@ def parse_json(
         mapped = bend(mapping, json) if mapping is not None else json
         return from_json(mapped, clazz)
     except Exception as e:
-        # report and log the error
-        builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}", log)
-        # based on the strict flag, either raise the exception or return None
-        if builder.config.discard_account_on_resource_error:
-            raise
+        message = f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}"
+        if builder:
+            # report and log the error
+            builder.core_feedback.error(message, log)
+            # based on the strict flag, either raise the exception or return None
+            if builder.config.discard_account_on_resource_error:
+                raise
+        else:
+            log.warning(message)
         return None
 
 
+@define(eq=False, slots=False)
 class MicrosoftResource(BaseResource):
     kind: ClassVar[str] = "microsoft_resource"
     # The mapping to transform the incoming API json into the internal representation.
@@ -224,19 +229,20 @@ class MicrosoftResource(BaseResource):
         result: List[MicrosoftResourceType] = []
         for js in raw:
             # map from api
-            instance = cls.from_api(js)
-            instance.pre_process(builder, js)
-            # add to graph
-            if (added := builder.add_node(instance, js)) is not None:
-                # post process
-                added.post_process(builder, js)
-                result.append(added)
+            if instance := cls.from_api(js, builder):
+                instance.pre_process(builder, js)
+                # add to graph
+                if (added := builder.add_node(instance, js)) is not None:
+                    # post process
+                    added.post_process(builder, js)
+                    result.append(added)
         return result
 
     @classmethod
-    def from_api(cls: Type[MicrosoftResourceType], json: Json) -> MicrosoftResourceType:
-        mapped = bend(cls.mapping, json)
-        return cls.from_json(mapped)
+    def from_api(
+        cls: Type[MicrosoftResourceType], json: Json, builder: Optional[GraphBuilder] = None
+    ) -> Optional[MicrosoftResourceType]:
+        return parse_json(json, cls, builder, cls.mapping)
 
     @classmethod
     def called_collect_apis(cls) -> List[MicrosoftRestSpec]:
@@ -505,21 +511,6 @@ class AzurePrincipalClient:
 
 
 @define(eq=False, slots=False)
-class AzureManagedServiceIdentity:
-    kind: ClassVar[str] = "azure_managed_service_identity"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "principal_id": S("principalId"),
-        "tenant_id": S("tenantId"),
-        "type": S("type"),
-        "user_assigned_identities": S("userAssignedIdentities"),
-    }
-    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The tenant id of the system assigned identity. This property will only be provided for a system assigned identity.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of identity used for the resource. The type SystemAssigned, UserAssigned includes both an implicitly created identity and a set of user assigned identities. The type None will remove any identities from the virtual machine.'})  # fmt: skip
-    user_assigned_identities: Optional[Dict[str, AzurePrincipalClient]] = field(default=None, metadata={'description': 'The list of user identities associated with resource. The user identity dictionary key references will be ARM resource ids in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzurePrivateLinkServiceConnectionState:
     kind: ClassVar[str] = "azure_private_link_service_connection_state"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -561,6 +552,7 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
         "id": S("subscriptionId"),
         "tags": S("tags", default={}),
         "authorization_source": S("authorizationSource"),
+        "name": S("displayName"),
         "display_name": S("displayName"),
         "managed_by_tenants": S("managedByTenants", default=[]) >> ForallBend(S("tenantId")),
         "state": S("state"),
@@ -634,6 +626,23 @@ class AzureProxyResource:
     }
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureIdentity:
+    kind: ClassVar[str] = "azure_identity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "client_id": S("clientId"),
+        "principal_id": S("principalId"),
+        "tenant_id": S("tenantId"),
+        "type": S("type"),
+        "user_assigned_identities": S("userAssignedIdentities"),
+    }
+    client_id: Optional[str] = field(default=None, metadata={'description': 'The client id of user assigned identity.'})  # fmt: skip
+    principal_id: Optional[str] = field(default=None, metadata={'description': 'The principal ID of resource identity.'})  # fmt: skip
+    tenant_id: Optional[str] = field(default=None, metadata={"description": "The tenant ID of resource."})
+    type: Optional[str] = field(default=None, metadata={"description": "Type of managed service identity."})
+    user_assigned_identities: Optional[Dict[str, AzureUserAssignedIdentity]] = field(default=None, metadata={'description': 'The list of user identities associated with the resource. The user identity dictionary key references will be ARM resource ids in the form: /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName} .'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

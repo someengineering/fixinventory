@@ -622,3 +622,7 @@ def bend(mapping: Mapping, source: Any, context: Optional[Dict[str, Any]] = None
 
     context = {} if context is None else context
     return bend_with_context(mapping, Transport(source, context))
+
+
+Lower = F(lambda s: s.lower() if isinstance(s, str) else s)
+Upper = F(lambda s: s.upper() if isinstance(s, str) else s)

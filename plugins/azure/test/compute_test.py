@@ -42,7 +42,7 @@ def test_dedicated_host_group(builder: GraphBuilder) -> None:
 
 
 def test_disks(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureDisk, builder, all_props=True)
+    collected = roundtrip_check(AzureDisk, builder, all_props=True, ignore_props={"etag"})
     assert len(collected) == 3
 
     resource_types: List[Type[MicrosoftResource]] = [AzureDiskAccess, AzureDiskEncryptionSet]
@@ -51,15 +51,13 @@ def test_disks(builder: GraphBuilder) -> None:
     assert len(builder.edges_of(AzureDiskAccess, AzureDisk)) == 2
     assert len(builder.edges_of(AzureDisk, AzureDiskEncryptionSet)) == 2
 
-
-def test_disks_resource(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureDisk, builder, all_props=True)[0]
-    assert collected.volume_size == 200
-    assert collected.volume_type == "Premium_LRS"
-    assert collected.volume_status == VolumeStatus.UNKNOWN
-    assert collected.volume_iops == 120
-    assert collected.volume_throughput == 25
-    assert collected.volume_encrypted is True
+    first = collected[0]
+    assert first.volume_size == 200
+    assert first.volume_type == "Premium_LRS"
+    assert first.volume_status == VolumeStatus.UNKNOWN
+    assert first.volume_iops == 120
+    assert first.volume_throughput == 25
+    assert first.volume_encrypted is True
 
 
 def test_disk_access(builder: GraphBuilder) -> None:

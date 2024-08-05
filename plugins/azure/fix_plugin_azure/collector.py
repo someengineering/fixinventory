@@ -28,6 +28,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
     resources as graph_resources,
     MicrosoftGraphOrganizationRoot,
 )
+from fix_plugin_azure.resource.monitor import resources as monitor_resources
 from fix_plugin_azure.resource.network import (
     AzureExpressRoutePortsLocation,
     AzureNetworkVirtualApplianceSku,
@@ -35,6 +36,7 @@ from fix_plugin_azure.resource.network import (
     resources as network_resources,
 )
 from fix_plugin_azure.resource.mysql import AzureMysqlServerType, resources as mysql_resources
+from fix_plugin_azure.resource.keyvault import resources as keyvault_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.postgresql import (
     AzurePostgresqlServerType,
@@ -68,6 +70,8 @@ subscription_resources: List[Type[MicrosoftResource]] = (
     + sql_resources
     + mysql_resources
     + postgresql_resources
+    + monitor_resources
+    + keyvault_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
