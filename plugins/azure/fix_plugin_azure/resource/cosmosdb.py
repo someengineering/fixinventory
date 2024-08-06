@@ -169,8 +169,8 @@ class AzureNameSeednodesNodes:
 
 
 @define(eq=False, slots=False)
-class AzureCassandraClusterPublicStatus(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cassandra_cluster_public_status"
+class AzureCosmosDBCassandraClusterPublicStatus(MicrosoftResource):
+    kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_public_status"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -209,13 +209,6 @@ class AzureARMResourceProperties:
 
 
 @define(eq=False, slots=False)
-class AzureCassandraKeyspaceResource:
-    kind: ClassVar[str] = "azure_cassandra_keyspace_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id")}
-    id: Optional[str] = field(default=None, metadata={"description": "Name of the Cosmos DB Cassandra keyspace"})
-
-
-@define(eq=False, slots=False)
 class AzureExtendedResourceProperties:
     kind: ClassVar[str] = "azure_extended_resource_properties"
     mapping: ClassVar[Dict[str, Bender]] = {"etag": S("_etag"), "_rid": S("rid"), "_ts": S("ts")}
@@ -225,8 +218,8 @@ class AzureExtendedResourceProperties:
 
 
 @define(eq=False, slots=False)
-class AzureResourceType(AzureThroughputSettingsResource, AzureExtendedResourceProperties):
-    kind: ClassVar[str] = "azure_resource_type"
+class AzureCosmosDBResource(AzureThroughputSettingsResource, AzureExtendedResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_resource"
     mapping: ClassVar[Dict[str, Bender]] = (
         AzureThroughputSettingsResource.mapping | AzureExtendedResourceProperties.mapping | {}
     )
@@ -244,14 +237,15 @@ class AzureOptionsResource:
 
 
 @define(eq=False, slots=False)
-class AzureOptionsType(AzureOptionsResource):
-    kind: ClassVar[str] = "azure_options_type"
-    mapping: ClassVar[Dict[str, Bender]] = AzureOptionsResource.mapping | {}
+class AzureCassandraKeyspaceResource(AzureCosmosDBResource):
+    kind: ClassVar[str] = "azure_cassandra_keyspace_resource"
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {"id": S("id")}
+    id: Optional[str] = field(default=None, metadata={"description": "Name of the Cosmos DB Cassandra keyspace"})
 
 
 @define(eq=False, slots=False)
-class AzureCassandraKeyspace(MicrosoftResource, AzureARMResourceProperties):
-    kind: ClassVar[str] = "azure_cassandra_keyspace"
+class AzureCosmosDBCassandraKeyspace(MicrosoftResource, AzureARMResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_cassandra_keyspace"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -265,11 +259,11 @@ class AzureCassandraKeyspace(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureCassandraKeyspaceResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureCassandraKeyspaceResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -306,9 +300,9 @@ class AzureCassandraSchema:
 
 
 @define(eq=False, slots=False)
-class AzureCassandraTableResource:
+class AzureCassandraTableResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_cassandra_table_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "analytical_storage_ttl": S("analyticalStorageTtl"),
         "default_ttl": S("defaultTtl"),
         "id": S("id"),
@@ -321,8 +315,8 @@ class AzureCassandraTableResource:
 
 
 @define(eq=False, slots=False)
-class AzureCassandraTable(MicrosoftResource, AzureARMResourceProperties):
-    kind: ClassVar[str] = "azure_cassandra_table"
+class AzureCosmosDBCassandraTable(MicrosoftResource, AzureARMResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_cassandra_table"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -336,11 +330,11 @@ class AzureCassandraTable(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureCassandraTableResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureCassandraTableResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -397,9 +391,9 @@ class AzureCosmosDBSqlDatabaseClientEncryptionKey(MicrosoftResource, AzureARMPro
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureCosmosDBResource.mapping),
     }
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureCosmosDBResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -429,8 +423,8 @@ class AzureManagedCassandraARMResourceProperties:
 
 
 @define(eq=False, slots=False)
-class AzureCassandraCluster(MicrosoftResource, AzureManagedCassandraARMResourceProperties):
-    kind: ClassVar[str] = "azure_cassandra_cluster"
+class AzureCosmosDBCassandraCluster(MicrosoftResource, AzureManagedCassandraARMResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -516,8 +510,8 @@ class AzureAuthenticationMethodLdapProperties:
 
 
 @define(eq=False, slots=False)
-class AzureCassandraClusterDataCenter(MicrosoftResource, AzureARMProxyResource):
-    kind: ClassVar[str] = "azure_cassandra_cluster_data_center"
+class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource, AzureARMProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_data_center"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -904,9 +898,9 @@ class AzureResourceRestoreParameters(AzureRestoreParametersBase):
 
 
 @define(eq=False, slots=False)
-class AzureGremlinDatabaseResource:
+class AzureGremlinDatabaseResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_gremlin_database_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "create_mode": S("createMode"),
         "id": S("id"),
         "restore_parameters": S("restoreParameters") >> Bend(AzureResourceRestoreParameters.mapping),
@@ -917,8 +911,8 @@ class AzureGremlinDatabaseResource:
 
 
 @define(eq=False, slots=False)
-class AzureGremlinDatabase(MicrosoftResource, AzureARMResourceProperties):
-    kind: ClassVar[str] = "azure_gremlin_database"
+class AzureCosmosDBGremlinDatabase(MicrosoftResource, AzureARMResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_gremlin_database"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -932,11 +926,11 @@ class AzureGremlinDatabase(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureGremlinDatabaseResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureGremlinDatabaseResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1043,9 +1037,9 @@ class AzureConflictResolutionPolicy:
 
 
 @define(eq=False, slots=False)
-class AzureGremlinGraphResource:
+class AzureGremlinGraphResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_gremlin_graph_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "analytical_storage_ttl": S("analyticalStorageTtl"),
         "conflict_resolution_policy": S("conflictResolutionPolicy") >> Bend(AzureConflictResolutionPolicy.mapping),
         "create_mode": S("createMode"),
@@ -1068,8 +1062,8 @@ class AzureGremlinGraphResource:
 
 
 @define(eq=False, slots=False)
-class AzureGremlinGraph(MicrosoftResource, AzureARMResourceProperties):
-    kind: ClassVar[str] = "azure_gremlin_graph"
+class AzureCosmosDBGremlinGraph(MicrosoftResource, AzureARMResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_gremlin_graph"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -1083,11 +1077,11 @@ class AzureGremlinGraph(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureGremlinGraphResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureGremlinGraphResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1117,9 +1111,9 @@ class AzureMongoIndex:
 
 
 @define(eq=False, slots=False)
-class AzureMongoDBCollectionResource:
+class AzureMongoDBCollectionResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_mongo_db_collection_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "analytical_storage_ttl": S("analyticalStorageTtl"),
         "create_mode": S("createMode"),
         "id": S("id"),
@@ -1136,8 +1130,8 @@ class AzureMongoDBCollectionResource:
 
 
 @define(eq=False, slots=False)
-class AzureMongoDBCollection(MicrosoftResource, AzureARMResourceProperties):
-    kind: ClassVar[str] = "azure_mongo_db_collection"
+class AzureCosmosDBMongoDBCollection(MicrosoftResource, AzureARMResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_mongo_db_collection"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -1151,17 +1145,17 @@ class AzureMongoDBCollection(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureMongoDBCollectionResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureMongoDBCollectionResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
-class AzureMongoDBDatabaseResource:
+class AzureMongoDBDatabaseResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_mongo_db_database_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "create_mode": S("createMode"),
         "id": S("id"),
         "restore_parameters": S("restoreParameters") >> Bend(AzureResourceRestoreParameters.mapping),
@@ -1172,8 +1166,8 @@ class AzureMongoDBDatabaseResource:
 
 
 @define(eq=False, slots=False)
-class AzureMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties):
-    kind: ClassVar[str] = "azure_mongo_db_database"
+class AzureCosmosDBMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties):
+    kind: ClassVar[str] = "azure_cosmos_db_mongo_db_database"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -1187,11 +1181,11 @@ class AzureMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureMongoDBDatabaseResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureMongoDBDatabaseResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1224,8 +1218,8 @@ class AzureRole:
 
 
 @define(eq=False, slots=False)
-class AzureMongoDBRoleDefinition(MicrosoftResource, AzureARMProxyResource):
-    kind: ClassVar[str] = "azure_mongo_db_role_definition"
+class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource, AzureARMProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_mongo_db_role_definition"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -1254,8 +1248,8 @@ class AzureMongoDBRoleDefinition(MicrosoftResource, AzureARMProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzureMongoDBUserDefinition(MicrosoftResource, AzureARMProxyResource):
-    kind: ClassVar[str] = "azure_mongo_db_user_definition"
+class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource, AzureARMProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_mongo_db_user_definition"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -1426,9 +1420,9 @@ class AzureComputedProperty:
 
 
 @define(eq=False, slots=False)
-class AzureSqlContainerResource:
+class AzureSqlContainerResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_sql_container_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "analytical_storage_ttl": S("analyticalStorageTtl"),
         "client_encryption_policy": S("clientEncryptionPolicy") >> Bend(AzureClientEncryptionPolicy.mapping),
         "computed_properties": S("computedProperties") >> ForallBend(AzureComputedProperty.mapping),
@@ -1473,11 +1467,11 @@ class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource, AzureARMResourcePrope
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureSqlContainerResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureSqlContainerResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1494,12 +1488,10 @@ class AzureSqlDatabaseResource:
 
 
 @define(eq=False, slots=False)
-class AzureCollsUsers(AzureSqlDatabaseResource, AzureExtendedResourceProperties):
+class AzureCollsUsers(AzureSqlDatabaseResource, AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_colls_users"
     mapping: ClassVar[Dict[str, Bender]] = (
-        AzureSqlDatabaseResource.mapping
-        | AzureExtendedResourceProperties.mapping
-        | {"colls": S("_colls"), "users": S("_users")}
+        AzureSqlDatabaseResource.mapping | AzureCosmosDBResource.mapping | {"colls": S("_colls"), "users": S("_users")}
     )
     colls: Optional[str] = field(default=None, metadata={'description': 'A system generated property that specified the addressable path of the collections resource.'})  # fmt: skip
     users: Optional[str] = field(default=None, metadata={'description': 'A system generated property that specifies the addressable path of the users resource.'})  # fmt: skip
@@ -1524,10 +1516,10 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
         "resource": S("properties", "resource") >> Bend(AzureCollsUsers.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
     resource: Optional[AzureCollsUsers] = field(default=None, metadata={"description": ""})
 
 
@@ -1596,9 +1588,9 @@ class AzureCosmosDBSqlRoleDefinition(MicrosoftResource, AzureARMProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzureTableResource:
+class AzureTableResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_table_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "create_mode": S("createMode"),
         "id": S("id"),
         "restore_parameters": S("restoreParameters") >> Bend(AzureResourceRestoreParameters.mapping),
@@ -1627,11 +1619,11 @@ class AzureCosmosDBTable(MicrosoftResource, AzureARMResourceProperties):
         "ctime": K(None),
         "mtime": K(None),
         "atime": K(None),
-        "options": S("properties", "options") >> Bend(AzureOptionsType.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureTableResource.mapping),
     }
-    options: Optional[AzureOptionsType] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureTableResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1650,9 +1642,9 @@ class AzureCosmosDBSqlThroughputSetting(MicrosoftResource, AzureARMResourcePrope
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureResourceType.mapping),
+        "resource": S("properties", "resource") >> Bend(AzureCosmosDBResource.mapping),
     }
-    resource: Optional[AzureResourceType] = field(default=None, metadata={"description": ""})
+    resource: Optional[AzureCosmosDBResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -2161,20 +2153,20 @@ class AzureCosmosDBRestorableTable(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureCassandraClusterPublicStatus,
-    AzureCassandraKeyspace,
-    AzureCassandraTable,
+    AzureCosmosDBCassandraClusterPublicStatus,
+    AzureCosmosDBCassandraKeyspace,
+    AzureCosmosDBCassandraTable,
     AzureCosmosDBSqlDatabaseClientEncryptionKey,
-    AzureCassandraCluster,
-    AzureCassandraClusterDataCenter,
+    AzureCosmosDBCassandraCluster,
+    AzureCosmosDBCassandraClusterDataCenter,
     AzureCosmosDBAccount,
     AzureCosmosDBAccountReadOnlyKeys,
-    AzureGremlinDatabase,
-    AzureGremlinGraph,
-    AzureMongoDBCollection,
-    AzureMongoDBDatabase,
-    AzureMongoDBRoleDefinition,
-    AzureMongoDBUserDefinition,
+    AzureCosmosDBGremlinDatabase,
+    AzureCosmosDBGremlinGraph,
+    AzureCosmosDBMongoDBCollection,
+    AzureCosmosDBMongoDBDatabase,
+    AzureCosmosDBMongoDBRoleDefinition,
+    AzureCosmosDBMongoDBUserDefinition,
     AzureCosmosDBNotebookWorkspace,
     AzureCosmosDBPrivateLinkResource,
     AzureCosmosDBRestorableAccount,
