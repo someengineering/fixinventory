@@ -651,19 +651,18 @@ class GcpErrorHandler:
             except Exception as ex:
                 errors = {f"ParseError:unknown:{ex}"}
                 pass
-        error_summary = ", ".join(errors)
+        error_summary = " Error Codes: " + (", ".join(errors)) if errors else ""
 
         if errors and errors.issubset(self.expected_errors):
             log.info(
                 f"Expected Exception while collecting{self.extra_info} ({exc_type.__name__}): "
-                f"{error_details} Error Codes: {error_summary}. Ignore."
+                f"{error_details}{error_summary}. Ignore."
             )
             return True
 
         if not Config.gcp.discard_account_on_resource_error:
             self.core_feedback.error(
-                f"Error while collecting{self.extra_info} ({exc_type.__name__}): "
-                f"{error_details} Error Codes: {error_summary}",
+                f"Error while collecting{self.extra_info} ({exc_type.__name__}): " f"{error_details}{error_summary}",
                 log,
             )
             return True
