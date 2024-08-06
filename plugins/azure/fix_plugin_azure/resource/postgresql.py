@@ -550,7 +550,11 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if server_id := self.id:
             resources_to_collect = [
-                ("administrators", AzurePostgresqlServerADAdministrator, ["InternalServerError"]),
+                (
+                    "administrators",
+                    AzurePostgresqlServerADAdministrator,
+                    ["InternalServerError", "DatabaseDoesNotExist"],
+                ),
                 ("configurations", AzurePostgresqlServerConfiguration, ["ServerStoppedError", "InternalServerError"]),
                 ("databases", AzurePostgresqlServerDatabase, ["ServerStoppedError", "InternalServerError"]),
                 ("firewallRules", AzurePostgresqlServerFirewallRule, None),

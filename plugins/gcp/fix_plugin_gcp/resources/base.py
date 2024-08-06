@@ -47,6 +47,28 @@ def get_client(resource: BaseResource) -> GcpClient:
     )
 
 
+def parse_json(
+    json: Json, clazz: Type[T], builder: Optional[GraphBuilder] = None, mapping: Optional[Dict[str, Bender]] = None
+) -> Optional[T]:
+    """
+    Use this method to parse json into a class. If the json can not be parsed, the error is reported to the core.
+    Based on configuration, either the exception is raised or None is returned.
+    :param json: the json to parse.
+    :param clazz: the class to parse into.
+    :param builder: the graph builder.
+    :param mapping: the optional mapping to apply before parsing.
+    :return: The parsed object or None.
+    """
+    try:
+        mapped = bend(mapping, json) if mapping is not None else json
+        return from_js(mapped, clazz)
+    except Exception as e:
+        if builder:
+            # report and log the error
+            builder.core_feedback.error(f"Failed to parse json into {clazz.__name__}: {e}. Source: {json}", log)
+        return None
+
+
 class GraphBuilder:
     def __init__(
         self,
@@ -379,14 +401,14 @@ class GcpResource(BaseResource):
         result: List[GcpResource] = []
         for js in raw:
             # map from api
-            instance = cls.from_api(js)
-            # allow the instance to adjust itself
-            adjusted = instance.adjust_from_api(builder, js)
-            # add to graph
-            if (added := builder.add_node(adjusted, js)) is not None:
-                # post process
-                added.post_process(builder, js)
-                result.append(added)
+            if instance := cls.from_api(js, builder):
+                # allow the instance to adjust itself
+                adjusted = instance.adjust_from_api(builder, js)
+                # add to graph
+                if (added := builder.add_node(adjusted, js)) is not None:
+                    # post process
+                    added.post_process(builder, js)
+                    result.append(added)
         return result
 
     @classmethod
@@ -394,9 +416,10 @@ class GcpResource(BaseResource):
         return from_js(json, cls)
 
     @classmethod
-    def from_api(cls: Type[GcpResourceType], json: Json) -> GcpResourceType:
-        mapped = bend(cls.mapping, json)
-        return cls.from_json(mapped)
+    def from_api(
+        cls: Type[GcpResourceType], json: Json, builder: Optional[GraphBuilder] = None
+    ) -> Optional[GcpResourceType]:
+        return parse_json(json, cls, builder, cls.mapping)
 
     @classmethod
     def called_collect_apis(cls) -> List[GcpApiSpec]:
@@ -541,9 +564,9 @@ class GcpRegion(GcpResource, BaseRegion):
         return cls(id="global", tags={}, name="global", account=project)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        region_quota = GcpRegionQuota.from_api(source)
-        graph_builder.add_node(region_quota, source)
-        graph_builder.add_edge(self, node=region_quota)
+        if region_quota := GcpRegionQuota.from_api(source, graph_builder):
+            graph_builder.add_node(region_quota, source)
+            graph_builder.add_edge(self, node=region_quota)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

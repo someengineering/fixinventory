@@ -4217,8 +4217,8 @@ class GcpMachineType(GcpResource, BaseInstanceType):
             machineType=name,
         )
         result[InternalZoneProp] = zone  # `add_node()` picks this up and sets proper zone/region
-        machine_type_obj = GcpMachineType.from_api(result)
-        builder.add_node(machine_type_obj, result)
+        if machine_type_obj := GcpMachineType.from_api(result, builder):
+            builder.add_node(machine_type_obj, result)
 
     def _machine_type_matches_sku_description(self, sku_description: str) -> bool:
         if not self.name:

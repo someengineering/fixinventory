@@ -241,7 +241,9 @@ def create_node_for(
     result = client.list(api_spec=spec)
     assert len(result) > 0
     raw = adapt(result[0])
-    return raw, clazz.from_api(raw)
+    instance = clazz.from_api(raw)
+    assert instance is not None
+    return raw, instance
 
 
 def create_node(clazz: Type[GcpResourceType], **kwargs: Any) -> Tuple[Json, GcpResourceType]:
