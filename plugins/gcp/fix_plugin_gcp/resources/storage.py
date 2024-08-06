@@ -422,12 +422,12 @@ class GcpBucket(GcpResource, BaseBucket):
         client = get_client(self)
         objects = client.list(GcpObject.api_spec, bucket=self.name)
         for obj in objects:
-            object_in_bucket = GcpObject.from_api(obj)
-            client.delete(
-                object_in_bucket.api_spec.for_delete(),
-                bucket=self.name,
-                resource=object_in_bucket.name,
-            )
+            if object_in_bucket := GcpObject.from_api(obj):
+                client.delete(
+                    object_in_bucket.api_spec.for_delete(),
+                    bucket=self.name,
+                    resource=object_in_bucket.name,
+                )
         return True
 
     def delete(self, graph: Graph) -> bool:

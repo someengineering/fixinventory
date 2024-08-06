@@ -268,7 +268,11 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
             graph_builder.submit_work(service_name, fetch_data_encryption_status, database_id)
             resources_to_collect = [
                 ("geoBackupPolicies", AzureSqlServerDatabaseGeoBackupPolicy, None),
-                ("advisors?$expand=recommendedAction", AzureSqlServerAdvisor, None),
+                (
+                    "advisors?$expand=recommendedAction",
+                    AzureSqlServerAdvisor,
+                    ["DataWarehouseNotSupported", "DatabaseDoesNotExist"],
+                ),
                 ("workloadGroups", AzureSqlServerDatabaseWorkloadGroup, ["FeatureDisabledOnSelectedEdition"]),
             ]
 

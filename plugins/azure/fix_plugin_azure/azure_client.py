@@ -325,10 +325,10 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
                     raise MetricRequestError from e
                 code = error.code or "Unknown"
                 self.accumulator.add_error(False, code, spec.service, spec.action, str(e), self.location)
-            log.warning(f"[Azure] Client Error: status={e.status_code}, error={e.error}, message={e}")
+            log.warning(f"[Azure] Client Error: status={e.status_code}, error={e.error}, message={e}, spec={spec}")
             return None
         except Exception as e:
-            log.warning(f"[Azure] called service={spec.service}: hit unexpected error: {e}", exc_info=e)
+            log.warning(f"[Azure] called service={spec.service}: hit unexpected error: {e}, spec={spec}", exc_info=e)
             if self.config.discard_account_on_resource_error:
                 raise
             return None
