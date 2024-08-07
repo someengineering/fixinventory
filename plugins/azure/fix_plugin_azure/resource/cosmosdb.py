@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
@@ -10,9 +11,14 @@ from fix_plugin_azure.resource.base import (
     AzureResourceIdentity,
     AzureSystemData,
     AzureTrackedResource,
+    GraphBuilder,
     MicrosoftResource,
 )
-from fixlib.json_bender import K, Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.types import Json
+
+service_name = "azure_cosmosdb"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -171,15 +177,7 @@ class AzureNameSeednodesNodes:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraClusterPublicStatus(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_public_status"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/cassandraClusters/{clusterName}/status",
-        path_parameters=["subscriptionId", "resourceGroupName", "clusterName"],
-        query_parameters=["api-version"],
-        access_path=None,
-        expect_array=False,
-    )
+    # Collect via AzureCosmosDBCassandraCluster()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -246,15 +244,7 @@ class AzureCassandraKeyspaceResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraKeyspace(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_keyspace"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/cassandraKeyspaces",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -264,6 +254,49 @@ class AzureCosmosDBCassandraKeyspace(MicrosoftResource, AzureARMResourceProperti
     }
     options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
     resource: Optional[AzureCassandraKeyspaceResource] = field(default=None, metadata={"description": ""})
+
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("tables", AzureCosmosDBCassandraTable, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
 
 
 @define(eq=False, slots=False)
@@ -317,15 +350,7 @@ class AzureCassandraTableResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraTable(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_table"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/cassandraKeyspaces/{keyspaceName}/tables",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName", "keyspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBCassandraKeyspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -378,15 +403,7 @@ class AzureClientEncryptionKeyResource:
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabaseClientEncryptionKey(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_client_encryption_key"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/sqlDatabases/{databaseName}/clientEncryptionKeys",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName", "databaseName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -438,9 +455,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource, AzureManagedCassandraARMR
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "authentication_method": S("properties", "authenticationMethod"),
         "azure_connection_method": S("properties", "azureConnectionMethod"),
         "cassandra_audit_logging_enabled": S("properties", "cassandraAuditLoggingEnabled"),
@@ -485,6 +499,50 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource, AzureManagedCassandraARMR
     restore_from_backup_id: Optional[str] = field(default=None, metadata={'description': 'To create an empty cluster, omit this field or set it to null. To restore a backup into a new cluster, set this field to the resource id of the backup.'})  # fmt: skip
     seed_nodes: Optional[List[str]] = field(default=None, metadata={'description': 'List of IP addresses of seed nodes in the managed data centers. These should be added to the seed node lists of all unmanaged nodes.'})  # fmt: skip
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("status", AzureCosmosDBCassandraClusterPublicStatus, None),
+                ("dataCenters", AzureCosmosDBCassandraClusterDataCenter, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
+
 
 @define(eq=False, slots=False)
 class AzureAuthenticationMethodLdapProperties:
@@ -512,15 +570,7 @@ class AzureAuthenticationMethodLdapProperties:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_data_center"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/cassandraClusters/{clusterName}/dataCenters",
-        path_parameters=["subscriptionId", "resourceGroupName", "clusterName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBCassandraCluster()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -777,9 +827,6 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "analytical_storage_configuration": S("properties", "analyticalStorageConfiguration", "schemaType"),
         "api_properties": S("properties", "apiProperties", "serverVersion"),
         "backup_policy": S("properties", "backupPolicy") >> Bend(AzureBackupPolicy.mapping),
@@ -867,19 +914,66 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
     virtual_network_rules: Optional[List[AzureVirtualNetworkRule]] = field(default=None, metadata={'description': 'List of Virtual Network ACL rules configured for the Cosmos DB account.'})  # fmt: skip
     write_locations: Optional[List[AzureLocation]] = field(default=None, metadata={'description': 'An array that contains the write location for the Cosmos DB account.'})  # fmt: skip
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("cassandraKeyspaces", AzureCosmosDBCassandraKeyspace, None),
+                ("readonlykeys", AzureCosmosDBAccountReadOnlyKeys, None),
+                ("gremlinDatabases", AzureCosmosDBGremlinDatabase, None),
+                ("mongodbDatabases", AzureCosmosDBMongoDBDatabase, None),
+                ("mongodbRoleDefinitions", AzureCosmosDBMongoDBRoleDefinition, None),
+                ("mongodbUserDefinitions", AzureCosmosDBMongoDBUserDefinition, None),
+                ("notebookWorkspaces", AzureCosmosDBNotebookWorkspace, None),
+                ("privateLinkResources", AzureCosmosDBPrivateLinkResource, None),
+                ("sqlDatabases", AzureCosmosDBSqlDatabase, None),
+                ("sqlRoleAssignments", AzureCosmosDBSqlRoleAssignment, None),
+                ("sqlRoleDefinitions", AzureCosmosDBSqlRoleDefinition, None),
+                ("tables", AzureCosmosDBTable, None),
+                ("usages", AzureCosmosDBAccountUsage, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
+
 
 @define(eq=False, slots=False)
 class AzureCosmosDBAccountReadOnlyKeys(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_account_read_only_keys"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/readonlykeys",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path=None,
-        expect_array=False,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -913,15 +1007,7 @@ class AzureGremlinDatabaseResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBGremlinDatabase(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/gremlinDatabases",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -931,6 +1017,49 @@ class AzureCosmosDBGremlinDatabase(MicrosoftResource, AzureARMResourceProperties
     }
     options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
     resource: Optional[AzureGremlinDatabaseResource] = field(default=None, metadata={"description": ""})
+
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("graphs", AzureCosmosDBGremlinGraph, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
 
 
 @define(eq=False, slots=False)
@@ -1064,15 +1193,7 @@ class AzureGremlinGraphResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBGremlinGraph(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_graph"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/gremlinDatabases/{databaseName}/graphs",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName", "databaseName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBGremlinDatabase()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1132,15 +1253,7 @@ class AzureMongoDBCollectionResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBCollection(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_collection"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/mongodbDatabases/{databaseName}/collections",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName", "databaseName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBMongoDBDatabase()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1168,15 +1281,7 @@ class AzureMongoDBDatabaseResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/mongodbDatabases",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1186,6 +1291,49 @@ class AzureCosmosDBMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties
     }
     options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
     resource: Optional[AzureMongoDBDatabaseResource] = field(default=None, metadata={"description": ""})
+
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("collections", AzureCosmosDBMongoDBCollection, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
 
 
 @define(eq=False, slots=False)
@@ -1220,22 +1368,11 @@ class AzureRole:
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_role_definition"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/mongodbRoleDefinitions",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "database_name": S("properties", "databaseName"),
         "privileges": S("properties", "privileges") >> ForallBend(AzurePrivilege.mapping),
         "role_name": S("properties", "roleName"),
@@ -1250,22 +1387,11 @@ class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource, AzureARMProxyResourc
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_user_definition"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/mongodbUserDefinitions",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "custom_data": S("properties", "customData"),
         "database_name": S("properties", "databaseName"),
         "mechanisms": S("properties", "mechanisms"),
@@ -1284,22 +1410,11 @@ class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource, AzureARMProxyResourc
 @define(eq=False, slots=False)
 class AzureCosmosDBNotebookWorkspace(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_notebook_workspace"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/notebookWorkspaces",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "notebook_server_endpoint": S("properties", "notebookServerEndpoint"),
         "status": S("properties", "status"),
     }
@@ -1310,22 +1425,11 @@ class AzureCosmosDBNotebookWorkspace(MicrosoftResource, AzureARMProxyResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPrivateLinkResource(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_private_link_resource"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/privateLinkResources",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "group_id": S("properties", "groupId"),
         "required_members": S("properties", "requiredMembers"),
         "required_zone_names": S("properties", "requiredZoneNames"),
@@ -1366,9 +1470,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "account_name": S("properties", "accountName"),
         "api_type": S("properties", "apiType"),
         "creation_time": S("properties", "creationTime"),
@@ -1383,6 +1484,58 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
     deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the restorable database account has been deleted (ISO-8601 format).'})  # fmt: skip
     oldest_restorable_time: Optional[datetime] = field(default=None, metadata={'description': 'The least recent time at which the database account can be restored to (ISO-8601 format).'})  # fmt: skip
     restorable_locations: Optional[List[AzureRestorableLocationResource]] = field(default=None, metadata={'description': 'List of regions where the of the database account can be restored from.'})  # fmt: skip
+
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),
+                ("restorableGraphs", AzureCosmosDBRestorableGremlinGraph, None),
+                ("restorableGremlinResources", AzureCosmosDBRestorableGremlinResource, None),
+                ("restorableMongodbCollections", AzureCosmosDBRestorableMongoDBCollection, None),
+                ("restorableMongodbDatabases", AzureCosmosDBRestorableMongodbDatabase, None),
+                ("restorableMongodbResources", AzureCosmosDBRestorableMongodbResource, None),
+                ("restorableSqlContainers", AzureCosmosDBRestorableSqlContainer, None),
+                ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),
+                ("restorableSqlResources", AzureCosmosDBRestorableSqlResource, None),
+                ("restorableTables", AzureCosmosDBRestorableTable, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
 
 
 @define(eq=False, slots=False)
@@ -1451,22 +1604,11 @@ class AzureSqlContainerResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_container"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/sqlDatabases/{databaseName}/containers",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName", "databaseName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
         "resource": S("properties", "resource") >> Bend(AzureSqlContainerResource.mapping),
     }
@@ -1500,48 +1642,71 @@ class AzureCollsUsers(AzureSqlDatabaseResource, AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/sqlDatabases",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
         "resource": S("properties", "resource") >> Bend(AzureCollsUsers.mapping),
     }
     options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
     resource: Optional[AzureCollsUsers] = field(default=None, metadata={"description": ""})
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("containers", AzureCosmosDBSqlDatabaseContainer, None),
+                ("clientEncryptionKeys", AzureCosmosDBSqlDatabaseClientEncryptionKey, None),
+                ("throughputSettings/default", AzureCosmosDBSqlThroughputSetting, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
+
 
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleAssignment(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_assignment"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/sqlRoleAssignments",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "principal_id": S("properties", "principalId"),
         "role_definition_id": S("properties", "roleDefinitionId"),
         "scope": S("properties", "scope"),
@@ -1562,22 +1727,11 @@ class AzurePermission:
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleDefinition(MicrosoftResource, AzureARMProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_definition"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/sqlRoleDefinitions",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "assignable_scopes": S("properties", "assignableScopes"),
         "permissions": S("properties", "permissions") >> ForallBend(AzurePermission.mapping),
         "role_name": S("properties", "roleName"),
@@ -1603,22 +1757,11 @@ class AzureTableResource(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBTable(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_table"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/tables",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
         "resource": S("properties", "resource") >> Bend(AzureTableResource.mapping),
     }
@@ -1629,15 +1772,7 @@ class AzureCosmosDBTable(MicrosoftResource, AzureARMResourceProperties):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlThroughputSetting(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_sql_throughput_setting"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/sqlDatabases/{databaseName}/throughputSettings/default",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName", "databaseName"],
-        query_parameters=["api-version"],
-        access_path=None,
-        expect_array=False,
-    )
+    # Collect via AzureCosmosDBSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1650,15 +1785,7 @@ class AzureCosmosDBSqlThroughputSetting(MicrosoftResource, AzureARMResourcePrope
 @define(eq=False, slots=False)
 class AzureCosmosDBAccountUsage(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DocumentDB/databaseAccounts/{accountName}/usages",
-        path_parameters=["subscriptionId", "resourceGroupName", "accountName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1851,22 +1978,11 @@ class AzureRestorableResourceProperties:
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableGremlinDatabases",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
     resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin database event'})  # fmt: skip
@@ -1875,15 +1991,7 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_graph"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableGraphs",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1896,22 +2004,11 @@ class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableGremlinResource(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_resource"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableGremlinResources",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "database_name": S("databaseName"),
         "graph_names": S("graphNames"),
     }
@@ -1922,22 +2019,11 @@ class AzureCosmosDBRestorableGremlinResource(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongodb_collection"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableMongodbCollections",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
     resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB collection event'})  # fmt: skip
@@ -1946,22 +2032,11 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongodbDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongodb_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableMongodbDatabases",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
     resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
@@ -1970,22 +2045,11 @@ class AzureCosmosDBRestorableMongodbDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongodbResource(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongodb_resource"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableMongodbResources",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "collection_names": S("collectionNames"),
         "database_name": S("databaseName"),
     }
@@ -2021,22 +2085,11 @@ class AzureRestorableResourcePropertiesContainer:
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableSqlContainer(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_container"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableSqlContainers",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "resource": S("properties", "resource") >> Bend(AzureRestorableResourcePropertiesContainer.mapping),
     }
     resource: Optional[AzureRestorableResourcePropertiesContainer] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL container event'})  # fmt: skip
@@ -2081,22 +2134,11 @@ class AzureRestorableResourcePropertiesDatabase:
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_database"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableSqlDatabases",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "resource": S("properties", "resource") >> Bend(AzureRestorableResourcePropertiesDatabase.mapping),
     }
     resource: Optional[AzureRestorableResourcePropertiesDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL database event'})  # fmt: skip
@@ -2105,22 +2147,11 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableSqlResource(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_resource"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableSqlResources",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "collection_names": S("collectionNames"),
         "database_name": S("databaseName"),
     }
@@ -2131,22 +2162,11 @@ class AzureCosmosDBRestorableSqlResource(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_table"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="cosmos-db",
-        version="2024-05-15",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{instanceId}/restorableTables",
-        path_parameters=["subscriptionId", "location", "instanceId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
+    # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
         "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
     resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Table event'})  # fmt: skip
@@ -2156,7 +2176,6 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBCassandraClusterPublicStatus,
     AzureCosmosDBCassandraKeyspace,
     AzureCosmosDBCassandraTable,
-    AzureCosmosDBSqlDatabaseClientEncryptionKey,
     AzureCosmosDBCassandraCluster,
     AzureCosmosDBCassandraClusterDataCenter,
     AzureCosmosDBAccount,
@@ -2169,7 +2188,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBMongoDBUserDefinition,
     AzureCosmosDBNotebookWorkspace,
     AzureCosmosDBPrivateLinkResource,
-    AzureCosmosDBRestorableAccount,
+    AzureCosmosDBSqlDatabaseClientEncryptionKey,
     AzureCosmosDBSqlDatabaseContainer,
     AzureCosmosDBSqlDatabase,
     AzureCosmosDBSqlRoleAssignment,
@@ -2179,6 +2198,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBAccountUsage,
     AzureCosmosDBLocation,
     AzureCosmosDBMongoDBCluster,
+    AzureCosmosDBRestorableAccount,
     AzureCosmosDBRestorableGremlinDatabase,
     AzureCosmosDBRestorableGremlinGraph,
     AzureCosmosDBRestorableGremlinResource,
