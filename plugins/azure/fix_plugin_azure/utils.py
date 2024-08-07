@@ -1,10 +1,11 @@
 import logging
+from datetime import datetime
 from typing import Callable, Dict, TypeVar, Any
 from attr import frozen
 import functools
 
 from fixlib.baseresources import StatName, MetricName, MetricUnit
-
+from fixlib.json_bender import F
 
 T = TypeVar("T")
 log = logging.getLogger("fix.plugins.azure")
@@ -65,6 +66,9 @@ def from_str_to_typed(config_type: str, value: str) -> Any:
     except Exception as e:
         log.warning(f"An error occured while typing value: {e}")
         return None
+
+
+TimestampToIso = F(lambda x: datetime.fromtimestamp(x).isoformat())
 
 
 @frozen(kw_only=True)
