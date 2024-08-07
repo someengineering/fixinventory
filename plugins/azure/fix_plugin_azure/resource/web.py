@@ -10,8 +10,9 @@ from fix_plugin_azure.resource.base import (
     AzureSku,
     AzurePrivateEndpointConnection,
     AzureManagedServiceIdentity,
+    AzureExtendedLocation,
 )
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, MapDict
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -26,14 +27,6 @@ class AzureVirtualNetworkProfile:
     name: Optional[str] = field(default=None, metadata={"description": "Name of the virtual network (read-only)"})
     subnet: Optional[str] = field(default=None, metadata={"description": "Subnet within the virtual network"})
     type: Optional[str] = field(default=None, metadata={'description': 'Resource type of the virtual network (read-only)'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureNameValuePair:
-    kind: ClassVar[str] = "azure_name_value_pair"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
-    name: Optional[str] = field(default=None, metadata={"description": "Pair name."})
-    value: Optional[str] = field(default=None, metadata={"description": "Pair value."})
 
 
 @define(eq=False, slots=False)
@@ -65,7 +58,6 @@ class AzureCustomDnsSuffixConfiguration(AzureProxyOnlyResource):
     dns_suffix: Optional[str] = field(default=None, metadata={'description': 'The default custom domain suffix to use for all sites deployed on the ASE.'})  # fmt: skip
     key_vault_reference_identity: Optional[str] = field(default=None, metadata={'description': 'The user-assigned identity to use for resolving the key vault certificate reference. If not specified, the system-assigned ASE identity will be used if available.'})  # fmt: skip
     provisioning_details: Optional[str] = field(default=None, metadata={"description": ""})
-    provisioning_state: Optional[str] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -110,14 +102,6 @@ class AzureKubeEnvironmentProfile:
 
 
 @define(eq=False, slots=False)
-class AzureExtendedLocation:
-    kind: ClassVar[str] = "azure_extended_location"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "type": S("type")}
-    name: Optional[str] = field(default=None, metadata={"description": "Name of extended location."})
-    type: Optional[str] = field(default=None, metadata={"description": "Type of extended location."})
-
-
-@define(eq=False, slots=False)
 class AzureAppServicePlan(MicrosoftResource):
     kind: ClassVar[str] = "azure_app_service_plan"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -153,7 +137,7 @@ class AzureAppServicePlan(MicrosoftResource):
         "provisioning_state": S("properties", "provisioningState"),
         "reserved": S("properties", "reserved"),
         "resource_group": S("properties", "resourceGroup"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "spot_expiration_time": S("properties", "spotExpirationTime"),
         "status": S("properties", "status"),
         "subscription": S("properties", "subscription"),
@@ -177,10 +161,9 @@ class AzureAppServicePlan(MicrosoftResource):
     number_of_sites: Optional[int] = field(default=None, metadata={'description': 'Number of apps assigned to this App Service plan.'})  # fmt: skip
     number_of_workers: Optional[int] = field(default=None, metadata={'description': 'The number of instances that are assigned to this App Service plan.'})  # fmt: skip
     per_site_scaling: Optional[bool] = field(default=None, metadata={'description': 'If <code>true</code>, apps assigned to this App Service plan can be scaled independently. If <code>false</code>, apps assigned to this App Service plan will scale to all instances of the plan.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of the App Service Plan.'})  # fmt: skip
     reserved: Optional[bool] = field(default=None, metadata={'description': 'If Linux app service plan <code>true</code>, <code>false</code> otherwise.'})  # fmt: skip
     resource_group: Optional[str] = field(default=None, metadata={'description': 'Resource group of the App Service plan.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Description of a SKU for a scalable resource.'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Description of a SKU for a scalable resource.'})  # fmt: skip
     spot_expiration_time: Optional[datetime] = field(default=None, metadata={'description': 'The time when the server farm expires. Valid only if it is a spot server farm.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "App Service plan status."})
     subscription: Optional[str] = field(default=None, metadata={"description": "App Service plan subscription."})
@@ -442,7 +425,7 @@ class AzureContainerApp(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "configuration": S("properties", "configuration") >> Bend(AzureConfiguration.mapping),
+        "container_configuration": S("properties", "configuration") >> Bend(AzureConfiguration.mapping),
         "azure_kind": S("kind"),
         "kube_environment_id": S("properties", "kubeEnvironmentId"),
         "latest_revision_fqdn": S("properties", "latestRevisionFqdn"),
@@ -450,12 +433,11 @@ class AzureContainerApp(MicrosoftResource):
         "provisioning_state": S("properties", "provisioningState"),
         "template": S("properties", "template") >> Bend(AzureTemplate.mapping),
     }
-    configuration: Optional[AzureConfiguration] = field(default=None, metadata={'description': 'Non versioned Container App configuration properties that define the mutable settings of a Container app'})  # fmt: skip
+    container_configuration: Optional[AzureConfiguration] = field(default=None, metadata={'description': 'Non versioned Container App configuration properties that define the mutable settings of a Container app'})  # fmt: skip
     azure_kind: Optional[str] = field(default=None, metadata={"description": "Kind of resource."})
     kube_environment_id: Optional[str] = field(default=None, metadata={'description': 'Resource ID of the Container App s KubeEnvironment.'})  # fmt: skip
     latest_revision_fqdn: Optional[str] = field(default=None, metadata={'description': 'Fully Qualified Domain Name of the latest revision of the Container App.'})  # fmt: skip
     latest_revision_name: Optional[str] = field(default=None, metadata={'description': 'Name of the latest revision of the Container App.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of the Container App.'})  # fmt: skip
     template: Optional[AzureTemplate] = field(default=None, metadata={'description': 'Container App versioned application definition. Defines the desired state of an immutable revision. Any changes to this section Will result in a new revision being created'})  # fmt: skip
 
 
@@ -583,7 +565,6 @@ class AzureDomain(MicrosoftResource):
     managed_host_names: Optional[List[AzureHostName]] = field(default=None, metadata={'description': 'All hostnames derived from the domain and assigned to Azure resources'})  # fmt: skip
     name_servers: Optional[List[str]] = field(default=None, metadata={"description": "Name servers"})
     privacy: Optional[bool] = field(default=None, metadata={'description': 'If true then domain privacy is enabled for this domain'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={"description": "Domain provisioning state"})
     ready_for_dns_record_management: Optional[bool] = field(default=None, metadata={'description': 'If true then Azure can assign this domain to Web Apps. This value will be true if domain registration status is active and it is hosted on name servers Azure has programmatic access to'})  # fmt: skip
     registration_status: Optional[str] = field(default=None, metadata={"description": "Domain registration status"})
 
@@ -598,7 +579,7 @@ class AzureWorkerPool:
         "azure_kind": S("kind"),
         "location": S("location"),
         "name": S("name"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "tags": S("tags"),
         "type": S("type"),
         "worker_count": S("properties", "workerCount"),
@@ -611,7 +592,7 @@ class AzureWorkerPool:
     azure_kind: Optional[str] = field(default=None, metadata={"description": "Kind of resource"})
     location: Optional[str] = field(default=None, metadata={"description": "Resource Location"})
     name: Optional[str] = field(default=None, metadata={"description": "Resource Name"})
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a sku for a scalable resource'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a sku for a scalable resource'})  # fmt: skip
     tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Resource tags"})
     type: Optional[str] = field(default=None, metadata={"description": "Resource type"})
     worker_count: Optional[int] = field(default=None, metadata={'description': 'Number of instances in the worker pool'})  # fmt: skip
@@ -695,7 +676,7 @@ class AzureHostingEnvironment(MicrosoftResource):
         "allowed_multi_sizes": S("properties", "allowedMultiSizes"),
         "allowed_worker_sizes": S("properties", "allowedWorkerSizes"),
         "api_management_account_id": S("properties", "apiManagementAccountId"),
-        "cluster_settings": S("properties", "clusterSettings") >> ForallBend(AzureNameValuePair.mapping),
+        "hosting_environment_cluster_settings": S("properties", "clusterSettings") >> MapDict(S("name"), S("value")),
         "database_edition": S("properties", "databaseEdition"),
         "database_service_objective": S("properties", "databaseServiceObjective"),
         "dns_suffix": S("properties", "dnsSuffix"),
@@ -719,7 +700,8 @@ class AzureHostingEnvironment(MicrosoftResource):
         "suspended": S("properties", "suspended"),
         "upgrade_domains": S("properties", "upgradeDomains"),
         "vip_mappings": S("properties", "vipMappings") >> ForallBend(AzureVirtualIPMapping.mapping),
-        "virtual_network": S("properties", "virtualNetwork") >> Bend(AzureVirtualNetworkProfile.mapping),
+        "hosting_environment_virtual_network": S("properties", "virtualNetwork")
+        >> Bend(AzureVirtualNetworkProfile.mapping),
         "vnet_name": S("properties", "vnetName"),
         "vnet_resource_group_name": S("properties", "vnetResourceGroupName"),
         "vnet_subnet_name": S("properties", "vnetSubnetName"),
@@ -728,7 +710,7 @@ class AzureHostingEnvironment(MicrosoftResource):
     allowed_multi_sizes: Optional[str] = field(default=None, metadata={'description': 'List of comma separated strings describing which VM sizes are allowed for front-ends'})  # fmt: skip
     allowed_worker_sizes: Optional[str] = field(default=None, metadata={'description': 'List of comma separated strings describing which VM sizes are allowed for workers'})  # fmt: skip
     api_management_account_id: Optional[str] = field(default=None, metadata={'description': 'Api Management Account associated with this Hosting Environment'})  # fmt: skip
-    cluster_settings: Optional[List[AzureNameValuePair]] = field(default=None, metadata={'description': 'Custom settings for changing the behavior of the hosting environment'})  # fmt: skip
+    hosting_environment_cluster_settings: Optional[Json] = field(default=None, metadata={'description': 'Custom settings for changing the behavior of the hosting environment'})  # fmt: skip
     database_edition: Optional[str] = field(default=None, metadata={'description': 'Edition of the metadata database for the hostingEnvironment (App Service Environment) e.g. Standard '})  # fmt: skip
     database_service_objective: Optional[str] = field(default=None, metadata={'description': 'Service objective of the metadata database for the hostingEnvironment (App Service Environment) e.g. S0 '})  # fmt: skip
     dns_suffix: Optional[str] = field(default=None, metadata={'description': 'DNS suffix of the hostingEnvironment (App Service Environment)'})  # fmt: skip
@@ -744,14 +726,13 @@ class AzureHostingEnvironment(MicrosoftResource):
     multi_role_count: Optional[int] = field(default=None, metadata={"description": "Number of front-end instances"})
     multi_size: Optional[str] = field(default=None, metadata={'description': 'Front-end VM size, e.g. Medium , Large '})  # fmt: skip
     network_access_control_list: Optional[List[AzureNetworkAccessControlEntry]] = field(default=None, metadata={'description': 'Access control list for controlling traffic to the hostingEnvironment (App Service Environment)'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of the hostingEnvironment (App Service Environment)'})  # fmt: skip
     resource_group: Optional[str] = field(default=None, metadata={'description': 'Resource group of the hostingEnvironment (App Service Environment)'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'Current status of the hostingEnvironment (App Service Environment)'})  # fmt: skip
     subscription_id: Optional[str] = field(default=None, metadata={'description': 'Subscription of the hostingEnvironment (App Service Environment)'})  # fmt: skip
     suspended: Optional[bool] = field(default=None, metadata={'description': 'True/false indicating whether the hostingEnvironment is suspended. The environment can be suspended e.g. when the management endpoint is no longer available (most likely because NSG blocked the incoming traffic)'})  # fmt: skip
     upgrade_domains: Optional[int] = field(default=None, metadata={'description': 'Number of upgrade domains of this hostingEnvironment (App Service Environment)'})  # fmt: skip
     vip_mappings: Optional[List[AzureVirtualIPMapping]] = field(default=None, metadata={'description': 'Description of IP SSL mapping for this hostingEnvironment (App Service Environment)'})  # fmt: skip
-    virtual_network: Optional[AzureVirtualNetworkProfile] = field(default=None, metadata={'description': 'Specification for using a virtual network'})  # fmt: skip
+    hosting_environment_virtual_network: Optional[AzureVirtualNetworkProfile] = field(default=None, metadata={'description': 'Specification for using a virtual network'})  # fmt: skip
     vnet_name: Optional[str] = field(default=None, metadata={'description': 'Name of the hostingEnvironment s (App Service Environment) virtual network'})  # fmt: skip
     vnet_resource_group_name: Optional[str] = field(default=None, metadata={'description': 'Resource group of the hostingEnvironment s (App Service Environment) virtual network'})  # fmt: skip
     vnet_subnet_name: Optional[str] = field(default=None, metadata={'description': 'Subnet of the hostingEnvironment s (App Service Environment) virtual network'})  # fmt: skip
@@ -857,7 +838,6 @@ class AzureKubeEnvironment(MicrosoftResource):
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'Extended Location.'})  # fmt: skip
     internal_load_balancer_enabled: Optional[bool] = field(default=None, metadata={'description': 'Only visible within Vnet/Subnet'})  # fmt: skip
     azure_kind: Optional[str] = field(default=None, metadata={"description": "Kind of resource."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of the Kubernetes Environment.'})  # fmt: skip
     static_ip: Optional[str] = field(default=None, metadata={"description": "Static IP of the KubeEnvironment"})
 
 
@@ -1094,7 +1074,7 @@ class AzureSiteConfig:
         "api_definition": S("apiDefinition", "url"),
         "api_management_config": S("apiManagementConfig", "id"),
         "app_command_line": S("appCommandLine"),
-        "app_settings": S("appSettings") >> ForallBend(AzureNameValuePair.mapping),
+        "app_settings": S("appSettings") >> MapDict(S("name"), S("value")),
         "auto_heal_enabled": S("autoHealEnabled"),
         "auto_swap_slot_name": S("autoSwapSlotName"),
         "azure_storage_accounts": S("azureStorageAccounts"),
@@ -1126,7 +1106,7 @@ class AzureSiteConfig:
         "machine_key": S("machineKey") >> Bend(AzureSiteMachineKey.mapping),
         "managed_pipeline_mode": S("managedPipelineMode"),
         "managed_service_identity_id": S("managedServiceIdentityId"),
-        "metadata": S("metadata") >> ForallBend(AzureNameValuePair.mapping),
+        "metadata": S("metadata") >> MapDict(S("name"), S("value")),
         "min_tls_cipher_suite": S("minTlsCipherSuite"),
         "min_tls_version": S("minTlsVersion"),
         "minimum_elastic_instance_count": S("minimumElasticInstanceCount"),
@@ -1167,9 +1147,7 @@ class AzureSiteConfig:
     api_definition: Optional[str] = field(default=None, metadata={'description': 'Information about the formal API definition for the app.'})  # fmt: skip
     api_management_config: Optional[str] = field(default=None, metadata={'description': 'Azure API management (APIM) configuration linked to the app.'})  # fmt: skip
     app_command_line: Optional[str] = field(default=None, metadata={"description": "App command line to launch."})
-    app_settings: Optional[List[AzureNameValuePair]] = field(
-        default=None, metadata={"description": "Application settings."}
-    )
+    app_settings: Optional[Json] = field(default=None, metadata={"description": "Application settings."})
     auto_heal_enabled: Optional[bool] = field(default=None, metadata={'description': '<code>true</code> if Auto Heal is enabled; otherwise, <code>false</code>.'})  # fmt: skip
     auto_swap_slot_name: Optional[str] = field(default=None, metadata={"description": "Auto-swap slot name."})
     azure_storage_accounts: Optional[Dict[str, AzureAzureStorageInfoValue]] = field(default=None, metadata={'description': 'List of Azure Storage Accounts.'})  # fmt: skip
@@ -1201,7 +1179,7 @@ class AzureSiteConfig:
     machine_key: Optional[AzureSiteMachineKey] = field(default=None, metadata={"description": "MachineKey of an app."})
     managed_pipeline_mode: Optional[str] = field(default=None, metadata={"description": "Managed pipeline mode."})
     managed_service_identity_id: Optional[int] = field(default=None, metadata={'description': 'Managed Service Identity Id'})  # fmt: skip
-    metadata: Optional[List[AzureNameValuePair]] = field(default=None, metadata={'description': 'Application metadata. This property cannot be retrieved, since it may contain secrets.'})  # fmt: skip
+    metadata: Optional[Json] = field(default=None, metadata={'description': 'Application metadata. This property cannot be retrieved, since it may contain secrets.'})  # fmt: skip
     min_tls_cipher_suite: Optional[str] = field(default=None, metadata={'description': 'The minimum strength TLS cipher suite allowed for an application'})  # fmt: skip
     min_tls_version: Optional[str] = field(default=None, metadata={'description': 'MinTlsVersion: configures the minimum version of TLS required for SSL requests'})  # fmt: skip
     minimum_elastic_instance_count: Optional[int] = field(default=None, metadata={'description': 'Number of minimum instance count for a site This setting only applies to the Elastic Plans'})  # fmt: skip
@@ -1450,7 +1428,7 @@ class AzureAppSite(MicrosoftResource):
         "target_swap_slot": S("properties", "targetSwapSlot"),
         "traffic_manager_host_names": S("properties", "trafficManagerHostNames"),
         "usage_state": S("properties", "usageState"),
-        "virtual_network_subnet_id": S("properties", "virtualNetworkSubnetId"),
+        "site_virtual_network_subnet_id": S("properties", "virtualNetworkSubnetId"),
         "vnet_backup_restore_enabled": S("properties", "vnetBackupRestoreEnabled"),
         "vnet_content_share_enabled": S("properties", "vnetContentShareEnabled"),
         "vnet_image_pull_enabled": S("properties", "vnetImagePullEnabled"),
@@ -1508,7 +1486,7 @@ class AzureAppSite(MicrosoftResource):
     target_swap_slot: Optional[str] = field(default=None, metadata={'description': 'Specifies which deployment slot this app will swap into. Read-only.'})  # fmt: skip
     traffic_manager_host_names: Optional[List[str]] = field(default=None, metadata={'description': 'Azure Traffic Manager hostnames associated with the app. Read-only.'})  # fmt: skip
     usage_state: Optional[str] = field(default=None, metadata={'description': 'State indicating whether the app has exceeded its quota usage. Read-only.'})  # fmt: skip
-    virtual_network_subnet_id: Optional[str] = field(default=None, metadata={'description': 'Azure Resource Manager ID of the Virtual network and subnet to be joined by Regional VNET Integration. This must be of the form /subscriptions/{subscriptionName}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks/{vnetName}/subnets/{subnetName}'})  # fmt: skip
+    site_virtual_network_subnet_id: Optional[str] = field(default=None, metadata={'description': 'Azure Resource Manager ID of the Virtual network and subnet to be joined by Regional VNET Integration. This must be of the form /subscriptions/{subscriptionName}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/virtualNetworks/{vnetName}/subnets/{subnetName}'})  # fmt: skip
     vnet_backup_restore_enabled: Optional[bool] = field(default=None, metadata={'description': 'To enable Backup and Restore operations over virtual network'})  # fmt: skip
     vnet_content_share_enabled: Optional[bool] = field(default=None, metadata={'description': 'To enable accessing content over virtual network'})  # fmt: skip
     vnet_image_pull_enabled: Optional[bool] = field(default=None, metadata={'description': 'To enable pulling image over Virtual Network'})  # fmt: skip
@@ -1646,9 +1624,10 @@ class AzureAppStaticSite(MicrosoftResource):
         "public_network_access": S("properties", "publicNetworkAccess"),
         "repository_token": S("properties", "repositoryToken"),
         "repository_url": S("properties", "repositoryUrl"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "staging_environment_policy": S("properties", "stagingEnvironmentPolicy"),
-        "template_properties": S("properties", "templateProperties") >> Bend(AzureStaticSiteTemplateOptions.mapping),
+        "site_template_properties": S("properties", "templateProperties")
+        >> Bend(AzureStaticSiteTemplateOptions.mapping),
         "user_provided_function_apps": S("properties", "userProvidedFunctionApps")
         >> ForallBend(AzureStaticSiteUserProvidedFunctionApp.mapping),
     }
@@ -1669,9 +1648,9 @@ class AzureAppStaticSite(MicrosoftResource):
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'State indicating whether public traffic are allowed or not for a static web app. Allowed Values: Enabled , Disabled or an empty string.'})  # fmt: skip
     repository_token: Optional[str] = field(default=None, metadata={'description': 'A user s github repository token. This is used to setup the Github Actions workflow file and API secrets.'})  # fmt: skip
     repository_url: Optional[str] = field(default=None, metadata={'description': 'URL for the repository of the static site.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Description of a SKU for a scalable resource.'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Description of a SKU for a scalable resource.'})  # fmt: skip
     staging_environment_policy: Optional[str] = field(default=None, metadata={'description': 'State indicating whether staging environments are allowed or not allowed for a static web app.'})  # fmt: skip
-    template_properties: Optional[AzureStaticSiteTemplateOptions] = field(default=None, metadata={'description': 'Template Options for the static site.'})  # fmt: skip
+    site_template_properties: Optional[AzureStaticSiteTemplateOptions] = field(default=None, metadata={'description': 'Template Options for the static site.'})  # fmt: skip
     user_provided_function_apps: Optional[List[AzureStaticSiteUserProvidedFunctionApp]] = field(default=None, metadata={'description': 'User provided function apps registered with the static site'})  # fmt: skip
 
 

@@ -4069,12 +4069,6 @@ class AzureContainerNetworkInterfaceConfiguration(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureContainer(AzureSubResource):
-    kind: ClassVar[str] = "azure_container"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {}
-
-
-@define(eq=False, slots=False)
 class AzureContainerNetworkInterfaceIpConfiguration:
     kind: ClassVar[str] = "azure_container_network_interface_ip_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4093,7 +4087,7 @@ class AzureContainerNetworkInterfaceIpConfiguration:
 class AzureContainerNetworkInterface(AzureSubResource):
     kind: ClassVar[str] = "azure_container_network_interface"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "container": S("properties", "container") >> Bend(AzureContainer.mapping),
+        "container": S("properties", "container") >> Bend(AzureSubResource.mapping),
         "container_network_interface_configuration": S("properties", "containerNetworkInterfaceConfiguration")
         >> Bend(AzureContainerNetworkInterfaceConfiguration.mapping),
         "etag": S("etag"),
@@ -4103,7 +4097,7 @@ class AzureContainerNetworkInterface(AzureSubResource):
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
     }
-    container: Optional[AzureContainer] = field(default=None, metadata={'description': 'Reference to container resource in remote resource provider.'})  # fmt: skip
+    container: Optional[AzureSubResource] = field(default=None, metadata={'description': 'Reference to container resource in remote resource provider.'})  # fmt: skip
     container_network_interface_configuration: Optional[AzureContainerNetworkInterfaceConfiguration] = field(default=None, metadata={'description': 'Container network interface configuration child resource.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     ip_configurations: Optional[List[AzureContainerNetworkInterfaceIpConfiguration]] = field(default=None, metadata={'description': 'Reference to the ip configuration on this container nic.'})  # fmt: skip

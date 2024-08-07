@@ -796,7 +796,6 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             "default": [
                 "azure_sql_server_managed_instance_database",
                 "azure_sql_server_trust_group",
-                "azure_sql_server_private_endpoint_connection",
                 "microsoft_graph_service_principal",
                 "microsoft_graph_user",
                 "azure_sql_server_managed_instance_ad_administrator",
@@ -1336,7 +1335,6 @@ class AzureSqlServer(MicrosoftResource):
             "default": [
                 "azure_sql_server_database",
                 "azure_sql_server_elastic_pool",
-                "azure_sql_server_private_endpoint_connection",
                 "azure_sql_server_failover_group",
                 "azure_sql_server_firewall_rule",
                 "azure_sql_server_job_agent",
