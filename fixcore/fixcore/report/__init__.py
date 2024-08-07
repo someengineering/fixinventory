@@ -93,6 +93,23 @@ class SecurityIssue:
 
 
 @define
+class BenchmarkScore:
+    score: int
+    failed_checks: Dict[ReportSeverity, int]
+    failed_resources: Dict[ReportSeverity, int]
+
+    def to_json(self) -> Json:
+        return {
+            "score": self.score,
+            "failed": {
+                severity.value: {"checks": count, "resources": fr}
+                for severity, count in self.failed_checks.items()
+                if (fr := self.failed_resources.get(severity, 0)) and count > 0
+            },
+        }
+
+
+@define
 class Remediation:
     kind: ClassVar[str] = "fix_core_report_check_remediation"
     text: str = field(metadata={"description": "Textual description of the remediation."})
@@ -368,23 +385,27 @@ class BenchmarkResult(CheckCollectionResult):
         visit_check_collection(self)
         return result
 
-    def score_for(self, account: str) -> int:
-        failing: Dict[ReportSeverity, int] = defaultdict(int)
+    # score, failed_checks, failed_resources
+    def score_for(self, account: str) -> BenchmarkScore:
+        failing_checks: Dict[ReportSeverity, int] = defaultdict(int)
+        failing_resources: Dict[ReportSeverity, int] = defaultdict(int)
         available: Dict[ReportSeverity, int] = defaultdict(int)
 
         def available_failing(check: CheckCollectionResult) -> None:
             for result in check.checks:
+                fr = result.number_of_resources_failing_by_account.get(account, 0)
                 available[result.check.severity] += 1
-                failing[result.check.severity] += (
-                    1 if result.number_of_resources_failing_by_account.get(account, 0) else 0
-                )
+                failing_checks[result.check.severity] += 1 if fr else 0
+                failing_resources[result.check.severity] += fr
             for child in check.children:
                 available_failing(child)
 
         available_failing(self)  # walk the benchmark hierarchy
-        missing = sum(severity.score * count for severity, count in failing.items())
+        missing = sum(severity.score * count for severity, count in failing_checks.items())
         total = sum(severity.score * count for severity, count in available.items())
-        return int((max(0, total - missing) * 100) // total) if total > 0 else 100
+        return BenchmarkScore(
+            int((max(0, total - missing) * 100) // total) if total > 0 else 100, failing_checks, failing_resources
+        )
 
 
 class Inspector(ABC):

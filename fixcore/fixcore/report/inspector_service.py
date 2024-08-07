@@ -263,6 +263,21 @@ class InspectorService(Inspector, Service):
         result = {
             name: self.__to_result(benchmark, check_lookup, results, context) for name, benchmark in benchmarks.items()
         }
+        all_checks = {cr.check.id: cr for res in result.values() for cr in res.check_results()}
+
+        def account_failing(account_id: str) -> Json:
+            failing_checks: Dict[ReportSeverity, int] = defaultdict(int)
+            failing_resources: Dict[ReportSeverity, int] = defaultdict(int)
+            for cr in all_checks.values():
+                if fr := cr.resources_failing_by_account.get(account_id, []):
+                    failing_checks[cr.check.severity] += 1
+                    failing_resources[cr.check.severity] += len(fr)
+            return {
+                sev.value: {"checks": count, "resources": failing_resources[sev]}
+                for sev, count in failing_checks.items()
+                if count > 0 and failing_resources[sev] > 0
+            }
+
         if sync_security_section:
             model = await self.model_handler.load_model(graph)
             # In case no run_id is provided, we invent a report run id here.
@@ -278,9 +293,13 @@ class InspectorService(Inspector, Service):
                         if (node_id := value_in_path(acc, NodePath.node_id)) and (
                             acc_id := value_in_path(acc, NodePath.reported_id)
                         ):
-                            bench_score = {br.id: br.score_for(acc_id) for br in result.values()}
-                            account_score = sum(bench_score.values()) / len(bench_score) if bench_score else 100
-                            patch = {"score": account_score, "benchmark": bench_score}
+                            scores = {br.id: br.score_for(acc_id) for br in result.values()}
+                            account_score = sum(a.score for a in scores.values()) / len(scores) if scores else 100
+                            patch = {
+                                "score": account_score,
+                                "failed": account_failing(acc_id),
+                                "benchmark": {br: score.to_json() for br, score in scores.items()},
+                            }
                             async for _ in db.update_nodes_metadata(model, patch, [node_id]):
                                 pass
         return result
