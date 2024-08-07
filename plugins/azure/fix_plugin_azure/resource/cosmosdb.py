@@ -918,20 +918,35 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
         expected_errors: Optional[List[str]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
-        api_spec = AzureResourceSpec(
-            service="cosmos-db",
-            version="2024-05-15",
-            path=path,
-            path_parameters=[],
-            query_parameters=["api-version"],
-            access_path="value",
-            expect_array=True,
-            expected_error_codes=expected_errors or [],
-        )
+        if issubclass(AzureCosmosDBAccountReadOnlyKeys, class_instance):  # type: ignore
+            api_spec = AzureResourceSpec(
+                service="cosmos-db",
+                version="2024-05-15",
+                path=path,
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path=None,
+                expect_array=False,
+                expected_error_codes=expected_errors or [],
+            )
+        else:
+            api_spec = AzureResourceSpec(
+                service="cosmos-db",
+                version="2024-05-15",
+                path=path,
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+                expected_error_codes=expected_errors or [],
+            )
         items = graph_builder.client.list(api_spec)
         if not items:
             return
-        collected = class_instance.collect(items, graph_builder)
+        if issubclass(AzureCosmosDBAccountReadOnlyKeys, class_instance):  # type: ignore
+            collected = class_instance.collect_keys(account_id, items, graph_builder)  # type: ignore
+        else:
+            collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
             graph_builder.add_edge(self, node=clazz)
 
@@ -971,13 +986,24 @@ class AzureCosmosDBAccountReadOnlyKeys(MicrosoftResource):
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
         "primary_readonly_master_key": S("primaryReadonlyMasterKey"),
         "secondary_readonly_master_key": S("secondaryReadonlyMasterKey"),
     }
     primary_readonly_master_key: Optional[str] = field(default=None, metadata={'description': 'Base 64 encoded value of the primary read-only key.'})  # fmt: skip
     secondary_readonly_master_key: Optional[str] = field(default=None, metadata={'description': 'Base 64 encoded value of the secondary read-only key.'})  # fmt: skip
+
+    @classmethod
+    def collect_keys(
+        cls, account_id: str, raw: List[Json], builder: GraphBuilder
+    ) -> List[AzureCosmosDBAccountReadOnlyKeys]:
+        result = []
+        for js in raw:
+            # map from api
+            if instance := cls.from_api(js, builder):
+                instance.id = account_id
+                if (added := builder.add_node(instance, js)) is not None:
+                    result.append(added)
+        return result
 
 
 @define(eq=False, slots=False)
@@ -1658,12 +1684,12 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
     def _collect_items(
         self,
         graph_builder: GraphBuilder,
-        account_id: str,
+        database_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
         expected_errors: Optional[List[str]] = None,
     ) -> None:
-        path = f"{account_id}/{resource_type}"
+        path = f"{database_id}/{resource_type}"
         api_spec = AzureResourceSpec(
             service="cosmos-db",
             version="2024-05-15",
@@ -1682,7 +1708,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
             graph_builder.add_edge(self, node=clazz)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if account_id := self.id:
+        if database_id := self.id:
             resources_to_collect = [
                 ("containers", AzureCosmosDBSqlDatabaseContainer, None),
                 ("clientEncryptionKeys", AzureCosmosDBSqlDatabaseClientEncryptionKey, None),
@@ -1694,7 +1720,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
                     service_name,
                     self._collect_items,
                     graph_builder,
-                    account_id,
+                    database_id,
                     resource_type,
                     resource_class,
                     expected_errors,
@@ -1789,13 +1815,8 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "current_value": S("currentValue"),
-        "limit": S("limit"),
+        "id": S("name", "value"),
         "usage_quota_period": S("quotaPeriod"),
-        "unit": S("unit"),
     }
     usage_quota_period: Optional[str] = field(default=None, metadata={'description': 'The quota period used to summarize the usage values.'})  # fmt: skip
 

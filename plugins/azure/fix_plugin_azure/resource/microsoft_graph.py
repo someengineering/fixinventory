@@ -1207,10 +1207,10 @@ MicrosoftGraphPrincipalTypes: List[Type[MicrosoftGraphEntity]] = [
 
 
 resources: List[Type[MicrosoftResource]] = [
-    MicrosoftGraphPolicy,
-    MicrosoftGraphDevice,
-    MicrosoftGraphServicePrincipal,
-    MicrosoftGraphGroup,
-    MicrosoftGraphRole,
-    MicrosoftGraphUser,
+    # MicrosoftGraphPolicy,
+    # MicrosoftGraphDevice,
+    # MicrosoftGraphServicePrincipal,
+    # MicrosoftGraphGroup,
+    # MicrosoftGraphRole,
+    # MicrosoftGraphUser,
 ]
