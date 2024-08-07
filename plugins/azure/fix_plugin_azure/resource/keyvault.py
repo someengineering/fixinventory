@@ -15,6 +15,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
 )
 from fix_plugin_azure.resource.monitor import AzureMonitorDiagnosticSettings
+from fix_plugin_azure.utils import TimestampToIso
 from fixlib.baseresources import ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -166,24 +167,24 @@ class AzureKeyVaultPrivateEndpointConnectionItem:
 
 
 @define(eq=False, slots=False)
-class AzureKeyAttributes:
-    kind: ClassVar[str] = "azure_key_attributes"
+class AzureKeyVaultAttributes:
+    kind: ClassVar[str] = "azure_key_vault_attributes"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "created": S("created"),
+        "created": S("created") >> TimestampToIso,
         "enabled": S("enabled"),
-        "exp": S("exp"),
+        "expire": S("exp") >> TimestampToIso,
         "exportable": S("exportable"),
         "nbf": S("nbf"),
         "recovery_level": S("recoveryLevel"),
-        "updated": S("updated"),
+        "updated": S("updated") >> TimestampToIso,
     }
-    created: Optional[int] = field(default=None, metadata={'description': 'Creation time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
+    created: Optional[datetime] = field(default=None, metadata={'description': 'Creation time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
     enabled: Optional[bool] = field(default=None, metadata={'description': 'Determines whether or not the object is enabled.'})  # fmt: skip
-    exp: Optional[int] = field(default=None, metadata={'description': 'Expiry date in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
+    expire: Optional[datetime] = field(default=None, metadata={'description': 'Expiry date in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
     exportable: Optional[bool] = field(default=None, metadata={'description': 'Indicates if the private key can be exported.'})  # fmt: skip
     nbf: Optional[int] = field(default=None, metadata={'description': 'Not before date in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
     recovery_level: Optional[str] = field(default=None, metadata={'description': 'The deletion recovery level currently in effect for the object. If it contains Purgeable , then the object can be permanently deleted by a privileged user; otherwise, only the system can purge the object at the end of the retention interval.'})  # fmt: skip
-    updated: Optional[int] = field(default=None, metadata={'description': 'Last updated time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
+    updated: Optional[datetime] = field(default=None, metadata={'description': 'Last updated time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -222,8 +223,8 @@ class AzureKeyVaultLifetimeAction:
 
 
 @define(eq=False, slots=False)
-class AzureKeyVaultRotationPolicy:
-    kind: ClassVar[str] = "azure_key_vault_rotation_policy"
+class AzureKeyRotationPolicy:
+    kind: ClassVar[str] = "azure_key_rotation_policy"
     mapping: ClassVar[Dict[str, Bender]] = {
         "attributes": S("attributes") >> Bend(AzureKeyRotationPolicyAttributes.mapping),
         "lifetime_actions": S("lifetimeActions") >> ForallBend(AzureKeyVaultLifetimeAction.mapping),
@@ -238,6 +239,29 @@ class AzureKeyReleasePolicy:
     mapping: ClassVar[Dict[str, Bender]] = {"content_type": S("contentType"), "data": S("data")}
     content_type: Optional[str] = field(default=None, metadata={'description': 'Content type and version of key release policy'})  # fmt: skip
     data: Optional[str] = field(default=None, metadata={'description': 'Blob encoding the policy rules under which the key can be released.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureSecret(MicrosoftResource):
+    kind: ClassVar[str] = "azure_secret"
+    # collected via AzureKeyVault
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "ctime": S("properties", "attributes", "created") >> TimestampToIso,
+        "mtime": S("properties", "attributes", "updated") >> TimestampToIso,
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "secret_attributes": S("properties", "attributes") >> Bend(AzureKeyVaultAttributes.mapping),
+        "content_type": S("properties", "contentType"),
+        "secret_uri": S("properties", "secretUri"),
+        "secret_uri_with_version": S("properties", "secretUriWithVersion"),
+        "value": S("properties", "value"),
+    }
+    secret_attributes: Optional[AzureKeyVaultAttributes] = field(default=None, metadata={'description': 'The secret management attributes.'})  # fmt: skip
+    content_type: Optional[str] = field(default=None, metadata={"description": "The content type of the secret."})
+    secret_uri: Optional[str] = field(default=None, metadata={'description': 'The URI to retrieve the current version of the secret.'})  # fmt: skip
+    secret_uri_with_version: Optional[str] = field(default=None, metadata={'description': 'The URI to retrieve the specific version of the secret.'})  # fmt: skip
+    value: Optional[str] = field(default=None, metadata={'description': 'The value of the secret. NOTE: value will never be returned from the service, as APIs using this model are is intended for internal use in ARM deployments. Users should use the data-plane REST service for interaction with vault secrets.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -308,7 +332,9 @@ class AzureKey(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "attributes": S("properties", "attributes") >> Bend(AzureKeyAttributes.mapping),
+        "ctime": S("properties", "attributes", "created") >> TimestampToIso,
+        "mtime": S("properties", "attributes", "updated") >> TimestampToIso,
+        "key_attributes": S("properties", "attributes") >> Bend(AzureKeyVaultAttributes.mapping),
         "curve_name": S("properties", "curveName"),
         "key_ops": S("properties", "keyOps"),
         "key_size": S("properties", "keySize"),
@@ -316,9 +342,9 @@ class AzureKey(MicrosoftResource):
         "key_uri_with_version": S("properties", "keyUriWithVersion"),
         "kty": S("properties", "kty"),
         "release_policy": S("properties", "release_policy") >> Bend(AzureKeyReleasePolicy.mapping),
-        "rotation_policy": S("properties", "rotationPolicy") >> Bend(AzureKeyVaultRotationPolicy.mapping),
+        "rotation_policy": S("properties", "rotationPolicy") >> Bend(AzureKeyRotationPolicy.mapping),
     }
-    attributes: Optional[AzureKeyAttributes] = field(default=None, metadata={'description': 'The object attributes managed by the Azure Key Vault service.'})  # fmt: skip
+    key_attributes: Optional[AzureKeyVaultAttributes] = field(default=None, metadata={'description': 'The object attributes managed by the Azure Key Vault service.'})  # fmt: skip
     curve_name: Optional[str] = field(default=None, metadata={'description': 'The elliptic curve name. For valid values, see JsonWebKeyCurveName.'})  # fmt: skip
     key_ops: Optional[List[str]] = field(default=None, metadata={"description": ""})
     key_size: Optional[int] = field(default=None, metadata={'description': 'The key size in bits. For example: 2048, 3072, or 4096 for RSA.'})  # fmt: skip
@@ -326,7 +352,7 @@ class AzureKey(MicrosoftResource):
     key_uri_with_version: Optional[str] = field(default=None, metadata={'description': 'The URI to retrieve the specific version of the key.'})  # fmt: skip
     kty: Optional[str] = field(default=None, metadata={'description': 'The type of the key. For valid values, see JsonWebKeyType.'})  # fmt: skip
     release_policy: Optional[AzureKeyReleasePolicy] = field(default=None, metadata={"description": ""})
-    rotation_policy: Optional[AzureKeyVaultRotationPolicy] = field(default=None, metadata={"description": ""})
+    rotation_policy: Optional[AzureKeyRotationPolicy] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -352,15 +378,15 @@ class AzureKeyVault(MicrosoftResource):
         "mtime": S("systemData", "lastModifiedAt"),
         "access_policies": S("properties", "accessPolicies") >> ForallBend(AzureAccessKeyVaultPolicyEntry.mapping),
         "create_mode": S("properties", "createMode"),
-        "enable_purge_protection": S("properties", "enablePurgeProtection"),
-        "enable_rbac_authorization": S("properties", "enableRbacAuthorization"),
-        "enable_soft_delete": S("properties", "enableSoftDelete"),
+        "purge_protection": S("properties", "enablePurgeProtection", default=False),
+        "rbac_authorization": S("properties", "enableRbacAuthorization", default=False),
+        "soft_delete": S("properties", "enableSoftDelete", default=False),
         "enabled_for_deployment": S("properties", "enabledForDeployment"),
         "enabled_for_disk_encryption": S("properties", "enabledForDiskEncryption"),
         "enabled_for_template_deployment": S("properties", "enabledForTemplateDeployment"),
         "hsm_pool_resource_id": S("properties", "hsmPoolResourceId"),
         "network_acl_rules": S("properties", "networkAcls") >> Bend(AzureKeyVaultNetworkRuleSet.mapping),
-        "private_endpoint_connections": S("properties", "privateEndpointConnections")
+        "vault_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzureKeyVaultPrivateEndpointConnectionItem.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
@@ -372,9 +398,9 @@ class AzureKeyVault(MicrosoftResource):
     }
     access_policies: Optional[List[AzureAccessKeyVaultPolicyEntry]] = field(default=None, metadata={'description': 'An array of 0 to 1024 identities that have access to the key vault. All identities in the array must use the same tenant ID as the key vault s tenant ID. When `createMode` is set to `recover`, access policies are not required. Otherwise, access policies are required.'})  # fmt: skip
     create_mode: Optional[str] = field(default=None, metadata={'description': 'The vault s create mode to indicate whether the vault need to be recovered or not.'})  # fmt: skip
-    enable_purge_protection: Optional[bool] = field(default=None, metadata={'description': 'Property specifying whether protection against purge is enabled for this vault. Setting this property to true activates protection against purge for this vault and its content - only the Key Vault service may initiate a hard, irrecoverable deletion. The setting is effective only if soft delete is also enabled. Enabling this functionality is irreversible - that is, the property does not accept false as its value.'})  # fmt: skip
-    enable_rbac_authorization: Optional[bool] = field(default=None, metadata={'description': 'Property that controls how data actions are authorized. When true, the key vault will use Role Based Access Control (RBAC) for authorization of data actions, and the access policies specified in vault properties will be ignored. When false, the key vault will use the access policies specified in vault properties, and any policy stored on Azure Resource Manager will be ignored. If null or not specified, the vault is created with the default value of false. Note that management actions are always authorized with RBAC.'})  # fmt: skip
-    enable_soft_delete: Optional[bool] = field(default=None, metadata={'description': 'Property to specify whether the soft delete functionality is enabled for this key vault. If it s not set to any value(true or false) when creating new key vault, it will be set to true by default. Once set to true, it cannot be reverted to false.'})  # fmt: skip
+    purge_protection: Optional[bool] = field(default=None, metadata={'description': 'Property specifying whether protection against purge is enabled for this vault. Setting this property to true activates protection against purge for this vault and its content - only the Key Vault service may initiate a hard, irrecoverable deletion. The setting is effective only if soft delete is also enabled. Enabling this functionality is irreversible - that is, the property does not accept false as its value.'})  # fmt: skip
+    rbac_authorization: Optional[bool] = field(default=None, metadata={'description': 'Property that controls how data actions are authorized. When true, the key vault will use Role Based Access Control (RBAC) for authorization of data actions, and the access policies specified in vault properties will be ignored. When false, the key vault will use the access policies specified in vault properties, and any policy stored on Azure Resource Manager will be ignored. If null or not specified, the vault is created with the default value of false. Note that management actions are always authorized with RBAC.'})  # fmt: skip
+    soft_delete: Optional[bool] = field(default=None, metadata={'description': 'Property to specify whether the soft delete functionality is enabled for this key vault. If it s not set to any value(true or false) when creating new key vault, it will be set to true by default. Once set to true, it cannot be reverted to false.'})  # fmt: skip
     enabled_for_deployment: Optional[bool] = field(default=None, metadata={'description': 'Property to specify whether Azure Virtual Machines are permitted to retrieve certificates stored as secrets from the key vault.'})  # fmt: skip
     enabled_for_disk_encryption: Optional[bool] = field(default=None, metadata={'description': 'Property to specify whether Azure Disk Encryption is permitted to retrieve secrets from the vault and unwrap keys.'})  # fmt: skip
     enabled_for_template_deployment: Optional[bool] = field(default=None, metadata={'description': 'Property to specify whether Azure Resource Manager is permitted to retrieve secrets from the key vault.'})  # fmt: skip
@@ -389,22 +415,23 @@ class AzureKeyVault(MicrosoftResource):
     vault_uri: Optional[str] = field(default=None, metadata={'description': 'The URI of the vault for performing operations on keys and secrets.'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        def collect_keys() -> None:
-            for key_json in graph_builder.client.list(
+        def collect_dependant(cls: Type[MicrosoftResource], name: str) -> None:
+            for dep_json in graph_builder.client.list(
                 AzureResourceSpec(
                     service="keyvault",
                     version="2023-07-01",
-                    path=f"{self.id}/keys",
+                    path=f"{self.id}/{name}",
                     query_parameters=["api-version"],
                     access_path="value",
                     expect_array=True,
                 )
             ):
-                if key := AzureKey.from_api(key_json, graph_builder):
-                    graph_builder.add_node(key)
-                    graph_builder.add_edge(self, node=key)
+                if dep := cls.from_api(dep_json, graph_builder):
+                    graph_builder.add_node(dep)
+                    graph_builder.add_edge(self, node=dep)
 
-        graph_builder.submit_work(service_name, collect_keys)
+        graph_builder.submit_work(service_name, collect_dependant, AzureKey, "keys")
+        graph_builder.submit_work(service_name, collect_dependant, AzureSecret, "secrets")
         AzureMonitorDiagnosticSettings.fetch_diagnostics(graph_builder, self)
 
 
