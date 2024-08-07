@@ -16,6 +16,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     MicrosoftResource,
 )
+from fixlib.baseresources import ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -246,6 +247,13 @@ class AzureCassandraKeyspaceResource(AzureCosmosDBResource):
 class AzureCosmosDBCassandraKeyspace(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_keyspace"
     # Collect via AzureCosmosDBAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_cassandra_table",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -456,6 +464,14 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource, AzureManagedCassandraARMR
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_cassandra_cluster_public_status",
+                "azure_cosmos_db_cassandra_cluster_data_center",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureManagedCassandraARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -818,6 +834,25 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_cassandra_keyspace",
+                "azure_cosmos_db_account_read_only_keys",
+                "azure_cosmos_db_gremlin_database",
+                "azure_cosmos_db_mongo_db_database",
+                "azure_cosmos_db_mongo_db_role_definition",
+                "azure_cosmos_db_mongo_db_user_definition",
+                "azure_cosmos_db_notebook_workspace",
+                "azure_cosmos_db_private_link_resource",
+                "azure_cosmos_db_table",
+                "azure_cosmos_db_account_usage",
+                "azure_cosmos_db_sql_database",
+                "azure_cosmos_db_sql_role_assignment",
+                "azure_cosmos_db_sql_role_definition",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1035,6 +1070,13 @@ class AzureGremlinDatabaseResource(AzureCosmosDBResource):
 class AzureCosmosDBGremlinDatabase(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_database"
     # Collect via AzureCosmosDBAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_gremlin_graph",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1313,6 +1355,13 @@ class AzureMongoDBDatabaseResource(AzureCosmosDBResource):
 class AzureCosmosDBMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_database"
     # Collect via AzureCosmosDBAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_mongo_db_collection",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1499,6 +1548,22 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_restorable_gremlin_database",
+                "azure_cosmos_db_restorable_gremlin_graph",
+                "azure_cosmos_db_restorable_gremlin_resource",
+                "azure_cosmos_db_restorable_mongo_db_collection",
+                "azure_cosmos_db_restorable_mongo_db_database",
+                "azure_cosmos_db_restorable_mongo_db_resource",
+                "azure_cosmos_db_restorable_sql_container",
+                "azure_cosmos_db_restorable_sql_database",
+                "azure_cosmos_db_restorable_sql_resource",
+                "azure_cosmos_db_restorable_table",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1552,8 +1617,8 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
                 ("restorableGraphs", AzureCosmosDBRestorableGremlinGraph, None),
                 ("restorableGremlinResources", AzureCosmosDBRestorableGremlinResource, None),
                 ("restorableMongodbCollections", AzureCosmosDBRestorableMongoDBCollection, None),
-                ("restorableMongodbDatabases", AzureCosmosDBRestorableMongodbDatabase, None),
-                ("restorableMongodbResources", AzureCosmosDBRestorableMongodbResource, None),
+                ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),
+                ("restorableMongodbResources", AzureCosmosDBRestorableMongoDBResource, None),
                 ("restorableSqlContainers", AzureCosmosDBRestorableSqlContainer, None),
                 ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),
                 ("restorableSqlResources", AzureCosmosDBRestorableSqlResource, None),
@@ -1677,6 +1742,15 @@ class AzureCollsUsers(AzureSqlDatabaseResource, AzureCosmosDBResource):
 class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database"
     # Collect via AzureCosmosDBAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                AzureCosmosDBSqlDatabaseContainer.kind,
+                AzureCosmosDBSqlDatabaseClientEncryptionKey.kind,
+                "azure_cosmos_db_sql_throughput_setting",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -2043,7 +2117,7 @@ class AzureCosmosDBRestorableGremlinResource(MicrosoftResource):
 
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_restorable_mongodb_collection"
+    kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_collection"
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2055,8 +2129,8 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongodbDatabase(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_restorable_mongodb_database"
+class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
+    kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_database"
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2068,8 +2142,8 @@ class AzureCosmosDBRestorableMongodbDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongodbResource(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_restorable_mongodb_resource"
+class AzureCosmosDBRestorableMongoDBResource(MicrosoftResource):
+    kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_resource"
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2230,8 +2304,8 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBRestorableGremlinGraph,
     AzureCosmosDBRestorableGremlinResource,
     AzureCosmosDBRestorableMongoDBCollection,
-    AzureCosmosDBRestorableMongodbDatabase,
-    AzureCosmosDBRestorableMongodbResource,
+    AzureCosmosDBRestorableMongoDBDatabase,
+    AzureCosmosDBRestorableMongoDBResource,
     AzureCosmosDBRestorableSqlContainer,
     AzureCosmosDBRestorableSqlDatabase,
     AzureCosmosDBRestorableSqlResource,
