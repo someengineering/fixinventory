@@ -629,7 +629,7 @@ class AzureProxyResource:
 
 
 @define(eq=False, slots=False)
-class AzureIdentity:
+class AzureManagedServiceIdentity:
     kind: ClassVar[str] = "azure_identity"
     mapping: ClassVar[Dict[str, Bender]] = {
         "client_id": S("clientId"),
@@ -646,20 +646,72 @@ class AzureIdentity:
 
 
 @define(eq=False, slots=False)
+class AzureSkuCapacity:
+    kind: ClassVar[str] = "azure_sku_capacity"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "default": S("default"),
+        "elastic_maximum": S("elasticMaximum"),
+        "maximum": S("maximum"),
+        "minimum": S("minimum"),
+        "scale_type": S("scaleType"),
+    }
+    default: Optional[int] = field(default=None, metadata={'description': 'Default number of workers for this App Service plan SKU.'})  # fmt: skip
+    elastic_maximum: Optional[int] = field(default=None, metadata={'description': 'Maximum number of Elastic workers for this App Service plan SKU.'})  # fmt: skip
+    maximum: Optional[int] = field(default=None, metadata={'description': 'Maximum number of workers for this App Service plan SKU.'})  # fmt: skip
+    minimum: Optional[int] = field(default=None, metadata={'description': 'Minimum number of workers for this App Service plan SKU.'})  # fmt: skip
+    scale_type: Optional[str] = field(default=None, metadata={'description': 'Available scale configurations for an App Service plan.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureCapability:
+    kind: ClassVar[str] = "azure_capability"
+    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "reason": S("reason"), "value": S("value")}
+    name: Optional[str] = field(default=None, metadata={"description": "Name of the SKU capability."})
+    reason: Optional[str] = field(default=None, metadata={"description": "Reason of the SKU capability."})
+    value: Optional[str] = field(default=None, metadata={"description": "Value of the SKU capability."})
+
+
+@define(eq=False, slots=False)
 class AzureSku:
     kind: ClassVar[str] = "azure_sku"
     mapping: ClassVar[Dict[str, Bender]] = {
+        "capabilities": S("capabilities") >> ForallBend(AzureCapability.mapping),
         "capacity": S("capacity"),
         "name": S("name"),
         "tier": S("tier"),
         "family": S("family"),
         "size": S("size"),
+        "locations": S("locations"),
+        "sku_capacity": S("skuCapacity") >> Bend(AzureSkuCapacity.mapping),
     }
     capacity: Optional[int] = field(default=None, metadata={'description': 'Specifies the number of virtual machines in the scale set.'})  # fmt: skip
     family: Optional[str] = field(default=None, metadata={"description": "The family of the sku."})
     name: Optional[str] = field(default=None, metadata={"description": "The sku name."})
     tier: Optional[str] = field(default=None, metadata={'description': 'Specifies the tier of virtual machines in a scale set. Possible values: **standard** **basic**.'})  # fmt: skip
     size: Optional[str] = field(default=None, metadata={"description": "Size of the particular SKU"})
+
+
+@define(eq=False, slots=False)
+class AzurePrivateEndpointConnection:
+    kind: ClassVar[str] = "azure_private_endpoint_connection"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "group_ids": S("properties", "groupIds"),
+        "id": S("id"),
+        "name": S("name"),
+        "private_endpoint": S("properties", "privateEndpoint", "id"),
+        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
+        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
+        "provisioning_state": S("properties", "provisioningState"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "type": S("type"),
+    }
+    group_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The group ids for the private endpoint resource.'})  # fmt: skip
+    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. E.g. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName} '})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
+    private_endpoint: Optional[str] = field(default=None, metadata={"description": "The private endpoint resource."})
+    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
 
 class GraphBuilder:

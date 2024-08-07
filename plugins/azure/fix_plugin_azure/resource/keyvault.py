@@ -11,8 +11,9 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
     AzureSku,
-    AzureIdentity,
+    AzureManagedServiceIdentity,
     GraphBuilder,
+    AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.monitor import AzureMonitorDiagnosticSettings
 from fixlib.baseresources import ModelReference
@@ -33,37 +34,6 @@ class AzureMHSMGeoReplicatedRegion:
     }
     is_primary: Optional[bool] = field(default=None, metadata={'description': 'A boolean value that indicates whether the region is the primary region or a secondary region.'})  # fmt: skip
     name: Optional[str] = field(default=None, metadata={"description": "Name of the geo replicated region."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMHSMPrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_mhsm_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={"description": "The reason for approval or rejection."})
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
-
-
-@define(eq=False, slots=False)
-class AzureMHSMPrivateEndpointConnectionItem:
-    kind: ClassVar[str] = "azure_mhsm_private_endpoint_connection_item"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "etag": S("etag"),
-        "id": S("id"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzureMHSMPrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-    }
-    etag: Optional[str] = field(default=None, metadata={'description': 'Modified whenever there is a change in the state of private endpoint connection.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={"description": "Id of private endpoint connection."})
-    private_endpoint: Optional[str] = field(default=None, metadata={'description': 'Private endpoint object properties.'})  # fmt: skip
-    private_link_service_connection_state: Optional[AzureMHSMPrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'An object that represents the approval state of the private link connection.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
 
@@ -132,37 +102,6 @@ class AzureKeyVaultNetworkRuleSet:
     default_action: Optional[str] = field(default=None, metadata={'description': 'The default action when no rule from ipRules and from virtualNetworkRules match. This is only used after the bypass property has been evaluated.'})  # fmt: skip
     ip_rules: Optional[List[str]] = field(default=None, metadata={"description": "The list of IP address rules."})
     virtual_network_rules: Optional[List[AzureKeyVaultVirtualNetworkRule]] = field(default=None, metadata={'description': 'The list of virtual network rules.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureKeyVaultPrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_key_vault_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={"description": "The reason for approval or rejection."})
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
-
-
-@define(eq=False, slots=False)
-class AzureKeyVaultPrivateEndpointConnectionItem:
-    kind: ClassVar[str] = "azure_key_vault_private_endpoint_connection_item"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "etag": S("etag"),
-        "id": S("id"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzureKeyVaultPrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-    }
-    etag: Optional[str] = field(default=None, metadata={'description': 'Modified whenever there is a change in the state of private endpoint connection.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={"description": "Id of private endpoint connection."})
-    private_endpoint: Optional[str] = field(default=None, metadata={'description': 'Private endpoint object properties.'})  # fmt: skip
-    private_link_service_connection_state: Optional[AzureKeyVaultPrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'An object that represents the approval state of the private link connection.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -254,7 +193,7 @@ class AzureManagedHsm(MicrosoftResource):
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
-        "identity": S("identity") >> Bend(AzureIdentity.mapping),
+        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "location": S("location"),
         "name": S("name"),
         "hsm_sku": S("sku") >> Bend(AzureSku.mapping),
@@ -268,7 +207,7 @@ class AzureManagedHsm(MicrosoftResource):
         "initial_admin_object_ids": S("properties", "initialAdminObjectIds"),
         "network_acl_rules": S("properties", "networkAcls") >> Bend(AzureKeyVaultNetworkRuleSet.mapping),
         "hsm_private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzureMHSMPrivateEndpointConnectionItem.mapping),
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
         "regions": S("properties", "regions") >> ForallBend(AzureMHSMGeoReplicatedRegion.mapping),
@@ -279,7 +218,7 @@ class AzureManagedHsm(MicrosoftResource):
         "status_message": S("properties", "statusMessage"),
         "tenant_id": S("properties", "tenantId"),
     }
-    identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
+    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'The supported Azure location where the managed HSM Pool should be created.'})  # fmt: skip
     hsm_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU details"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the key vault resource.'})  # fmt: skip
@@ -290,7 +229,7 @@ class AzureManagedHsm(MicrosoftResource):
     hsm_uri: Optional[str] = field(default=None, metadata={'description': 'The URI of the managed hsm pool for performing operations on keys.'})  # fmt: skip
     initial_admin_object_ids: Optional[List[str]] = field(default=None, metadata={'description': 'Array of initial administrators object ids for this managed hsm pool.'})  # fmt: skip
     network_acl_rules: Optional[AzureKeyVaultNetworkRuleSet] = field(default=None, metadata={'description': 'A set of rules governing the network accessibility of a managed hsm pool.'})  # fmt: skip
-    hsm_private_endpoint_connections: Optional[List[AzureMHSMPrivateEndpointConnectionItem]] = field(default=None, metadata={'description': 'List of private endpoint connections associated with the managed hsm pool.'})  # fmt: skip
+    hsm_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections associated with the managed hsm pool.'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Control permission to the managed HSM from public networks.'})  # fmt: skip
     regions: Optional[List[AzureMHSMGeoReplicatedRegion]] = field(default=None, metadata={'description': 'List of all regions associated with the managed hsm pool.'})  # fmt: skip
     scheduled_purge_date: Optional[datetime] = field(default=None, metadata={'description': 'The scheduled purge date in UTC.'})  # fmt: skip
@@ -361,7 +300,7 @@ class AzureKeyVault(MicrosoftResource):
         "hsm_pool_resource_id": S("properties", "hsmPoolResourceId"),
         "network_acl_rules": S("properties", "networkAcls") >> Bend(AzureKeyVaultNetworkRuleSet.mapping),
         "private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzureKeyVaultPrivateEndpointConnectionItem.mapping),
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
         "vault_sku": S("properties", "sku") >> Bend(AzureSku.mapping),
@@ -380,7 +319,7 @@ class AzureKeyVault(MicrosoftResource):
     enabled_for_template_deployment: Optional[bool] = field(default=None, metadata={'description': 'Property to specify whether Azure Resource Manager is permitted to retrieve secrets from the key vault.'})  # fmt: skip
     hsm_pool_resource_id: Optional[str] = field(default=None, metadata={"description": "The resource id of HSM Pool."})
     network_acl_rules: Optional[AzureKeyVaultNetworkRuleSet] = field(default=None, metadata={'description': 'A set of rules governing the network accessibility of a vault.'})  # fmt: skip
-    vault_private_endpoint_connections: Optional[List[AzureKeyVaultPrivateEndpointConnectionItem]] = field(default=None, metadata={'description': 'List of private endpoint connections associated with the key vault.'})  # fmt: skip
+    vault_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections associated with the key vault.'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Property to specify whether the vault will accept traffic from public internet. If set to disabled all traffic except private endpoint traffic and that that originates from trusted services will be blocked. This will override the set firewall rules, meaning that even if the firewall rules are present we will not honor the rules.'})  # fmt: skip
     vault_sku: Optional[AzureSku] = field(default=None, metadata={"description": "SKU details"})
     soft_delete_retention_in_days: Optional[int] = field(default=None, metadata={'description': 'softDelete data retention days. It accepts >=7 and <=90.'})  # fmt: skip
