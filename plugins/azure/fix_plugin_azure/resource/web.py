@@ -241,14 +241,6 @@ class AzureCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureSecret:
-    kind: ClassVar[str] = "azure_secret"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
-    name: Optional[str] = field(default=None, metadata={"description": "Secret Name."})
-    value: Optional[str] = field(default=None, metadata={"description": "Secret Value."})
-
-
-@define(eq=False, slots=False)
 class AzureTrafficWeight:
     kind: ClassVar[str] = "azure_traffic_weight"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -300,12 +292,12 @@ class AzureConfiguration:
         "active_revisions_mode": S("activeRevisionsMode"),
         "ingress": S("ingress") >> Bend(AzureIngress.mapping),
         "registries": S("registries") >> ForallBend(AzureRegistryCredentials.mapping),
-        "secrets": S("secrets") >> ForallBend(AzureSecret.mapping),
+        "secrets": S("secrets") >> MapDict(S("name"), S("value")),
     }
     active_revisions_mode: Optional[str] = field(default=None, metadata={'description': 'ActiveRevisionsMode controls how active revisions are handled for the Container app: <list><item>Multiple: multiple revisions can be active. If no value if provided, this is the default</item><item>Single: Only one revision can be active at a time. Revision weights can not be used in this mode</item></list>'})  # fmt: skip
     ingress: Optional[AzureIngress] = field(default=None, metadata={'description': 'Container App Ingress configuration.'})  # fmt: skip
     registries: Optional[List[AzureRegistryCredentials]] = field(default=None, metadata={'description': 'Collection of private container registry credentials for containers used by the Container app'})  # fmt: skip
-    secrets: Optional[List[AzureSecret]] = field(default=None, metadata={'description': 'Collection of secrets used by a Container app'})  # fmt: skip
+    secrets: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'Collection of secrets used by a Container app'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
