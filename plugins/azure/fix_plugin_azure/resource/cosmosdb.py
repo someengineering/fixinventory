@@ -8,6 +8,8 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
+    AzureBaseUsage,
+    AzureProxyResource,
     AzureResourceIdentity,
     AzureSystemData,
     AzureTrackedResource,
@@ -185,13 +187,12 @@ class AzureCosmosDBCassandraClusterPublicStatus(MicrosoftResource):
         "connection_errors": S("connectionErrors") >> ForallBend(AzureConnectionError.mapping),
         "data_centers": S("dataCenters") >> ForallBend(AzureNameSeednodesNodes.mapping),
         "e_tag": S("eTag"),
-        "errors": S("errors") >> ForallBend(AzureCassandraError.mapping),
+        "status_errors": S("errors") >> ForallBend(AzureCassandraError.mapping),
         "reaper_status": S("reaperStatus") >> Bend(AzureManagedCassandraReaperStatus.mapping),
     }
     connection_errors: Optional[List[AzureConnectionError]] = field(default=None, metadata={'description': 'List relevant information about any connection errors to the Datacenters.'})  # fmt: skip
     data_centers: Optional[List[AzureNameSeednodesNodes]] = field(default=None, metadata={'description': 'List of the status of each datacenter in this cluster.'})  # fmt: skip
-    e_tag: Optional[str] = field(default=None, metadata={"description": ""})
-    errors: Optional[List[AzureCassandraError]] = field(default=None, metadata={'description': 'List relevant information about any errors about cluster, data center and connection error.'})  # fmt: skip
+    status_errors: Optional[List[AzureCassandraError]] = field(default=None, metadata={'description': 'List relevant information about any errors about cluster, data center and connection error.'})  # fmt: skip
     reaper_status: Optional[AzureManagedCassandraReaperStatus] = field(default=None, metadata={"description": ""})
 
 
@@ -249,11 +250,13 @@ class AzureCosmosDBCassandraKeyspace(MicrosoftResource, AzureARMResourceProperti
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureCassandraKeyspaceResource.mapping),
+        "cassandra_keyspace_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "cassandra_keyspace_resource": S("properties", "resource") >> Bend(AzureCassandraKeyspaceResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureCassandraKeyspaceResource] = field(default=None, metadata={"description": ""})
+    cassandra_keyspace_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    cassandra_keyspace_resource: Optional[AzureCassandraKeyspaceResource] = field(
+        default=None, metadata={"description": ""}
+    )
 
     def _collect_items(
         self,
@@ -355,11 +358,11 @@ class AzureCosmosDBCassandraTable(MicrosoftResource, AzureARMResourceProperties)
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureCassandraTableResource.mapping),
+        "cassandra_table_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "cassandra_table_resource": S("properties", "resource") >> Bend(AzureCassandraTableResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureCassandraTableResource] = field(default=None, metadata={"description": ""})
+    cassandra_table_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    cassandra_table_resource: Optional[AzureCassandraTableResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -386,9 +389,9 @@ class AzureKeyWrapMetadata:
 
 
 @define(eq=False, slots=False)
-class AzureClientEncryptionKeyResource:
+class AzureClientEncryptionKeyResource(AzureCosmosDBResource):
     kind: ClassVar[str] = "azure_client_encryption_key_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureCosmosDBResource.mapping | {
         "encryption_algorithm": S("encryptionAlgorithm"),
         "id": S("id"),
         "key_wrap_metadata": S("keyWrapMetadata") >> Bend(AzureKeyWrapMetadata.mapping),
@@ -408,9 +411,11 @@ class AzureCosmosDBSqlDatabaseClientEncryptionKey(MicrosoftResource, AzureARMPro
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureCosmosDBResource.mapping),
+        "encryption_key_resource": S("properties", "resource") >> Bend(AzureClientEncryptionKeyResource.mapping),
     }
-    resource: Optional[AzureCosmosDBResource] = field(default=None, metadata={"description": ""})
+    encryption_key_resource: Optional[AzureClientEncryptionKeyResource] = field(
+        default=None, metadata={"description": ""}
+    )
 
 
 @define(eq=False, slots=False)
@@ -461,7 +466,7 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource, AzureManagedCassandraARMR
         "cassandra_version": S("properties", "cassandraVersion"),
         "client_certificates": S("properties") >> S("clientCertificates", default=[]) >> ForallBend(S("pem")),
         "cluster_name_override": S("properties", "clusterNameOverride"),
-        "deallocated": S("properties", "deallocated"),
+        "cluster_deallocated": S("properties", "deallocated"),
         "delegated_management_subnet_id": S("properties", "delegatedManagementSubnetId"),
         "external_gossip_certificates": S("properties")
         >> S("externalGossipCertificates", default=[])
@@ -484,7 +489,7 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource, AzureManagedCassandraARMR
     cassandra_version: Optional[str] = field(default=None, metadata={'description': 'Which version of Cassandra should this cluster converge to running (e.g., 3.11). When updated, the cluster may take some time to migrate to the new version.'})  # fmt: skip
     client_certificates: Optional[List[str]] = field(default=None, metadata={'description': 'List of TLS certificates used to authorize clients connecting to the cluster. All connections are TLS encrypted whether clientCertificates is set or not, but if clientCertificates is set, the managed Cassandra cluster will reject all connections not bearing a TLS client certificate that can be validated from one or more of the public certificates in this property.'})  # fmt: skip
     cluster_name_override: Optional[str] = field(default=None, metadata={'description': 'If you need to set the clusterName property in cassandra.yaml to something besides the resource name of the cluster, set the value to use on this property.'})  # fmt: skip
-    deallocated: Optional[bool] = field(default=None, metadata={'description': 'Whether the cluster and associated data centers has been deallocated.'})  # fmt: skip
+    cluster_deallocated: Optional[bool] = field(default=None, metadata={'description': 'Whether the cluster and associated data centers has been deallocated.'})  # fmt: skip
     delegated_management_subnet_id: Optional[str] = field(default=None, metadata={'description': 'Resource id of a subnet that this cluster s management service should have its network interface attached to. The subnet must be routable to all subnets that will be delegated to data centers. The resource id must be of the form /subscriptions/<subscription id>/resourceGroups/<resource group>/providers/Microsoft.Network/virtualNetworks/<virtual network>/subnets/<subnet> '})  # fmt: skip
     external_gossip_certificates: Optional[List[str]] = field(default=None, metadata={'description': 'List of TLS certificates used to authorize gossip from unmanaged data centers. The TLS certificates of all nodes in unmanaged data centers must be verifiable using one of the certificates provided in this property.'})  # fmt: skip
     external_seed_nodes: Optional[List[str]] = field(default=None, metadata={'description': 'List of IP addresses of seed nodes in unmanaged data centers. These will be added to the seed node lists of all managed nodes.'})  # fmt: skip
@@ -494,7 +499,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource, AzureManagedCassandraARMR
     private_link_resource_id: Optional[str] = field(default=None, metadata={'description': 'If the Connection Method is VPN, this is the Id of the private link resource that the datacenters need to connect to.'})  # fmt: skip
     prometheus_endpoint: Optional[str] = field(default=None, metadata={"description": ""})
     provision_error: Optional[AzureCassandraError] = field(default=None, metadata={"description": ""})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The status of the resource at the time the operation was called.'})  # fmt: skip
     repair_enabled: Optional[bool] = field(default=None, metadata={'description': 'Should automatic repairs run on this cluster? If omitted, this is true, and should stay true unless you are running a hybrid cluster where you are already doing your own repairs.'})  # fmt: skip
     restore_from_backup_id: Optional[str] = field(default=None, metadata={'description': 'To create an empty cluster, omit this field or set it to null. To restore a backup into a new cluster, set this field to the resource id of the backup.'})  # fmt: skip
     seed_nodes: Optional[List[str]] = field(default=None, metadata={'description': 'List of IP addresses of seed nodes in the managed data centers. These should be added to the seed node lists of all unmanaged nodes.'})  # fmt: skip
@@ -577,38 +581,37 @@ class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource, AzureARMProxyRe
         "name": S("name"),
         "authentication_method_ldap_properties": S("properties", "authenticationMethodLdapProperties")
         >> Bend(AzureAuthenticationMethodLdapProperties.mapping),
-        "availability_zone": S("properties", "availabilityZone"),
+        "availability_zone_support": S("properties", "availabilityZone"),
         "backup_storage_customer_key_uri": S("properties", "backupStorageCustomerKeyUri"),
         "base64_encoded_cassandra_yaml_fragment": S("properties", "base64EncodedCassandraYamlFragment"),
         "data_center_location": S("properties", "dataCenterLocation"),
-        "deallocated": S("properties", "deallocated"),
+        "datacenter_deallocated": S("properties", "deallocated"),
         "delegated_subnet_id": S("properties", "delegatedSubnetId"),
         "disk_capacity": S("properties", "diskCapacity"),
-        "disk_sku": S("properties", "diskSku"),
+        "datacenter_disk_sku": S("properties", "diskSku"),
         "managed_disk_customer_key_uri": S("properties", "managedDiskCustomerKeyUri"),
         "node_count": S("properties", "nodeCount"),
         "private_endpoint_ip_address": S("properties", "privateEndpointIpAddress"),
         "provision_error": S("properties", "provisionError") >> Bend(AzureCassandraError.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "seed_nodes": S("properties") >> S("seedNodes", default=[]) >> ForallBend(S("ipAddress")),
-        "sku": S("properties", "sku"),
+        "datacenter_sku": S("properties", "sku"),
     }
     authentication_method_ldap_properties: Optional[AzureAuthenticationMethodLdapProperties] = field(default=None, metadata={'description': 'Ldap authentication method properties. This feature is in preview.'})  # fmt: skip
-    availability_zone: Optional[bool] = field(default=None, metadata={'description': 'If the data center has Availability Zone support, apply it to the Virtual Machine ScaleSet that host the cassandra data center virtual machines.'})  # fmt: skip
+    availability_zone_support: Optional[bool] = field(default=None, metadata={'description': 'If the data center has Availability Zone support, apply it to the Virtual Machine ScaleSet that host the cassandra data center virtual machines.'})  # fmt: skip
     backup_storage_customer_key_uri: Optional[str] = field(default=None, metadata={'description': 'Indicates the Key Uri of the customer key to use for encryption of the backup storage account.'})  # fmt: skip
     base64_encoded_cassandra_yaml_fragment: Optional[str] = field(default=None, metadata={'description': 'A fragment of a cassandra.yaml configuration file to be included in the cassandra.yaml for all nodes in this data center. The fragment should be Base64 encoded, and only a subset of keys are allowed.'})  # fmt: skip
     data_center_location: Optional[str] = field(default=None, metadata={'description': 'The region this data center should be created in.'})  # fmt: skip
-    deallocated: Optional[bool] = field(default=None, metadata={'description': 'Whether the data center has been deallocated.'})  # fmt: skip
+    datacenter_deallocated: Optional[bool] = field(default=None, metadata={'description': 'Whether the data center has been deallocated.'})  # fmt: skip
     delegated_subnet_id: Optional[str] = field(default=None, metadata={'description': 'Resource id of a subnet the nodes in this data center should have their network interfaces connected to. The subnet must be in the same region specified in dataCenterLocation and must be able to route to the subnet specified in the cluster s delegatedManagementSubnetId property. This resource id will be of the form /subscriptions/<subscription id>/resourceGroups/<resource group>/providers/Microsoft.Network/virtualNetworks/<virtual network>/subnets/<subnet> .'})  # fmt: skip
     disk_capacity: Optional[int] = field(default=None, metadata={'description': 'Number of disks attached to each node. Default is 4.'})  # fmt: skip
-    disk_sku: Optional[str] = field(default=None, metadata={'description': 'Disk SKU used for data centers. Default value is P30.'})  # fmt: skip
+    datacenter_disk_sku: Optional[str] = field(default=None, metadata={'description': 'Disk SKU used for data centers. Default value is P30.'})  # fmt: skip
     managed_disk_customer_key_uri: Optional[str] = field(default=None, metadata={'description': 'Key uri to use for encryption of managed disks. Ensure the system assigned identity of the cluster has been assigned appropriate permissions(key get/wrap/unwrap permissions) on the key.'})  # fmt: skip
     node_count: Optional[int] = field(default=None, metadata={'description': 'The number of nodes the data center should have. This is the desired number. After it is set, it may take some time for the data center to be scaled to match. To monitor the number of nodes and their status, use the fetchNodeStatus method on the cluster.'})  # fmt: skip
     private_endpoint_ip_address: Optional[str] = field(default=None, metadata={'description': 'Ip of the VPN Endpoint for this data center.'})  # fmt: skip
     provision_error: Optional[AzureCassandraError] = field(default=None, metadata={"description": ""})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The status of the resource at the time the operation was called.'})  # fmt: skip
     seed_nodes: Optional[List[str]] = field(default=None, metadata={'description': 'IP addresses for seed nodes in this data center. This is for reference. Generally you will want to use the seedNodes property on the cluster, which aggregates the seed nodes from all data centers in the cluster.'})  # fmt: skip
-    sku: Optional[str] = field(default=None, metadata={'description': 'Virtual Machine SKU used for data centers. Default value is Standard_DS14_v2'})  # fmt: skip
+    datacenter_sku: Optional[str] = field(default=None, metadata={'description': 'Virtual Machine SKU used for data centers. Default value is Standard_DS14_v2'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -625,8 +628,8 @@ class AzureConsistencyPolicy:
 
 
 @define(eq=False, slots=False)
-class AzureLocation:
-    kind: ClassVar[str] = "azure_location"
+class AzureAccountLocation:
+    kind: ClassVar[str] = "azure_account_location"
     mapping: ClassVar[Dict[str, Bender]] = {
         "document_endpoint": S("documentEndpoint"),
         "failover_priority": S("failoverPriority"),
@@ -657,22 +660,14 @@ class AzureFailoverPolicy:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualNetworkRule:
-    kind: ClassVar[str] = "azure_virtual_network_rule"
+class AzureAccountVirtualNetworkRule:
+    kind: ClassVar[str] = "azure_account_virtual_network_rule"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "ignore_missing_v_net_service_endpoint": S("ignoreMissingVNetServiceEndpoint"),
     }
     id: Optional[str] = field(default=None, metadata={'description': 'Resource ID of a subnet, for example: /subscriptions/{subscriptionId}/resourceGroups/{groupName}/providers/Microsoft.Network/virtualNetworks/{virtualNetworkName}/subnets/{subnetName}.'})  # fmt: skip
     ignore_missing_v_net_service_endpoint: Optional[bool] = field(default=None, metadata={'description': 'Create firewall rule before the virtual network has vnet service endpoint enabled.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureProxyResource:
-    kind: ClassVar[str] = "azure_proxy_resource"
-    mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "type": S("type")}
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -834,7 +829,7 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
         "capacity": S("properties", "capacity", "totalThroughputLimit"),
         "connector_offer": S("properties", "connectorOffer"),
         "consistency_policy": S("properties", "consistencyPolicy") >> Bend(AzureConsistencyPolicy.mapping),
-        "cors": S("properties", "cors") >> ForallBend(AzureCorsPolicy.mapping),
+        "account_cors": S("properties", "cors") >> ForallBend(AzureCorsPolicy.mapping),
         "create_mode": S("properties", "createMode"),
         "customer_managed_key_status": S("properties", "customerManagedKeyStatus"),
         "database_account_offer_type": S("properties", "databaseAccountOfferType"),
@@ -850,26 +845,27 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
         "enable_multiple_write_locations": S("properties", "enableMultipleWriteLocations"),
         "enable_partition_merge": S("properties", "enablePartitionMerge"),
         "failover_policies": S("properties", "failoverPolicies") >> ForallBend(AzureFailoverPolicy.mapping),
-        "identity": S("identity") >> Bend(AzureResourceIdentity.mapping),
+        "account_identity": S("identity") >> Bend(AzureResourceIdentity.mapping),
         "instance_id": S("properties", "instanceId"),
         "ip_rules": S("properties") >> S("ipRules", default=[]) >> ForallBend(S("ipAddressOrRange")),
         "is_virtual_network_filter_enabled": S("properties", "isVirtualNetworkFilterEnabled"),
         "key_vault_key_uri": S("properties", "keyVaultKeyUri"),
         "keys_metadata": S("properties", "keysMetadata") >> Bend(AzureDatabaseAccountKeysMetadata.mapping),
         "resource_kind": S("kind"),
-        "locations": S("properties", "locations") >> ForallBend(AzureLocation.mapping),
+        "account_locations": S("properties", "locations") >> ForallBend(AzureAccountLocation.mapping),
         "minimal_tls_version": S("properties", "minimalTlsVersion"),
         "network_acl_bypass": S("properties", "networkAclBypass"),
         "network_acl_bypass_resource_ids": S("properties", "networkAclBypassResourceIds"),
-        "private_endpoint_connections": S("properties", "privateEndpointConnections")
+        "account_private_endpoint_connections": S("properties", "privateEndpointConnections")
         >> ForallBend(AzureDatabaseAccountPrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
-        "read_locations": S("properties", "readLocations") >> ForallBend(AzureLocation.mapping),
-        "restore_parameters": S("properties", "restoreParameters") >> Bend(AzureRestoreParameters.mapping),
+        "read_locations": S("properties", "readLocations") >> ForallBend(AzureAccountLocation.mapping),
+        "account_restore_parameters": S("properties", "restoreParameters") >> Bend(AzureRestoreParameters.mapping),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "virtual_network_rules": S("properties", "virtualNetworkRules") >> ForallBend(AzureVirtualNetworkRule.mapping),
-        "write_locations": S("properties", "writeLocations") >> ForallBend(AzureLocation.mapping),
+        "virtual_network_rules": S("properties", "virtualNetworkRules")
+        >> ForallBend(AzureAccountVirtualNetworkRule.mapping),
+        "write_locations": S("properties", "writeLocations") >> ForallBend(AzureAccountLocation.mapping),
     }
     analytical_storage_configuration: Optional[str] = field(default=None, metadata={'description': 'Analytical storage specific properties.'})  # fmt: skip
     api_properties: Optional[str] = field(default=None, metadata={"description": ""})
@@ -878,7 +874,7 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
     capacity: Optional[int] = field(default=None, metadata={'description': 'The object that represents all properties related to capacity enforcement on an account.'})  # fmt: skip
     connector_offer: Optional[str] = field(default=None, metadata={'description': 'The cassandra connector offer type for the Cosmos DB C* database account.'})  # fmt: skip
     consistency_policy: Optional[AzureConsistencyPolicy] = field(default=None, metadata={'description': 'The consistency policy for the Cosmos DB database account.'})  # fmt: skip
-    cors: Optional[List[AzureCorsPolicy]] = field(default=None, metadata={'description': 'The CORS policy for the Cosmos DB database account.'})  # fmt: skip
+    account_cors: Optional[List[AzureCorsPolicy]] = field(default=None, metadata={'description': 'The CORS policy for the Cosmos DB database account.'})  # fmt: skip
     create_mode: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate the mode of account creation.'})  # fmt: skip
     customer_managed_key_status: Optional[str] = field(default=None, metadata={'description': 'Indicates the status of the Customer Managed Key feature on the account. In case there are errors, the property provides troubleshooting guidance.'})  # fmt: skip
     database_account_offer_type: Optional[str] = field(default=None, metadata={'description': 'The offer type for the Cosmos DB database account.'})  # fmt: skip
@@ -894,25 +890,24 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
     enable_multiple_write_locations: Optional[bool] = field(default=None, metadata={'description': 'Enables the account to write in multiple locations'})  # fmt: skip
     enable_partition_merge: Optional[bool] = field(default=None, metadata={'description': 'Flag to indicate enabling/disabling of Partition Merge feature on the account'})  # fmt: skip
     failover_policies: Optional[List[AzureFailoverPolicy]] = field(default=None, metadata={'description': 'An array that contains the regions ordered by their failover priorities.'})  # fmt: skip
-    identity: Optional[AzureResourceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    account_identity: Optional[AzureResourceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     instance_id: Optional[str] = field(default=None, metadata={'description': 'A unique identifier assigned to the database account'})  # fmt: skip
     ip_rules: Optional[List[str]] = field(default=None, metadata={"description": "Array of IpAddressOrRange objects."})
     is_virtual_network_filter_enabled: Optional[bool] = field(default=None, metadata={'description': 'Flag to indicate whether to enable/disable Virtual Network ACL rules.'})  # fmt: skip
     key_vault_key_uri: Optional[str] = field(default=None, metadata={"description": "The URI of the key vault"})
     keys_metadata: Optional[AzureDatabaseAccountKeysMetadata] = field(default=None, metadata={'description': 'The metadata related to each access key for the given Cosmos DB database account.'})  # fmt: skip
     resource_kind: Optional[str] = field(default=None, metadata={'description': 'Indicates the type of database account. This can only be set at database account creation.'})  # fmt: skip
-    locations: Optional[List[AzureLocation]] = field(default=None, metadata={'description': 'An array that contains all of the locations enabled for the Cosmos DB account.'})  # fmt: skip
+    account_locations: Optional[List[AzureAccountLocation]] = field(default=None, metadata={'description': 'An array that contains all of the locations enabled for the Cosmos DB account.'})  # fmt: skip
     minimal_tls_version: Optional[str] = field(default=None, metadata={'description': 'Indicates the minimum allowed Tls version. The default value is Tls 1.2. Cassandra and Mongo APIs only work with Tls 1.2.'})  # fmt: skip
     network_acl_bypass: Optional[str] = field(default=None, metadata={'description': 'Indicates what services are allowed to bypass firewall checks.'})  # fmt: skip
     network_acl_bypass_resource_ids: Optional[List[str]] = field(default=None, metadata={'description': 'An array that contains the Resource Ids for Network Acl Bypass for the Cosmos DB account.'})  # fmt: skip
-    private_endpoint_connections: Optional[List[AzureDatabaseAccountPrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of Private Endpoint Connections configured for the Cosmos DB account.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The status of the Cosmos DB account at the time the operation was called. The status can be one of following. Creating – the Cosmos DB account is being created. When an account is in Creating state, only properties that are specified as input for the Create Cosmos DB account operation are returned. Succeeded – the Cosmos DB account is active for use. Updating – the Cosmos DB account is being updated. Deleting – the Cosmos DB account is being deleted. Failed – the Cosmos DB account failed creation. DeletionFailed – the Cosmos DB account deletion failed.'})  # fmt: skip
+    account_private_endpoint_connections: Optional[List[AzureDatabaseAccountPrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of Private Endpoint Connections configured for the Cosmos DB account.'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Whether requests from Public Network are allowed'})  # fmt: skip
-    read_locations: Optional[List[AzureLocation]] = field(default=None, metadata={'description': 'An array that contains of the read locations enabled for the Cosmos DB account.'})  # fmt: skip
-    restore_parameters: Optional[AzureRestoreParameters] = field(default=None, metadata={'description': 'Parameters to indicate the information about the restore.'})  # fmt: skip
+    read_locations: Optional[List[AzureAccountLocation]] = field(default=None, metadata={'description': 'An array that contains of the read locations enabled for the Cosmos DB account.'})  # fmt: skip
+    account_restore_parameters: Optional[AzureRestoreParameters] = field(default=None, metadata={'description': 'Parameters to indicate the information about the restore.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    virtual_network_rules: Optional[List[AzureVirtualNetworkRule]] = field(default=None, metadata={'description': 'List of Virtual Network ACL rules configured for the Cosmos DB account.'})  # fmt: skip
-    write_locations: Optional[List[AzureLocation]] = field(default=None, metadata={'description': 'An array that contains the write location for the Cosmos DB account.'})  # fmt: skip
+    virtual_network_rules: Optional[List[AzureAccountVirtualNetworkRule]] = field(default=None, metadata={'description': 'List of Virtual Network ACL rules configured for the Cosmos DB account.'})  # fmt: skip
+    write_locations: Optional[List[AzureAccountLocation]] = field(default=None, metadata={'description': 'An array that contains the write location for the Cosmos DB account.'})  # fmt: skip
 
     def _collect_items(
         self,
@@ -955,7 +950,7 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
                 ("sqlRoleAssignments", AzureCosmosDBSqlRoleAssignment, None),
                 ("sqlRoleDefinitions", AzureCosmosDBSqlRoleDefinition, None),
                 ("tables", AzureCosmosDBTable, None),
-                ("usages", AzureCosmosDBAccountUsage, None),
+                ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
             ]
 
             for resource_type, resource_class, expected_errors in resources_to_collect:
@@ -1012,11 +1007,13 @@ class AzureCosmosDBGremlinDatabase(MicrosoftResource, AzureARMResourceProperties
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureGremlinDatabaseResource.mapping),
+        "gremlin_database_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "gremlin_database_resource": S("properties", "resource") >> Bend(AzureGremlinDatabaseResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureGremlinDatabaseResource] = field(default=None, metadata={"description": ""})
+    gremlin_database_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    gremlin_database_resource: Optional[AzureGremlinDatabaseResource] = field(
+        default=None, metadata={"description": ""}
+    )
 
     def _collect_items(
         self,
@@ -1198,11 +1195,11 @@ class AzureCosmosDBGremlinGraph(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureGremlinGraphResource.mapping),
+        "gremlin_graph_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "gremlin_graph_resource": S("properties", "resource") >> Bend(AzureGremlinGraphResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureGremlinGraphResource] = field(default=None, metadata={"description": ""})
+    gremlin_graph_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    gremlin_graph_resource: Optional[AzureGremlinGraphResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1258,11 +1255,13 @@ class AzureCosmosDBMongoDBCollection(MicrosoftResource, AzureARMResourceProperti
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureMongoDBCollectionResource.mapping),
+        "mongodb_collection_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "mongodb_collection_resource": S("properties", "resource") >> Bend(AzureMongoDBCollectionResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureMongoDBCollectionResource] = field(default=None, metadata={"description": ""})
+    mongodb_collection_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    mongodb_collection_resource: Optional[AzureMongoDBCollectionResource] = field(
+        default=None, metadata={"description": ""}
+    )
 
 
 @define(eq=False, slots=False)
@@ -1286,11 +1285,13 @@ class AzureCosmosDBMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureMongoDBDatabaseResource.mapping),
+        "mongodb_database_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "mongodb_database_resource": S("properties", "resource") >> Bend(AzureMongoDBDatabaseResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureMongoDBDatabaseResource] = field(default=None, metadata={"description": ""})
+    mongodb_database_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    mongodb_database_resource: Optional[AzureMongoDBDatabaseResource] = field(
+        default=None, metadata={"description": ""}
+    )
 
     def _collect_items(
         self,
@@ -1374,14 +1375,14 @@ class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource, AzureARMProxyResourc
         "tags": S("tags", default={}),
         "name": S("name"),
         "database_name": S("properties", "databaseName"),
-        "privileges": S("properties", "privileges") >> ForallBend(AzurePrivilege.mapping),
+        "definition_privileges": S("properties", "privileges") >> ForallBend(AzurePrivilege.mapping),
         "role_name": S("properties", "roleName"),
-        "roles": S("properties", "roles") >> ForallBend(AzureRole.mapping),
+        "definition_roles": S("properties", "roles") >> ForallBend(AzureRole.mapping),
     }
     database_name: Optional[str] = field(default=None, metadata={'description': 'The database name for which access is being granted for this Role Definition.'})  # fmt: skip
-    privileges: Optional[List[AzurePrivilege]] = field(default=None, metadata={'description': 'A set of privileges contained by the Role Definition. This will allow application of this Role Definition on the entire database account or any underlying Database / Collection. Scopes higher than Database are not enforceable as privilege.'})  # fmt: skip
+    definition_privileges: Optional[List[AzurePrivilege]] = field(default=None, metadata={'description': 'A set of privileges contained by the Role Definition. This will allow application of this Role Definition on the entire database account or any underlying Database / Collection. Scopes higher than Database are not enforceable as privilege.'})  # fmt: skip
     role_name: Optional[str] = field(default=None, metadata={'description': 'A user-friendly name for the Role Definition. Must be unique for the database account.'})  # fmt: skip
-    roles: Optional[List[AzureRole]] = field(default=None, metadata={'description': 'The set of roles inherited by this Role Definition.'})  # fmt: skip
+    definition_roles: Optional[List[AzureRole]] = field(default=None, metadata={'description': 'The set of roles inherited by this Role Definition.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1394,16 +1395,16 @@ class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource, AzureARMProxyResourc
         "name": S("name"),
         "custom_data": S("properties", "customData"),
         "database_name": S("properties", "databaseName"),
-        "mechanisms": S("properties", "mechanisms"),
-        "password": S("properties", "password"),
-        "roles": S("properties", "roles") >> ForallBend(AzureRole.mapping),
+        "user_mechanisms": S("properties", "mechanisms"),
+        "user_password": S("properties", "password"),
+        "user_roles": S("properties", "roles") >> ForallBend(AzureRole.mapping),
         "user_name": S("properties", "userName"),
     }
     custom_data: Optional[str] = field(default=None, metadata={'description': 'A custom definition for the USer Definition.'})  # fmt: skip
     database_name: Optional[str] = field(default=None, metadata={'description': 'The database name for which access is being granted for this User Definition.'})  # fmt: skip
-    mechanisms: Optional[str] = field(default=None, metadata={'description': 'The Mongo Auth mechanism. For now, we only support auth mechanism SCRAM-SHA-256.'})  # fmt: skip
-    password: Optional[str] = field(default=None, metadata={'description': 'The password for User Definition. Response does not contain user password.'})  # fmt: skip
-    roles: Optional[List[AzureRole]] = field(default=None, metadata={'description': 'The set of roles inherited by the User Definition.'})  # fmt: skip
+    user_mechanisms: Optional[str] = field(default=None, metadata={'description': 'The Mongo Auth mechanism. For now, we only support auth mechanism SCRAM-SHA-256.'})  # fmt: skip
+    user_password: Optional[str] = field(default=None, metadata={'description': 'The password for User Definition. Response does not contain user password.'})  # fmt: skip
+    user_roles: Optional[List[AzureRole]] = field(default=None, metadata={'description': 'The set of roles inherited by the User Definition.'})  # fmt: skip
     user_name: Optional[str] = field(default=None, metadata={"description": "The user name for User Definition."})
 
 
@@ -1430,11 +1431,11 @@ class AzureCosmosDBPrivateLinkResource(MicrosoftResource, AzureARMProxyResource)
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "group_id": S("properties", "groupId"),
+        "link_group_id": S("properties", "groupId"),
         "required_members": S("properties", "requiredMembers"),
         "required_zone_names": S("properties", "requiredZoneNames"),
     }
-    group_id: Optional[str] = field(default=None, metadata={"description": "The private link resource group id."})
+    link_group_id: Optional[str] = field(default=None, metadata={"description": "The private link resource group id."})
     required_members: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource required member names.'})  # fmt: skip
     required_zone_names: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource required zone names.'})  # fmt: skip
 
@@ -1472,6 +1473,7 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
         "name": S("name"),
         "account_name": S("properties", "accountName"),
         "api_type": S("properties", "apiType"),
+        "ctime": S("properties", "creationTime"),
         "creation_time": S("properties", "creationTime"),
         "deletion_time": S("properties", "deletionTime"),
         "oldest_restorable_time": S("properties", "oldestRestorableTime"),
@@ -1609,11 +1611,11 @@ class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource, AzureARMResourcePrope
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureSqlContainerResource.mapping),
+        "sql_database_container_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "sql_database_container": S("properties", "resource") >> Bend(AzureSqlContainerResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureSqlContainerResource] = field(default=None, metadata={"description": ""})
+    sql_database_container_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    sql_database_container: Optional[AzureSqlContainerResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1647,11 +1649,11 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureCollsUsers.mapping),
+        "sql_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "sql_database": S("properties", "resource") >> Bend(AzureCollsUsers.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureCollsUsers] = field(default=None, metadata={"description": ""})
+    sql_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    sql_database: Optional[AzureCollsUsers] = field(default=None, metadata={"description": ""})
 
     def _collect_items(
         self,
@@ -1717,8 +1719,8 @@ class AzureCosmosDBSqlRoleAssignment(MicrosoftResource, AzureARMProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzurePermission:
-    kind: ClassVar[str] = "azure_permission"
+class AzureRolePermission:
+    kind: ClassVar[str] = "azure_role_permission"
     mapping: ClassVar[Dict[str, Bender]] = {"data_actions": S("dataActions"), "not_data_actions": S("notDataActions")}
     data_actions: Optional[List[str]] = field(default=None, metadata={'description': 'An array of data actions that are allowed.'})  # fmt: skip
     not_data_actions: Optional[List[str]] = field(default=None, metadata={'description': 'An array of data actions that are denied.'})  # fmt: skip
@@ -1733,11 +1735,11 @@ class AzureCosmosDBSqlRoleDefinition(MicrosoftResource, AzureARMProxyResource):
         "tags": S("tags", default={}),
         "name": S("name"),
         "assignable_scopes": S("properties", "assignableScopes"),
-        "permissions": S("properties", "permissions") >> ForallBend(AzurePermission.mapping),
+        "role_permissions": S("properties", "permissions") >> ForallBend(AzureRolePermission.mapping),
         "role_name": S("properties", "roleName"),
     }
     assignable_scopes: Optional[List[str]] = field(default=None, metadata={'description': 'A set of fully qualified Scopes at or below which Role Assignments may be created using this Role Definition. This will allow application of this Role Definition on the entire database account or any underlying Database / Collection. Must have at least one element. Scopes higher than Database account are not enforceable as assignable Scopes. Note that resources referenced in assignable Scopes need not exist.'})  # fmt: skip
-    permissions: Optional[List[AzurePermission]] = field(default=None, metadata={'description': 'The set of operations allowed through this Role Definition.'})  # fmt: skip
+    role_permissions: Optional[List[AzureRolePermission]] = field(default=None, metadata={'description': 'The set of operations allowed through this Role Definition.'})  # fmt: skip
     role_name: Optional[str] = field(default=None, metadata={'description': 'A user-friendly name for the Role Definition. Must be unique for the database account.'})  # fmt: skip
 
 
@@ -1762,11 +1764,11 @@ class AzureCosmosDBTable(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
-        "resource": S("properties", "resource") >> Bend(AzureTableResource.mapping),
+        "table_options": S("properties", "options") >> Bend(AzureOptionsResource.mapping),
+        "table_resource": S("properties", "resource") >> Bend(AzureTableResource.mapping),
     }
-    options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
-    resource: Optional[AzureTableResource] = field(default=None, metadata={"description": ""})
+    table_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
+    table_resource: Optional[AzureTableResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
@@ -1777,28 +1779,25 @@ class AzureCosmosDBSqlThroughputSetting(MicrosoftResource, AzureARMResourcePrope
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureCosmosDBResource.mapping),
+        "sql_throughput_setting": S("properties", "resource") >> Bend(AzureCosmosDBResource.mapping),
     }
-    resource: Optional[AzureCosmosDBResource] = field(default=None, metadata={"description": ""})
+    sql_throughput_setting: Optional[AzureCosmosDBResource] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBAccountUsage(MicrosoftResource):
+class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
     # Collect via AzureCosmosDBAccount()
-    mapping: ClassVar[Dict[str, Bender]] = {
+    mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
         "current_value": S("currentValue"),
         "limit": S("limit"),
-        "quota_period": S("quotaPeriod"),
+        "usage_quota_period": S("quotaPeriod"),
         "unit": S("unit"),
     }
-    current_value: Optional[int] = field(default=None, metadata={"description": "Current value for this metric"})
-    limit: Optional[int] = field(default=None, metadata={"description": "Maximum value for this metric"})
-    quota_period: Optional[str] = field(default=None, metadata={'description': 'The quota period used to summarize the usage values.'})  # fmt: skip
-    unit: Optional[str] = field(default=None, metadata={"description": "The unit of the metric."})
+    usage_quota_period: Optional[str] = field(default=None, metadata={'description': 'The quota period used to summarize the usage values.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1910,7 +1909,6 @@ class AzureMongoClusterProperties:
     create_mode: Optional[str] = field(default=None, metadata={"description": "The mode to create a mongo cluster."})
     earliest_restore_time: Optional[str] = field(default=None, metadata={'description': 'Earliest restore timestamp in UTC ISO8601 format.'})  # fmt: skip
     node_group_specs: Optional[List[AzureNodeGroupSpec]] = field(default=None, metadata={'description': 'The list of node group specifications for the cluster. Must include one node group spec with kind = Shard .'})  # fmt: skip
-
     restore_parameters: Optional[AzureMongoClusterRestoreParameters] = field(default=None, metadata={'description': 'Parameters used for restore operations'})  # fmt: skip
     server_version: Optional[str] = field(default=None, metadata={'description': 'The Mongo DB server version. Defaults to the latest available version if not specified.'})  # fmt: skip
 
@@ -1939,7 +1937,8 @@ class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
         "earliest_restore_time": S("properties", "earliestRestoreTime"),
         "node_group_specs": S("properties", "nodeGroupSpecs") >> ForallBend(AzureNodeGroupSpec.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "restore_parameters": S("properties", "restoreParameters") >> Bend(AzureMongoClusterRestoreParameters.mapping),
+        "cluster_restore_parameters": S("properties", "restoreParameters")
+        >> Bend(AzureMongoClusterRestoreParameters.mapping),
         "server_version": S("properties", "serverVersion"),
     }
     administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login for the mongo cluster.'})  # fmt: skip
@@ -1949,8 +1948,7 @@ class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
     create_mode: Optional[str] = field(default=None, metadata={"description": "The mode to create a mongo cluster."})
     earliest_restore_time: Optional[str] = field(default=None, metadata={'description': 'Earliest restore timestamp in UTC ISO8601 format.'})  # fmt: skip
     node_group_specs: Optional[List[AzureNodeGroupSpec]] = field(default=None, metadata={'description': 'The list of node group specifications for the cluster. Must include one node group spec with kind = Shard .'})  # fmt: skip
-
-    restore_parameters: Optional[AzureMongoClusterRestoreParameters] = field(default=None, metadata={'description': 'Parameters used for restore operations'})  # fmt: skip
+    cluster_restore_parameters: Optional[AzureMongoClusterRestoreParameters] = field(default=None, metadata={'description': 'Parameters used for restore operations'})  # fmt: skip
     server_version: Optional[str] = field(default=None, metadata={'description': 'The Mongo DB server version. Defaults to the latest available version if not specified.'})  # fmt: skip
 
 
@@ -1983,9 +1981,9 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
+        "restorable_gremlin_database": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
-    resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin database event'})  # fmt: skip
+    restorable_gremlin_database: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin database event'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1996,9 +1994,9 @@ class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
+        "restorable_gremlin_graph": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
-    resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin graph event'})  # fmt: skip
+    restorable_gremlin_graph: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin graph event'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2024,9 +2022,9 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
+        "restorable_mongodb_collection": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
-    resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB collection event'})  # fmt: skip
+    restorable_mongodb_collection: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB collection event'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2037,9 +2035,9 @@ class AzureCosmosDBRestorableMongodbDatabase(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
+        "restorable_mongodb_database": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
-    resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
+    restorable_mongodb_database: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2090,9 +2088,10 @@ class AzureCosmosDBRestorableSqlContainer(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureRestorableResourcePropertiesContainer.mapping),
+        "restorable_sql_container": S("properties", "resource")
+        >> Bend(AzureRestorableResourcePropertiesContainer.mapping),
     }
-    resource: Optional[AzureRestorableResourcePropertiesContainer] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL container event'})  # fmt: skip
+    restorable_sql_container: Optional[AzureRestorableResourcePropertiesContainer] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL container event'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2101,10 +2100,10 @@ class AzureExtendedResourcePropertiesSqlDatabaseResource(AzureSqlDatabaseResourc
     mapping: ClassVar[Dict[str, Bender]] = (
         AzureSqlDatabaseResource.mapping
         | AzureExtendedResourceProperties.mapping
-        | {"colls": S("_colls"), "self": S("_self"), "users": S("_users")}
+        | {"colls": S("_colls"), "database_self": S("_self"), "users": S("_users")}
     )
     colls: Optional[str] = field(default=None, metadata={'description': 'A system generated property that specified the addressable path of the collections resource.'})  # fmt: skip
-    self: Optional[str] = field(default=None, metadata={'description': 'A system generated property that specifies the addressable path of the database resource.'})  # fmt: skip
+    database_self: Optional[str] = field(default=None, metadata={'description': 'A system generated property that specifies the addressable path of the database resource.'})  # fmt: skip
     users: Optional[str] = field(default=None, metadata={'description': 'A system generated property that specifies the addressable path of the users resource.'})  # fmt: skip
 
 
@@ -2139,9 +2138,10 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureRestorableResourcePropertiesDatabase.mapping),
+        "restorable_sql_database": S("properties", "resource")
+        >> Bend(AzureRestorableResourcePropertiesDatabase.mapping),
     }
-    resource: Optional[AzureRestorableResourcePropertiesDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL database event'})  # fmt: skip
+    restorable_sql_database: Optional[AzureRestorableResourcePropertiesDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL database event'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2167,9 +2167,9 @@ class AzureCosmosDBRestorableTable(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
+        "restorable_table_resource": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
-    resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Table event'})  # fmt: skip
+    restorable_table_resource: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Table event'})  # fmt: skip
 
 
 resources: List[Type[MicrosoftResource]] = [

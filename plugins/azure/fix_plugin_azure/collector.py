@@ -42,6 +42,9 @@ from fix_plugin_azure.resource.postgresql import (
     AzurePostgresqlServerType,
     resources as postgresql_resources,
 )
+from fix_plugin_azure.resource.cosmosdb import (
+    resources as cosmosdb_resources,
+)
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -72,6 +75,7 @@ subscription_resources: List[Type[MicrosoftResource]] = (
     + postgresql_resources
     + monitor_resources
     + keyvault_resources
+    + cosmosdb_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
