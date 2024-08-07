@@ -822,6 +822,7 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
         "analytical_storage_configuration": S("properties", "analyticalStorageConfiguration", "schemaType"),
         "api_properties": S("properties", "apiProperties", "serverVersion"),
         "backup_policy": S("properties", "backupPolicy") >> Bend(AzureBackupPolicy.mapping),
@@ -961,13 +962,18 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
                 ("mongodbUserDefinitions", AzureCosmosDBMongoDBUserDefinition, None),
                 ("notebookWorkspaces", AzureCosmosDBNotebookWorkspace, None),
                 ("privateLinkResources", AzureCosmosDBPrivateLinkResource, None),
-                ("sqlDatabases", AzureCosmosDBSqlDatabase, None),
-                ("sqlRoleAssignments", AzureCosmosDBSqlRoleAssignment, None),
-                ("sqlRoleDefinitions", AzureCosmosDBSqlRoleDefinition, None),
                 ("tables", AzureCosmosDBTable, None),
                 ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
             ]
-
+            # For fetching SQL resources required 'GlobalDocumentDB' kind
+            if self.resource_kind == "GlobalDocumentDB":
+                resources_to_collect.extend(
+                    [
+                        ("sqlDatabases", AzureCosmosDBSqlDatabase, None),
+                        ("sqlRoleAssignments", AzureCosmosDBSqlRoleAssignment, None),
+                        ("sqlRoleDefinitions", AzureCosmosDBSqlRoleDefinition, None),
+                    ]
+                )
             for resource_type, resource_class, expected_errors in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
