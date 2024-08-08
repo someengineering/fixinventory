@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
@@ -1510,14 +1510,8 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
         "successors": {
             "default": [
                 "azure_cosmos_db_restorable_gremlin_database",
-                "azure_cosmos_db_restorable_gremlin_graph",
-                "azure_cosmos_db_restorable_gremlin_resource",
-                "azure_cosmos_db_restorable_mongo_db_collection",
                 "azure_cosmos_db_restorable_mongo_db_database",
-                "azure_cosmos_db_restorable_mongo_db_resource",
-                "azure_cosmos_db_restorable_sql_container",
                 "azure_cosmos_db_restorable_sql_database",
-                "azure_cosmos_db_restorable_sql_resource",
                 "azure_cosmos_db_restorable_table",
             ]
         },
@@ -1570,21 +1564,19 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
-            resources_to_collect = []
+            resources_to_collect = []  # type: ignore
             # For fetching SQL resources required filtering by API type
             if api_type := self.api_type:
                 api_type = api_type.split(",")[0]
                 if api_type == "Sql":
                     resources_to_collect.extend(
                         [
-                            ("restorableSqlContainers", AzureCosmosDBRestorableSqlContainer, ["BadRequest"]),
                             ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),
                         ]
                     )
                 elif api_type == "MongoDB":
                     resources_to_collect.extend(
                         [
-                            ("restorableMongodbCollections", AzureCosmosDBRestorableMongoDBCollection, None),
                             ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),
                         ]
                     )
@@ -1598,7 +1590,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
                     resources_to_collect.extend(
                         [
                             ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),
-                            ("restorableGraphs", AzureCosmosDBRestorableGremlinGraph, None),
                         ]
                     )
 
@@ -2068,6 +2059,13 @@ class AzureRestorableResourceProperties:
 class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_database"
     # Collect via AzureCosmosDBRestorableAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_restorable_gremlin_graph",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -2075,6 +2073,31 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
         "restorable_gremlin_database": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
     restorable_gremlin_database: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin database event'})  # fmt: skip
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if (resource := self.restorable_gremlin_database) and (rid := resource.rid):
+            account_id = self.extract_part("restorableDatabaseAccounts")
+            if not account_id:
+                return
+
+            def collect_restorable_graphs() -> None:
+                api_spec = AzureResourceSpec(
+                    service="cosmos-db",
+                    version="2024-05-15",
+                    path=f"{account_id}/restorableGraphs?restorableGremlinDatabaseRid={rid}",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureCosmosDBRestorableGremlinGraph.collect(items, graph_builder)
+                for clazz in collected:
+                    graph_builder.add_edge(self, node=clazz)
+
+            graph_builder.submit_work(service_name, collect_restorable_graphs)
 
 
 @define(eq=False, slots=False)
@@ -2107,6 +2130,13 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
 class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_database"
     # Collect via AzureCosmosDBRestorableAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_restorable_mongo_db_collection",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -2114,6 +2144,31 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
         "restorable_mongodb_database": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
     restorable_mongodb_database: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if (resource := self.restorable_mongodb_database) and (rid := resource.rid):
+            account_id = self.extract_part("restorableDatabaseAccounts")
+            if not account_id:
+                return
+
+            def collect_restorable_collections() -> None:
+                api_spec = AzureResourceSpec(
+                    service="cosmos-db",
+                    version="2024-05-15",
+                    path=f"{account_id}/restorableMongodbCollections?restorableMongodbDatabaseRid={rid}",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureCosmosDBRestorableMongoDBCollection.collect(items, graph_builder)
+                for clazz in collected:
+                    graph_builder.add_edge(self, node=clazz)
+
+            graph_builder.submit_work(service_name, collect_restorable_collections)
 
 
 @define(eq=False, slots=False)
@@ -2195,6 +2250,13 @@ class AzureRestorableResourcePropertiesDatabase:
 class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_database"
     # Collect via AzureCosmosDBRestorableAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_restorable_sql_container",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -2203,6 +2265,31 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
         >> Bend(AzureRestorableResourcePropertiesDatabase.mapping),
     }
     restorable_sql_database: Optional[AzureRestorableResourcePropertiesDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL database event'})  # fmt: skip
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if (resource := self.restorable_sql_database) and (rid := resource.rid):
+            account_id = self.extract_part("restorableDatabaseAccounts")
+            if not account_id:
+                return
+
+            def collect_restorable_containers() -> None:
+                api_spec = AzureResourceSpec(
+                    service="cosmos-db",
+                    version="2024-05-15",
+                    path=f"{account_id}/restorableSqlContainers?restorableSqlDatabaseRid={rid}",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureCosmosDBRestorableSqlContainer.collect(items, graph_builder)
+                for clazz in collected:
+                    graph_builder.add_edge(self, node=clazz)
+
+            graph_builder.submit_work(service_name, collect_restorable_containers)
 
 
 @define(eq=False, slots=False)
