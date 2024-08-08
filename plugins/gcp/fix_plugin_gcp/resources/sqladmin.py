@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import Any, ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
@@ -1103,6 +1103,9 @@ class GcpSqlUser(GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.instance:
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
+
+    def _keys(self) -> Tuple[Any, ...]:
+        return tuple(list(super()._keys()) + [self.instance])
 
 
 resources: List[Type[GcpResource]] = [GcpSqlDatabaseInstance]
