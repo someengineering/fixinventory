@@ -105,8 +105,10 @@ async def test_perform_benchmark(inspector_service: InspectorService, foo_model:
     db = inspector_service.db_access.get_graph_db(graph_name)
     async with await db.search_list(QueryModel(Query.by("account"), foo_model)) as crsr:
         async for elem in crsr:
+            expected = {"critical": {"checks": 1, "resources": 10}, "medium": {"checks": 1, "resources": 10}}
             assert elem["metadata"]["score"] == 0
-            assert elem["metadata"]["benchmark"]["test"] == 0
+            assert elem["metadata"]["failed"] == expected
+            assert elem["metadata"]["benchmark"]["test"] == {"score": 0, "failed": expected}
 
 
 async def test_perform_benchmark_ignored(
