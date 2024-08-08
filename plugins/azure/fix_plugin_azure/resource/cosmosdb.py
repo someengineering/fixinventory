@@ -1569,28 +1569,20 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
             if api_type := self.api_type:
                 api_type = api_type.split(",")[0]
                 if api_type == "Sql":
-                    resources_to_collect.extend(
-                        [
-                            ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),
-                        ]
+                    resources_to_collect.append(
+                        ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),  # type: ignore
                     )
                 elif api_type == "MongoDB":
-                    resources_to_collect.extend(
-                        [
-                            ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),
-                        ]
+                    resources_to_collect.append(
+                        ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),  # type: ignore
                     )
                 elif api_type == "Table":
-                    resources_to_collect.extend(
-                        [
-                            ("restorableTables", AzureCosmosDBRestorableTable, None),
-                        ]
+                    resources_to_collect.append(
+                        ("restorableTables", AzureCosmosDBRestorableTable, None),  # type: ignore
                     )
                 elif api_type == "Gremlin":
-                    resources_to_collect.extend(
-                        [
-                            ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),
-                        ]
+                    resources_to_collect.append(
+                        ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),  # type: ignore
                     )
 
             for resource_type, resource_class, expected_errors in resources_to_collect:
@@ -2075,8 +2067,8 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
     restorable_gremlin_database: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin database event'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if (resource := self.restorable_gremlin_database) and (rid := resource.rid):
-            account_id = self.extract_part("restorableDatabaseAccounts")
+        if (resource := self.restorable_gremlin_database) and (rid := resource.owner_resource_id):
+            account_id = "/".join(self.id.split("/")[:-2])
             if not account_id:
                 return
 
@@ -2146,8 +2138,8 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
     restorable_mongodb_database: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if (resource := self.restorable_mongodb_database) and (rid := resource.rid):
-            account_id = self.extract_part("restorableDatabaseAccounts")
+        if (resource := self.restorable_mongodb_database) and (rid := resource.owner_resource_id):
+            account_id = "/".join(self.id.split("/")[:-2])
             if not account_id:
                 return
 
@@ -2267,8 +2259,8 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
     restorable_sql_database: Optional[AzureRestorableResourcePropertiesDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB SQL database event'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if (resource := self.restorable_sql_database) and (rid := resource.rid):
-            account_id = self.extract_part("restorableDatabaseAccounts")
+        if (resource := self.restorable_sql_database) and (rid := resource.owner_resource_id):
+            account_id = "/".join(self.id.split("/")[:-2])
             if not account_id:
                 return
 
