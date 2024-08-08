@@ -11,7 +11,10 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateEndpointConnection,
     AzureManagedServiceIdentity,
     AzureExtendedLocation,
+    GraphBuilder,
+    parse_json,
 )
+from fix_plugin_azure.utils import NoneIfEmpty
 from fixlib.json_bender import Bender, S, ForallBend, Bend, MapDict
 from fixlib.types import Json
 
@@ -406,7 +409,7 @@ class AzureContainerApp(MicrosoftResource):
     kind: ClassVar[str] = "azure_container_app"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
-        version="2023-12-01",
+        version="2021-03-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Web/containerApps",
         path_parameters=["subscriptionId"],
         query_parameters=["api-version"],
@@ -514,7 +517,7 @@ class AzureDomain(MicrosoftResource):
     kind: ClassVar[str] = "azure_domain"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
-        version="2015-08-01",
+        version="2023-12-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.DomainRegistration/domains",
         path_parameters=["subscriptionId"],
         query_parameters=["api-version"],
@@ -1354,9 +1357,42 @@ class AzureSlotSwapStatus:
     timestamp_utc: Optional[datetime] = field(default=None, metadata={'description': 'The time the last successful slot swap completed.'})  # fmt: skip
 
 
+@define(eq=False, slots=True)
+class AzureWebAppAuthIdentityProvider:
+    kind: ClassVar[str] = "azure_web_app_auth_identity_provider"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enabled": S("enabled"),
+        "login": S("login") >> NoneIfEmpty,
+        "registration": S("registration") >> NoneIfEmpty,
+        "validation": S("validation") >> NoneIfEmpty,
+    }
+    enabled: Optional[bool] = field(default=None, metadata={'description': 'Flag to enable or disable authentication for the app.'})  # fmt: skip
+    login: Optional[Json] = field(default=None, metadata={'description': 'Login settings for the app.'})  # fmt: skip
+    registration: Optional[Json] = field(default=None, metadata={'description': 'Registration settings for the app.'})  # fmt: skip
+    validation: Optional[Json] = field(default=None, metadata={'description': 'Validation settings for the app.'})  # fmt: skip
+
+
+@define(eq=False, slots=True)
+class AzureWebAppAuthSettings:
+    kind: ClassVar[str] = "azure_web_app_auth_settings"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "enabled": S("properties", "platform", "enabled"),
+        "runtime_version": S("properties", "platform", "runtimeVersion"),
+        "require_https": S("properties", "httpSettings", "requireHttps"),
+        "require_authentication": S("properties", "globalValidation", "requireAuthentication"),
+        "identity_provider": S("properties", "identityProviders")
+        >> MapDict(value_bender=Bend(AzureWebAppAuthIdentityProvider.mapping)),
+    }
+    enabled: Optional[bool] = field(default=None, metadata={'description': 'Flag to enable or disable authentication for the app.'})  # fmt: skip
+    runtime_version: Optional[str] = field(default=None, metadata={'description': 'Runtime version of the authentication provider.'})  # fmt: skip
+    require_https: Optional[bool] = field(default=None, metadata={'description': 'Flag to require HTTPS for the app.'})  # fmt: skip
+    require_authentication: Optional[bool] = field(default=None, metadata={'description': 'Flag to require authentication for the app.'})  # fmt: skip
+    identity_provider: Optional[Dict[str, AzureWebAppAuthIdentityProvider]] = field(default=None, metadata={'description': 'Identity providers for the app.'})  # fmt: skip
+
+
 @define(eq=False, slots=False)
-class AzureAppSite(MicrosoftResource):
-    kind: ClassVar[str] = "azure_app_site"
+class AzureWebApp(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_app"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -1484,6 +1520,24 @@ class AzureAppSite(MicrosoftResource):
     vnet_image_pull_enabled: Optional[bool] = field(default=None, metadata={'description': 'To enable pulling image over Virtual Network'})  # fmt: skip
     vnet_route_all_enabled: Optional[bool] = field(default=None, metadata={'description': 'Virtual Network Route All enabled. This causes all outbound traffic to have Virtual Network Security Groups and User Defined Routes applied.'})  # fmt: skip
     workload_profile_name: Optional[str] = field(default=None, metadata={'description': 'Workload profile name for function app to execute on.'})  # fmt: skip
+    app_authentication_settings: Optional[AzureWebAppAuthSettings] = field(default=None, metadata={'description': 'Authentication settings for the app.'})  # fmt: skip
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def auth_settings() -> None:
+            for dep_json in graph_builder.client.list(
+                AzureResourceSpec(
+                    service=self.api_spec.service,
+                    version=self.api_spec.version,
+                    path=f"{self.id}/config/authsettingsV2/list",
+                    query_parameters=["api-version"],
+                    expect_array=True,
+                )
+            ):
+                self.app_authentication_settings = parse_json(
+                    dep_json, AzureWebAppAuthSettings, graph_builder, AzureWebAppAuthSettings.mapping
+                )
+
+        graph_builder.submit_work(service_name, auth_settings)
 
 
 @define(eq=False, slots=False)
@@ -1648,7 +1702,7 @@ class AzureAppStaticSite(MicrosoftResource):
 
 resources: List[Type[MicrosoftResource]] = [
     AzureAppServicePlan,
-    AzureAppSite,
+    AzureWebApp,
     AzureAppStaticSite,
     AzureCertificate,
     AzureContainerApp,

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
@@ -8,6 +9,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     GraphBuilder,
     AzureSubscription,
+    AzureSystemData,
 )
 from fix_plugin_azure.resource.microsoft_graph import (
     MicrosoftGraphUser,
@@ -18,7 +20,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
 )
 from fixlib.baseresources import BaseRole, ModelReference
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import Bender, S, ForallBend
+from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 
@@ -239,8 +241,42 @@ class AzureRoleDefinition(MicrosoftResource, BaseRole):
     updated_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was updated"})
 
 
+@define(eq=False, slots=False)
+class AzureManagementLock(MicrosoftResource):
+    kind: ClassVar[str] = "azure_management_lock"
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
+        service="resources",
+        version="2020-05-01",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/locks",
+        path_parameters=["subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "level": S("properties", "level"),
+        "notes": S("properties", "notes"),
+        "owners": S("properties") >> S("owners", default=[]) >> ForallBend(S("applicationId")),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+    }
+    level: Optional[str] = field(default=None, metadata={'description': 'The level of the lock. Possible values are: NotSpecified, CanNotDelete, ReadOnly. CanNotDelete means authorized users are able to read and modify the resources, but not delete. ReadOnly means authorized users can only read from a resource, but they can t modify or delete it.'})  # fmt: skip
+    notes: Optional[str] = field(default=None, metadata={'description': 'Notes about the lock. Maximum of 512 characters.'})  # fmt: skip
+    owners: Optional[List[str]] = field(default=None, metadata={"description": "The owners of the lock."})
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        resource_id = re.sub(r"/providers/Microsoft.Authorization/locks/.*$", "", self.id)
+        builder.add_edge(self, id=resource_id)
+
+
 resources: List[Type[MicrosoftResource]] = [
     AzureDenyAssignment,
+    AzureManagementLock,
     AzureRoleAssignment,
     AzureRoleDefinition,
 ]

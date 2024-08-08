@@ -69,6 +69,7 @@ def from_str_to_typed(config_type: str, value: str) -> Any:
 
 
 TimestampToIso = F(lambda x: datetime.fromtimestamp(x).isoformat())
+NoneIfEmpty = F(lambda x: x if x else None)
 
 
 @frozen(kw_only=True)

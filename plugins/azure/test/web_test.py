@@ -2,7 +2,7 @@ from conftest import roundtrip_check
 from fix_plugin_azure.resource.base import GraphBuilder
 from fix_plugin_azure.resource.web import (
     AzureAppServicePlan,
-    AzureAppSite,
+    AzureWebApp,
     AzureAppStaticSite,
     AzureCertificate,
     AzureContainerApp,
@@ -17,9 +17,12 @@ def test_app_service_plan(builder: GraphBuilder) -> None:
     assert len(collected) == 2
 
 
-def test_app_site(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureAppSite, builder)
+def test_web_app(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureWebApp, builder)
     assert len(collected) == 2
+    collected[0].post_process(builder, {})
+    builder.executor.wait_for_submitted_work()
+    assert collected[0].app_authentication_settings is not None
 
 
 def test_app_static_site(builder: GraphBuilder) -> None:
