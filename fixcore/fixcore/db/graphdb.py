@@ -815,7 +815,7 @@ class ArangoGraphDB(GraphDB):
         # in case no granularity is provided we will compute one: 1/25 of the time range but at least one hour
         gran = max(granularity or abs(before - after) / 25, timedelta(hours=1))
         query = self._history_query_model(query, changes, before, after)
-        q_string, bind = arango_query.history_query_histogram(self, query, gran)
+        q_string, bind = arango_query.history_query_timeline(self, query, after, gran)
         ttl = cast(Number, int(timeout.total_seconds())) if timeout else None
         return await self.db.aql_cursor(query=q_string, bind_vars=bind, batch_size=10000, ttl=ttl)
 
