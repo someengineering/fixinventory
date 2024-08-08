@@ -1105,7 +1105,7 @@ class GcpSqlUser(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpSqlDatabaseInstance)
 
     def _keys(self) -> Tuple[Any, ...]:
-        return self.kind, self.cloud().id, self.account().id, self.region().id, self.zone().id, self.id, self.instance
+        return tuple(list(super()._keys()) + [self.instance])
 
 
 resources: List[Type[GcpResource]] = [GcpSqlDatabaseInstance]
