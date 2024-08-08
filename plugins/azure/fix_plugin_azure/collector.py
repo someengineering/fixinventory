@@ -43,6 +43,7 @@ from fix_plugin_azure.resource.postgresql import (
     resources as postgresql_resources,
 )
 from fix_plugin_azure.resource.cosmosdb import (
+    AzureCosmosDBLocation,
     resources as cosmosdb_resources,
 )
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
@@ -220,14 +221,17 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
     def remove_unused(self) -> None:
         remove_nodes = []
 
-        def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None) -> None:  # type: ignore
+        def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None, check_pred: bool = True) -> None:  # type: ignore
             for node in self.graph.nodes:
                 if not isinstance(node, cls):
                     continue
-                pred = list(self.graph.predecessors(node))
+                if check_pred:
+                    nodes = list(self.graph.predecessors(node))
+                else:
+                    nodes = list(self.graph.successors(node))
                 if ignore_kinds is not None:
-                    pred = [p for p in pred if not isinstance(p, ignore_kinds)]
-                if not pred:
+                    nodes = [n for n in nodes if not isinstance(n, ignore_kinds)]
+                if not nodes:
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
             log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
@@ -250,6 +254,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureStorageSku, AzureLocation)
         rm_nodes(AzureMysqlServerType, AzureSubscription)
         rm_nodes(AzurePostgresqlServerType, AzureSubscription)
+        rm_nodes(AzureCosmosDBLocation, AzureSubscription, check_pred=False)
         remove_usage_zero_value()
 
     def after_collect(self) -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Tuple, Type
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
@@ -16,7 +16,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     MicrosoftResource,
 )
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.json_bender import K, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -829,6 +829,11 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
                 "azure_cosmos_db_sql_role_definition",
             ]
         },
+        "predecessors": {
+            "default": [
+                "azure_cosmos_db_location",
+            ]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureARMResourceProperties.mapping | {
         "id": S("id"),
@@ -1021,6 +1026,17 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
                     resource_type,
                     resource_class,
                     expected_errors,
+                )
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if account_locations := self.account_locations:
+            for account_location in account_locations:
+                builder.add_edge(
+                    self,
+                    edge_type=EdgeType.default,
+                    reverse=True,
+                    clazz=AzureCosmosDBLocation,
+                    name=account_location.location_name,
                 )
 
 
@@ -1515,6 +1531,11 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
                 "azure_cosmos_db_restorable_table",
             ]
         },
+        "predecessors": {
+            "default": [
+                "azure_cosmos_db_location",
+            ]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1594,6 +1615,17 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
                     resource_type,
                     resource_class,
                     expected_errors,
+                )
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if account_locations := self.restorable_locations:
+            for account_location in account_locations:
+                builder.add_edge(
+                    self,
+                    edge_type=EdgeType.default,
+                    reverse=True,
+                    clazz=AzureCosmosDBLocation,
+                    name=account_location.location_name,
                 )
 
 
@@ -1908,7 +1940,7 @@ class AzureCosmosDBLocation(MicrosoftResource, AzureARMProxyResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureARMProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
-        "name": S("id"),
+        "name": S("name"),
         "backup_storage_redundancies": S("properties", "backupStorageRedundancies"),
         "is_residency_restricted": S("properties", "isResidencyRestricted"),
         "is_subscription_region_access_allowed_for_az": S("properties", "isSubscriptionRegionAccessAllowedForAz"),
@@ -2002,7 +2034,7 @@ class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
-        "name": S("id"),
+        "name": S("name"),
         "administrator_login": S("properties", "administratorLogin"),
         "administrator_login_password": S("properties", "administratorLoginPassword"),
         "cluster_status": S("properties", "clusterStatus"),
