@@ -3,7 +3,7 @@ from fixlib.baseplugin import BaseCollectorPlugin
 from fixlib.args import ArgumentParser
 from fixlib.config import Config
 from fixlib.core.actions import CoreFeedback
-from fixlib.graph import Graph, MaxNodesExceeded
+from fixlib.graph import MaxNodesExceeded
 from fixlib.baseresources import Cloud
 from fixlib.logger import log
 from typing import Any, Optional
@@ -61,4 +61,3 @@ class HetznerCollectorPlugin(BaseCollectorPlugin):
         Can be used to introduce plugin config arguments to the global config store.
         """
         config.add_config(HetznerConfig)
-        pass
