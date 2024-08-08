@@ -17,7 +17,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
 )
 from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import K, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 service_name = "azure_cosmosdb"
@@ -981,6 +981,8 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
             return
         if issubclass(AzureCosmosDBAccountReadOnlyKeys, class_instance):  # type: ignore
             collected = class_instance.collect_keys(account_id, items, graph_builder)  # type: ignore
+        elif issubclass(AzureCosmosDBAccountUsage, class_instance):  # type: ignore
+            collected = class_instance.collect_usages(account_id, items, graph_builder)  # type: ignore
         else:
             collected = class_instance.collect(items, graph_builder)
         for clazz in collected:
@@ -1041,7 +1043,8 @@ class AzureCosmosDBAccountReadOnlyKeys(MicrosoftResource):
         for js in raw:
             # map from api
             if instance := cls.from_api(js, builder):
-                instance.id = account_id
+                # Set account id to resource name and id
+                instance.name = instance.id = account_id
                 if (added := builder.add_node(instance, js)) is not None:
                     result.append(added)
         return result
@@ -1895,10 +1898,23 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
-        "id": S("name", "value"),
+        "id": K(None),
         "usage_quota_period": S("quotaPeriod"),
     }
+    _is_provider_link: ClassVar[bool] = False
     usage_quota_period: Optional[str] = field(default=None, metadata={'description': 'The quota period used to summarize the usage values.'})  # fmt: skip
+
+    @classmethod
+    def collect_usages(cls, account_id: str, raw: List[Json], builder: GraphBuilder) -> List[AzureCosmosDBAccountUsage]:
+        result = []
+        for js in raw:
+            # map from api
+            if instance := cls.from_api(js, builder):
+                # Set account id to resource id
+                instance.id = account_id
+                if (added := builder.add_node(instance, js)) is not None:
+                    result.append(added)
+        return result
 
 
 @define(eq=False, slots=False)
