@@ -266,48 +266,25 @@ class AzureCosmosDBCassandraKeyspace(MicrosoftResource, AzureARMResourceProperti
         default=None, metadata={"description": ""}
     )
 
-    def _collect_items(
-        self,
-        graph_builder: GraphBuilder,
-        account_id: str,
-        resource_type: str,
-        class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
-    ) -> None:
-        path = f"{account_id}/{resource_type}"
-        api_spec = AzureResourceSpec(
-            service="cosmos-db",
-            version="2024-05-15",
-            path=path,
-            path_parameters=[],
-            query_parameters=["api-version"],
-            access_path="value",
-            expect_array=True,
-            expected_error_codes=expected_errors or [],
-        )
-        items = graph_builder.client.list(api_spec)
-        if not items:
-            return
-        collected = class_instance.collect(items, graph_builder)
-        for clazz in collected:
-            graph_builder.add_edge(self, node=clazz)
-
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if account_id := self.id:
-            resources_to_collect = [
-                ("tables", AzureCosmosDBCassandraTable, None),
-            ]
+        def collect_tables() -> None:
+            api_spec = AzureResourceSpec(
+                service="cosmos-db",
+                version="2024-05-15",
+                path=f"{self.id}/tables",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            if not items:
+                return
+            collected = AzureCosmosDBCassandraTable.collect(items, graph_builder)
+            for clazz in collected:
+                graph_builder.add_edge(self, node=clazz)
 
-            for resource_type, resource_class, expected_errors in resources_to_collect:
-                graph_builder.submit_work(
-                    service_name,
-                    self._collect_items,
-                    graph_builder,
-                    account_id,
-                    resource_type,
-                    resource_class,
-                    expected_errors,
-                )
+        graph_builder.submit_work(service_name, collect_tables)
 
 
 @define(eq=False, slots=False)
@@ -902,6 +879,7 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
         "virtual_network_rules": S("properties", "virtualNetworkRules")
         >> ForallBend(AzureAccountVirtualNetworkRule.mapping),
         "write_locations": S("properties", "writeLocations") >> ForallBend(AzureAccountLocation.mapping),
+        "database_type": S("properties", "EnabledApiTypes"),
     }
     analytical_storage_configuration: Optional[str] = field(default=None, metadata={'description': 'Analytical storage specific properties.'})  # fmt: skip
     api_properties: Optional[str] = field(default=None, metadata={"description": ""})
@@ -944,6 +922,7 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     virtual_network_rules: Optional[List[AzureAccountVirtualNetworkRule]] = field(default=None, metadata={'description': 'List of Virtual Network ACL rules configured for the Cosmos DB account.'})  # fmt: skip
     write_locations: Optional[List[AzureAccountLocation]] = field(default=None, metadata={'description': 'An array that contains the write location for the Cosmos DB account.'})  # fmt: skip
+    database_type: Optional[str] = field(default=None, metadata={'description': 'Indicates the API type of database account. This can only be set at database account creation.'})  # fmt: skip
 
     def _collect_items(
         self,
@@ -991,26 +970,48 @@ class AzureCosmosDBAccount(MicrosoftResource, AzureARMResourceProperties):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
             resources_to_collect = [
-                ("cassandraKeyspaces", AzureCosmosDBCassandraKeyspace, None),
                 ("readonlykeys", AzureCosmosDBAccountReadOnlyKeys, None),
-                ("gremlinDatabases", AzureCosmosDBGremlinDatabase, None),
-                ("mongodbDatabases", AzureCosmosDBMongoDBDatabase, None),
-                ("mongodbRoleDefinitions", AzureCosmosDBMongoDBRoleDefinition, None),
-                ("mongodbUserDefinitions", AzureCosmosDBMongoDBUserDefinition, None),
                 ("notebookWorkspaces", AzureCosmosDBNotebookWorkspace, None),
                 ("privateLinkResources", AzureCosmosDBPrivateLinkResource, None),
-                ("tables", AzureCosmosDBTable, None),
                 ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
             ]
-            # For fetching SQL resources required 'GlobalDocumentDB' kind
-            if self.resource_kind == "GlobalDocumentDB":
-                resources_to_collect.extend(
-                    [
-                        ("sqlDatabases", AzureCosmosDBSqlDatabase, None),
-                        ("sqlRoleAssignments", AzureCosmosDBSqlRoleAssignment, None),
-                        ("sqlRoleDefinitions", AzureCosmosDBSqlRoleDefinition, None),
-                    ]
-                )
+            # For fetching SQL resources required filtering by API type
+            if database_type := self.database_type:
+                api_type = database_type.split(",")[0]
+                if api_type == "Sql":
+                    resources_to_collect.extend(
+                        [
+                            ("sqlDatabases", AzureCosmosDBSqlDatabase, None),
+                            ("sqlRoleAssignments", AzureCosmosDBSqlRoleAssignment, None),
+                            ("sqlRoleDefinitions", AzureCosmosDBSqlRoleDefinition, None),
+                        ]
+                    )
+                elif api_type == "Cassandra":
+                    resources_to_collect.extend(
+                        [
+                            ("cassandraKeyspaces", AzureCosmosDBCassandraKeyspace, None),
+                        ]
+                    )
+                elif api_type == "MongoDB":
+                    resources_to_collect.extend(
+                        [
+                            ("mongodbDatabases", AzureCosmosDBMongoDBDatabase, None),
+                            ("mongodbRoleDefinitions", AzureCosmosDBMongoDBRoleDefinition, None),
+                            ("mongodbUserDefinitions", AzureCosmosDBMongoDBUserDefinition, None),
+                        ]
+                    )
+                elif api_type == "Table":
+                    resources_to_collect.extend(
+                        [
+                            ("tables", AzureCosmosDBTable, None),
+                        ]
+                    )
+                elif api_type == "Gremlin":
+                    resources_to_collect.extend(
+                        [
+                            ("gremlinDatabases", AzureCosmosDBGremlinDatabase, None),
+                        ]
+                    )
             for resource_type, resource_class, expected_errors in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
@@ -1092,48 +1093,25 @@ class AzureCosmosDBGremlinDatabase(MicrosoftResource, AzureARMResourceProperties
         default=None, metadata={"description": ""}
     )
 
-    def _collect_items(
-        self,
-        graph_builder: GraphBuilder,
-        account_id: str,
-        resource_type: str,
-        class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
-    ) -> None:
-        path = f"{account_id}/{resource_type}"
-        api_spec = AzureResourceSpec(
-            service="cosmos-db",
-            version="2024-05-15",
-            path=path,
-            path_parameters=[],
-            query_parameters=["api-version"],
-            access_path="value",
-            expect_array=True,
-            expected_error_codes=expected_errors or [],
-        )
-        items = graph_builder.client.list(api_spec)
-        if not items:
-            return
-        collected = class_instance.collect(items, graph_builder)
-        for clazz in collected:
-            graph_builder.add_edge(self, node=clazz)
-
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if account_id := self.id:
-            resources_to_collect = [
-                ("graphs", AzureCosmosDBGremlinGraph, None),
-            ]
+        def collect_graphs() -> None:
+            api_spec = AzureResourceSpec(
+                service="cosmos-db",
+                version="2024-05-15",
+                path=f"{self.id}/graphs",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            if not items:
+                return
+            collected = AzureCosmosDBGremlinGraph.collect(items, graph_builder)
+            for clazz in collected:
+                graph_builder.add_edge(self, node=clazz)
 
-            for resource_type, resource_class, expected_errors in resources_to_collect:
-                graph_builder.submit_work(
-                    service_name,
-                    self._collect_items,
-                    graph_builder,
-                    account_id,
-                    resource_type,
-                    resource_class,
-                    expected_errors,
-                )
+        graph_builder.submit_work(service_name, collect_graphs)
 
 
 @define(eq=False, slots=False)
@@ -1377,48 +1355,25 @@ class AzureCosmosDBMongoDBDatabase(MicrosoftResource, AzureARMResourceProperties
         default=None, metadata={"description": ""}
     )
 
-    def _collect_items(
-        self,
-        graph_builder: GraphBuilder,
-        account_id: str,
-        resource_type: str,
-        class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
-    ) -> None:
-        path = f"{account_id}/{resource_type}"
-        api_spec = AzureResourceSpec(
-            service="cosmos-db",
-            version="2024-05-15",
-            path=path,
-            path_parameters=[],
-            query_parameters=["api-version"],
-            access_path="value",
-            expect_array=True,
-            expected_error_codes=expected_errors or [],
-        )
-        items = graph_builder.client.list(api_spec)
-        if not items:
-            return
-        collected = class_instance.collect(items, graph_builder)
-        for clazz in collected:
-            graph_builder.add_edge(self, node=clazz)
-
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if account_id := self.id:
-            resources_to_collect = [
-                ("collections", AzureCosmosDBMongoDBCollection, None),
-            ]
+        def collect_collections() -> None:
+            api_spec = AzureResourceSpec(
+                service="cosmos-db",
+                version="2024-05-15",
+                path=f"{self.id}/collections",
+                path_parameters=[],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            if not items:
+                return
+            collected = AzureCosmosDBMongoDBCollection.collect(items, graph_builder)
+            for clazz in collected:
+                graph_builder.add_edge(self, node=clazz)
 
-            for resource_type, resource_class, expected_errors in resources_to_collect:
-                graph_builder.submit_work(
-                    service_name,
-                    self._collect_items,
-                    graph_builder,
-                    account_id,
-                    resource_type,
-                    resource_class,
-                    expected_errors,
-                )
+        graph_builder.submit_work(service_name, collect_collections)
 
 
 @define(eq=False, slots=False)
@@ -1615,18 +1570,37 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
-            resources_to_collect = [
-                ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),
-                ("restorableGraphs", AzureCosmosDBRestorableGremlinGraph, None),
-                ("restorableGremlinResources", AzureCosmosDBRestorableGremlinResource, None),
-                ("restorableMongodbCollections", AzureCosmosDBRestorableMongoDBCollection, None),
-                ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),
-                ("restorableMongodbResources", AzureCosmosDBRestorableMongoDBResource, None),
-                ("restorableSqlContainers", AzureCosmosDBRestorableSqlContainer, None),
-                ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),
-                ("restorableSqlResources", AzureCosmosDBRestorableSqlResource, None),
-                ("restorableTables", AzureCosmosDBRestorableTable, None),
-            ]
+            resources_to_collect = []
+            # For fetching SQL resources required filtering by API type
+            if api_type := self.api_type:
+                api_type = api_type.split(",")[0]
+                if api_type == "Sql":
+                    resources_to_collect.extend(
+                        [
+                            ("restorableSqlContainers", AzureCosmosDBRestorableSqlContainer, ["BadRequest"]),
+                            ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),
+                        ]
+                    )
+                elif api_type == "MongoDB":
+                    resources_to_collect.extend(
+                        [
+                            ("restorableMongodbCollections", AzureCosmosDBRestorableMongoDBCollection, None),
+                            ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),
+                        ]
+                    )
+                elif api_type == "Table":
+                    resources_to_collect.extend(
+                        [
+                            ("restorableTables", AzureCosmosDBRestorableTable, None),
+                        ]
+                    )
+                elif api_type == "Gremlin":
+                    resources_to_collect.extend(
+                        [
+                            ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),
+                            ("restorableGraphs", AzureCosmosDBRestorableGremlinGraph, None),
+                        ]
+                    )
 
             for resource_type, resource_class, expected_errors in resources_to_collect:
                 graph_builder.submit_work(
@@ -1795,7 +1769,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource, AzureARMResourceProperties):
             resources_to_collect = [
                 ("containers", AzureCosmosDBSqlDatabaseContainer, None),
                 ("clientEncryptionKeys", AzureCosmosDBSqlDatabaseClientEncryptionKey, None),
-                ("throughputSettings/default", AzureCosmosDBSqlThroughputSetting, None),
+                ("throughputSettings/default", AzureCosmosDBSqlThroughputSetting, ["BadRequest"]),
             ]
 
             for resource_type, resource_class, expected_errors in resources_to_collect:
@@ -2117,21 +2091,6 @@ class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableGremlinResource(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_resource"
-    # Collect via AzureCosmosDBRestorableAccount()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "database_name": S("databaseName"),
-        "graph_names": S("graphNames"),
-    }
-    database_name: Optional[str] = field(default=None, metadata={'description': 'The name of the gremlin database available for restore.'})  # fmt: skip
-    graph_names: Optional[List[str]] = field(default=None, metadata={'description': 'The names of the graphs available for restore.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_collection"
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2155,21 +2114,6 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
         "restorable_mongodb_database": S("properties", "resource") >> Bend(AzureRestorableResourceProperties.mapping),
     }
     restorable_mongodb_database: Optional[AzureRestorableResourceProperties] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongoDBResource(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_resource"
-    # Collect via AzureCosmosDBRestorableAccount()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "collection_names": S("collectionNames"),
-        "database_name": S("databaseName"),
-    }
-    collection_names: Optional[List[str]] = field(default=None, metadata={'description': 'The names of the collections available for restore.'})  # fmt: skip
-    database_name: Optional[str] = field(default=None, metadata={'description': 'The name of the database available for restore.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2262,21 +2206,6 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableSqlResource(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_resource"
-    # Collect via AzureCosmosDBRestorableAccount()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "collection_names": S("collectionNames"),
-        "database_name": S("databaseName"),
-    }
-    collection_names: Optional[List[str]] = field(default=None, metadata={'description': 'The names of the collections available for restore.'})  # fmt: skip
-    database_name: Optional[str] = field(default=None, metadata={'description': 'The name of the database available for restore.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureCosmosDBRestorableTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_table"
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2318,12 +2247,9 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBRestorableAccount,
     AzureCosmosDBRestorableGremlinDatabase,
     AzureCosmosDBRestorableGremlinGraph,
-    AzureCosmosDBRestorableGremlinResource,
     AzureCosmosDBRestorableMongoDBCollection,
     AzureCosmosDBRestorableMongoDBDatabase,
-    AzureCosmosDBRestorableMongoDBResource,
     AzureCosmosDBRestorableSqlContainer,
     AzureCosmosDBRestorableSqlDatabase,
-    AzureCosmosDBRestorableSqlResource,
     AzureCosmosDBRestorableTable,
 ]
