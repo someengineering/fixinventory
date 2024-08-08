@@ -1,0 +1,8 @@
+{
+    "value": [
+        {
+            "primaryReadonlyMasterKey": "primaryReadonlyMasterKey",
+            "secondaryReadonlyMasterKey": "secondaryReadonlyMasterKey"
+        }
+    ]
+}
