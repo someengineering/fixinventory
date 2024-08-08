@@ -893,6 +893,8 @@ class BaseZone(PhantomBaseResource):
     kind_description: ClassVar[str] = "A zone."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "control"}
 
+    long_name: Optional[str] = None
+
     def zone(self, graph: Optional[Any] = None) -> BaseZone:
         return self
 
