@@ -177,8 +177,8 @@ class AzureCosmosDBCassandraClusterPublicStatus(MicrosoftResource):
 class AzureCosmosDBResource:
     kind: ClassVar[str] = "azure_cosmos_db_resource"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "_rid": S("rid"),
-        "_ts": S("ts"),
+        "rid": S("_rid"),
+        "ts": S("_ts"),
         "autoscale_settings": S("autoscaleSettings") >> Bend(AzureAutoscaleSettingsResource.mapping),
         "instant_maximum_throughput": S("instantMaximumThroughput"),
         "minimum_throughput": S("minimumThroughput"),
@@ -1959,8 +1959,6 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if (resource := self.restorable_gremlin_database) and (rid := resource.owner_resource_id):
             account_id = "/".join(self.id.split("/")[:-2])
-            if not account_id:
-                return
 
             def collect_restorable_graphs() -> None:
                 api_spec = AzureResourceSpec(
@@ -2030,8 +2028,6 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if (resource := self.restorable_mongodb_database) and (rid := resource.owner_resource_id):
             account_id = "/".join(self.id.split("/")[:-2])
-            if not account_id:
-                return
 
             def collect_restorable_collections() -> None:
                 api_spec = AzureResourceSpec(
@@ -2087,8 +2083,8 @@ class AzureExtendedPropertiesSqlDatabase(AzureSqlDatabaseResource):
         "colls": S("_colls"),
         "database_self": S("_self"),
         "users": S("_users"),
-        "rid": S("rid"),
-        "ts": S("ts"),
+        "rid": S("_rid"),
+        "ts": S("_ts"),
     }
     rid: Optional[str] = field(default=None, metadata={'description': 'A system generated property. A unique identifier.'})  # fmt: skip
     ts: Optional[float] = field(default=None, metadata={'description': 'A system generated property that denotes the last updated timestamp of the resource.'})  # fmt: skip
@@ -2133,8 +2129,6 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if rid := self.owner_resource_id:
             account_id = "/".join(self.id.split("/")[:-2])
-            if not account_id:
-                return
 
             def collect_restorable_containers() -> None:
                 api_spec = AzureResourceSpec(
