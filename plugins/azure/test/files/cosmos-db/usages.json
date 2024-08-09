@@ -1,0 +1,14 @@
+{
+    "value": [
+      {
+        "unit": "Bytes",
+        "quotaPeriod": "P1D",
+        "limit": 10737418240,
+        "currentValue": 0,
+        "name": {
+          "value": "Storage",
+          "localizedValue": "Storage"
+        }
+      }
+    ]
+  }

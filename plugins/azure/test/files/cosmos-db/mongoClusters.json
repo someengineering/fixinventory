@@ -1,0 +1,41 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-resource-group/providers/Microsoft.DocumentDB/mongoClusters/my-mongo-cluster",
+            "name": "my-mongo-cluster",
+            "tags": {
+            "environment": "production"
+            },
+            "properties": {
+            "administratorLogin": "mongoAdmin",
+            "administratorLoginPassword": "Str0ngPassword!",
+            "clusterStatus": "Creating",
+            "connectionString": "mongodb://my-mongo-cluster.documents.azure.com:10255/?ssl=true&replicaSet=globaldb",
+            "createMode": "Default",
+            "earliestRestoreTime": "2023-08-01T00:00:00Z",
+            "nodeGroupSpecs": [
+                {
+                "kind": "Shard",
+                "nodeCount": 3,
+                "diskSizeGB": 128,
+                "enableHa": true,
+                "sku": "M30"
+                },
+                {
+                "kind": "Monitoring",
+                "nodeCount": 1,
+                "diskSizeGB": 64,
+                "enableHa": true,
+                "sku": "M20"
+                }
+            ],
+            "provisioningState": "Succeeded",
+            "restoreParameters": {
+                "pointInTimeUTC": "2023-07-31T23:00:00Z",
+                "sourceResourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-old-resource-group/providers/Microsoft.DocumentDB/mongoClusters/my-old-mongo-cluster"
+            },
+            "serverVersion": "4.2"
+            }
+        }
+    ]
+}
