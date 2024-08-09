@@ -828,8 +828,10 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
             default=False,
         ),
         "instance_type": S("kind")
-        + K("_")
-        + (S("properties", "EnabledApiTypes") >> F(lambda api_type: api_type.split(",")[0])),
+        + (
+            S("properties", "EnabledApiTypes")
+            >> F(lambda api_type: ("_" + api_type.split(",")[0]) if api_type not in ["MongoDB"] else "")
+        ),
         "volume_iops": S("properties", "capacity", "totalThroughputLimit"),
     }
     analytical_storage_configuration: Optional[str] = field(default=None, metadata={'description': 'Analytical storage specific properties.'})  # fmt: skip
