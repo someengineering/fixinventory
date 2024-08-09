@@ -1,16 +1,16 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, evolve, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
-    AzurePrivateLinkServiceConnectionState,
     AzureSku,
     GraphBuilder,
     MicrosoftResource,
     AzureSystemData,
+    AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.utils import from_str_to_typed
@@ -450,30 +450,6 @@ class AzureMysqlServerMaintenance(MicrosoftResource):
     maintenance_state: Optional[str] = field(default=None, metadata={'description': 'The current status of this maintenance.'})  # fmt: skip
     maintenance_title: Optional[str] = field(default=None, metadata={"description": "The maintenance title."})
     maintenance_type: Optional[str] = field(default=None, metadata={"description": "The type of this maintenance."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrivateEndpointConnection:
-    kind: ClassVar[str] = "azure_private_endpoint_connection"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "group_ids": S("properties", "groupIds"),
-        "id": S("id"),
-        "name": S("name"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "type": S("type"),
-    }
-    group_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The group ids for the private endpoint resource.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. E.g. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName} '})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": "The private endpoint resource."})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip

@@ -1,0 +1,103 @@
+{
+    "id": "/subscriptions/38b02a39-99c8-45bd-a92e-38b616f109df/resourceGroups/foo/providers/Microsoft.Web/sites/MyAwesomeWebApp1234567/config/authsettingsV2",
+    "location": "East US",
+    "name": "authsettingsV2",
+    "properties": {
+        "clearInboundClaimsMapping": "false",
+        "globalValidation": {
+            "redirectToProvider": "azureactivedirectory",
+            "requireAuthentication": true,
+            "unauthenticatedClientAction": "RedirectToLoginPage"
+        },
+        "httpSettings": {
+            "forwardProxy": {
+                "convention": "NoProxy"
+            },
+            "requireHttps": true,
+            "routes": {
+                "apiPrefix": "/.auth"
+            }
+        },
+        "identityProviders": {
+            "apple": {
+                "enabled": true,
+                "login": {},
+                "registration": {}
+            },
+            "azureActiveDirectory": {
+                "enabled": true,
+                "isAutoProvisioned": true,
+                "login": {
+                    "disableWWWAuthenticate": false
+                },
+                "registration": {
+                    "clientId": "8797d19c-a1d1-4950-b802-56dd2c106cd1",
+                    "clientSecretSettingName": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET",
+                    "openIdIssuer": "https://sts.windows.net/68b037c0-d91f-451b-ae4e-78731fc52fd9/v2.0"
+                },
+                "validation": {
+                    "allowedAudiences": [
+                        "api://8797d19c-a1d1-4950-b802-56dd2c106cd1"
+                    ],
+                    "defaultAuthorizationPolicy": {
+                        "allowedApplications": [
+                            "8797d19c-a1d1-4950-b802-56dd2c106cd1"
+                        ],
+                        "allowedPrincipals": {}
+                    },
+                    "jwtClaimChecks": {}
+                }
+            },
+            "facebook": {
+                "enabled": true,
+                "login": {},
+                "registration": {}
+            },
+            "gitHub": {
+                "enabled": true,
+                "login": {},
+                "registration": {}
+            },
+            "google": {
+                "enabled": true,
+                "login": {},
+                "registration": {},
+                "validation": {}
+            },
+            "legacyMicrosoftAccount": {
+                "enabled": true,
+                "login": {},
+                "registration": {},
+                "validation": {}
+            },
+            "twitter": {
+                "enabled": true,
+                "registration": {}
+            }
+        },
+        "login": {
+            "allowedExternalRedirectUrls": [],
+            "cookieExpiration": {
+                "convention": "FixedTime",
+                "timeToExpiration": "08:00:00"
+            },
+            "nonce": {
+                "nonceExpirationInterval": "00:05:00",
+                "validateNonce": true
+            },
+            "preserveUrlFragmentsForLogins": false,
+            "routes": {},
+            "tokenStore": {
+                "azureBlobStorage": {},
+                "enabled": true,
+                "fileSystem": {},
+                "tokenRefreshExtensionHours": 72.0
+            }
+        },
+        "platform": {
+            "enabled": false,
+            "runtimeVersion": "~1"
+        }
+    },
+    "type": "Microsoft.Web/sites/config"
+}

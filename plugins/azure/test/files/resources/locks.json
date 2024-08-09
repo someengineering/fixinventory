@@ -1,0 +1,22 @@
+{
+    "value": [
+        {
+            "id": "/subscriptions/00000000-99c8-45bd-a92e-38b616f109df/resourceGroups/foo/providers/Microsoft.KeyVault/vaults/matthias-test-vault-eu/providers/Microsoft.Authorization/locks/TestDeleteLock",
+            "name": "TestDeleteLock",
+            "properties": {
+                "level": "CanNotDelete",
+                "notes": "Test delete lock"
+            },
+            "type": "Microsoft.Authorization/locks"
+        },
+        {
+            "id": "/subscriptions/00000000-99c8-45bd-a92e-38b616f109df/resourceGroups/foo/providers/Microsoft.KeyVault/vaults/matthias-test-vault-eu/providers/Microsoft.Authorization/locks/TestReadOnlyLock",
+            "name": "TestReadOnlyLock",
+            "properties": {
+                "level": "ReadOnly",
+                "notes": "Some note"
+            },
+            "type": "Microsoft.Authorization/locks"
+        }
+    ]
+}

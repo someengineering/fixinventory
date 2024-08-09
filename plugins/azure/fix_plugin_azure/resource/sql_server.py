@@ -7,11 +7,11 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureResourceIdentity,
-    AzurePrivateLinkServiceConnectionState,
     AzureSku,
     GraphBuilder,
     MicrosoftResource,
     parse_json,
+    AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
@@ -349,27 +349,6 @@ class AzureSqlServerElasticPool(MicrosoftResource):
     zone_redundant: Optional[bool] = field(default=None, metadata={'description': 'Whether or not this elastic pool is zone redundant, which means the replicas of this elastic pool will be spread across multiple availability zones.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
-
-
-@define(eq=False, slots=False)
-class AzureSqlServerPrivateEndpointConnection(MicrosoftResource):
-    kind: ClassVar[str] = "azure_sql_server_private_endpoint_connection"
-    # Collect via AzureSqlServer()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "type": S("type"),
-        "group_ids": S("properties", "groupIds"),
-        "private_endpoint_id": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-    }
-    group_ids: Optional[List[str]] = field(default=None, metadata={"description": "Group IDs."})
-    private_endpoint_id: Optional[str] = field(default=None, metadata={"description": "Private endpoint ID."})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': ''})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={"description": "Resource type."})
 
 
 @define(eq=False, slots=False)
@@ -817,7 +796,6 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
             "default": [
                 "azure_sql_server_managed_instance_database",
                 "azure_sql_server_trust_group",
-                "azure_sql_server_private_endpoint_connection",
                 "microsoft_graph_service_principal",
                 "microsoft_graph_user",
                 "azure_sql_server_managed_instance_ad_administrator",
@@ -979,7 +957,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
                     builder.add_edge(
                         self,
                         edge_type=EdgeType.default,
-                        clazz=AzureSqlServerPrivateEndpointConnection,
+                        clazz=AzurePrivateEndpointConnection,
                         private_endpoint_id=endpoint_id,
                     )
         if instance_pool_id := self.instance_pool_id:
@@ -1270,24 +1248,6 @@ class AzureSqlServerAdvisor(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureServerPrivateEndpointConnection:
-    kind: ClassVar[str] = "azure_server_private_endpoint_connection"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "group_ids": S("properties", "groupIds"),
-        "id": S("id"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-    }
-    group_ids: Optional[List[str]] = field(default=None, metadata={"description": "Group IDs."})
-    id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": ""})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': ''})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of the private endpoint connection.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureServerExternalAdministrator:
     kind: ClassVar[str] = "azure_server_external_administrator"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1375,7 +1335,6 @@ class AzureSqlServer(MicrosoftResource):
             "default": [
                 "azure_sql_server_database",
                 "azure_sql_server_elastic_pool",
-                "azure_sql_server_private_endpoint_connection",
                 "azure_sql_server_failover_group",
                 "azure_sql_server_firewall_rule",
                 "azure_sql_server_job_agent",
@@ -1403,7 +1362,7 @@ class AzureSqlServer(MicrosoftResource):
         "minimal_tls_version": S("properties", "minimalTlsVersion"),
         "primary_user_assigned_identity_id": S("properties", "primaryUserAssignedIdentityId"),
         "server_private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzureServerPrivateEndpointConnection.mapping),
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "public_network_access": S("properties", "publicNetworkAccess"),
         "restrict_outbound_network_access": S("properties", "restrictOutboundNetworkAccess"),
         "state": S("properties", "state"),
@@ -1420,7 +1379,7 @@ class AzureSqlServer(MicrosoftResource):
     server_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of sql server. This is metadata used for the Azure portal experience.'})  # fmt: skip
     minimal_tls_version: Optional[str] = field(default=None, metadata={'description': 'Minimal TLS version. Allowed values: 1.0 , 1.1 , 1.2 '})  # fmt: skip
     primary_user_assigned_identity_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of a user assigned identity to be used by default.'})  # fmt: skip
-    server_private_endpoint_connections: Optional[List[AzureServerPrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections on a server'})  # fmt: skip
+    server_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections on a server'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Whether or not public endpoint access is allowed for this server. Value is optional but if passed in, must be Enabled or Disabled '})  # fmt: skip
     restrict_outbound_network_access: Optional[str] = field(default=None, metadata={'description': 'Whether or not to restrict outbound network access for this server. Value is optional but if passed in, must be Enabled or Disabled '})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={"description": "The state of the server."})
@@ -1481,7 +1440,6 @@ class AzureSqlServer(MicrosoftResource):
             resources_to_collect = [
                 ("databases", AzureSqlServerDatabase, "2021-11-01"),
                 ("elasticPools", AzureSqlServerElasticPool, "2021-11-01"),
-                ("privateEndpointConnections", AzureSqlServerPrivateEndpointConnection, "2021-11-01"),
                 ("failoverGroups", AzureSqlServerFailoverGroup, "2021-11-01"),
                 ("firewallRules", AzureSqlServerFirewallRule, "2021-11-01"),
                 ("jobAgents", AzureSqlServerJobAgent, "2021-11-01"),
@@ -1530,7 +1488,6 @@ resources: List[Type[MicrosoftResource]] = [
     AzureSqlServerADAdministrator,
     AzureSqlServerDatabase,
     AzureSqlServerElasticPool,
-    AzureSqlServerPrivateEndpointConnection,
     AzureSqlServerFailoverGroup,
     AzureSqlServerFirewallRule,
     AzureSqlServerDatabaseGeoBackupPolicy,

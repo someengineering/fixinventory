@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional, Type, List, Dict
 
 from azure.core.utils import CaseInsensitiveDict
+
 from fix_plugin_azure.azure_client import MicrosoftClient, RestApiSpec
 from fix_plugin_azure.config import AzureConfig, AzureCredentials
 from fix_plugin_azure.resource.authorization import resources as authorization_resources
@@ -22,31 +23,32 @@ from fix_plugin_azure.resource.compute import (
     resources as compute_resources,
 )
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
-from fix_plugin_azure.resource.security import resources as security_resources
+from fix_plugin_azure.resource.keyvault import resources as keyvault_resources
 from fix_plugin_azure.resource.microsoft_graph import (
     MicrosoftGraphOrganization,
     resources as graph_resources,
     MicrosoftGraphOrganizationRoot,
 )
 from fix_plugin_azure.resource.monitor import resources as monitor_resources
+from fix_plugin_azure.resource.mysql import AzureMysqlServerType, resources as mysql_resources
 from fix_plugin_azure.resource.network import (
     AzureExpressRoutePortsLocation,
     AzureNetworkVirtualApplianceSku,
     AzureNetworkUsage,
     resources as network_resources,
 )
-from fix_plugin_azure.resource.mysql import AzureMysqlServerType, resources as mysql_resources
-from fix_plugin_azure.resource.keyvault import resources as keyvault_resources
-from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.postgresql import (
     AzurePostgresqlServerType,
     resources as postgresql_resources,
 )
+from fix_plugin_azure.resource.security import resources as security_resources
+from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.cosmosdb import (
     AzureCosmosDBLocation,
     resources as cosmosdb_resources,
 )
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
+from fix_plugin_azure.resource.web import resources as web_resources
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
@@ -65,18 +67,19 @@ def resource_with_params(clazz: Type[MicrosoftResource], param: str) -> bool:
 
 subscription_resources: List[Type[MicrosoftResource]] = (
     base_resources
+    + aks_resources
     + authorization_resources
     + compute_resources
-    + network_resources
-    + aks_resources
-    + security_resources
-    + storage_resources
-    + sql_resources
-    + mysql_resources
-    + postgresql_resources
-    + monitor_resources
-    + keyvault_resources
     + cosmosdb_resources
+    + keyvault_resources
+    + monitor_resources
+    + mysql_resources
+    + network_resources
+    + postgresql_resources
+    + security_resources
+    + sql_resources
+    + storage_resources
+    + web_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
