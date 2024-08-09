@@ -16,7 +16,9 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzurePrivateEndpointConnection,
 )
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
+from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapValue
 from fixlib.types import Json
 
@@ -392,6 +394,7 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
             "default": [
                 "azure_cosmos_db_cassandra_cluster_public_status",
                 "azure_cosmos_db_cassandra_cluster_data_center",
+                MicrosoftGraphServicePrincipal.kind,
             ]
         },
     }
@@ -490,6 +493,15 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
                     resource_type,
                     resource_class,
                     expected_errors,
+                )
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.cosmosdb_cluster_identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
                 )
 
 
@@ -745,6 +757,8 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                 "azure_cosmos_db_sql_database",
                 "azure_cosmos_db_sql_role_assignment",
                 "azure_cosmos_db_sql_role_definition",
+                MicrosoftGraphServicePrincipal.kind,
+                MicrosoftGraphUser.kind,
             ]
         },
         "predecessors": {
@@ -813,7 +827,9 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
             },
             default=False,
         ),
-        "instance_type": S("kind") + K("_") + (S("properties", "EnabledApiTypes") >> F(lambda api_type: api_type.split(',')[0])),
+        "instance_type": S("kind")
+        + K("_")
+        + (S("properties", "EnabledApiTypes") >> F(lambda api_type: api_type.split(",")[0])),
         "volume_iops": S("properties", "capacity", "totalThroughputLimit"),
     }
     analytical_storage_configuration: Optional[str] = field(default=None, metadata={'description': 'Analytical storage specific properties.'})  # fmt: skip
@@ -968,6 +984,23 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                     clazz=AzureCosmosDBLocation,
                     name=account_location.location_name,
                 )
+
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.account_identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
