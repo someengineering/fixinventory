@@ -3,8 +3,7 @@ from concurrent import futures
 from typing import Optional, Dict, Any
 
 import fixlib.proc
-from fixlib.args import ArgumentParser
-from fixlib.args import Namespace
+from fixlib.args import ArgumentParser, Namespace
 from fixlib.baseplugin import BaseCollectorPlugin
 from fixlib.baseresources import Cloud
 from fixlib.config import Config, RunningConfig
