@@ -16,8 +16,8 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzurePrivateEndpointConnection,
 )
-from fixlib.baseresources import EdgeType, ModelReference
-from fixlib.json_bender import K, Bender, S, ForallBend, Bend
+from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
+from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapValue
 from fixlib.types import Json
 
 service_name = "azure_cosmosdb"
@@ -718,7 +718,7 @@ class AzureDatabaseAccountKeysMetadata:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBAccount(MicrosoftResource):
+class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_cosmos_db_account"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
@@ -802,7 +802,19 @@ class AzureCosmosDBAccount(MicrosoftResource):
         "virtual_network_rules": S("properties", "virtualNetworkRules")
         >> ForallBend(AzureAccountVirtualNetworkRule.mapping),
         "write_locations": S("properties", "writeLocations") >> ForallBend(AzureAccountLocation.mapping),
-        "database_type": S("properties", "EnabledApiTypes"),
+        "database_api_type": S("properties", "EnabledApiTypes"),
+        "db_type": K("cosmosdb"),
+        "db_endpoint": S("properties", "documentEndpoint"),
+        "db_publicly_accessible": S("properties", "publicNetworkAccess")
+        >> MapValue(
+            {
+                "Disabled": False,
+                "Enabled": True,
+            },
+            default=False,
+        ),
+        "instance_type": S("kind") + K("_") + (S("properties", "EnabledApiTypes") >> F(lambda api_type: api_type.split(',')[0])),
+        "volume_iops": S("properties", "capacity", "totalThroughputLimit"),
     }
     analytical_storage_configuration: Optional[str] = field(default=None, metadata={'description': 'Analytical storage specific properties.'})  # fmt: skip
     api_properties: Optional[str] = field(default=None, metadata={"description": ""})
@@ -845,7 +857,7 @@ class AzureCosmosDBAccount(MicrosoftResource):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     virtual_network_rules: Optional[List[AzureAccountVirtualNetworkRule]] = field(default=None, metadata={'description': 'List of Virtual Network ACL rules configured for the Cosmos DB account.'})  # fmt: skip
     write_locations: Optional[List[AzureAccountLocation]] = field(default=None, metadata={'description': 'An array that contains the write location for the Cosmos DB account.'})  # fmt: skip
-    database_type: Optional[str] = field(default=None, metadata={'description': 'Indicates the API type of database account. This can only be set at database account creation.'})  # fmt: skip
+    database_api_type: Optional[str] = field(default=None, metadata={'description': 'Indicates the API type of database account. This can only be set at database account creation.'})  # fmt: skip
 
     def _collect_items(
         self,
@@ -899,8 +911,8 @@ class AzureCosmosDBAccount(MicrosoftResource):
                 ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
             ]
             # For fetching SQL resources required filtering by API type
-            if database_type := self.database_type:
-                api_type = database_type.split(",")[0]
+            if database_api_type := self.database_api_type:
+                api_type = database_api_type.split(",")[0]
                 if api_type == "Sql":
                     resources_to_collect.extend(
                         [
