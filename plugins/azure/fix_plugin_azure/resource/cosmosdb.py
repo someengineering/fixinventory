@@ -217,7 +217,7 @@ class AzureCassandraKeyspace(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraKeyspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_keyspace"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -718,8 +718,8 @@ class AzureDatabaseAccountKeysMetadata:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDB(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db"
+class AzureCosmosDBAccount(MicrosoftResource):
+    kind: ClassVar[str] = "azure_cosmos_db_account"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -961,7 +961,7 @@ class AzureCosmosDB(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBAccountReadOnlyKeys(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_account_read_only_keys"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "primary_readonly_master_key": S("primaryReadonlyMasterKey"),
@@ -1007,7 +1007,7 @@ class AzureGremlinDatabase(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_database"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1265,7 +1265,7 @@ class AzureMongoDBDatabase(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_database"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1336,7 +1336,7 @@ class AzureRole:
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_role_definition"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1355,7 +1355,7 @@ class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_user_definition"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1378,7 +1378,7 @@ class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBNotebookWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_notebook_workspace"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1393,7 +1393,7 @@ class AzureCosmosDBNotebookWorkspace(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_private_link"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1643,7 +1643,7 @@ class AzureCollsUsers(AzureSqlDatabaseResource, AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1712,7 +1712,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_assignment"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1737,7 +1737,7 @@ class AzureRolePermission:
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_definition"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1767,7 +1767,7 @@ class AzureDbTable(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_table"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1795,7 +1795,7 @@ class AzureCosmosDBSqlThroughputSetting(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
-    # Collect via AzureCosmosDB()
+    # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": K(None),
         "usage_quota_period": S("quotaPeriod"),
@@ -2175,7 +2175,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBCassandraTable,
     AzureCosmosDBCassandraCluster,
     AzureCosmosDBCassandraClusterDataCenter,
-    AzureCosmosDB,
+    AzureCosmosDBAccount,
     AzureCosmosDBAccountReadOnlyKeys,
     AzureCosmosDBGremlinDatabase,
     AzureCosmosDBGremlinGraph,
