@@ -12,7 +12,7 @@ from fix_plugin_azure.resource.base import (
     AzureExtendedLocation,
     AzureUserAssignedIdentity,
     AzurePrincipalClient,
-    AzureIdentity,
+    AzureManagedServiceIdentity,
 )
 from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnapshot, EdgeType, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
@@ -86,12 +86,12 @@ class AzureFleet(MicrosoftResource):
         "e_tag": S("eTag"),
         "resource_group": S("resourceGroup"),
         "hub_profile": S("properties", "hubProfile") >> Bend(AzureFleetHubProfile.mapping),
-        "azure_fleet_identity": S("identity") >> Bend(AzureIdentity.mapping),
+        "azure_fleet_identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "provisioning_state": S("properties", "provisioningState"),
     }
     e_tag: Optional[str] = field(default=None, metadata={'description': 'If eTag is provided in the response body, it may also be provided as a header per the normal etag convention. Entity tags are used for comparing two or more entities from the same requested resource. HTTP/1.1 uses entity tags in the etag (section 14.19), If-Match (section 14.24), If-None-Match (section 14.26), and If-Range (section 14.27) header fields.'})  # fmt: skip
     hub_profile: Optional[AzureFleetHubProfile] = field(default=None, metadata={'description': 'The FleetHubProfile configures the fleet hub.'})  # fmt: skip
-    azure_fleet_identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
+    azure_fleet_identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     resource_group: Optional[str] = field(default=None, metadata={"description": "Resource group name"})
     _cluster_resource_ids: Optional[List[str]] = field(
         default=None, metadata={"description": "Reference to the cluster IDs"}

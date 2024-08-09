@@ -11,9 +11,10 @@ from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzureSystemData,
-    AzureIdentity,
+    AzureManagedServiceIdentity,
     AzureExtendedLocation,
     GraphBuilder,
+    AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fixlib.baseresources import ModelReference
@@ -388,42 +389,6 @@ class AzureMonitorAlertRule(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMonitorPrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_monitor_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The reason for approval/rejection of the connection.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
-
-
-@define(eq=False, slots=False)
-class AzureMonitorPrivateEndpointConnection:
-    kind: ClassVar[str] = "azure_monitor_private_endpoint_connection"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "group_ids": S("properties", "groupIds"),
-        "id": S("id"),
-        "name": S("name"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzureMonitorPrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
-        "type": S("type"),
-    }
-    group_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The group ids for the private endpoint resource.'})  # fmt: skip
-    id: Optional[str] = field(default=None, metadata={'description': 'Fully qualified resource ID for the resource. E.g. /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName} '})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the resource"})
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": "The private endpoint resource."})
-    private_link_service_connection_state: Optional[AzureMonitorPrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
-    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureMonitorAccessModeSettingsExclusion:
     kind: ClassVar[str] = "azure_monitor_access_mode_settings_exclusion"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -471,12 +436,12 @@ class AzureMonitorPrivateLinkScope(MicrosoftResource):
         "mtime": S("systemData", "lastModifiedAt"),
         "access_mode_settings": S("properties", "accessModeSettings") >> Bend(AzureMonitorAccessModeSettings.mapping),
         "link_private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzureMonitorPrivateEndpointConnection.mapping),
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
     access_mode_settings: Optional[AzureMonitorAccessModeSettings] = field(default=None, metadata={'description': 'Properties that define the scope private link mode settings.'})  # fmt: skip
-    link_private_endpoint_connections: Optional[List[AzureMonitorPrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections.'})  # fmt: skip
+    link_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 
@@ -752,14 +717,14 @@ class AzureMonitorWorkspace(MicrosoftResource):
         >> Bend(AzureMonitorIngestionSettings.mapping),
         "metrics": S("properties", "metrics") >> Bend(AzureMonitorMetrics.mapping),
         "workspace_private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzureMonitorPrivateEndpointConnection.mapping),
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "workspace_public_network_access": S("properties", "publicNetworkAccess"),
     }
     account_id: Optional[str] = field(default=None, metadata={'description': 'The immutable Id of the Azure Monitor Workspace. This property is read-only.'})  # fmt: skip
     default_ingestion_settings: Optional[AzureMonitorIngestionSettings] = field(default=None, metadata={'description': 'The Data Collection Rule and Endpoint used for ingestion by default.'})  # fmt: skip
     metrics: Optional[AzureMonitorMetrics] = field(default=None, metadata={'description': 'Properties related to the metrics container in the Azure Monitor Workspace'})  # fmt: skip
-    workspace_private_endpoint_connections: Optional[List[AzureMonitorPrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections'})  # fmt: skip
+    workspace_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'List of private endpoint connections'})  # fmt: skip
     workspace_public_network_access: Optional[str] = field(default=None, metadata={'description': 'Gets or sets allow or disallow public network access to Azure Monitor Workspace'})  # fmt: skip
 
 
@@ -794,7 +759,7 @@ class AzureMonitorDataCollectionRule(MicrosoftResource):
         "references": S("properties", "references") >> Bend(AzureMonitorReferencesSpec.mapping),
         "stream_declarations": S("properties", "streamDeclarations"),
         "etag": S("etag"),
-        "identity": S("properties", "identity") >> Bend(AzureIdentity.mapping),
+        "identity": S("properties", "identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "rule_kind": S("properties", "kind"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
@@ -808,7 +773,7 @@ class AzureMonitorDataCollectionRule(MicrosoftResource):
     rule_metadata: Optional[AzureMetadata] = field(default=None, metadata={"description": "Metadata about the resource"})  # fmt: skip
     references: Optional[AzureMonitorReferencesSpec] = field(default=None, metadata={'description': 'Defines all the references that may be used in other sections of the DCR'})  # fmt: skip
     stream_declarations: Optional[Dict[str, AzureMonitorStreamDeclaration]] = field(default=None, metadata={'description': 'Declaration of custom streams used in this rule.'})  # fmt: skip
-    identity: Optional[AzureIdentity] = field(default=None, metadata={'description': 'Managed service identity of the resource.'})  # fmt: skip
+    identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity of the resource.'})  # fmt: skip
     rule_kind: Optional[str] = field(default=None, metadata={"description": "The kind of the resource."})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
@@ -1263,7 +1228,7 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
         "enabled": S("properties", "enabled"),
         "etag": S("etag"),
         "evaluation_frequency": S("properties", "evaluationFrequency"),
-        "identity": S("identity") >> Bend(AzureIdentity.mapping),
+        "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "is_legacy_log_analytics_rule": S("properties", "isLegacyLogAnalyticsRule"),
         "is_workspace_alerts_storage_configured": S("properties", "isWorkspaceAlertsStorageConfigured"),
         "rule_kind": S("kind"),
@@ -1287,7 +1252,9 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
     display_name: Optional[str] = field(default=None, metadata={"description": "The display name of the alert rule"})
     enabled: Optional[bool] = field(default=None, metadata={'description': 'The flag which indicates whether this scheduled query rule is enabled. Value should be true or false'})  # fmt: skip
     evaluation_frequency: Optional[str] = field(default=None, metadata={'description': 'How often the scheduled query rule is evaluated represented in ISO 8601 duration format. Relevant and required only for rules of the kind LogAlert.'})  # fmt: skip
-    identity: Optional[AzureIdentity] = field(default=None, metadata={"description": "Identity for the resource."})
+    identity: Optional[AzureManagedServiceIdentity] = field(
+        default=None, metadata={"description": "Identity for the resource."}
+    )
     is_legacy_log_analytics_rule: Optional[bool] = field(default=None, metadata={'description': 'True if alert rule is legacy Log Analytic rule'})  # fmt: skip
     is_workspace_alerts_storage_configured: Optional[bool] = field(default=None, metadata={'description': 'The flag which indicates whether this scheduled query rule has been configured to be stored in the customer s storage. The default is false.'})  # fmt: skip
     rule_kind: Optional[str] = field(default=None, metadata={'description': 'Indicates the type of scheduled query rule. The default is LogAlert.'})  # fmt: skip

@@ -15,7 +15,7 @@ from fix_plugin_azure.resource.base import (
     AzureSku,
     AzureExtendedLocation,
     AzurePrincipalClient,
-    AzurePrivateLinkServiceConnectionState,
+    AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.resource.network import (
@@ -1212,26 +1212,6 @@ class AzureDisk(MicrosoftResource, BaseVolume):
 
 
 @define(eq=False, slots=False)
-class AzureDiskAccessPrivateEndpointConnection:
-    kind: ClassVar[str] = "azure_disk_access_private_endpoint_connection"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "name": S("name"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
-        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("properties", "provisioningState"),
-        "type": S("type"),
-    }
-    id: Optional[str] = field(default=None, metadata={"description": "Private endpoint connection id."})
-    name: Optional[str] = field(default=None, metadata={"description": "Private endpoint connection name."})
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": "The private endpoint resource."})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={"description": "Private endpoint connection type."})
-
-
-@define(eq=False, slots=False)
 class AzureDiskAccess(MicrosoftResource):
     kind: ClassVar[str] = "azure_disk_access"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -1250,12 +1230,12 @@ class AzureDiskAccess(MicrosoftResource):
         "ctime": S("time_created"),
         "extended_location": S("extendedLocation") >> Bend(AzureExtendedLocation.mapping),
         "private_endpoint_connections": S("properties", "privateEndpointConnections")
-        >> ForallBend(AzureDiskAccessPrivateEndpointConnection.mapping),
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
         "provisioning_state": S("properties", "provisioningState"),
         "time_created": S("properties", "timeCreated"),
     }
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
-    private_endpoint_connections: Optional[List[AzureDiskAccessPrivateEndpointConnection]] = field(default=None, metadata={'description': 'A readonly collection of private endpoint connections created on the disk. Currently only one endpoint connection is supported.'})  # fmt: skip
+    private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'A readonly collection of private endpoint connections created on the disk. Currently only one endpoint connection is supported.'})  # fmt: skip
     time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk access was created.'})  # fmt: skip
 
 
