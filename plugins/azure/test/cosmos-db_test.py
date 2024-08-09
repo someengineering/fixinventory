@@ -2,7 +2,7 @@ from conftest import roundtrip_check
 from fix_plugin_azure.resource.base import GraphBuilder
 from fix_plugin_azure.resource.cosmosdb import (
     AzureCosmosDBCassandraCluster,
-    AzureCosmosDBAccount,
+    AzureCosmosDB,
     AzureCosmosDBRestorableAccount,
     AzureCosmosDBLocation,
     AzureCosmosDBMongoDBCluster,
@@ -15,7 +15,7 @@ def test_cassandra_cluster(builder: GraphBuilder) -> None:
 
 
 def test_cosmos_db_account(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureCosmosDBAccount, builder)
+    collected = roundtrip_check(AzureCosmosDB, builder)
     assert len(collected) == 1
 
 
