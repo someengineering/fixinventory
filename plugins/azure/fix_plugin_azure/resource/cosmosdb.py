@@ -403,7 +403,7 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "identity": S("identity") >> Bend(AzureManagedCassandraManagedServiceIdentity.mapping),
+        "cosmosdb_cluster_identity": S("identity") >> Bend(AzureManagedCassandraManagedServiceIdentity.mapping),
         "location": S("location"),
         "type": S("type"),
         "authentication_method": S("properties", "authenticationMethod"),
@@ -448,7 +448,7 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
     repair_enabled: Optional[bool] = field(default=None, metadata={'description': 'Should automatic repairs run on this cluster? If omitted, this is true, and should stay true unless you are running a hybrid cluster where you are already doing your own repairs.'})  # fmt: skip
     restore_from_backup_id: Optional[str] = field(default=None, metadata={'description': 'To create an empty cluster, omit this field or set it to null. To restore a backup into a new cluster, set this field to the resource id of the backup.'})  # fmt: skip
     seed_nodes: Optional[List[str]] = field(default=None, metadata={'description': 'List of IP addresses of seed nodes in the managed data centers. These should be added to the seed node lists of all unmanaged nodes.'})  # fmt: skip
-    identity: Optional[AzureManagedCassandraManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
+    cosmosdb_cluster_identity: Optional[AzureManagedCassandraManagedServiceIdentity] = field(default=None, metadata={'description': 'Identity for the resource.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'The location of the resource group to which the resource belongs.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of Azure resource."})
 
