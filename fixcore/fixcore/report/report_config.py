@@ -75,14 +75,18 @@ class ReportCheckCollectionConfig:
     @staticmethod
     def from_json(js: Json) -> List[ReportCheck]:
         def report_check(pdr: str, svc: str, check: Json) -> ReportCheck:
-            cr = check.copy()
-            cr["provider"] = pdr
-            cr["service"] = svc
-            cr["id"] = f"{pdr}_{svc}_{check['name']}"
-            # handle legacy result_kind
-            if "result_kind" in cr and "result_kinds" not in cr:
-                cr["result_kinds"] = [cr.pop("result_kind")]
-            return from_js(cr, ReportCheck)
+            try:
+                cr = check.copy()
+                cr["provider"] = pdr
+                cr["service"] = svc
+                cr["id"] = f"{pdr}_{svc}_{check['name']}"
+                # handle legacy result_kind
+                if "result_kind" in cr and "result_kinds" not in cr:
+                    cr["result_kinds"] = [cr.pop("result_kind")]
+                return from_js(cr, ReportCheck)
+            except Exception:
+                log.error(f"Failed to load check {check}")
+                raise
 
         pdr = js["provider"]
         svc = js["service"]

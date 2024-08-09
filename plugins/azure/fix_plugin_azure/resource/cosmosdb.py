@@ -1585,14 +1585,12 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
-            resources_to_collect = []  # type: ignore
+            resources_to_collect = []
             # For fetching SQL resources required filtering by API type
             if api_type := self.api_type:
                 api_type = api_type.split(",")[0]
                 if api_type == "Sql":
-                    resources_to_collect.append(
-                        ("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None),  # type: ignore
-                    )
+                    resources_to_collect.append(("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None))
                 elif api_type == "MongoDB":
                     resources_to_collect.append(
                         ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),  # type: ignore
