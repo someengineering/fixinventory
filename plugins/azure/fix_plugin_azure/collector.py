@@ -258,6 +258,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureMysqlServerType, AzureSubscription)
         rm_nodes(AzurePostgresqlServerType, AzureSubscription)
         rm_nodes(AzureCosmosDBLocation, AzureSubscription, check_pred=False)
+        rm_nodes(AzureLocation, check_pred=False)
         remove_usage_zero_value()
 
     def after_collect(self) -> None:
