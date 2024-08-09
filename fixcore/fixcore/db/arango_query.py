@@ -8,8 +8,6 @@ from typing import Union, List, Tuple, Any, Optional, Dict, Literal, Collection
 
 from arango.typings import Json
 from attrs import evolve
-from math import floor
-
 from fixcore.constants import less_greater_then_operations as lgt_ops, arangodb_matches_null_ops
 from fixcore.db import EstimatedSearchCost, EstimatedQueryCostRating as Rating
 from fixcore.db.arango_query_rewrite import rewrite_query
@@ -148,14 +146,13 @@ def history_query_timeline(
     )
     crs = ctx.next_crs()
     gran = granularity.total_seconds()
-    at = after.timestamp()
-    offset = ctx.add_bind_var((at - int(floor(at / gran) * gran)) * 1000)
-    slot = ctx.add_bind_var(gran * 1000)
-    slot_fn = f"DATE_ISO8601((FLOOR(DATE_TIMESTAMP({crs}.changed_at) / @{slot}) * @{slot}) + @{offset})"
+    atms = after.timestamp() * 1000
+    slotter = ctx.add_bind_var(gran * 1000)
+    slot_fn = f"(FLOOR((DATE_TIMESTAMP({crs}.changed_at)-{atms}) / @{slotter}))"
     query_str += (
         f" FOR {crs} IN {in_cursor} "
-        f"COLLECT change={crs}.change, at={slot_fn} WITH COUNT INTO v SORT at ASC "
-        'RETURN {"at": at, "group": {"change": change}, "v": v}'
+        f"COLLECT change={crs}.change, slot={slot_fn} WITH COUNT INTO v SORT slot ASC "
+        f'RETURN {{"at": DATE_ISO8601((slot*@{slotter}) + {atms}), "group": {{"change": change}}, "v": v}}'
     )
     return query_str, ctx.bind_vars
 
