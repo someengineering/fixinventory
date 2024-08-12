@@ -17,6 +17,7 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
+from fix_plugin_azure.resource.network import AzureSubnet
 from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapValue
@@ -397,6 +398,11 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
                 MicrosoftGraphServicePrincipal.kind,
             ]
         },
+        "predecessors": {
+            "default": [
+                "azure_subnet",
+            ]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -503,6 +509,14 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
                     from_node=self,
                     to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
                 )
+        if subnet_id := self.delegated_management_subnet_id:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureSubnet,
+                id=subnet_id,
+            )
 
 
 @define(eq=False, slots=False)
@@ -532,6 +546,13 @@ class AzureAuthenticationMethodLdap:
 class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_data_center"
     # Collect via AzureCosmosDBCassandraCluster()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "azure_subnet",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -569,6 +590,16 @@ class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource):
     provision_error: Optional[AzureCassandraError] = field(default=None, metadata={"description": ""})
     seed_nodes: Optional[List[str]] = field(default=None, metadata={'description': 'IP addresses for seed nodes in this data center. This is for reference. Generally you will want to use the seedNodes property on the cluster, which aggregates the seed nodes from all data centers in the cluster.'})  # fmt: skip
     datacenter_sku: Optional[str] = field(default=None, metadata={'description': 'Virtual Machine SKU used for data centers. Default value is Standard_DS14_v2'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if subnet_id := self.delegated_subnet_id:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureSubnet,
+                id=subnet_id,
+            )
 
 
 @define(eq=False, slots=False)
@@ -761,11 +792,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                 MicrosoftGraphUser.kind,
             ]
         },
-        "predecessors": {
-            "default": [
-                "azure_cosmos_db_location",
-            ]
-        },
+        "predecessors": {"default": ["azure_cosmos_db_location", "azure_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -986,6 +1013,16 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                     clazz=AzureCosmosDBLocation,
                     name=account_location.location_name,
                 )
+        if virtual_network_rules := self.virtual_network_rules:
+            for virtual_network_rule in virtual_network_rules:
+                if subnet_id := virtual_network_rule.id:
+                    builder.add_edge(
+                        self,
+                        edge_type=EdgeType.default,
+                        reverse=True,
+                        clazz=AzureSubnet,
+                        id=subnet_id,
+                    )
 
         # principal: collected via ms graph -> create a deferred edge
         if ai := self.account_identity:
@@ -1653,6 +1690,13 @@ class AzureSqlContainer(AzureCosmosDBResource):
 class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_container"
     # Collect via AzureCosmosDBSqlDatabase()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_sql_database_client_encryption_key",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1662,6 +1706,21 @@ class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource):
     }
     sql_database_container_options: Optional[AzureOptionsResource] = field(default=None, metadata={"description": ""})
     sql_database_container: Optional[AzureSqlContainer] = field(default=None, metadata={"description": ""})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (
+            (container := self.sql_database_container)
+            and (encryption_policy := container.client_encryption_policy)
+            and (included_paths := encryption_policy.included_paths)
+        ):
+            for included_path in included_paths:
+                if key_id := included_path.client_encryption_key_id:
+                    builder.add_edge(
+                        self,
+                        edge_type=EdgeType.default,
+                        clazz=AzureCosmosDBSqlDatabaseClientEncryptionKey,
+                        id=key_id,
+                    )
 
 
 @define(eq=False, slots=False)
@@ -1760,6 +1819,18 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
 class AzureCosmosDBSqlRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_assignment"
     # Collect via AzureCosmosDBAccount()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                MicrosoftGraphServicePrincipal.kind,
+            ]
+        },
+        "predecessors": {
+            "default": [
+                "azure_cosmos_db_sql_role_definition",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1771,6 +1842,21 @@ class AzureCosmosDBSqlRoleAssignment(MicrosoftResource):
     principal_id: Optional[str] = field(default=None, metadata={'description': 'The unique identifier for the associated AAD principal in the AAD graph to which access is being granted through this Role Assignment. Tenant ID for the principal is inferred using the tenant associated with the subscription.'})  # fmt: skip
     role_definition_id: Optional[str] = field(default=None, metadata={'description': 'The unique identifier for the associated Role Definition.'})  # fmt: skip
     scope: Optional[str] = field(default=None, metadata={'description': 'The data plane resource path for which access is being granted through this Role Assignment.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_definition_id := self.role_definition_id:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureCosmosDBSqlRoleDefinition,
+                id=role_definition_id,
+            )
+        if pid := self.principal_id:
+            builder.add_deferred_edge(
+                from_node=self,
+                to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+            )
 
 
 @define(eq=False, slots=False)
