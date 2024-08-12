@@ -9,6 +9,8 @@ from attr import define, field
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
+    AzurePrivateLinkServiceConnectionState,
+    AzureProxyResource,
     AzureResourceIdentity,
     AzureSystemData,
     AzureTrackedResource,
@@ -18,6 +20,7 @@ from fix_plugin_azure.resource.base import (
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet
+from fix_plugin_azure.utils import from_str_to_typed
 from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapValue
@@ -2043,7 +2046,7 @@ class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
     cluster_status: Optional[str] = field(default=None, metadata={'description': 'The status of the resource at the time the operation was called.'})  # fmt: skip
     connection_string: Optional[str] = field(default=None, metadata={'description': 'The default mongo connection string for the cluster.'})  # fmt: skip
     create_mode: Optional[str] = field(default=None, metadata={"description": "The mode to create a mongo cluster."})
-    earliest_restore_time: Optional[str] = field(default=None, metadata={'description': 'Earliest restore timestamp in UTC ISO8601 format.'})  # fmt: skip
+    earliest_restore_time: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore timestamp in UTC ISO8601 format.'})  # fmt: skip
     node_group_specs: Optional[List[AzureNodeGroupSpec]] = field(default=None, metadata={'description': 'The list of node group specifications for the cluster. Must include one node group spec with kind = Shard .'})  # fmt: skip
     cluster_restore_parameters: Optional[AzureMongoClusterRestoreParameters] = field(default=None, metadata={'description': 'Parameters used for restore operations'})  # fmt: skip
     server_version: Optional[str] = field(default=None, metadata={'description': 'The Mongo DB server version. Defaults to the latest available version if not specified.'})  # fmt: skip
@@ -2296,6 +2299,401 @@ class AzureCosmosDBRestorableTable(MicrosoftResource):
     restorable_table_resource: Optional[AzureRestorableDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Table event'})  # fmt: skip
 
 
+@define(eq=False, slots=False)
+class AzureMaintenanceWindow:
+    kind: ClassVar[str] = "azure_maintenance_window"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "custom_window": S("customWindow"),
+        "day_of_week": S("dayOfWeek"),
+        "start_hour": S("startHour"),
+        "start_minute": S("startMinute"),
+    }
+    custom_window: Optional[str] = field(default=None, metadata={'description': 'Indicates whether custom maintenance window is enabled or not.'})  # fmt: skip
+    day_of_week: Optional[int] = field(default=None, metadata={'description': 'Preferred day of the week for maintenance window.'})  # fmt: skip
+    start_hour: Optional[int] = field(default=None, metadata={'description': 'Start hour within preferred day of the week for maintenance window.'})  # fmt: skip
+    start_minute: Optional[int] = field(default=None, metadata={'description': 'Start minute within the start hour for maintenance window.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureServerNameItem:
+    kind: ClassVar[str] = "azure_server_name_item"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "fully_qualified_domain_name": S("fullyQualifiedDomainName"),
+        "name": S("name"),
+    }
+    fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of a server.'})  # fmt: skip
+    name: Optional[str] = field(default=None, metadata={"description": "The name of a server."})
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster"
+    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
+        service="cosmos-db",
+        version="2022-11-08",
+        path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforPostgreSQL/serverGroupsv2",
+        path_parameters=["subscriptionId"],
+        query_parameters=["api-version"],
+        access_path="value",
+        expect_array=True,
+    )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_postgresql_cluster_server",
+                "azure_cosmos_db_postgresql_cluster_configuration",
+                "azure_cosmos_db_postgresql_cluster_private_endpoint_connection",
+                "azure_cosmos_db_postgresql_cluster_private_link",
+                "azure_cosmos_db_postgresql_cluster_role",
+            ]
+        }
+    }
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "name": S("name"),
+        "tags": S("tags", default={}),
+        "location": S("location"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+        "type": S("type"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "administrator_login": S("properties", "administratorLogin"),
+        "administrator_login_password": S("properties", "administratorLoginPassword"),
+        "citus_version": S("properties", "citusVersion"),
+        "coordinator_enable_public_ip_access": S("properties", "coordinatorEnablePublicIpAccess"),
+        "coordinator_server_edition": S("properties", "coordinatorServerEdition"),
+        "coordinator_storage_quota_in_mb": S("properties", "coordinatorStorageQuotaInMb"),
+        "coordinator_v_cores": S("properties", "coordinatorVCores"),
+        "earliest_restore_time": S("properties", "earliestRestoreTime"),
+        "enable_ha": S("properties", "enableHa"),
+        "enable_shards_on_coordinator": S("properties", "enableShardsOnCoordinator"),
+        "cluster_maintenance_window": S("properties", "maintenanceWindow") >> Bend(AzureMaintenanceWindow.mapping),
+        "node_count": S("properties", "nodeCount"),
+        "node_enable_public_ip_access": S("properties", "nodeEnablePublicIpAccess"),
+        "node_server_edition": S("properties", "nodeServerEdition"),
+        "node_storage_quota_in_mb": S("properties", "nodeStorageQuotaInMb"),
+        "node_v_cores": S("properties", "nodeVCores"),
+        "point_in_time_utc": S("properties", "pointInTimeUTC"),
+        "postgresql_version": S("properties", "postgresqlVersion"),
+        "preferred_primary_zone": S("properties", "preferredPrimaryZone"),
+        "private_endpoint_connections": S("properties", "privateEndpointConnections")
+        >> ForallBend(AzurePrivateEndpointConnection.mapping),
+        "provisioning_state": S("properties", "provisioningState"),
+        "read_replicas": S("properties", "readReplicas"),
+        "server_names": S("properties", "serverNames") >> ForallBend(AzureServerNameItem.mapping),
+        "source_location": S("properties", "sourceLocation"),
+        "source_resource_id": S("properties", "sourceResourceId"),
+        "state": S("properties", "state"),
+    }
+    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
+    administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login name of the servers in the cluster.'})  # fmt: skip
+    administrator_login_password: Optional[str] = field(default=None, metadata={'description': 'The password of the administrator login. Required for creation.'})  # fmt: skip
+    citus_version: Optional[str] = field(default=None, metadata={'description': 'The Citus extension version on all cluster servers.'})  # fmt: skip
+    coordinator_enable_public_ip_access: Optional[bool] = field(default=None, metadata={'description': 'If public access is enabled on coordinator.'})  # fmt: skip
+    coordinator_server_edition: Optional[str] = field(default=None, metadata={'description': 'The edition of a coordinator server (default: GeneralPurpose). Required for creation.'})  # fmt: skip
+    coordinator_storage_quota_in_mb: Optional[int] = field(default=None, metadata={'description': 'The storage of a server in MB. Required for creation. See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
+    coordinator_v_cores: Optional[int] = field(default=None, metadata={'description': 'The vCores count of a server (max: 96). Required for creation. See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
+    earliest_restore_time: Optional[datetime] = field(default=None, metadata={'description': 'The earliest restore point time (ISO8601 format) for the cluster.'})  # fmt: skip
+    enable_ha: Optional[bool] = field(default=None, metadata={'description': 'If high availability (HA) is enabled or not for the cluster.'})  # fmt: skip
+    enable_shards_on_coordinator: Optional[bool] = field(default=None, metadata={'description': 'If distributed tables are placed on coordinator or not. Should be set to true on single node clusters. Requires shard rebalancing after value is changed.'})  # fmt: skip
+    cluster_maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Schedule settings for regular cluster updates.'})  # fmt: skip
+    node_count: Optional[int] = field(default=None, metadata={'description': 'Worker node count of the cluster. When node count is 0, it represents a single node configuration with the ability to create distributed tables on that node. 2 or more worker nodes represent multi-node configuration. Node count value cannot be 1. Required for creation.'})  # fmt: skip
+    node_enable_public_ip_access: Optional[bool] = field(default=None, metadata={'description': 'If public access is enabled on worker nodes.'})  # fmt: skip
+    node_server_edition: Optional[str] = field(default=None, metadata={'description': 'The edition of a node server (default: MemoryOptimized).'})  # fmt: skip
+    node_storage_quota_in_mb: Optional[int] = field(default=None, metadata={'description': 'The storage in MB on each worker node. See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
+    node_v_cores: Optional[int] = field(default=None, metadata={'description': 'The compute in vCores on each worker node (max: 104). See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
+    point_in_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Date and time in UTC (ISO8601 format) for cluster restore.'})  # fmt: skip
+    postgresql_version: Optional[str] = field(default=None, metadata={'description': 'The major PostgreSQL version on all cluster servers.'})  # fmt: skip
+    preferred_primary_zone: Optional[str] = field(default=None, metadata={'description': 'Preferred primary availability zone (AZ) for all cluster servers.'})  # fmt: skip
+    private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'The private endpoint connections for a cluster.'})  # fmt: skip
+    read_replicas: Optional[List[str]] = field(
+        default=None, metadata={"description": "The array of read replica clusters."}
+    )
+    server_names: Optional[List[AzureServerNameItem]] = field(default=None, metadata={'description': 'The list of server names in the cluster'})  # fmt: skip
+    source_location: Optional[str] = field(default=None, metadata={'description': 'The Azure region of source cluster for read replica clusters.'})  # fmt: skip
+    source_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of source cluster for read replica clusters.'})  # fmt: skip
+    state: Optional[str] = field(default=None, metadata={'description': 'A state of a cluster/server that is visible to user.'})  # fmt: skip
+
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        account_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{account_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2022-11-08",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        if issubclass(AzureCosmosDBPostgresqlClusterConfiguration, class_instance):  # type: ignore
+            collected = class_instance.collect_configs(self.id, items, graph_builder)  # type: ignore
+        else:
+            collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if account_id := self.id:
+            resources_to_collect = [
+                ("servers", AzureCosmosDBPostgresqlClusterServer, None),
+                ("configurations", AzureCosmosDBPostgresqlClusterConfiguration, None),
+                ("privateEndpointConnections", AzureCosmosDBPostgresqlClusterPrivateEndpointConnection, None),
+                ("privateLinkResources", AzureCosmosDBPostgresqlClusterPrivateLink, None),
+                ("roles", AzureCosmosDBPostgresqlClusterRole, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    account_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server"
+    # Collect via AzureCosmosDBPostgresqlCluster()
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "availability_zone": S("properties", "availabilityZone"),
+        "citus_version": S("properties", "citusVersion"),
+        "fully_qualified_domain_name": S("properties", "fullyQualifiedDomainName"),
+        "ha_state": S("properties", "haState"),
+        "postgresql_version": S("properties", "postgresqlVersion"),
+        "role": S("properties", "role"),
+        "state": S("properties", "state"),
+        "administrator_login": S("properties", "administratorLogin"),
+        "enable_ha": S("properties", "enableHa"),
+        "enable_public_ip_access": S("properties", "enablePublicIpAccess"),
+        "is_read_only": S("properties", "isReadOnly"),
+        "server_edition": S("properties", "serverEdition"),
+        "storage_quota_in_mb": S("properties", "storageQuotaInMb"),
+        "v_cores": S("properties", "vCores"),
+    }
+    availability_zone: Optional[str] = field(default=None, metadata={'description': 'Availability Zone information of the server.'})  # fmt: skip
+    citus_version: Optional[str] = field(default=None, metadata={'description': 'The Citus extension version of server.'})  # fmt: skip
+    fully_qualified_domain_name: Optional[str] = field(default=None, metadata={'description': 'The fully qualified domain name of a server.'})  # fmt: skip
+    ha_state: Optional[str] = field(default=None, metadata={"description": "A state of HA feature for the cluster."})
+    postgresql_version: Optional[str] = field(default=None, metadata={'description': 'The major PostgreSQL version of server.'})  # fmt: skip
+    role: Optional[str] = field(default=None, metadata={"description": "The role of a server."})
+    state: Optional[str] = field(default=None, metadata={'description': 'A state of a cluster/server that is visible to user.'})  # fmt: skip
+    administrator_login: Optional[str] = field(default=None, metadata={'description': 'The administrator s login name of the servers in the cluster.'})  # fmt: skip
+    enable_ha: Optional[bool] = field(default=None, metadata={'description': 'If high availability (HA) is enabled or not for the server.'})  # fmt: skip
+    enable_public_ip_access: Optional[bool] = field(default=None, metadata={'description': 'If public access is enabled on server.'})  # fmt: skip
+    is_read_only: Optional[bool] = field(default=None, metadata={'description': 'If server database is set to read-only by system maintenance depending on high disk space usage.'})  # fmt: skip
+    server_edition: Optional[str] = field(default=None, metadata={"description": "The edition of a server."})
+    storage_quota_in_mb: Optional[int] = field(default=None, metadata={'description': 'The storage of a server in MB.'})  # fmt: skip
+    v_cores: Optional[int] = field(default=None, metadata={"description": "The vCores count of a server."})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if server_id := self.id:
+
+            def collect_server_configs() -> None:
+                api_spec = AzureResourceSpec(
+                    service="cosmos-db",
+                    version="2023-03-02-preview ",
+                    path=f"{server_id}/configurations",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureCosmosDBPostgresqlClusterServerConfiguration.collect_configs(
+                    self.id, items, graph_builder
+                )
+                for clazz in collected:
+                    graph_builder.add_edge(self, node=clazz)
+
+            graph_builder.submit_work(service_name, collect_server_configs)
+
+
+@define(eq=False, slots=False)
+class AzureServerRoleGroupConfiguration:
+    kind: ClassVar[str] = "azure_server_role_group_configuration"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "default_value": S("defaultValue"),
+        "role": S("role"),
+        "source": S("source"),
+        "value": S("value"),
+    }
+    default_value: Optional[str] = field(default=None, metadata={"description": "Default value of the configuration."})
+    role: Optional[str] = field(default=None, metadata={"description": "The role of a server."})
+    source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
+    value: Optional[str] = field(default=None, metadata={"description": "Value of the configuration."})
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_configuration"
+    # Collect via AzureCosmosDBPostgresqlCluster()
+    config: Json = field(factory=dict)
+
+    @classmethod
+    def collect_configs(
+        cls,
+        server_id: str,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List[AzureCosmosDBPostgresqlClusterConfiguration]:
+        if not raw:
+            return []
+        configuration_instance = AzureCosmosDBPostgresqlClusterConfiguration(id=server_id)
+        for js in raw:
+            properties = js.get("properties")
+            if not properties:
+                continue
+            if (data_type := properties.get("dataType")) and (config_name := js.get("name")):
+                server_configurations = properties.get("serverRoleGroupConfigurations") or []
+                for server_configuration in server_configurations:
+                    val = server_configuration.get("value")
+                    if not val:
+                        continue
+                    typed_value = from_str_to_typed(data_type, val)
+                    if not typed_value:
+                        continue
+                    configuration_instance.config[config_name] = typed_value
+        if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
+            return [added]
+        return []
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server_configuration"
+    # Collect via AzureCosmosDBPostgresqlCluster()
+    config: Json = field(factory=dict)
+
+    @classmethod
+    def collect_configs(
+        cls,
+        server_id: str,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List[AzureCosmosDBPostgresqlClusterConfiguration]:
+        if not raw:
+            return []
+        configuration_instance = AzureCosmosDBPostgresqlClusterConfiguration(id=server_id)
+        for js in raw:
+            properties = js.get("properties")
+            if not properties:
+                continue
+            if (
+                (data_type := properties.get("dataType"))
+                and (val := properties.get("value"))
+                and (config_name := js.get("name"))
+            ):
+                value = from_str_to_typed(data_type, val)
+                if not value:
+                    continue
+                configuration_instance.config[config_name] = value
+        if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
+            return [added]
+        return []
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlClusterFirewallRule(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_firewall_rule"
+    # Collect via AzureCosmosDBPostgresqlCluster()
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "end_ip_address": S("properties", "endIpAddress"),
+        "provisioning_state": S("properties", "provisioningState"),
+        "start_ip_address": S("properties", "startIpAddress"),
+    }
+    end_ip_address: Optional[str] = field(default=None, metadata={'description': 'The end IP address of the cluster firewall rule. Must be IPv4 format.'})  # fmt: skip
+    start_ip_address: Optional[str] = field(default=None, metadata={'description': 'The start IP address of the cluster firewall rule. Must be IPv4 format.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_endpoint_connection"
+    # Collect via AzureCosmosDBPostgresqlCluster()
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "group_ids": S("properties", "groupIds"),
+        "private_endpoint_id": S("properties", "privateEndpoint", "id"),
+        "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
+        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
+        "provisioning_state": S("properties", "provisioningState"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+    }
+    group_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The group ids for the private endpoint resource.'})  # fmt: skip
+    private_endpoint_id: Optional[str] = field(default=None, metadata={"description": "The private endpoint resource."})
+    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_link"
+    # Collect via AzureCosmosDBPostgresqlCluster()
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "link_group_id": S("properties", "groupId"),
+        "required_members": S("properties", "requiredMembers"),
+        "required_zone_names": S("properties", "requiredZoneNames"),
+        "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
+    }
+    link_group_id: Optional[str] = field(default=None, metadata={"description": "The private link resource group id."})
+    required_members: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource required member names.'})  # fmt: skip
+    required_zone_names: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource private link DNS zone name.'})  # fmt: skip
+    system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureCosmosDBPostgresqlClusterRole(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_role"
+    # Collect via AzureCosmosDBPostgresqlCluster()
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "password": S("properties", "password"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    password: Optional[str] = field(default=None, metadata={"description": "The password of the cluster role."})  # fmt: skip
+
+
 resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBCassandraClusterPublicStatus,
     AzureCosmosDBCassandraKeyspace,
@@ -2330,4 +2728,10 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBRestorableSqlContainer,
     AzureCosmosDBRestorableSqlDatabase,
     AzureCosmosDBRestorableTable,
+    AzureCosmosDBPostgresqlCluster,
+    AzureCosmosDBPostgresqlClusterServer,
+    AzureCosmosDBPostgresqlClusterConfiguration,
+    AzureCosmosDBPostgresqlClusterPrivateEndpointConnection,
+    AzureCosmosDBPostgresqlClusterPrivateLink,
+    AzureCosmosDBPostgresqlClusterRole,
 ]
