@@ -2471,6 +2471,13 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
 class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server"
     # Collect via AzureCosmosDBPostgresqlCluster()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_cosmos_db_postgresql_cluster_server_configuration",
+            ]
+        }
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
