@@ -2449,7 +2449,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
         if account_id := self.id:
             resources_to_collect = [
                 ("servers", AzureCosmosDBPostgresqlClusterServer, None),
-                ("configurations", AzureCosmosDBPostgresqlClusterConfiguration, None),
+                ("configurations", AzureCosmosDBPostgresqlClusterConfiguration, ["internal_server_error"]),
                 ("privateEndpointConnections", AzureCosmosDBPostgresqlClusterPrivateEndpointConnection, None),
                 ("privateLinkResources", AzureCosmosDBPostgresqlClusterPrivateLink, None),
                 ("roles", AzureCosmosDBPostgresqlClusterRole, None),
@@ -2513,12 +2513,13 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, AzureProxyResource
             def collect_server_configs() -> None:
                 api_spec = AzureResourceSpec(
                     service="cosmos-db",
-                    version="2023-03-02-preview ",
+                    version="2023-03-02-preview",
                     path=f"{server_id}/configurations",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
                     expect_array=True,
+                    expected_error_codes=["internal_server_error"],
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -2585,7 +2586,7 @@ class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyR
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server_configuration"
-    # Collect via AzureCosmosDBPostgresqlCluster()
+    # Collect via AzureCosmosDBPostgresqlClusterServer()
     config: Json = field(factory=dict)
 
     @classmethod
@@ -2594,10 +2595,10 @@ class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, Azure
         server_id: str,
         raw: List[Json],
         builder: GraphBuilder,
-    ) -> List[AzureCosmosDBPostgresqlClusterConfiguration]:
+    ) -> List[AzureCosmosDBPostgresqlClusterServerConfiguration]:
         if not raw:
             return []
-        configuration_instance = AzureCosmosDBPostgresqlClusterConfiguration(id=server_id)
+        configuration_instance = AzureCosmosDBPostgresqlClusterServerConfiguration(id=server_id)
         for js in raw:
             properties = js.get("properties")
             if not properties:
@@ -2731,6 +2732,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBPostgresqlCluster,
     AzureCosmosDBPostgresqlClusterServer,
     AzureCosmosDBPostgresqlClusterConfiguration,
+    AzureCosmosDBPostgresqlClusterServerConfiguration,
     AzureCosmosDBPostgresqlClusterPrivateEndpointConnection,
     AzureCosmosDBPostgresqlClusterPrivateLink,
     AzureCosmosDBPostgresqlClusterRole,
