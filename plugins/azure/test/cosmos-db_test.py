@@ -6,6 +6,7 @@ from fix_plugin_azure.resource.cosmosdb import (
     AzureCosmosDBRestorableAccount,
     AzureCosmosDBLocation,
     AzureCosmosDBMongoDBCluster,
+    AzureCosmosDBPostgresqlCluster,
 )
 
 
@@ -31,4 +32,9 @@ def test_cosmos_db_location(builder: GraphBuilder) -> None:
 
 def test_mongo_db_cluster(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureCosmosDBMongoDBCluster, builder)
+    assert len(collected) == 1
+
+
+def test_postgres_cluster(builder: GraphBuilder) -> None:
+    collected = roundtrip_check(AzureCosmosDBPostgresqlCluster, builder)
     assert len(collected) == 1
