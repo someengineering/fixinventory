@@ -733,7 +733,14 @@ class Api(Service):
                 bj.pop("checks", None)
                 bj.pop("children", None)
             if with_checks:
-                bj["report_checks"] = [to_js_check(lookup[c]) for c in b.nested_checks() if c in lookup]
+                report_checks = []
+                for c in b.nested_checks():
+                    if c in lookup:
+                        report_checks.append(to_js_check(lookup[c]))
+                    else:
+                        log.warning(f"Check {c} not found.")
+
+                bj["report_checks"] = report_checks
             return bj
 
         benchmark_results = [
