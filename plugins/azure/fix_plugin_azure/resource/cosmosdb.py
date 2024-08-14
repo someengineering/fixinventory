@@ -19,11 +19,12 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
+from fix_plugin_azure.resource.mysql import AzureServerDataEncryption
 from fix_plugin_azure.resource.network import AzureSubnet
 from fix_plugin_azure.utils import from_str_to_typed
-from fixlib.baseresources import BaseDatabase, EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapValue
+from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
 service_name = "azure_cosmosdb"
@@ -2384,6 +2385,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
         "source_location": S("properties", "sourceLocation"),
         "source_resource_id": S("properties", "sourceResourceId"),
         "state": S("properties", "state"),
+        "data_encryption": S("properties", "dataEncryption") >> Bend(AzureServerDataEncryption.mapping),
     }
     location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -2415,6 +2417,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
     source_location: Optional[str] = field(default=None, metadata={'description': 'The Azure region of source cluster for read replica clusters.'})  # fmt: skip
     source_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of source cluster for read replica clusters.'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={'description': 'A state of a cluster/server that is visible to user.'})  # fmt: skip
+    data_encryption: Optional[AzureServerDataEncryption] = field(default=None, metadata={'description': 'The date encryption for Cosmos DB.'})  # fmt: skip
 
     def _collect_items(
         self,
@@ -2438,6 +2441,13 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
         items = graph_builder.client.list(api_spec)
         if not items:
             return
+        if issubclass(AzureCosmosDBPostgresqlClusterServer, class_instance):  # type: ignore
+            # Set data_encryption because AzureCosmosDBPostgresqlClusterServer doesn't have that property
+            for item in items:
+                if self.data_encryption:
+                    item["data_encryption"] = True
+                else:
+                    item["data_encryption"] = False
         if issubclass(AzureCosmosDBPostgresqlClusterConfiguration, class_instance):  # type: ignore
             collected = class_instance.collect_configs(self.id, items, graph_builder)  # type: ignore
         else:
@@ -2468,7 +2478,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, AzureProxyResource):
+class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server"
     # Collect via AzureCosmosDBPostgresqlCluster()
     reference_kinds: ClassVar[ModelReference] = {
@@ -2498,6 +2508,25 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, AzureProxyResource
         "server_edition": S("properties", "serverEdition"),
         "storage_quota_in_mb": S("properties", "storageQuotaInMb"),
         "v_cores": S("properties", "vCores"),
+        "db_type": K("cosmosdb"),
+        "db_version": S("properties", "postgresqlVersion"),
+        "db_endpoint": S("properties", "fullyQualifiedDomainName"),
+        "db_publicly_accessible": S("properties", "enablePublicIpAccess"),
+        "instance_type": S("properties", "serverEdition"),
+        "volume_size": S("properties", "storageQuotaInMb"),
+        "db_status": S("properties", "state")
+        >> MapEnum(
+            {
+                "Disabled": DatabaseInstanceStatus.FAILED,
+                "Dropping": DatabaseInstanceStatus.TERMINATED,
+                "Ready": DatabaseInstanceStatus.AVAILABLE,
+                "Starting": DatabaseInstanceStatus.BUSY,
+                "Stopped": DatabaseInstanceStatus.STOPPED,
+                "Stopping": DatabaseInstanceStatus.BUSY,
+                "Updating": DatabaseInstanceStatus.BUSY,
+            }
+        ),
+        "volume_encrypted": S("data_encryption"),
     }
     availability_zone: Optional[str] = field(default=None, metadata={'description': 'Availability Zone information of the server.'})  # fmt: skip
     citus_version: Optional[str] = field(default=None, metadata={'description': 'The Citus extension version of server.'})  # fmt: skip
