@@ -1196,6 +1196,15 @@ class BaseRoutingTable(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseRoute(BaseResource):
+    kind: ClassVar[str] = "route"
+    kind_display: ClassVar[str] = "Network Route"
+    kind_description: ClassVar[str] = "A network route."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "route", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
+
+
+@define(eq=False, slots=False)
 class BaseNetworkAcl(BaseResource):
     kind: ClassVar[str] = "network_acl"
     kind_display: ClassVar[str] = "Network ACL"
