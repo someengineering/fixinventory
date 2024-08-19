@@ -167,7 +167,7 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
         validation = await inspector_service.validate_benchmark_config(cfg_id, config)
         assert validation is None, f"Benchmark: {name}" + str(validation)
         benchmark = BenchmarkConfig.from_config(ConfigEntity(cfg_id, config))
-        any(cloud in benchmark.clouds for cloud in ["aws", "azure"])
+        any(cloud in (benchmark.clouds or []) for cloud in ["aws", "azure"])
 
 
 async def test_list_failing(inspector_service: InspectorService) -> None:
