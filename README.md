@@ -19,7 +19,7 @@
 
 
 ## Overview
-🔍 Search Infrastructure: Fix Inventory maps out your cloud infrastructure in a [graph](https://inventory.fix.security/docs/concepts/graph) and provides a simple [search syntax](https://inventory.fix.security/docs/concepts/search).
+🔍 Search Infrastructure: Fix Inventory maps out your cloud infrastructure in a [graph](https://inventory.fix.security/concepts/asset-inventory-graph) and provides a simple [search syntax](https://inventory.fix.security/docs/concepts/search).
 
 📊 Generate Reports: Fix Inventory keeps track of and reports infrastructure changes over time, making it easy to [audit resource usage and cleanup](https://inventory.fix.security/docs/concepts/cloud-data-sync).
 
