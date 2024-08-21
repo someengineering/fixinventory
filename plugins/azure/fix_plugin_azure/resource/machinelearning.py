@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, ClassVar, Dict, Optional, List, Type
+from typing import Any, ClassVar, Dict, Optional, List, Tuple, Type
 
 from attr import define, field
 
@@ -16,8 +16,10 @@ from fix_plugin_azure.resource.base import (
     AzureManagedServiceIdentity,
     GraphBuilder,
     AzureBaseUsage,
+    AzurePrivateLinkServiceConnectionState,
 )
-from fixlib.json_bender import Bender, S, ForallBend, Bend, K
+from fixlib.baseresources import BaseInstanceType
+from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -35,22 +37,12 @@ class AzureEndpointAuthKeys:
 @define(eq=False, slots=False)
 class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_batch_endpoint"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/batchEndpoints",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "auth_mode": S("properties", "authMode"),
         "description": S("properties", "description"),
         "keys": S("properties", "keys") >> Bend(AzureEndpointAuthKeys.mapping),
@@ -61,39 +53,73 @@ class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource)
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "azure_kind": S("kind"),
         "provisioning_state": S("properties", "provisioningState"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
     }
     auth_mode: Optional[str] = field(default=None, metadata={'description': 'Enum to determine endpoint authentication mode.'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={'description': 'Description of the inference endpoint.'})  # fmt: skip
     keys: Optional[AzureEndpointAuthKeys] = field(default=None, metadata={'description': 'Keys for endpoint authentication.'})  # fmt: skip
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'Property dictionary. Properties can be added, but not removed or altered.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'Property dictionary. Properties can be added, but not removed or altered.'})  # fmt: skip
     scoring_uri: Optional[str] = field(default=None, metadata={"description": "Endpoint URI."})
     swagger_uri: Optional[str] = field(default=None, metadata={"description": "Endpoint Swagger URI."})
     defaults: Optional[str] = field(default=None, metadata={"description": "Batch endpoint default values"})
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     azure_kind: Optional[str] = field(default=None, metadata={'description': 'Metadata used by portal/tooling/etc to render different UX experiences for resources of the same type.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of endpoint provisioning.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureMachineLearningCodeContainer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_code_container"
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "is_archived": S("properties", "isArchived", default=False),
+        "latest_version": S("properties", "latestVersion"),
+        "next_version": S("properties", "nextVersion"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
+    latest_version: Optional[str] = field(
+        default=None, metadata={"description": "The latest version inside this container."}
+    )
+    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if container_id := self.id:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{container_id}/versions",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningCodeVersion.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningCodeVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_version"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/codes/{name}/versions",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName", "name"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "id": S("id"),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "tags": S("properties", "tags", default={}),
         "code_uri": S("properties", "codeUri"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -103,31 +129,65 @@ class AzureMachineLearningCodeVersion(MicrosoftResource, AzureProxyResource):
         "is_archived": S("properties", "isArchived"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     is_anonymous: Optional[bool] = field(default=None, metadata={'description': 'If the name version are system generated (anonymous registration).'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     code_uri: Optional[str] = field(default=None, metadata={"description": "Uri where code is located"})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of registry asset.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureMachineLearningComponentContainer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_component_container"
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "is_archived": S("properties", "isArchived", default=False),
+        "latest_version": S("properties", "latestVersion"),
+        "next_version": S("properties", "nextVersion"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
+    latest_version: Optional[str] = field(
+        default=None, metadata={"description": "The latest version inside this container."}
+    )
+    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if resource_id := self.id:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/versions",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningComponentVersion.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningComponentVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_component_version"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/components/{name}/versions",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName", "name"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "id": S("id"),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "component_spec": S("properties", "componentSpec"),
         "tags": S("properties", "tags", default={}),
         "code_uri": S("properties", "codeUri"),
@@ -138,11 +198,10 @@ class AzureMachineLearningComponentVersion(MicrosoftResource, AzureProxyResource
         "is_archived": S("properties", "isArchived"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     is_anonymous: Optional[bool] = field(default=None, metadata={'description': 'If the name version are system generated (anonymous registration).'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     component_spec: Optional[Any] = field(default=None, metadata={'description': 'Defines Component definition details. <see href= https://docs.microsoft.com/en-us/azure/machine-learning/reference-yaml-component-command />'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of registry asset.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -164,22 +223,13 @@ class AzureErrorResponse:
 @define(eq=False, slots=False)
 class AzureMachineLearningCompute(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_compute"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/computes",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "ctime": S("systemData", "createdOn"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "location": S("location"),
         "compute_location": S("properties", "computeLocation"),
         "compute_type": S("properties", "computeType"),
         "created_on": S("properties", "createdOn"),
@@ -191,9 +241,11 @@ class AzureMachineLearningCompute(MicrosoftResource):
         "provisioning_state": S("properties", "provisioningState"),
         "resource_id": S("properties", "resourceId"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
+        "properties": S("properties", "properties"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'Property dictionary. Properties can be added, but not removed or altered.'})  # fmt: skip
     compute_location: Optional[str] = field(default=None, metadata={'description': 'Location for the underlying compute'})  # fmt: skip
     compute_type: Optional[str] = field(default=None, metadata={"description": "The type of compute"})
     created_on: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the compute was created.'})  # fmt: skip
@@ -202,11 +254,37 @@ class AzureMachineLearningCompute(MicrosoftResource):
     is_attached_compute: Optional[bool] = field(default=None, metadata={'description': 'Indicating whether the compute was provisioned by user and brought from outside if true, or machine learning service provisioned it if false.'})  # fmt: skip
     modified_on: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the compute was last modified.'})  # fmt: skip
     provisioning_errors: Optional[List[AzureErrorResponse]] = field(default=None, metadata={'description': 'Errors during provisioning'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed.'})  # fmt: skip
     resource_id: Optional[str] = field(default=None, metadata={'description': 'ARM resource id of the underlying compute'})  # fmt: skip
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if location := self.location:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path="/subscriptions/{subscriptionId}/providers/Microsoft.MachineLearningServices/locations/"
+                    + f"{location}/vmSizes",
+                    path_parameters=["subscriptionId"],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                for item in items:
+                    item["location"] = location
+                collected = AzureMachineLearningVirtualMachineSize.collect(items, graph_builder)
+                for _ in collected:
+                    if (properties := self.properties) and (vm_size := properties.get("vmSize")):
+                        graph_builder.add_edge(self, clazz=AzureMachineLearningVirtualMachineSize, name=vm_size)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
 
 
 @define(eq=False, slots=False)
@@ -390,23 +468,58 @@ class AzureDataStore:
 
 
 @define(eq=False, slots=False)
+class AzureMachineLearningDataContainer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_data_container"
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "is_archived": S("properties", "isArchived", default=False),
+        "latest_version": S("properties", "latestVersion"),
+        "next_version": S("properties", "nextVersion"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
+    latest_version: Optional[str] = field(
+        default=None, metadata={"description": "The latest version inside this container."}
+    )
+    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if resource_id := self.id:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/versions",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningDataVersion.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
+
+
+@define(eq=False, slots=False)
 class AzureMachineLearningDataVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_version"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/data/{name}/versions",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName", "name"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "id": S("id"),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "data_type": S("properties", "dataType"),
         "data_uri": S("properties", "dataUri"),
         "tags": S("properties", "tags", default={}),
@@ -418,7 +531,7 @@ class AzureMachineLearningDataVersion(MicrosoftResource, AzureProxyResource):
         "is_archived": S("properties", "isArchived"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     is_anonymous: Optional[bool] = field(default=None, metadata={'description': 'If the name version are system generated (anonymous registration).'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     data_type: Optional[str] = field(default=None, metadata={"description": "Enum to determine the type of data."})
@@ -428,22 +541,12 @@ class AzureMachineLearningDataVersion(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningDatastore(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_datastore"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/datastores",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "credentials": S("properties", "credentials", "credentialsType"),
         "datastore_type": S("properties", "datastoreType"),
         "is_default": S("properties", "isDefault"),
@@ -451,7 +554,7 @@ class AzureMachineLearningDatastore(MicrosoftResource, AzureProxyResource):
         "properties": S("properties", "properties"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     credentials: Optional[str] = field(default=None, metadata={'description': 'Base definition for datastore credentials.'})  # fmt: skip
     datastore_type: Optional[str] = field(default=None, metadata={'description': 'Enum to determine the datastore contents type.'})  # fmt: skip
     is_default: Optional[bool] = field(default=None, metadata={'description': 'Readonly property to indicate if datastore is the workspace default datastore'})  # fmt: skip
@@ -492,22 +595,12 @@ class AzureEndpointDeploymentResourcePropertiesBasicResource:
 @define(eq=False, slots=False)
 class AzureMachineLearningEndpoint(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_endpoint"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-07-01-preview",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/endpoints",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "associated_resource_id": S("properties", "associatedResourceId"),
         "deployments": S("properties", "deployments")
         >> ForallBend(AzureEndpointDeploymentResourcePropertiesBasicResource.mapping),
@@ -523,7 +616,6 @@ class AzureMachineLearningEndpoint(MicrosoftResource):
     endpoint_type: Optional[str] = field(default=None, metadata={"description": "Type of the endpoint."})
     endpoint_uri: Optional[str] = field(default=None, metadata={"description": "Uri of the endpoint."})
     failure_reason: Optional[str] = field(default=None, metadata={'description': 'The failure reason if the creation failed.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={"description": ""})
     should_create_ai_services_endpoint: Optional[bool] = field(default=None, metadata={'description': 'Whether the proxy (non-byo) endpoint is a regular endpoint or a OneKeyV2 AI services account endpoint.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
@@ -558,23 +650,58 @@ class AzureInferenceContainerProperties:
 
 
 @define(eq=False, slots=False)
+class AzureMachineLearningEnvironmentContainer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_environment_container"
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "is_archived": S("properties", "isArchived", default=False),
+        "latest_version": S("properties", "latestVersion"),
+        "next_version": S("properties", "nextVersion"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
+    latest_version: Optional[str] = field(
+        default=None, metadata={"description": "The latest version inside this container."}
+    )
+    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if resource_id := self.id:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/versions",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningEnvironmentVersion.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
+
+
+@define(eq=False, slots=False)
 class AzureMachineLearningEnvironmentVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_version"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/environments/{name}/versions",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName", "name"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "id": S("id"),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "auto_rebuild": S("properties", "autoRebuild"),
         "build": S("properties", "build") >> Bend(AzureBuildContext.mapping),
         "conda_file": S("properties", "condaFile"),
@@ -592,7 +719,7 @@ class AzureMachineLearningEnvironmentVersion(MicrosoftResource, AzureProxyResour
         "is_archived": S("properties", "isArchived"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     is_anonymous: Optional[bool] = field(default=None, metadata={'description': 'If the name version are system generated (anonymous registration).'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     auto_rebuild: Optional[str] = field(default=None, metadata={'description': 'AutoRebuild setting for the derived image'})  # fmt: skip
@@ -602,7 +729,6 @@ class AzureMachineLearningEnvironmentVersion(MicrosoftResource, AzureProxyResour
     image: Optional[str] = field(default=None, metadata={'description': 'Name of the image that will be used for the environment. <seealso href= https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-custom-docker-image#use-a-custom-base-image />'})  # fmt: skip
     inference_config: Optional[AzureInferenceContainerProperties] = field(default=None, metadata={"description": ""})
     os_type: Optional[str] = field(default=None, metadata={"description": "The type of operating system."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of registry asset.'})  # fmt: skip
     stage: Optional[str] = field(default=None, metadata={'description': 'Stage in the environment lifecycle assigned to this environment'})  # fmt: skip
 
 
@@ -688,23 +814,58 @@ class AzureMaterializationSettings:
 
 
 @define(eq=False, slots=False)
+class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_featureset_container"
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "is_archived": S("properties", "isArchived", default=False),
+        "latest_version": S("properties", "latestVersion"),
+        "next_version": S("properties", "nextVersion"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
+    latest_version: Optional[str] = field(
+        default=None, metadata={"description": "The latest version inside this container."}
+    )
+    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if resource_id := self.id:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/versions",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningFeaturesetVersion.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
+
+
+@define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_version"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/featuresets/{name}/versions",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName", "name"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "id": S("id"),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "entities": S("properties", "entities"),
         "materialization_settings": S("properties", "materializationSettings")
         >> Bend(AzureMaterializationSettings.mapping),
@@ -719,14 +880,58 @@ class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResourc
         "is_archived": S("properties", "isArchived"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     is_anonymous: Optional[bool] = field(default=None, metadata={'description': 'If the name version are system generated (anonymous registration).'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     entities: Optional[List[str]] = field(default=None, metadata={"description": "Specifies list of entities"})
     materialization_settings: Optional[AzureMaterializationSettings] = field(default=None, metadata={'description': ''})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of registry asset.'})  # fmt: skip
     specification: Optional[str] = field(default=None, metadata={'description': 'DTO object representing specification'})  # fmt: skip
     stage: Optional[str] = field(default=None, metadata={"description": "Specifies the asset stage"})
+
+
+@define(eq=False, slots=False)
+class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_container"
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "is_archived": S("properties", "isArchived", default=False),
+        "latest_version": S("properties", "latestVersion"),
+        "next_version": S("properties", "nextVersion"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
+    latest_version: Optional[str] = field(
+        default=None, metadata={"description": "The latest version inside this container."}
+    )
+    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if resource_id := self.id:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/versions",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningFeaturestoreEntityVersion.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
 
 
 @define(eq=False, slots=False)
@@ -740,21 +945,11 @@ class AzureIndexColumn:
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturestoreEntityVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_version"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/featurestoreEntities/{name}/versions",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName", "name"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "id": S("id"),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "index_columns": S("properties", "indexColumns") >> ForallBend(AzureIndexColumn.mapping),
         "stage": S("properties", "stage"),
         "tags": S("properties", "tags", default={}),
@@ -766,11 +961,10 @@ class AzureMachineLearningFeaturestoreEntityVersion(MicrosoftResource, AzureProx
         "is_archived": S("properties", "isArchived"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     is_anonymous: Optional[bool] = field(default=None, metadata={'description': 'If the name version are system generated (anonymous registration).'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     index_columns: Optional[List[AzureIndexColumn]] = field(default=None, metadata={'description': 'Specifies index columns'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of registry asset.'})  # fmt: skip
     stage: Optional[str] = field(default=None, metadata={"description": "Specifies the asset stage"})
 
 
@@ -791,34 +985,24 @@ class AzureJobService:
     job_service_type: Optional[str] = field(default=None, metadata={"description": "Endpoint type."})
     nodes: Optional[str] = field(default=None, metadata={"description": "Abstract Nodes definition"})
     port: Optional[int] = field(default=None, metadata={"description": "Port for endpoint."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'Additional properties to set on the endpoint.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'Additional properties to set on the endpoint.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "Status of endpoint."})
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningJob(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_job"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/jobs",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "component_id": S("properties", "componentId"),
         "compute_id": S("properties", "computeId"),
         "display_name": S("properties", "displayName"),
         "experiment_name": S("properties", "experimentName"),
-        "identity": S("properties", "identity", "identityType"),
+        "identity_type": S("properties", "identity", "identityType"),
         "is_archived": S("properties", "isArchived"),
         "job_type": S("properties", "jobType"),
         "notification_setting": S("properties", "notificationSetting") >> Bend(AzureNotificationSetting.mapping),
@@ -828,12 +1012,12 @@ class AzureMachineLearningJob(MicrosoftResource, AzureProxyResource):
         "properties": S("properties", "properties"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     component_id: Optional[str] = field(default=None, metadata={'description': 'ARM resource ID of the component resource.'})  # fmt: skip
     compute_id: Optional[str] = field(default=None, metadata={'description': 'ARM resource ID of the compute resource.'})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "Display name of job."})
     experiment_name: Optional[str] = field(default=None, metadata={'description': 'The name of the experiment the job belongs to. If not set, the job is placed in the Default experiment.'})  # fmt: skip
-    identity: Optional[str] = field(default=None, metadata={'description': 'Base definition for identity configuration.'})  # fmt: skip
+    identity_type: Optional[str] = field(default=None, metadata={'description': 'Base definition for identity configuration.'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     job_type: Optional[str] = field(default=None, metadata={"description": "Enum to determine the type of job."})
     notification_setting: Optional[AzureNotificationSetting] = field(default=None, metadata={'description': 'Configuration for notification.'})  # fmt: skip
@@ -953,22 +1137,12 @@ class AzureStatusMessage:
 @define(eq=False, slots=False)
 class AzureMachineLearningLabelingJob(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_labeling_job"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01-preview",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/labelingJobs",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "ctime": S("systemData", "createdTimeUtc"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "created_time_utc": S("properties", "createdTimeUtc"),
         "dataset_configuration": S("properties", "datasetConfiguration")
         >> Bend(AzureLabelingDatasetConfiguration.mapping),
@@ -978,7 +1152,7 @@ class AzureMachineLearningLabelingJob(MicrosoftResource):
         >> Bend(AzureLabelingJobImageProperties.mapping),
         "ml_assist_configuration": S("properties", "mlAssistConfiguration") >> Bend(AzureMLAssistConfiguration.mapping),
         "progress_metrics": S("properties", "progressMetrics") >> Bend(AzureProgressMetrics.mapping),
-        "project_id": S("properties", "projectId"),
+        "job_project_id": S("properties", "projectId"),
         "properties": S("properties", "properties"),
         "status": S("properties", "status"),
         "status_messages": S("properties", "statusMessages") >> ForallBend(AzureStatusMessage.mapping),
@@ -991,11 +1165,56 @@ class AzureMachineLearningLabelingJob(MicrosoftResource):
     labeling_job_media_properties: Optional[AzureLabelingJobImageProperties] = field(default=None, metadata={'description': ''})  # fmt: skip
     ml_assist_configuration: Optional[AzureMLAssistConfiguration] = field(default=None, metadata={'description': 'Represents configuration for machine learning assisted features in a labeling job.'})  # fmt: skip
     progress_metrics: Optional[AzureProgressMetrics] = field(default=None, metadata={'description': 'Progress metrics for a labeling job.'})  # fmt: skip
-    project_id: Optional[str] = field(default=None, metadata={'description': 'Internal id of the job(Previously called project).'})  # fmt: skip
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The job property dictionary. Properties can be added, but not removed or altered.'})  # fmt: skip
+    job_project_id: Optional[str] = field(default=None, metadata={'description': 'Internal id of the job(Previously called project).'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The job property dictionary. Properties can be added, but not removed or altered.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of a job."})
     status_messages: Optional[List[AzureStatusMessage]] = field(default=None, metadata={'description': 'Status messages of the job.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureMachineLearningModelContainer(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_model_container"
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "tags": S("tags", default={}),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "is_archived": S("properties", "isArchived", default=False),
+        "latest_version": S("properties", "latestVersion"),
+        "next_version": S("properties", "nextVersion"),
+        "provisioning_state": S("properties", "provisioningState"),
+    }
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
+    latest_version: Optional[str] = field(
+        default=None, metadata={"description": "The latest version inside this container."}
+    )
+    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if resource_id := self.id:
+
+            def collect_vm_sizes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/versions",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningModelVersion.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_vm_sizes)
 
 
 @define(eq=False, slots=False)
@@ -1008,21 +1227,11 @@ class AzureFlavorData:
 @define(eq=False, slots=False)
 class AzureMachineLearningModelVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_model_version"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/models/{name}/versions",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName", "name"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "id": S("id"),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "flavors": S("properties", "flavors"),
         "job_name": S("properties", "jobName"),
         "model_type": S("properties", "modelType"),
@@ -1037,43 +1246,32 @@ class AzureMachineLearningModelVersion(MicrosoftResource, AzureProxyResource):
         "is_archived": S("properties", "isArchived"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     is_anonymous: Optional[bool] = field(default=None, metadata={'description': 'If the name version are system generated (anonymous registration).'})  # fmt: skip
     is_archived: Optional[bool] = field(default=None, metadata={"description": "Is the asset archived?"})
     flavors: Optional[Dict[str, AzureFlavorData]] = field(default=None, metadata={'description': 'Mapping of model flavors to their properties.'})  # fmt: skip
     job_name: Optional[str] = field(default=None, metadata={'description': 'Name of the training job which produced this model'})  # fmt: skip
     model_type: Optional[str] = field(default=None, metadata={'description': 'The storage format for this entity. Used for NCD.'})  # fmt: skip
     model_uri: Optional[str] = field(default=None, metadata={"description": "The URI path to the model contents."})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Provisioning state of registry asset.'})  # fmt: skip
     stage: Optional[str] = field(default=None, metadata={'description': 'Stage in the model lifecycle assigned to this model'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_online_endpoint"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/onlineEndpoints",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "compute": S("properties", "compute"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "azure_kind": S("kind"),
         "mirror_traffic": S("properties", "mirrorTraffic"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "traffic": S("properties", "traffic"),
         "auth_mode": S("properties", "authMode"),
         "description": S("properties", "description"),
@@ -1086,99 +1284,33 @@ class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     azure_kind: Optional[str] = field(default=None, metadata={'description': 'Metadata used by portal/tooling/etc to render different UX experiences for resources of the same type.'})  # fmt: skip
     mirror_traffic: Optional[Dict[str, int]] = field(default=None, metadata={'description': 'Percentage of traffic to be mirrored to each deployment without using returned scoring. Traffic values need to sum to utmost 50.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of endpoint provisioning.'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Enum to determine whether PublicNetworkAccess is Enabled or Disabled.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
     traffic: Optional[Dict[str, int]] = field(default=None, metadata={'description': 'Percentage of traffic from endpoint to divert to each deployment. Traffic values need to sum to 100.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMachineLearningPaginatedDataStore(MicrosoftResource):
-    kind: ClassVar[str] = "azure_machine_learning_paginated_data_store"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2019-09-30",
-        path="/datastore/v1.0/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/datastores",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=[],
-        access_path=None,
-        expect_array=False,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
-        "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "continuation_token": S("continuationToken"),
-        "next_link": S("nextLink"),
-        "value": S("value") >> ForallBend(AzureDataStore.mapping),
-    }
-    continuation_token: Optional[str] = field(default=None, metadata={'description': 'The token used in retrieving the next page. If null, there are no additional pages.'})  # fmt: skip
-    next_link: Optional[str] = field(default=None, metadata={'description': 'The link to the next page constructed using the continuationToken. If null, there are no additional pages.'})  # fmt: skip
-    value: Optional[List[AzureDataStore]] = field(default=None, metadata={'description': 'An array of objects of type DataStore.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzurePrivateLinkServiceConnectionState:
-    kind: ClassVar[str] = "azure_private_link_service_connection_state"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "actions_required": S("actionsRequired"),
-        "description": S("description"),
-        "status": S("status"),
-    }
-    actions_required: Optional[str] = field(default=None, metadata={'description': 'A message indicating if changes on the service provider require any updates on the consumer.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'The reason for approval/rejection of the connection.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
-
-
-@define(eq=False, slots=False)
-class AzurePrivateEndpointConnectionProperties:
-    kind: ClassVar[str] = "azure_private_endpoint_connection_properties"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "private_endpoint": S("privateEndpoint", "id"),
-        "private_link_service_connection_state": S("privateLinkServiceConnectionState")
-        >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
-        "provisioning_state": S("provisioningState"),
-    }
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": "The Private Endpoint resource."})
-    private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_endpoint_connection"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/privateEndpointConnections",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "location": S("location"),
         "name": S("name"),
-        "private_endpoint": S("properties", "privateEndpoint", "id"),
+        "private_endpoint_id": S("properties", "privateEndpoint", "id"),
         "private_link_service_connection_state": S("properties", "privateLinkServiceConnectionState")
         >> Bend(AzurePrivateLinkServiceConnectionState.mapping),
         "provisioning_state": S("properties", "provisioningState"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "tags": S("tags"),
         "type": S("type"),
     }
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Specifies the location of the resource."})
-    private_endpoint: Optional[str] = field(default=None, metadata={"description": "The Private Endpoint resource."})
+    private_endpoint_id: Optional[str] = field(default=None, metadata={"description": "The Private Endpoint resource."})
     private_link_service_connection_state: Optional[AzurePrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'A collection of information about the state of the connection between service consumer and provider.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
@@ -1186,34 +1318,24 @@ class AzureMachineLearningPrivateEndpointConnection(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_link"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/privateLinkResources",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
-        "group_id": S("properties", "groupId"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
+        "link_group_id": S("properties", "groupId"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "required_members": S("properties", "requiredMembers"),
         "required_zone_names": S("properties", "requiredZoneNames"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
-    group_id: Optional[str] = field(default=None, metadata={"description": "The private link resource group id."})
+    link_group_id: Optional[str] = field(default=None, metadata={"description": "The private link resource group id."})
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
     required_members: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource required member names.'})  # fmt: skip
     required_zone_names: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource Private link DNS zone name.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
 
@@ -1359,12 +1481,11 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
         expect_array=True,
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "discovery_url": S("properties", "discoveryUrl"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
         "intellectual_property_publisher": S("properties", "intellectualPropertyPublisher"),
@@ -1375,7 +1496,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
         "region_details": S("properties", "regionDetails") >> ForallBend(AzureRegistryRegionArmDetails.mapping),
         "registry_private_endpoint_connections": S("properties", "registryPrivateEndpointConnections")
         >> ForallBend(AzureRegistryPrivateEndpointConnection.mapping),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
     }
     discovery_url: Optional[str] = field(default=None, metadata={"description": "Discovery URL for the Registry"})
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
@@ -1386,7 +1507,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Is the Registry accessible from the internet? Possible values: Enabled or Disabled '})  # fmt: skip
     region_details: Optional[List[AzureRegistryRegionArmDetails]] = field(default=None, metadata={'description': 'Details of each region the registry is in'})  # fmt: skip
     registry_private_endpoint_connections: Optional[List[AzureRegistryPrivateEndpointConnection]] = field(default=None, metadata={'description': 'Private endpoint connections info used for pending connections in private link portal'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1408,14 +1529,11 @@ class AzureMachineLearningQuota(MicrosoftResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
+        expected_error_codes=["InternalServerError", "ServiceError"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name", "value"),
         "aml_workspace_location": S("amlWorkspaceLocation"),
         "limit": S("limit"),
         "unit": S("unit"),
@@ -1428,22 +1546,12 @@ class AzureMachineLearningQuota(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningSchedule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_schedule"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/schedules",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "action": S("properties", "action", "actionType"),
         "display_name": S("properties", "displayName"),
         "is_enabled": S("properties", "isEnabled"),
@@ -1453,11 +1561,10 @@ class AzureMachineLearningSchedule(MicrosoftResource, AzureProxyResource):
         "properties": S("properties", "properties"),
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
-    properties: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The asset property dictionary.'})  # fmt: skip
     action: Optional[str] = field(default=None, metadata={"description": ""})
     display_name: Optional[str] = field(default=None, metadata={"description": "Display name of schedule."})
     is_enabled: Optional[bool] = field(default=None, metadata={"description": "Is the schedule enabled?"})
-    provisioning_state: Optional[str] = field(default=None, metadata={"description": ""})
     trigger: Optional[AzureTriggerBase] = field(default=None, metadata={"description": ""})
 
 
@@ -1472,22 +1579,12 @@ class AzureServerlessInferenceEndpoint:
 @define(eq=False, slots=False)
 class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_serverless_endpoint"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/serverlessEndpoints",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
-        "id": K(None),
+        "id": S("id"),
         "tags": S("tags", default={}),
-        "name": K(None),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "name": S("name"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "auth_mode": S("properties", "authMode"),
         "content_safety": S("properties", "contentSafety", "contentSafetyStatus"),
         "endpoint_state": S("properties", "endpointState"),
@@ -1497,7 +1594,7 @@ class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedReso
         "marketplace_subscription_id": S("properties", "marketplaceSubscriptionId"),
         "model_settings": S("properties", "modelSettings", "modelId"),
         "provisioning_state": S("properties", "provisioningState"),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
     }
     auth_mode: Optional[str] = field(default=None, metadata={"description": ""})
     content_safety: Optional[str] = field(default=None, metadata={"description": ""})
@@ -1507,8 +1604,7 @@ class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedReso
     azure_kind: Optional[str] = field(default=None, metadata={'description': 'Metadata used by portal/tooling/etc to render different UX experiences for resources of the same type.'})  # fmt: skip
     marketplace_subscription_id: Optional[str] = field(default=None, metadata={'description': 'The MarketplaceSubscription Azure ID associated to this ServerlessEndpoint.'})  # fmt: skip
     model_settings: Optional[str] = field(default=None, metadata={"description": ""})
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'State of endpoint provisioning.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1539,6 +1635,9 @@ class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
     }
     aml_workspace_location: Optional[str] = field(default=None, metadata={'description': 'Region of the AML workspace in the id.'})  # fmt: skip
 
+    def _keys(self) -> Tuple[Any, ...]:
+        return tuple(list(super()._keys()) + [self.name])
+
 
 @define(eq=False, slots=False)
 class AzureEstimatedVMPrice:
@@ -1567,24 +1666,14 @@ class AzureEstimatedVMPrices:
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningVirtualMachineSize(MicrosoftResource):
+class AzureMachineLearningVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_machine_learning_virtual_machine_size"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.MachineLearningServices/locations/{location}/vmSizes",
-        path_parameters=["location", "subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": K(None),
+        "id": S("name"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "estimated_vm_prices": S("estimatedVMPrices") >> Bend(AzureEstimatedVMPrices.mapping),
         "family": S("family"),
         "gpus": S("gpus"),
@@ -1595,6 +1684,10 @@ class AzureMachineLearningVirtualMachineSize(MicrosoftResource):
         "premium_io": S("premiumIO"),
         "supported_compute_types": S("supportedComputeTypes"),
         "v_cp_us": S("vCPUs"),
+        "location": S("location"),
+        "instance_type": S("name"),
+        "instance_cores": S("vCPUs"),
+        "instance_memory": S("memoryGB"),
     }
     estimated_vm_prices: Optional[AzureEstimatedVMPrices] = field(default=None, metadata={'description': 'The estimated price info for using a VM.'})  # fmt: skip
     family: Optional[str] = field(default=None, metadata={'description': 'The family name of the virtual machine size.'})  # fmt: skip
@@ -1606,6 +1699,7 @@ class AzureMachineLearningVirtualMachineSize(MicrosoftResource):
     premium_io: Optional[bool] = field(default=None, metadata={'description': 'Specifies if the virtual machine size supports premium IO.'})  # fmt: skip
     supported_compute_types: Optional[List[str]] = field(default=None, metadata={'description': 'Specifies the compute types supported by the virtual machine size.'})  # fmt: skip
     v_cp_us: Optional[int] = field(default=None, metadata={'description': 'The number of vCPUs supported by the virtual machine size.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1714,8 +1808,8 @@ class AzureManagedNetworkProvisionStatus:
 
 
 @define(eq=False, slots=False)
-class AzureOutboundRule:
-    kind: ClassVar[str] = "azure_outbound_rule"
+class AzureManagedNetworkOutboundRule:
+    kind: ClassVar[str] = "azure_managed_network_outbound_rule"
     mapping: ClassVar[Dict[str, Bender]] = {"category": S("category"), "status": S("status"), "type": S("type")}
     category: Optional[str] = field(default=None, metadata={'description': 'Category of a managed network Outbound Rule of a machine learning workspace.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'Type of a managed network Outbound Rule of a machine learning workspace.'})  # fmt: skip
@@ -1733,7 +1827,9 @@ class AzureManagedNetworkSettings:
     }
     isolation_mode: Optional[str] = field(default=None, metadata={'description': 'Isolation mode for the managed network of a machine learning workspace.'})  # fmt: skip
     network_id: Optional[str] = field(default=None, metadata={"description": ""})
-    outbound_rules: Optional[Dict[str, AzureOutboundRule]] = field(default=None, metadata={"description": ""})
+    outbound_rules: Optional[Dict[str, AzureManagedNetworkOutboundRule]] = field(
+        default=None, metadata={"description": ""}
+    )
     status: Optional[AzureManagedNetworkProvisionStatus] = field(default=None, metadata={'description': 'Status of the Provisioning for the managed network of a machine learning workspace.'})  # fmt: skip
 
 
@@ -1777,9 +1873,8 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "allow_public_access_when_behind_vnet": S("properties", "allowPublicAccessWhenBehindVnet"),
         "application_insights": S("properties", "applicationInsights"),
         "associated_workspaces": S("properties", "associatedWorkspaces"),
@@ -1787,7 +1882,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         "description": S("properties", "description"),
         "discovery_url": S("properties", "discoveryUrl"),
         "enable_data_isolation": S("properties", "enableDataIsolation"),
-        "encryption": S("properties", "encryption") >> Bend(AzureEncryptionProperty.mapping),
+        "workspace_encryption": S("properties", "encryption") >> Bend(AzureEncryptionProperty.mapping),
         "feature_store_settings": S("properties", "featureStoreSettings") >> Bend(AzureFeatureStoreSettings.mapping),
         "friendly_name": S("properties", "friendlyName"),
         "hbi_workspace": S("properties", "hbiWorkspace"),
@@ -1800,7 +1895,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         "ml_flow_tracking_uri": S("properties", "mlFlowTrackingUri"),
         "notebook_info": S("properties", "notebookInfo") >> Bend(AzureNotebookResourceInfo.mapping),
         "primary_user_assigned_identity": S("properties", "primaryUserAssignedIdentity"),
-        "private_endpoint_connections": S("properties", "privateEndpointConnections") >> ForallBend(S("id")),
+        "private_endpoint_connection_ids": S("properties", "privateEndpointConnections") >> ForallBend(S("id")),
         "private_link_count": S("properties", "privateLinkCount"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_network_access": S("properties", "publicNetworkAccess"),
@@ -1811,7 +1906,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         "service_provisioned_resource_group": S("properties", "serviceProvisionedResourceGroup"),
         "shared_private_link_resources": S("properties", "sharedPrivateLinkResources")
         >> ForallBend(AzureSharedPrivateLinkResource.mapping),
-        "sku": S("sku") >> Bend(AzureSku.mapping),
+        "azure_sku": S("sku") >> Bend(AzureSku.mapping),
         "storage_account": S("properties", "storageAccount"),
         "storage_hns_enabled": S("properties", "storageHnsEnabled"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
@@ -1827,7 +1922,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
     description: Optional[str] = field(default=None, metadata={"description": "The description of this workspace."})
     discovery_url: Optional[str] = field(default=None, metadata={'description': 'Url for the discovery service to identify regional endpoints for machine learning experimentation services'})  # fmt: skip
     enable_data_isolation: Optional[bool] = field(default=None, metadata={"description": ""})
-    encryption: Optional[AzureEncryptionProperty] = field(default=None, metadata={"description": ""})
+    workspace_encryption: Optional[AzureEncryptionProperty] = field(default=None, metadata={"description": ""})
     feature_store_settings: Optional[AzureFeatureStoreSettings] = field(default=None, metadata={'description': 'Settings for feature store type workspace.'})  # fmt: skip
     friendly_name: Optional[str] = field(default=None, metadata={'description': 'The friendly name for this workspace. This name in mutable'})  # fmt: skip
     hbi_workspace: Optional[bool] = field(default=None, metadata={'description': 'The flag to signal HBI data in the workspace and reduce diagnostic data collected by the service'})  # fmt: skip
@@ -1840,15 +1935,14 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
     ml_flow_tracking_uri: Optional[str] = field(default=None, metadata={'description': 'The URI associated with this workspace that machine learning flow must point at to set up tracking.'})  # fmt: skip
     notebook_info: Optional[AzureNotebookResourceInfo] = field(default=None, metadata={"description": ""})
     primary_user_assigned_identity: Optional[str] = field(default=None, metadata={'description': 'The user assigned identity resource id that represents the workspace identity.'})  # fmt: skip
-    private_endpoint_connections: Optional[List[str]] = field(default=None, metadata={'description': 'The list of private endpoint connections in the workspace.'})  # fmt: skip
+    private_endpoint_connection_ids: Optional[List[str]] = field(default=None, metadata={'description': 'The list of private endpoint connections in the workspace.'})  # fmt: skip
     private_link_count: Optional[int] = field(default=None, metadata={'description': 'Count of private connections in the workspace'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current deployment state of workspace resource. The provisioningState is to indicate states for resource provisioning.'})  # fmt: skip
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Whether requests from Public Network are allowed.'})  # fmt: skip
     serverless_compute_settings: Optional[AzureServerlessComputeSettings] = field(default=None, metadata={'description': ''})  # fmt: skip
     service_managed_resources_settings: Optional[AzureServiceManagedResourcesSettings] = field(default=None, metadata={'description': ''})  # fmt: skip
     service_provisioned_resource_group: Optional[str] = field(default=None, metadata={'description': 'The name of the managed resource group created by workspace RP in customer subscription if the workspace is CMK workspace'})  # fmt: skip
     shared_private_link_resources: Optional[List[AzureSharedPrivateLinkResource]] = field(default=None, metadata={'description': 'The list of shared private link resources in this workspace.'})  # fmt: skip
-    sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+    azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
     storage_account: Optional[str] = field(default=None, metadata={'description': 'ARM id of the storage account associated with this workspace. This cannot be changed once the workspace has been created'})  # fmt: skip
     storage_hns_enabled: Optional[bool] = field(default=None, metadata={'description': 'If the storage associated with the workspace has hierarchical namespace(HNS) enabled.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -1857,28 +1951,79 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
     workspace_hub_config: Optional[AzureWorkspaceHubConfig] = field(default=None, metadata={'description': 'WorkspaceHub s configuration object.'})  # fmt: skip
     workspace_id: Optional[str] = field(default=None, metadata={'description': 'The immutable id associated with this workspace.'})  # fmt: skip
 
+    def _collect_items(
+        self,
+        graph_builder: GraphBuilder,
+        workspace_id: str,
+        resource_type: str,
+        class_instance: MicrosoftResource,
+        expected_errors: Optional[List[str]] = None,
+    ) -> None:
+        path = f"{workspace_id}/{resource_type}"
+        api_spec = AzureResourceSpec(
+            service="machinelearningservices",
+            version="2024-04-01",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or [],
+        )
+        items = graph_builder.client.list(api_spec)
+        if not items:
+            return
+        collected = class_instance.collect(items, graph_builder)
+        for clazz in collected:
+            graph_builder.add_edge(self, node=clazz)
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if workspace_id := self.id:
+            resources_to_collect = [
+                ("batchEndpoints", AzureMachineLearningBatchEndpoint, None),
+                ("computes", AzureMachineLearningCompute, None),
+                ("datastores", AzureMachineLearningDatastore, None),
+                ("endpoints", AzureMachineLearningEndpoint, None),
+                ("jobs", AzureMachineLearningJob, None),
+                ("labelingJobs", AzureMachineLearningLabelingJob, None),
+                ("onlineEndpoints", AzureMachineLearningOnlineEndpoint, None),
+                ("privateEndpointConnections", AzureMachineLearningPrivateEndpointConnection, None),
+                ("privateLinkResources", AzureMachineLearningPrivateLink, None),
+                ("schedules", AzureMachineLearningSchedule, None),
+                ("serverlessEndpoints", AzureMachineLearningServerlessEndpoint, None),
+                ("connections", AzureMachineLearningWorkspaceConnection, None),
+                ("codes", AzureMachineLearningCodeContainer, None),
+                ("components", AzureMachineLearningComponentContainer, None),
+                ("data", AzureMachineLearningDataContainer, None),
+                ("environments", AzureMachineLearningEnvironmentContainer, None),
+                ("featuresets", AzureMachineLearningFeaturesetContainer, None),
+                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, None),
+                ("models", AzureMachineLearningModelContainer, None),
+            ]
+
+            for resource_type, resource_class, expected_errors in resources_to_collect:
+                graph_builder.submit_work(
+                    service_name,
+                    self._collect_items,
+                    graph_builder,
+                    workspace_id,
+                    resource_type,
+                    resource_class,
+                    expected_errors,
+                )
+
 
 @define(eq=False, slots=False)
 class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_workspace_connection"
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="machinelearningservices",
-        version="2024-04-01",
-        path="/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.MachineLearningServices/workspaces/{workspaceName}/connections",
-        path_parameters=["subscriptionId", "resourceGroupName", "workspaceName"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "ctime": K(None),
-        "mtime": K(None),
-        "atime": K(None),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
         "auth_type": S("properties", "authType"),
-        "category": S("properties", "category"),
+        "connection_category": S("properties", "category"),
         "created_by_workspace_arm_id": S("properties", "createdByWorkspaceArmId"),
         "expiry_time": S("properties", "expiryTime"),
         "group": S("properties", "group"),
@@ -1891,7 +2036,7 @@ class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
         "value_format": S("properties", "valueFormat"),
     }
     auth_type: Optional[str] = field(default=None, metadata={'description': 'Authentication type of the connection target'})  # fmt: skip
-    category: Optional[str] = field(default=None, metadata={"description": "Category of the connection"})
+    connection_category: Optional[str] = field(default=None, metadata={"description": "Category of the connection"})
     created_by_workspace_arm_id: Optional[str] = field(default=None, metadata={"description": ""})
     expiry_time: Optional[datetime] = field(default=None, metadata={"description": ""})
     group: Optional[str] = field(default=None, metadata={"description": "Group based on connection category"})
@@ -1906,24 +2051,30 @@ class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
 
 resources: List[Type[MicrosoftResource]] = [
     AzureMachineLearningBatchEndpoint,
+    AzureMachineLearningCodeContainer,
     AzureMachineLearningCodeVersion,
+    AzureMachineLearningComponentContainer,
     AzureMachineLearningComponentVersion,
     AzureMachineLearningCompute,
+    AzureMachineLearningDataContainer,
     AzureMachineLearningDataVersion,
     AzureMachineLearningDatastore,
     AzureMachineLearningEndpoint,
+    AzureMachineLearningEnvironmentContainer,
     AzureMachineLearningEnvironmentVersion,
+    AzureMachineLearningFeaturesetContainer,
     AzureMachineLearningFeaturesetVersion,
+    AzureMachineLearningFeaturestoreEntityContainer,
     AzureMachineLearningFeaturestoreEntityVersion,
     AzureMachineLearningJob,
     AzureMachineLearningLabelingJob,
+    AzureMachineLearningModelContainer,
     AzureMachineLearningModelVersion,
     AzureMachineLearningOnlineEndpoint,
-    AzureMachineLearningPaginatedDataStore,
     AzureMachineLearningPrivateEndpointConnection,
     AzureMachineLearningPrivateLink,
     AzureMachineLearningRegistry,
-    AzureMachineLearningQuota,
+    # AzureMachineLearningQuota,  # TODO: filter only needed quota
     AzureMachineLearningSchedule,
     AzureMachineLearningServerlessEndpoint,
     AzureMachineLearningUsage,
