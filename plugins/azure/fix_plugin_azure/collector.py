@@ -49,6 +49,11 @@ from fix_plugin_azure.resource.cosmosdb import (
 )
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fix_plugin_azure.resource.web import resources as web_resources
+from fix_plugin_azure.resource.machinelearning import (
+    AzureMachineLearningUsage,
+    AzureMachineLearningVirtualMachineSize,
+    resources as ml_resources,
+)
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
@@ -80,6 +85,7 @@ subscription_resources: List[Type[MicrosoftResource]] = (
     + sql_resources
     + storage_resources
     + web_resources
+    + ml_resources
 )
 all_resources = subscription_resources + graph_resources  # defines all resource kinds. used in model check
 
@@ -241,7 +247,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
 
         def remove_usage_zero_value() -> None:
             for node in self.graph.nodes:
-                if not isinstance(node, (AzureNetworkUsage, AzureStorageAccountUsage)):
+                if not isinstance(node, (AzureNetworkUsage, AzureStorageAccountUsage, AzureMachineLearningUsage)):
                     continue
                 # Azure Usage just keep info about how many kind of resources on account exists
                 # Check if the current usage value of the Azure Usage node is 0
@@ -254,6 +260,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
         rm_nodes(AzureDiskType, AzureSubscription)
+        rm_nodes(AzureMachineLearningVirtualMachineSize, AzureLocation)
         rm_nodes(AzureStorageSku, AzureLocation)
         rm_nodes(AzureMysqlServerType, AzureSubscription)
         rm_nodes(AzurePostgresqlServerType, AzureSubscription)

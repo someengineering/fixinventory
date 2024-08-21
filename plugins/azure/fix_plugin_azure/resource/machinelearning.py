@@ -18,6 +18,9 @@ from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
     AzurePrivateLinkServiceConnectionState,
 )
+from fix_plugin_azure.resource.keyvault import AzureKeyVault
+from fix_plugin_azure.resource.network import AzureSubnet, AzureVirtualNetwork
+from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fixlib.baseresources import BaseInstanceType
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -1024,6 +1027,12 @@ class AzureMachineLearningJob(MicrosoftResource, AzureProxyResource):
     services: Optional[Dict[str, AzureJobService]] = field(default=None, metadata={'description': 'List of JobEndpoints. For local jobs, a job endpoint will have an endpoint value of FileStreamObject.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of a job."})
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if compute_id := self.compute_id:
+            builder.add_edge(self, clazz=AzureMachineLearningCompute, reverse=True, id=compute_id)
+        if component_id := self.component_id:
+            builder.add_edge(self, clazz=AzureMachineLearningComponentVersion, reverse=True, id=component_id)
+
 
 @define(eq=False, slots=False)
 class AzureLabelClass:
@@ -1287,6 +1296,10 @@ class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource
     public_network_access: Optional[str] = field(default=None, metadata={'description': 'Enum to determine whether PublicNetworkAccess is Enabled or Disabled.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
     traffic: Optional[Dict[str, int]] = field(default=None, metadata={'description': 'Percentage of traffic from endpoint to divert to each deployment. Traffic values need to sum to 100.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if compute_id := self.compute:
+            builder.add_edge(self, clazz=AzureMachineLearningCompute, id=compute_id)
 
 
 @define(eq=False, slots=False)
@@ -1606,6 +1619,10 @@ class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedReso
     model_settings: Optional[str] = field(default=None, metadata={"description": ""})
     azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if model_id := self.model_settings:
+            builder.add_edge(self, clazz=AzureMachineLearningModelVersion, id=model_id)
+
 
 @define(eq=False, slots=False)
 class AzureUsageName:
@@ -1626,7 +1643,7 @@ class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=AzureBaseUsage._expected_error_codes,
+        expected_error_codes=AzureBaseUsage._expected_error_codes + ["InternalServerError", "ServiceError"],
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("id"),
@@ -1992,12 +2009,12 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
                 ("schedules", AzureMachineLearningSchedule, None),
                 ("serverlessEndpoints", AzureMachineLearningServerlessEndpoint, None),
                 ("connections", AzureMachineLearningWorkspaceConnection, None),
-                ("codes", AzureMachineLearningCodeContainer, None),
+                ("codes", AzureMachineLearningCodeContainer, ["UserError"]),
                 ("components", AzureMachineLearningComponentContainer, None),
                 ("data", AzureMachineLearningDataContainer, None),
                 ("environments", AzureMachineLearningEnvironmentContainer, None),
-                ("featuresets", AzureMachineLearningFeaturesetContainer, None),
-                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, None),
+                ("featuresets", AzureMachineLearningFeaturesetContainer, ["UserError"]),
+                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, ["UserError"]),
                 ("models", AzureMachineLearningModelContainer, None),
             ]
 
@@ -2011,6 +2028,18 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
                     resource_class,
                     expected_errors,
                 )
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if key_vault_id := self.key_vault:
+            builder.add_edge(self, clazz=AzureKeyVault, reverse=True, id=key_vault_id)
+        if (network := self.managed_network) and (network_id := network.network_id):
+            builder.add_edge(self, clazz=AzureVirtualNetwork, reverse=True, id=network_id)
+        if storage_id := self.storage_account:
+            builder.add_edge(self, clazz=AzureStorageAccount, reverse=True, id=storage_id)
+        if (compute_settings := self.serverless_compute_settings) and (
+            subnet_id := compute_settings.serverless_compute_custom_subnet
+        ):
+            builder.add_edge(self, clazz=AzureSubnet, reverse=True, id=subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -2047,6 +2076,10 @@ class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
     target: Optional[str] = field(default=None, metadata={"description": ""})
     value: Optional[str] = field(default=None, metadata={"description": "Value details of the workspace connection."})
     value_format: Optional[str] = field(default=None, metadata={'description': 'format for the workspace connection value'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if workspace_arm_id := self.created_by_workspace_arm_id:
+            builder.add_edge(self, clazz=AzureMachineLearningWorkspace, reverse=True, id=workspace_arm_id)
 
 
 resources: List[Type[MicrosoftResource]] = [

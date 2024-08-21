@@ -325,6 +325,8 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
                     raise MetricRequestError from e
                 code = error.code or "Unknown"
                 self.accumulator.add_error(False, code, spec.service, spec.action, str(e), self.location)
+            elif e.status_code in [500]:
+                return None
             log.warning(f"[Azure] Client Error: status={e.status_code}, error={e.error}, message={e}, spec={spec}")
             return None
         except Exception as e:
