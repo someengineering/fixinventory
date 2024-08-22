@@ -828,9 +828,9 @@ class GraphBuilder:
         # add edge from location to resource
         if self.location:
             last_edge_key = self.add_edge(self.location, node=node)
-        elif source and "location" in source:
+        elif (source) and ("location" in source) and (source_location := source.get("location")):
             # reference the location node if available
-            if location := self.location_lookup.get(source["location"]):
+            if location := self.location_lookup.get(source_location):
                 node._region = location
                 last_edge_key = self.add_edge(location, node=node)
         if source and "locations" in source:

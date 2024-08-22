@@ -49,8 +49,8 @@ def test_collect(
         config, Cloud(id="azure"), azure_subscription, credentials, core_feedback
     )
     subscription_collector.collect()
-    assert len(subscription_collector.graph.nodes) == 602
-    assert len(subscription_collector.graph.edges) == 951
+    assert len(subscription_collector.graph.nodes) == 669
+    assert len(subscription_collector.graph.edges) == 1085
 
     graph_collector = MicrosoftGraphOrganizationCollector(
         config, Cloud(id="azure"), MicrosoftGraphOrganization(id="test", name="test"), credentials, core_feedback
