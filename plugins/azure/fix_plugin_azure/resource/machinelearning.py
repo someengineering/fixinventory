@@ -712,8 +712,8 @@ class AzureBuildContext:
 
 
 @define(eq=False, slots=False)
-class AzureRoute:
-    kind: ClassVar[str] = "azure_route"
+class AzureInferenceContainerRoute:
+    kind: ClassVar[str] = "azure_inference_container_route"
     mapping: ClassVar[Dict[str, Bender]] = {"path": S("path"), "port": S("port")}
     path: Optional[str] = field(default=None, metadata={"description": "[Required] The path for the route."})
     port: Optional[int] = field(default=None, metadata={"description": "[Required] The port for the route."})
@@ -723,13 +723,13 @@ class AzureRoute:
 class AzureInferenceContainerProperties:
     kind: ClassVar[str] = "azure_inference_container_properties"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "liveness_route": S("livenessRoute") >> Bend(AzureRoute.mapping),
-        "readiness_route": S("readinessRoute") >> Bend(AzureRoute.mapping),
-        "scoring_route": S("scoringRoute") >> Bend(AzureRoute.mapping),
+        "liveness_route": S("livenessRoute") >> Bend(AzureInferenceContainerRoute.mapping),
+        "readiness_route": S("readinessRoute") >> Bend(AzureInferenceContainerRoute.mapping),
+        "scoring_route": S("scoringRoute") >> Bend(AzureInferenceContainerRoute.mapping),
     }
-    liveness_route: Optional[AzureRoute] = field(default=None, metadata={"description": ""})
-    readiness_route: Optional[AzureRoute] = field(default=None, metadata={"description": ""})
-    scoring_route: Optional[AzureRoute] = field(default=None, metadata={"description": ""})
+    liveness_route: Optional[AzureInferenceContainerRoute] = field(default=None, metadata={"description": ""})
+    readiness_route: Optional[AzureInferenceContainerRoute] = field(default=None, metadata={"description": ""})
+    scoring_route: Optional[AzureInferenceContainerRoute] = field(default=None, metadata={"description": ""})
 
 
 @define(eq=False, slots=False)
