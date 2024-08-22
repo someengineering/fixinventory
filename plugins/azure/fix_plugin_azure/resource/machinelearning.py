@@ -19,9 +19,11 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateLinkServiceConnectionState,
 )
 from fix_plugin_azure.resource.keyvault import AzureKeyVault
+from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet, AzureVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
-from fixlib.baseresources import BaseInstanceType
+from fixlib.baseresources import BaseInstanceType, ModelReference
+from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -40,6 +42,10 @@ class AzureEndpointAuthKeys:
 @define(eq=False, slots=False)
 class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_batch_endpoint"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -69,10 +75,36 @@ class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource)
     azure_kind: Optional[str] = field(default=None, metadata={'description': 'Metadata used by portal/tooling/etc to render different UX experiences for resources of the same type.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
+
 
 @define(eq=False, slots=False)
 class AzureMachineLearningCodeContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_container"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_code_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -118,6 +150,7 @@ class AzureMachineLearningCodeContainer(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningCodeVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_version"
+    # Collected via AzureMachineLearningCodeContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -141,6 +174,14 @@ class AzureMachineLearningCodeVersion(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningComponentContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_component_container"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_component_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -226,6 +267,16 @@ class AzureErrorResponse:
 @define(eq=False, slots=False)
 class AzureMachineLearningCompute(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_compute"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_virtual_machine_size",
+                MicrosoftGraphServicePrincipal.kind,
+                MicrosoftGraphUser.kind,
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -288,6 +339,24 @@ class AzureMachineLearningCompute(MicrosoftResource):
                         graph_builder.add_edge(self, clazz=AzureMachineLearningVirtualMachineSize, name=vm_size)
 
             graph_builder.submit_work(service_name, collect_vm_sizes)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
@@ -473,6 +542,14 @@ class AzureDataStore:
 @define(eq=False, slots=False)
 class AzureMachineLearningDataContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_container"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_data_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -518,6 +595,7 @@ class AzureMachineLearningDataContainer(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningDataVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_version"
+    # Collected via AzureMachineLearningDataContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -544,6 +622,7 @@ class AzureMachineLearningDataVersion(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningDatastore(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_datastore"
+    # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -598,6 +677,7 @@ class AzureEndpointDeploymentResourcePropertiesBasicResource:
 @define(eq=False, slots=False)
 class AzureMachineLearningEndpoint(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_endpoint"
+    # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -655,6 +735,14 @@ class AzureInferenceContainerProperties:
 @define(eq=False, slots=False)
 class AzureMachineLearningEnvironmentContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_container"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_environment_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -700,6 +788,7 @@ class AzureMachineLearningEnvironmentContainer(MicrosoftResource, AzureProxyReso
 @define(eq=False, slots=False)
 class AzureMachineLearningEnvironmentVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_version"
+    # Collected via AzureMachineLearningEnvironmentContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -819,6 +908,14 @@ class AzureMaterializationSettings:
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_container"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_featureset_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -864,6 +961,7 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_version"
+    # Collected via AzureMachineLearningFeaturesetContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -895,6 +993,14 @@ class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResourc
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_container"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_featurestore_entity_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -948,6 +1054,7 @@ class AzureIndexColumn:
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturestoreEntityVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_version"
+    # Collected via AzureMachineLearningFeaturestoreEntityContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -995,6 +1102,15 @@ class AzureJobService:
 @define(eq=False, slots=False)
 class AzureMachineLearningJob(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_job"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "azure_machine_learning_compute",
+                "azure_machine_learning_component_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1184,6 +1300,14 @@ class AzureMachineLearningLabelingJob(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningModelContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_model_container"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_model_version",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1236,6 +1360,7 @@ class AzureFlavorData:
 @define(eq=False, slots=False)
 class AzureMachineLearningModelVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_model_version"
+    # Collected via AzureMachineLearningModelContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -1268,6 +1393,15 @@ class AzureMachineLearningModelVersion(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_online_endpoint"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "azure_machine_learning_compute",
+            ]
+        },
+        "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1299,12 +1433,33 @@ class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if compute_id := self.compute:
-            builder.add_edge(self, clazz=AzureMachineLearningCompute, id=compute_id)
+            builder.add_edge(self, reverse=True, clazz=AzureMachineLearningCompute, id=compute_id)
+
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_endpoint_connection"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "identity": S("identity") >> Bend(AzureManagedServiceIdentity.mapping),
@@ -1327,10 +1482,32 @@ class AzureMachineLearningPrivateEndpointConnection(MicrosoftResource):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
+
 
 @define(eq=False, slots=False)
 class AzureMachineLearningPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_link"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1350,6 +1527,24 @@ class AzureMachineLearningPrivateLink(MicrosoftResource):
     required_zone_names: Optional[List[str]] = field(default=None, metadata={'description': 'The private link resource Private link DNS zone name.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
@@ -1493,6 +1688,9 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1521,6 +1719,24 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
     region_details: Optional[List[AzureRegistryRegionArmDetails]] = field(default=None, metadata={'description': 'Details of each region the registry is in'})  # fmt: skip
     registry_private_endpoint_connections: Optional[List[AzureRegistryPrivateEndpointConnection]] = field(default=None, metadata={'description': 'Private endpoint connections info used for pending connections in private link portal'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'The resource model definition representing SKU'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
@@ -1559,6 +1775,7 @@ class AzureMachineLearningQuota(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningSchedule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_schedule"
+    # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1592,6 +1809,16 @@ class AzureServerlessInferenceEndpoint:
 @define(eq=False, slots=False)
 class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_serverless_endpoint"
+    # Collected via AzureMachineLearningWorkspace()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_model_version",
+                MicrosoftGraphServicePrincipal.kind,
+                MicrosoftGraphUser.kind,
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1622,6 +1849,23 @@ class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedReso
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model_id := self.model_settings:
             builder.add_edge(self, clazz=AzureMachineLearningModelVersion, id=model_id)
+
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
 
 
 @define(eq=False, slots=False)
@@ -1886,6 +2130,41 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_batch_endpoint",
+                "azure_machine_learning_compute",
+                "azure_machine_learning_datastore",
+                "azure_machine_learning_endpoint",
+                "azure_machine_learning_job",
+                "azure_machine_learning_labeling_job",
+                "azure_machine_learning_online_endpoint",
+                "azure_machine_learning_private_endpoint_connection",
+                "azure_machine_learning_private_link",
+                "azure_machine_learning_schedule",
+                "azure_machine_learning_serverless_endpoint",
+                "azure_machine_learning_workspace_connection",
+                "azure_machine_learning_code_container",
+                "azure_machine_learning_component_container",
+                "azure_machine_learning_data_container",
+                "azure_machine_learning_environment_container",
+                "azure_machine_learning_featureset_container",
+                "azure_machine_learning_featurestore_entity_container",
+                "azure_machine_learning_model_container",
+                MicrosoftGraphServicePrincipal.kind,
+                MicrosoftGraphUser.kind,
+            ]
+        },
+        "predecessors": {
+            "default": [
+                AzureKeyVault.kind,
+                AzureVirtualNetwork.kind,
+                AzureStorageAccount.kind,
+                AzureSubnet.kind,
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -2041,10 +2320,28 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         ):
             builder.add_edge(self, clazz=AzureSubnet, reverse=True, id=subnet_id)
 
+        # principal: collected via ms graph -> create a deferred edge
+        if ai := self.identity:
+            if pid := ai.principal_id:
+                builder.add_deferred_edge(
+                    from_node=self,
+                    to_node=BySearchCriteria(f'is({MicrosoftGraphServicePrincipal.kind}) and reported.id=="{pid}"'),
+                )
+            if uai := ai.user_assigned_identities:
+                for _, identity_info in uai.items():
+                    if identity_info and identity_info.principal_id:
+                        builder.add_deferred_edge(
+                            from_node=self,
+                            to_node=BySearchCriteria(
+                                f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
+                            ),
+                        )
+
 
 @define(eq=False, slots=False)
 class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_workspace_connection"
+    # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -2076,10 +2373,6 @@ class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
     target: Optional[str] = field(default=None, metadata={"description": ""})
     value: Optional[str] = field(default=None, metadata={"description": "Value details of the workspace connection."})
     value_format: Optional[str] = field(default=None, metadata={'description': 'format for the workspace connection value'})  # fmt: skip
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if workspace_arm_id := self.created_by_workspace_arm_id:
-            builder.add_edge(self, clazz=AzureMachineLearningWorkspace, reverse=True, id=workspace_arm_id)
 
 
 resources: List[Type[MicrosoftResource]] = [
