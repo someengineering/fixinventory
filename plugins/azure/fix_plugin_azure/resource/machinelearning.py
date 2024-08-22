@@ -127,7 +127,7 @@ class AzureMachineLearningCodeContainer(MicrosoftResource, AzureProxyResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if container_id := self.id:
 
-            def collect_vm_sizes() -> None:
+            def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
@@ -144,7 +144,7 @@ class AzureMachineLearningCodeContainer(MicrosoftResource, AzureProxyResource):
                 for resource in collected:
                     graph_builder.add_edge(self, node=resource)
 
-            graph_builder.submit_work(service_name, collect_vm_sizes)
+            graph_builder.submit_work(service_name, collect_versions)
 
 
 @define(eq=False, slots=False)
@@ -204,7 +204,7 @@ class AzureMachineLearningComponentContainer(MicrosoftResource, AzureProxyResour
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if resource_id := self.id:
 
-            def collect_vm_sizes() -> None:
+            def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
@@ -221,7 +221,7 @@ class AzureMachineLearningComponentContainer(MicrosoftResource, AzureProxyResour
                 for resource in collected:
                     graph_builder.add_edge(self, node=resource)
 
-            graph_builder.submit_work(service_name, collect_vm_sizes)
+            graph_builder.submit_work(service_name, collect_versions)
 
 
 @define(eq=False, slots=False)
@@ -249,6 +249,40 @@ class AzureMachineLearningComponentVersion(MicrosoftResource, AzureProxyResource
 
 
 @define(eq=False, slots=False)
+class AzureMachineLearningComputeNode(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_compute_node"
+    # Collected via AzureMachineLearningCompute()
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("nodeId"),
+        "name": S("nodeId"),
+        "node_id": S("nodeId"),
+        "node_state": S("nodeState"),
+        "port": S("port"),
+        "private_ip_address": S("privateIpAddress"),
+        "public_ip_address": S("publicIpAddress"),
+        "run_id": S("runId"),
+    }
+
+    node_id: Optional[str] = field(default=None, metadata={"description": "Node ID. ID of the compute node."})
+    node_state: Optional[str] = field(
+        default=None,
+        metadata={
+            "description": "State of the compute node. Values are idle, running, preparing, unusable, leaving, and preempted."
+        },
+    )
+    port: Optional[int] = field(default=None, metadata={"description": "SSH port number of the node."})
+    private_ip_address: Optional[str] = field(
+        default=None, metadata={"description": "Private IP address of the compute node."}
+    )
+    public_ip_address: Optional[str] = field(
+        default=None, metadata={"description": "Public IP address of the compute node."}
+    )
+    run_id: Optional[str] = field(
+        default=None, metadata={"description": "ID of the Experiment running on the node, if any; else null."}
+    )
+
+
+@define(eq=False, slots=False)
 class AzureErrorDetail:
     kind: ClassVar[str] = "azure_error_detail"
     mapping: ClassVar[Dict[str, Bender]] = {"code": S("code"), "message": S("message"), "target": S("target")}
@@ -272,6 +306,7 @@ class AzureMachineLearningCompute(MicrosoftResource):
         "successors": {
             "default": [
                 "azure_machine_learning_virtual_machine_size",
+                "azure_machine_learning_compute_nodes",
                 MicrosoftGraphServicePrincipal.kind,
                 MicrosoftGraphUser.kind,
             ]
@@ -339,6 +374,27 @@ class AzureMachineLearningCompute(MicrosoftResource):
                         graph_builder.add_edge(self, clazz=AzureMachineLearningVirtualMachineSize, name=vm_size)
 
             graph_builder.submit_work(service_name, collect_vm_sizes)
+
+        if resource_id := self.id:
+
+            def collect_nodes() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/listNodes",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="nodes",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningComputeNode.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_nodes)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # principal: collected via ms graph -> create a deferred edge
@@ -572,7 +628,7 @@ class AzureMachineLearningDataContainer(MicrosoftResource, AzureProxyResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if resource_id := self.id:
 
-            def collect_vm_sizes() -> None:
+            def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
@@ -589,7 +645,7 @@ class AzureMachineLearningDataContainer(MicrosoftResource, AzureProxyResource):
                 for resource in collected:
                     graph_builder.add_edge(self, node=resource)
 
-            graph_builder.submit_work(service_name, collect_vm_sizes)
+            graph_builder.submit_work(service_name, collect_versions)
 
 
 @define(eq=False, slots=False)
@@ -765,7 +821,7 @@ class AzureMachineLearningEnvironmentContainer(MicrosoftResource, AzureProxyReso
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if resource_id := self.id:
 
-            def collect_vm_sizes() -> None:
+            def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
@@ -782,7 +838,7 @@ class AzureMachineLearningEnvironmentContainer(MicrosoftResource, AzureProxyReso
                 for resource in collected:
                     graph_builder.add_edge(self, node=resource)
 
-            graph_builder.submit_work(service_name, collect_vm_sizes)
+            graph_builder.submit_work(service_name, collect_versions)
 
 
 @define(eq=False, slots=False)
@@ -822,6 +878,25 @@ class AzureMachineLearningEnvironmentVersion(MicrosoftResource, AzureProxyResour
     inference_config: Optional[AzureInferenceContainerProperties] = field(default=None, metadata={"description": ""})
     os_type: Optional[str] = field(default=None, metadata={"description": "The type of operating system."})
     stage: Optional[str] = field(default=None, metadata={'description': 'Stage in the environment lifecycle assigned to this environment'})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AzureMachineLearningFeature(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_feature"
+    # Collected via AzureMachineLearningFeaturesetVersion()
+    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
+        "id": S("id"),
+        "name": S("name"),
+        "properties": S("properties", "properties"),
+        "description": S("properties", "description"),
+        "data_type": S("properties", "dataType"),
+        "feature_name": S("properties", "featureName"),
+        "tags": S("properties", "tags", default={}),
+    }
+    data_type: Optional[str] = field(default=None, metadata={"description": "Specifies type."})
+    feature_name: Optional[str] = field(default=None, metadata={"description": "Specifies name."})
+    description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
+    properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': ''})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -938,7 +1013,7 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if resource_id := self.id:
 
-            def collect_vm_sizes() -> None:
+            def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
@@ -955,13 +1030,20 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
                 for resource in collected:
                     graph_builder.add_edge(self, node=resource)
 
-            graph_builder.submit_work(service_name, collect_vm_sizes)
+            graph_builder.submit_work(service_name, collect_versions)
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_version"
     # Collected via AzureMachineLearningFeaturesetContainer()
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_machine_learning_feature",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -988,6 +1070,28 @@ class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResourc
     materialization_settings: Optional[AzureMaterializationSettings] = field(default=None, metadata={'description': ''})  # fmt: skip
     specification: Optional[str] = field(default=None, metadata={'description': 'DTO object representing specification'})  # fmt: skip
     stage: Optional[str] = field(default=None, metadata={"description": "Specifies the asset stage"})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if resource_id := self.id:
+
+            def collect_features() -> None:
+                api_spec = AzureResourceSpec(
+                    service="machinelearningservices",
+                    version="2024-04-01",
+                    path=f"{resource_id}/features",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="value",
+                    expect_array=True,
+                )
+                items = graph_builder.client.list(api_spec)
+                if not items:
+                    return
+                collected = AzureMachineLearningFeature.collect(items, graph_builder)
+                for resource in collected:
+                    graph_builder.add_edge(self, node=resource)
+
+            graph_builder.submit_work(service_name, collect_features)
 
 
 @define(eq=False, slots=False)
@@ -1023,7 +1127,7 @@ class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzurePr
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if resource_id := self.id:
 
-            def collect_vm_sizes() -> None:
+            def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
@@ -1040,7 +1144,7 @@ class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzurePr
                 for resource in collected:
                     graph_builder.add_edge(self, node=resource)
 
-            graph_builder.submit_work(service_name, collect_vm_sizes)
+            graph_builder.submit_work(service_name, collect_versions)
 
 
 @define(eq=False, slots=False)
@@ -1330,7 +1434,7 @@ class AzureMachineLearningModelContainer(MicrosoftResource, AzureProxyResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if resource_id := self.id:
 
-            def collect_vm_sizes() -> None:
+            def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
@@ -1347,7 +1451,7 @@ class AzureMachineLearningModelContainer(MicrosoftResource, AzureProxyResource):
                 for resource in collected:
                     graph_builder.add_edge(self, node=resource)
 
-            graph_builder.submit_work(service_name, collect_vm_sizes)
+            graph_builder.submit_work(service_name, collect_versions)
 
 
 @define(eq=False, slots=False)
@@ -2381,6 +2485,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMachineLearningCodeVersion,
     AzureMachineLearningComponentContainer,
     AzureMachineLearningComponentVersion,
+    AzureMachineLearningComputeNode,
     AzureMachineLearningCompute,
     AzureMachineLearningDataContainer,
     AzureMachineLearningDataVersion,
@@ -2388,6 +2493,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMachineLearningEndpoint,
     AzureMachineLearningEnvironmentContainer,
     AzureMachineLearningEnvironmentVersion,
+    AzureMachineLearningFeature,
     AzureMachineLearningFeaturesetContainer,
     AzureMachineLearningFeaturesetVersion,
     AzureMachineLearningFeaturestoreEntityContainer,
