@@ -47,6 +47,7 @@ from fix_plugin_aws.resource import (
     acm,
     waf,
     backup,
+    amazonq,
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
@@ -62,49 +63,50 @@ from .utils import global_region_by_partition
 log = logging.getLogger("fix.plugins.aws")
 
 global_resources: List[Type[AwsResource]] = (
-    cloudfront.resources
-    + dynamodb.global_resources
-    + ecr.global_resources
-    + iam.resources
-    + route53.resources
-    + s3.resources
-    + service_quotas.resources
-    + waf.resources
+    # cloudfront.resources
+    # + dynamodb.global_resources
+    # + ecr.global_resources
+    # + iam.resources
+    # + route53.resources
+    # + s3.resources
+    # + service_quotas.resources
+    # + waf.resources
 )
 regional_resources: List[Type[AwsResource]] = (
-    sagemaker.resources  # start with sagemaker, because it is very slow
-    + acm.resources
-    + apigateway.resources
-    + autoscaling.resources
-    + athena.resources
-    + config.resources
-    + cloudformation.resources
-    + cloudtrail.resources
-    + cloudwatch.resources
-    + cognito.resources
-    + dynamodb.resources
-    + ec2.resources
-    + efs.resources
-    + ecs.resources
-    + ecr.resources
-    + eks.resources
-    + elasticbeanstalk.resources
-    + elasticache.resources
-    + elb.resources
-    + elbv2.resources
-    + glacier.resources
-    + kinesis.resources
-    + kms.resources
-    + lambda_.resources
-    + opensearch.resources
-    + rds.resources
-    + secretsmanager.resources
-    + service_quotas.resources
-    + sns.resources
-    + ssm.resources
-    + sqs.resources
-    + redshift.resources
-    + backup.resources
+    # sagemaker.resources  # start with sagemaker, because it is very slow
+    # + acm.resources
+    # + apigateway.resources
+    # + autoscaling.resources
+    # + athena.resources
+    # + config.resources
+    # + cloudformation.resources
+    # + cloudtrail.resources
+    # + cloudwatch.resources
+    # + cognito.resources
+    # + dynamodb.resources
+    # + ec2.resources
+    # + efs.resources
+    # + ecs.resources
+    # + ecr.resources
+    # + eks.resources
+    # + elasticbeanstalk.resources
+    # + elasticache.resources
+    # + elb.resources
+    # + elbv2.resources
+    # + glacier.resources
+    # + kinesis.resources
+    # + kms.resources
+    # + lambda_.resources
+    # + opensearch.resources
+    # + rds.resources
+    # + secretsmanager.resources
+    # + service_quotas.resources
+    # + sns.resources
+    # + ssm.resources
+    # + sqs.resources
+    # + redshift.resources
+    # + backup.resources
+    amazonq.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 

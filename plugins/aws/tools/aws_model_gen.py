@@ -943,44 +943,27 @@ models: Dict[str, List[AwsFixModel]] = {
     "wafv2": [
         # AwsFixModel("get-logging-configuration", "LoggingConfigurations", "LoggingConfiguration", prefix="Waf")
     ],
+    "qbusiness": [
+        AwsFixModel(
+            api_action="list-applications",
+            result_property="applications",
+            result_shape="Applications",
+            prefix="QBusiness",
+        ),
+    ],
+    "qapps": [
+        AwsFixModel(
+            api_action="list-qapps",
+            result_property="apps",
+            result_shape="ListQAppsOutput",
+            prefix="QApps",
+        ),
+    ],
     "backup": [
         # AwsFixModel(
         #     api_action="list-backup-job-summaries",
         #     result_property="BackupJobSummaries",
         #     result_shape="BackupJobSummaryList",
-        #     prefix="Backup",
-        # ),
-        # AwsFixModel(
-        #     api_action="list-backup-jobs", result_property="BackupJobs", result_shape="BackupJobsList", prefix="Backup"
-        # ),
-        # AwsFixModel(
-        #     api_action="list-backup-plan-templates",
-        #     result_property="BackupPlanTemplates",
-        #     result_shape="BackupPlanTemplatesList",
-        #     prefix="Backup",
-        # ),
-        # AwsFixModel(
-        #     api_action="list-backup-plan-versions",
-        #     result_property="BackupPlanVersions",
-        #     result_shape="BackupPlanVersionsList",
-        #     prefix="Backup",
-        # ),
-        # AwsFixModel(
-        #     api_action="list-backup-plans",
-        #     result_property="BackupPlans",
-        #     result_shape="BackupPlansList",
-        #     prefix="Backup",
-        # ),
-        # AwsFixModel(
-        #     api_action="list-backup-selections",
-        #     result_property="BackupSelections",
-        #     result_shape="BackupSelectionsList",
-        #     prefix="Backup",
-        # ),
-        # AwsFixModel(
-        #     api_action="list-backup-vaults",
-        #     result_property="BackupVaultList",
-        #     result_shape="BackupVaultListMember",
         #     prefix="Backup",
         # ),
     ],
