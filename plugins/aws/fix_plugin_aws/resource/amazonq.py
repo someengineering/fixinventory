@@ -1,16 +1,16 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import ClassVar, Dict, Optional, Type, List, Any
 
 from attrs import define, field
 
-from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
+from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import TagsValue, ToDict
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, Bend, bend, ForallBend, K
+from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
-service_name = "amazonq"
+service_name = "qbusiness"
 
 
 class AmazonQTaggable:
@@ -47,6 +47,10 @@ class AwsQBusinessApplication(AwsResource, AmazonQTaggable):
         "Represents a QBusiness application within the AWS QBusiness service. Applications"
         " define a set of tasks and configuration for processing data within the QBusiness ecosystem."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {
+        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{id}/details?region={region}",  # fmt: skip
+        "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{id}",
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("qbusiness", "list-applications", "applications")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("applicationId"),
@@ -91,32 +95,66 @@ class AwsQBusinessApplication(AwsResource, AmazonQTaggable):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(application: AwsQBusinessApplication) -> None:
-            tags = builder.client.list(
-                service_name,
-                "list-tags-for-resource",
-                "tags",
-                expected_errors=["ResourceNotFoundException"],
-                resourceARN=application.arn,
-            )
-            if tags:
-                application.tags = bend(ToDict(), tags)
+        def add_tags(tag_resource: AwsResource) -> None:
+            # Filter resources that have tags
+            if not isinstance(
+                tag_resource,
+                (
+                    AwsQBusinessApplication,
+                    AwsQBusinessDataSource,
+                    AwsQBusinessIndice,
+                    AwsQBusinessPlugin,
+                    AwsQBusinessRetriever,
+                    AwsQBusinessWebExperience,
+                    AwsQApps,
+                ),
+            ):
+                return
+            if isinstance(tag_resource, AwsQApps):
+                tags = builder.client.list(
+                    "qapps",
+                    "list-tags-for-resource",
+                    "tags",
+                    expected_errors=["ResourceNotFoundException"],
+                    resourceARN=tag_resource.arn,
+                )
+                if tags:
+                    tag_resource.tags.update(tags)
+            else:
+                tags = builder.client.list(
+                    service_name,
+                    "list-tags-for-resource",
+                    "tags",
+                    expected_errors=["ResourceNotFoundException"],
+                    resourceARN=tag_resource.arn,
+                )
+                if tags:
+                    for tag in tags:
+                        tag_resource.tags.update({tag.get("key"): tag.get("value")})
 
         def collect_application_resources(
-            application: AwsQBusinessApplication, action: str, result_name: str, param_name: str = "applicationId"
+            application: AwsQBusinessApplication,
+            resource_class: AwsResource,
+            action: str,
+            result_name: str,
+            param_name: str = "applicationId",
+            service: Optional[str] = None,
         ) -> None:
             param_map = {param_name: application.id}
             q_resources = builder.client.list(
-                service_name,
+                service or service_name,
                 action,
                 result_name,
                 expected_errors=[],
                 **param_map,
             )
             for q_resource in q_resources:
-                if resource := AwsResource.from_api(q_resource, builder):
+                if resource := resource_class.from_api(q_resource, builder):
+                    if isinstance(resource, (AwsQBusinessPlugin, AwsQBusinessWebExperience, AwsQBusinessIndice)):
+                        resource.application_id = application.id
                     builder.add_node(resource, q_resource)
                     builder.add_edge(application, node=resource)
+                    builder.submit_work(service_name, add_tags, resource)
                     if isinstance(resource, AwsQBusinessConversation):
                         m_resources = builder.client.list(
                             service_name,
@@ -131,25 +169,31 @@ class AwsQBusinessApplication(AwsResource, AmazonQTaggable):
                                 builder.add_edge(resource, node=message_resource)
 
         def collect_indice_resources(application: AwsQBusinessApplication) -> None:
-            def collect_index_resources(indice: "AwsQBusinessIndice", action: str, result_name: str) -> None:
+            def collect_index_resources(
+                indice: "AwsQBusinessIndice", resource_class: AwsResource, action: str, result_name: str
+            ) -> None:
                 i_resources = builder.client.list(
                     service_name,
                     action,
                     result_name,
                     applicationId=application.id,
-                    indexId=indice.index_id,
+                    indexId=indice.id,
                 )
                 for i_resource in i_resources:
-                    if resource := AwsResource.from_api(i_resource, builder):
+                    if resource := resource_class.from_api(i_resource, builder):
+                        if isinstance(resource, AwsQBusinessDataSource):
+                            resource.application_id = application.id
+                            resource.indice_id = indice.id
                         builder.add_node(resource, i_resource)
                         builder.add_edge(indice, node=resource)
+                        builder.submit_work(service_name, add_tags, resource)
                         if isinstance(resource, AwsQBusinessDataSource):
                             data_source_job_resources = builder.client.list(
                                 service_name,
                                 "list-data-source-sync-jobs",
                                 "history",
                                 applicationId=application.id,
-                                indexId=indice.index_id,
+                                indexId=indice.id,
                                 dataSourceId=resource.id,
                             )
                             for data_source_job in data_source_job_resources:
@@ -165,13 +209,25 @@ class AwsQBusinessApplication(AwsResource, AmazonQTaggable):
             )
             for index_resource in index_resources:
                 if indice_instance := AwsQBusinessIndice.from_api(index_resource, builder):
+                    indice_instance.application_id = application.id
                     builder.add_node(indice_instance, index_resource)
                     builder.add_edge(application, node=indice_instance)
+                    builder.submit_work(service_name, add_tags, indice_instance)
                     builder.submit_work(
-                        service_name, collect_index_resources, indice_instance, "list-data-sources", "dataSources"
+                        service_name,
+                        collect_index_resources,
+                        indice_instance,
+                        AwsQBusinessDataSource,
+                        "list-data-sources",
+                        "dataSources",
                     )
                     builder.submit_work(
-                        service_name, collect_index_resources, indice_instance, "list-documents", "documentDetailList"
+                        service_name,
+                        collect_index_resources,
+                        indice_instance,
+                        AwsQBusinessDocument,
+                        "list-documents",
+                        "documentDetailList",
                     )
 
         for js in json:
@@ -179,26 +235,52 @@ class AwsQBusinessApplication(AwsResource, AmazonQTaggable):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, add_tags, instance)
                 builder.submit_work(
-                    service_name, collect_application_resources, instance, "list-conversations", "conversations"
+                    service_name,
+                    collect_application_resources,
+                    instance,
+                    AwsQBusinessConversation,
+                    "list-conversations",
+                    "conversations",
                 )
                 builder.submit_work(service_name, collect_indice_resources, instance)
-                builder.submit_work(service_name, collect_application_resources, instance, "list-plugins", "plugins")
                 builder.submit_work(
-                    service_name, collect_application_resources, instance, "list-retrievers", "retrievers"
-                )
-                builder.submit_work(
-                    service_name, collect_application_resources, instance, "list-web-experiences", "webExperiences"
+                    service_name, collect_application_resources, instance, AwsQBusinessPlugin, "list-plugins", "plugins"
                 )
                 builder.submit_work(
                     service_name,
                     collect_application_resources,
                     instance,
+                    AwsQBusinessRetriever,
+                    "list-retrievers",
+                    "retrievers",
+                )
+                builder.submit_work(
+                    service_name,
+                    collect_application_resources,
+                    instance,
+                    AwsQBusinessWebExperience,
+                    "list-web-experiences",
+                    "webExperiences",
+                )
+                builder.submit_work(
+                    service_name,
+                    collect_application_resources,
+                    instance,
+                    AwsQAppsLibraryItem,
                     "list-library-items",
                     "libraryItems",
                     "instanceId",
+                    "qapps",
                 )
                 builder.submit_work(
-                    service_name, collect_application_resources, instance, "list-q-apps", "apps", "instanceId"
+                    service_name,
+                    collect_application_resources,
+                    instance,
+                    AwsQApps,
+                    "list-q-apps",
+                    "apps",
+                    "instanceId",
+                    "qapps",
                 )
 
 
@@ -225,7 +307,7 @@ class AwsQBusinessConversation(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessDataSource(AwsResource):
+class AwsQBusinessDataSource(AwsResource, AmazonQTaggable):
     kind: ClassVar[str] = "aws_q_business_data_source"
     kind_display: ClassVar[str] = "AWS QBusiness Data Source"
     kind_description: ClassVar[str] = (
@@ -233,6 +315,11 @@ class AwsQBusinessDataSource(AwsResource):
         " from which data is ingested for processing or analysis within the QBusiness framework."
     )
     # Collected via AwsQBusinessApplication()
+    aws_metadata: ClassVar[Dict[str, Any]] = {
+        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{app_id}/indices/{indice_id}/datasources/{id}/details?region={region}",  # fmt: skip
+        "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{indice_id}/data-source/{id}",
+        "extra_args": ["application_id", "indice_id"],
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("dataSourceId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -246,12 +333,38 @@ class AwsQBusinessDataSource(AwsResource):
         "updated_at": S("updatedAt"),
         "status": S("status"),
     }
+    indice_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business indice."})  # fmt: skip
+    application_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business application."})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The name of the Amazon Q Business data source."})  # fmt: skip
     data_source_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business data source."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of the Amazon Q Business data source."})  # fmt: skip
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business data source was created."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business data source was last updated."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the Amazon Q Business data source."})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-data-sources", "dataSources"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-data-source"),
+        ]
+
+    # def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+    #     client.call(
+    #         aws_service=self.api_spec.service,
+    #         action="delete-data-source",
+    #         result_name=None,
+    #         applicationId=self.id,
+    #     )
+    #     return True
 
 
 @define(eq=False, slots=False)
@@ -338,13 +451,17 @@ class AwsQBusinessDocument(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessIndice(AwsResource):
+class AwsQBusinessIndice(AwsResource, AmazonQTaggable):
     kind: ClassVar[str] = "aws_q_business_indice"
     kind_display: ClassVar[str] = "AWS QBusiness Indice"
     kind_description: ClassVar[str] = (
         "Represents an index in the AWS QBusiness service. Indices are used to organize and"
         " facilitate efficient searching and retrieval of data within the QBusiness framework."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {
+        "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{id}",
+        "extra_args": ["application_id"],
+    }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("indexId"),
@@ -358,6 +475,7 @@ class AwsQBusinessIndice(AwsResource):
         "updated_at": S("updatedAt"),
         "status": S("status"),
     }
+    application_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business application."})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The name of the index."})  # fmt: skip
     index_id: Optional[str] = field(default=None, metadata={"description": "The identifier for the index."})  # fmt: skip
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the index was created."})  # fmt: skip
@@ -519,13 +637,17 @@ class AwsQBusinessMessage(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessPlugin(AwsResource):
+class AwsQBusinessPlugin(AwsResource, AmazonQTaggable):
     kind: ClassVar[str] = "aws_q_business_plugin"
     kind_display: ClassVar[str] = "AWS QBusiness Plugin"
     kind_description: ClassVar[str] = (
         "Represents a plugin in the AWS QBusiness service. Plugins extend the functionality of"
         " the QBusiness framework by adding new features or capabilities."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {
+        "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/plugin/{id}",
+        "extra_args": ["application_id"],
+    }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("pluginId"),
@@ -542,6 +664,7 @@ class AwsQBusinessPlugin(AwsResource):
         "created_at": S("createdAt"),
         "updated_at": S("updatedAt"),
     }
+    application_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business application."})  # fmt: skip
     plugin_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the plugin."})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The name of the plugin."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of the plugin."})  # fmt: skip
@@ -553,13 +676,17 @@ class AwsQBusinessPlugin(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessRetriever(AwsResource):
+class AwsQBusinessRetriever(AwsResource, AmazonQTaggable):
     kind: ClassVar[str] = "aws_q_business_retriever"
     kind_display: ClassVar[str] = "AWS QBusiness Retriever"
     kind_description: ClassVar[str] = (
         "Represents a retriever in the AWS QBusiness service. Retrievers are used to fetch and"
         " process data from various sources within the QBusiness ecosystem."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {
+        "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/retriever/{id}",
+        "extra_args": ["application_id"],
+    }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("retrieverId"),
@@ -579,13 +706,17 @@ class AwsQBusinessRetriever(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessWebExperience(AwsResource):
+class AwsQBusinessWebExperience(AwsResource, AmazonQTaggable):
     kind: ClassVar[str] = "aws_q_business_web_experience"
     kind_display: ClassVar[str] = "AWS QBusiness Web Experience"
     kind_description: ClassVar[str] = (
         "Represents a web experience in the AWS QBusiness service. Web experiences define"
         " interactive web-based applications or interfaces within the QBusiness ecosystem."
     )
+    aws_metadata: ClassVar[Dict[str, Any]] = {
+        "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/web-experience/{id}",
+        "extra_args": ["application_id"],
+    }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("webExperienceId"),
@@ -599,6 +730,7 @@ class AwsQBusinessWebExperience(AwsResource):
         "default_endpoint": S("defaultEndpoint"),
         "status": S("status"),
     }
+    application_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business application."})  # fmt: skip
     web_experience_id: Optional[str] = field(default=None, metadata={"description": "The identifier of your Amazon Q Business web experience."})  # fmt: skip
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business application was last updated."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when your Amazon Q Business web experience was updated."})  # fmt: skip
@@ -685,6 +817,26 @@ class AwsQApps(AwsResource):
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the user's association with the Q App was created."})  # fmt: skip
     can_edit: Optional[bool] = field(default=None, metadata={"description": "A flag indicating whether the user can edit the Q App."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the user's association with the Q App."})  # fmt: skip
+
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="tag-resource",
+            result_name=None,
+            resourceARN=self.arn,
+            tags={key: value},
+        )
+        return True
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="untag-resource",
+            result_name=None,
+            resourceARN=self.arn,
+            tagKeys=[key],
+        )
+        return True
 
 
 resources: List[Type[AwsResource]] = [

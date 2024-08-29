@@ -9,6 +9,7 @@ from attrs import define
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource import (
+    amazonq,
     apigateway,
     athena,
     autoscaling,
@@ -47,7 +48,6 @@ from fix_plugin_aws.resource import (
     acm,
     waf,
     backup,
-    amazonq,
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
@@ -66,7 +66,7 @@ global_resources: List[Type[AwsResource]] = (
     # cloudfront.resources
     # + dynamodb.global_resources
     # + ecr.global_resources
-    # + iam.resources
+    iam.resources
     # + route53.resources
     # + s3.resources
     # + service_quotas.resources
