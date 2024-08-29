@@ -222,7 +222,7 @@ class AwsBackupAdvancedBackupSetting:
 
 
 @define(eq=False, slots=False)
-class AwsBackupPlan(AwsResource, BackupResourceTaggable):
+class AwsBackupPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_plan"
     kind_display: ClassVar[str] = "AWS Backup Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-plan:{id}"}  # fmt: skip
@@ -302,7 +302,7 @@ class AwsBackupPlan(AwsResource, BackupResourceTaggable):
 
 
 @define(eq=False, slots=False)
-class AwsBackupVault(AwsResource, BackupResourceTaggable):
+class AwsBackupVault(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_vault"
     kind_display: ClassVar[str] = "AWS Backup Vault"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
@@ -570,7 +570,7 @@ class AwsBackupReportDeliveryChannel:
 
 
 @define(eq=False, slots=False)
-class AwsBackupReportPlan(AwsResource, BackupResourceTaggable):
+class AwsBackupReportPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_report_plan"
     kind_display: ClassVar[str] = "AWS Report Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/reports/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:report-plan:{name}"}  # fmt: skip
@@ -658,7 +658,7 @@ class AwsBackupReportPlan(AwsResource, BackupResourceTaggable):
                 builder.add_edge(self, reverse=True, clazz=AwsBackupFramework, id=framework_arn)
 
 
-class AwsBackupRestoreTestingPlan(AwsResource, BackupResourceTaggable):
+class AwsBackupRestoreTestingPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_testing_plan"
     kind_display: ClassVar[str] = "AWS Restore Testing Plan"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
@@ -736,7 +736,7 @@ class AwsBackupRestoreTestingPlan(AwsResource, BackupResourceTaggable):
 
 
 @define(eq=False, slots=False)
-class AwsBackupLegalHold(AwsResource, BackupResourceTaggable):
+class AwsBackupLegalHold(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_legal_hold"
     kind_display: ClassVar[str] = "AWS Legal Hold"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/legalholds/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:legal-hold:{id}"}  # fmt: skip
@@ -938,7 +938,7 @@ class AwsBackupCopyJob(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupFramework(AwsResource, BackupResourceTaggable):
+class AwsBackupFramework(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_framework"
     kind_display: ClassVar[str] = "AWS Backup Framework"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/frameworks/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:framework:{name}"}  # fmt: skip

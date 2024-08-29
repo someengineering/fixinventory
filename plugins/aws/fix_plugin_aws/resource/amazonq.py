@@ -21,7 +21,7 @@ class AmazonQTaggable:
                 action="tag-resource",
                 result_name=None,
                 resourceARN=self.arn,
-                tags=[{key: value}],
+                tags=[{"key": key, "value": value}],
             )
             return True
         return False
@@ -40,7 +40,7 @@ class AmazonQTaggable:
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessApplication(AwsResource, AmazonQTaggable):
+class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_application"
     kind_display: ClassVar[str] = "AWS QBusiness Application"
     kind_description: ClassVar[str] = (
@@ -307,7 +307,7 @@ class AwsQBusinessConversation(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessDataSource(AwsResource, AmazonQTaggable):
+class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_data_source"
     kind_display: ClassVar[str] = "AWS QBusiness Data Source"
     kind_description: ClassVar[str] = (
@@ -451,7 +451,7 @@ class AwsQBusinessDocument(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessIndice(AwsResource, AmazonQTaggable):
+class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_indice"
     kind_display: ClassVar[str] = "AWS QBusiness Indice"
     kind_description: ClassVar[str] = (
@@ -637,7 +637,7 @@ class AwsQBusinessMessage(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessPlugin(AwsResource, AmazonQTaggable):
+class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_plugin"
     kind_display: ClassVar[str] = "AWS QBusiness Plugin"
     kind_description: ClassVar[str] = (
@@ -676,7 +676,7 @@ class AwsQBusinessPlugin(AwsResource, AmazonQTaggable):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessRetriever(AwsResource, AmazonQTaggable):
+class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_retriever"
     kind_display: ClassVar[str] = "AWS QBusiness Retriever"
     kind_description: ClassVar[str] = (
@@ -706,7 +706,7 @@ class AwsQBusinessRetriever(AwsResource, AmazonQTaggable):
 
 
 @define(eq=False, slots=False)
-class AwsQBusinessWebExperience(AwsResource, AmazonQTaggable):
+class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_web_experience"
     kind_display: ClassVar[str] = "AWS QBusiness Web Experience"
     kind_description: ClassVar[str] = (
@@ -820,7 +820,7 @@ class AwsQApps(AwsResource):
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(
-            aws_service=service_name,
+            aws_service="qapps",
             action="tag-resource",
             result_name=None,
             resourceARN=self.arn,
@@ -830,7 +830,7 @@ class AwsQApps(AwsResource):
 
     def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
         client.call(
-            aws_service=service_name,
+            aws_service="qapps",
             action="untag-resource",
             result_name=None,
             resourceARN=self.arn,
