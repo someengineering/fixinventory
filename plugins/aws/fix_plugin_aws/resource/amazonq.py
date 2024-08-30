@@ -6,6 +6,7 @@ from attrs import define, field
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import TagsValue, ToDict
+from fixlib.baseresources import ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
@@ -54,6 +55,23 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{id}",
+    }
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "aws_q_business_conversation",
+                "aws_q_business_data_source",
+                "aws_q_business_data_source_sync_job",
+                "aws_q_business_document",
+                "aws_q_business_indice",
+                "aws_q_business_message",
+                "aws_q_business_plugin",
+                "aws_q_business_retriever",
+                "aws_q_business_web_experience",
+                "aws_q_apps_library_item",
+                "aws_q_apps",
+            ]
+        },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("qbusiness", "list-applications", "applications")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -903,6 +921,9 @@ class AwsQAppsLibraryItem(AwsResource):
         " such as scripts, templates, or other components that can be used in QApps applications."
     )
     # Collected via AwsQBusinessApplication()
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["aws_q_apps"]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("libraryItemId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -935,6 +956,10 @@ class AwsQAppsLibraryItem(AwsResource):
     rating_count: Optional[int] = field(default=None, metadata={"description": "The number of ratings the library item has received."})  # fmt: skip
     is_rated_by_user: Optional[bool] = field(default=None, metadata={"description": "Whether the current user has rated the library item."})  # fmt: skip
     user_count: Optional[int] = field(default=None, metadata={"description": "The number of users who have the associated Q App."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if app_id := self.app_id:
+            builder.add_edge(self, reverse=True, clazz=AwsQApps, id=app_id)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
