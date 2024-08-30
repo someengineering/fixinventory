@@ -1,0 +1,13 @@
+{
+    "dataSources": [
+      {
+        "displayName": "foo",
+        "dataSourceId": "foo",
+        "type": "foo",
+        "createdAt": "2024-08-30T12:46:23Z",
+        "updatedAt": "2024-08-30T12:46:23Z",
+        "status": "CREATING"
+      }
+    ],
+    "nextToken": "foo"
+  }

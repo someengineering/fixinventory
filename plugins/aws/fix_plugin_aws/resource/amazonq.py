@@ -38,6 +38,10 @@ class AmazonQTaggable:
             return True
         return False
 
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
@@ -86,7 +90,7 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
-            aws_service=self.api_spec.service,
+            aws_service="qbusiness",
             action="delete-application",
             result_name=None,
             applicationId=self.id,
@@ -152,6 +156,8 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
                 if resource := resource_class.from_api(q_resource, builder):
                     if isinstance(resource, (AwsQBusinessPlugin, AwsQBusinessWebExperience, AwsQBusinessIndice)):
                         resource.application_id = application.id
+                    if isinstance(resource, (AwsQApps, AwsQAppsLibraryItem)):
+                        resource.instance_id = application.id
                     builder.add_node(resource, q_resource)
                     builder.add_edge(application, node=resource)
                     builder.submit_work(service_name, add_tags, resource)
@@ -305,6 +311,16 @@ class AwsQBusinessConversation(AwsResource):
     title: Optional[str] = field(default=None, metadata={"description": "The title of the conversation."})  # fmt: skip
     start_time: Optional[datetime] = field(default=None, metadata={"description": "The start time of the conversation."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-conversations", "conversations"),
+        ]
+
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
@@ -357,14 +373,16 @@ class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
             AwsApiSpec(service_name, "delete-data-source"),
         ]
 
-    # def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-    #     client.call(
-    #         aws_service=self.api_spec.service,
-    #         action="delete-data-source",
-    #         result_name=None,
-    #         applicationId=self.id,
-    #     )
-    #     return True
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="qbusiness",
+            action="delete-data-source",
+            result_name=None,
+            applicationId=self.application_id,
+            indexId=self.indice_id,
+            dataSourceId=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -421,6 +439,16 @@ class AwsQBusinessDataSourceSyncJob(AwsResource):
     data_source_error_code: Optional[str] = field(default=None, metadata={"description": "If the reason that the synchronization failed is due to an error with the underlying data source, this field contains a code that identifies the error."})  # fmt: skip
     sync_job_metrics: Optional[AwsQBusinessDataSourceSyncJobMetrics] = field(default=None, metadata={"description": "Maps a batch delete document request to a specific data source sync job. This is optional and should only be supplied when documents are deleted by a data source connector."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-data-source-sync-jobs", "history"),
+        ]
+
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsQBusinessDocument(AwsResource):
@@ -448,6 +476,16 @@ class AwsQBusinessDocument(AwsResource):
     document_error: Optional[AwsQBusinessErrorDetail] = field(default=None, metadata={"description": "An error message associated with the document."})  # fmt: skip
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the document was created."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the document was last updated."})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-documents", "documentDetailList"),
+        ]
+
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
 
 
 @define(eq=False, slots=False)
@@ -481,6 +519,31 @@ class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the index was created."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the index was last updated."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The current status of the index. When the status is ACTIVE, the index is ready."})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-indices", "indices"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-index"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="qbusiness",
+            action="delete-index",
+            result_name=None,
+            applicationId=self.application_id,
+            indexId=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -635,6 +698,16 @@ class AwsQBusinessMessage(AwsResource):
     action_review: Optional[AwsQBusinessActionReview] = field(default=None, metadata={"description": "An output event that Amazon Q Business returns to an user who wants to perform a plugin action during a non-streaming chat conversation. It contains information about the selected action with a list of possible user input fields, some pre-populated by Amazon Q Business."})  # fmt: skip
     action_execution: Optional[AwsQBusinessActionExecution] = field(default=None, metadata={"description": "Performs an Amazon Q Business plugin action during a non-streaming chat conversation."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-messages", "messages"),
+        ]
+
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
+
 
 @define(eq=False, slots=False)
 class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
@@ -674,6 +747,31 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the plugin was created."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the plugin was last updated."})  # fmt: skip
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-plugins", "plugins"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-plugin"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="qbusiness",
+            action="delete-plugin",
+            result_name=None,
+            applicationId=self.application_id,
+            pluginId=self.id,
+        )
+        return True
+
 
 @define(eq=False, slots=False)
 class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
@@ -703,6 +801,31 @@ class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     type: Optional[str] = field(default=None, metadata={"description": "The type of your retriever."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of your retriever."})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The name of your retriever."})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-retrievers", "retrievers"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-retriever"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="qbusiness",
+            action="delete-retriever",
+            result_name=None,
+            applicationId=self.application_id,
+            retrieverId=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -736,6 +859,31 @@ class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when your Amazon Q Business web experience was updated."})  # fmt: skip
     default_endpoint: Optional[str] = field(default=None, metadata={"description": "The endpoint URLs for your Amazon Q Business web experience. The URLs are unique and fully hosted by Amazon Web Services."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of your Amazon Q Business web experience."})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "list-web-experiences", "webExperiences"),
+            AwsApiSpec(service_name, "list-tags-for-resource"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec(service_name, "tag-resource"),
+            AwsApiSpec(service_name, "untag-resource"),
+            AwsApiSpec(service_name, "delete-web-experience"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="qbusiness",
+            action="delete-web-experience",
+            result_name=None,
+            applicationId=self.application_id,
+            webExperienceId=self.id,
+        )
+        return True
 
 
 @define(eq=False, slots=False)
@@ -774,6 +922,7 @@ class AwsQAppsLibraryItem(AwsResource):
         "is_rated_by_user": S("isRatedByUser"),
         "user_count": S("userCount"),
     }
+    instance_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the environment app."})  # fmt: skip
     library_item_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the library item."})  # fmt: skip
     app_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the Q App associated with the library item."})  # fmt: skip
     app_version: Optional[int] = field(default=None, metadata={"description": "The version of the Q App associated with the library item."})  # fmt: skip
@@ -786,6 +935,35 @@ class AwsQAppsLibraryItem(AwsResource):
     rating_count: Optional[int] = field(default=None, metadata={"description": "The number of ratings the library item has received."})  # fmt: skip
     is_rated_by_user: Optional[bool] = field(default=None, metadata={"description": "Whether the current user has rated the library item."})  # fmt: skip
     user_count: Optional[int] = field(default=None, metadata={"description": "The number of users who have the associated Q App."})  # fmt: skip
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("qapps", "list-library-items", "libraryItems"),
+            AwsApiSpec("qapps", "list-tags-for-resource"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("qapps", "tag-resource"),
+            AwsApiSpec("qapps", "untag-resource"),
+            AwsApiSpec("qapps", "delete-library-item"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="qapps",
+            action="delete-library-item",
+            result_name=None,
+            instanceId=self.instance_id,
+            libraryItemId=self.id,
+        )
+        return True
+
+    @classmethod
+    def service_name(cls) -> str:
+        return "qapps"
 
 
 @define(eq=False, slots=False)
@@ -810,6 +988,7 @@ class AwsQApps(AwsResource):
         "status": S("status"),
         "arn": S("appArn"),
     }
+    instance_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the environment app."})  # fmt: skip
     app_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the Q App."})  # fmt: skip
     app_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the Q App."})  # fmt: skip
     title: Optional[str] = field(default=None, metadata={"description": "The title of the Q App."})  # fmt: skip
@@ -837,6 +1016,35 @@ class AwsQApps(AwsResource):
             tagKeys=[key],
         )
         return True
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("qapps", "list-q-apps", "apps"),
+            AwsApiSpec("qapps", "list-tags-for-resource"),
+        ]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [
+            AwsApiSpec("qapps", "tag-resource"),
+            AwsApiSpec("qapps", "untag-resource"),
+            AwsApiSpec("qapps", "delete-q-app"),
+        ]
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="qapps",
+            action="delete-q-app",
+            result_name=None,
+            instanceId=self.instance_id,
+            appId=self.id,
+        )
+        return True
+
+    @classmethod
+    def service_name(cls) -> str:
+        return "qapps"
 
 
 resources: List[Type[AwsResource]] = [

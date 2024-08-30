@@ -1,0 +1,15 @@
+{
+    "documentDetailList": [
+      {
+        "documentId": "foo",
+        "status": "PROCESSING",
+        "error": {
+          "errorMessage": "foo",
+          "errorCode": "InvalidRequest"
+        },
+        "createdAt": "2024-08-30T12:46:23Z",
+        "updatedAt": "2024-08-30T12:46:23Z"
+      }
+    ],
+    "nextToken": "foo"
+  }

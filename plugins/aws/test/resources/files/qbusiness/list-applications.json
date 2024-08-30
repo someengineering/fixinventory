@@ -1,0 +1,12 @@
+{
+    "nextToken": "foo",
+    "applications": [
+      {
+        "displayName": "foo",
+        "applicationId": "foo",
+        "createdAt": "2024-08-30T12:21:29Z",
+        "updatedAt": "2024-08-30T12:21:29Z",
+        "status": "ACTIVE"
+      }
+    ]
+  }

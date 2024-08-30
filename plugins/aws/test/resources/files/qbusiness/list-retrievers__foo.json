@@ -1,0 +1,12 @@
+{
+    "retrievers": [
+      {
+        "applicationId": "foo",
+        "retrieverId": "foo",
+        "type": "KENDRA_INDEX",
+        "status": "ACTIVE",
+        "displayName": "foo"
+      }
+    ],
+    "nextToken": "foo"
+  }

@@ -1,0 +1,220 @@
+{
+    "messages": [
+      {
+        "messageId": "foo",
+        "body": "foo",
+        "time": "2024-08-30T12:46:23Z",
+        "type": "SYSTEM",
+        "attachments": [
+          {
+            "name": "foo",
+            "status": "SUCCEEDED",
+            "error": {
+              "errorMessage": "foo",
+              "errorCode": "InvalidRequest"
+            }
+          },
+          {
+            "name": "foo",
+            "status": "SUCCEEDED",
+            "error": {
+              "errorMessage": "foo",
+              "errorCode": "InvalidRequest"
+            }
+          },
+          {
+            "name": "foo",
+            "status": "SUCCEEDED",
+            "error": {
+              "errorMessage": "foo",
+              "errorCode": "InvalidRequest"
+            }
+          }
+        ],
+        "sourceAttribution": [
+          {
+            "title": "foo",
+            "snippet": "foo",
+            "url": "https://example.com",
+            "citationNumber": 123,
+            "updatedAt": "2024-08-30T12:46:23Z",
+            "textMessageSegments": [
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              },
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              },
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              }
+            ]
+          },
+          {
+            "title": "foo",
+            "snippet": "foo",
+            "url": "https://example.com",
+            "citationNumber": 123,
+            "updatedAt": "2024-08-30T12:46:23Z",
+            "textMessageSegments": [
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              },
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              },
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              }
+            ]
+          },
+          {
+            "title": "foo",
+            "snippet": "foo",
+            "url": "https://example.com",
+            "citationNumber": 123,
+            "updatedAt": "2024-08-30T12:46:23Z",
+            "textMessageSegments": [
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              },
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              },
+              {
+                "beginOffset": 123,
+                "endOffset": 123,
+                "snippetExcerpt": {
+                  "text": "foo"
+                }
+              }
+            ]
+          }
+        ],
+        "actionReview": {
+          "pluginId": "foo",
+          "pluginType": "SALESFORCE",
+          "payload": {
+            "0": {
+              "displayName": "foo",
+              "displayOrder": 123,
+              "displayDescription": "foo",
+              "type": "NUMBER",
+              "value": {},
+              "allowedValues": [
+                {
+                  "value": {},
+                  "displayValue": {}
+                },
+                {
+                  "value": {},
+                  "displayValue": {}
+                },
+                {
+                  "value": {},
+                  "displayValue": {}
+                }
+              ],
+              "allowedFormat": "foo",
+              "required": true
+            },
+            "1": {
+              "displayName": "foo",
+              "displayOrder": 123,
+              "displayDescription": "foo",
+              "type": "NUMBER",
+              "value": {},
+              "allowedValues": [
+                {
+                  "value": {},
+                  "displayValue": {}
+                },
+                {
+                  "value": {},
+                  "displayValue": {}
+                },
+                {
+                  "value": {},
+                  "displayValue": {}
+                }
+              ],
+              "allowedFormat": "foo",
+              "required": true
+            },
+            "2": {
+              "displayName": "foo",
+              "displayOrder": 123,
+              "displayDescription": "foo",
+              "type": "NUMBER",
+              "value": {},
+              "allowedValues": [
+                {
+                  "value": {},
+                  "displayValue": {}
+                },
+                {
+                  "value": {},
+                  "displayValue": {}
+                },
+                {
+                  "value": {},
+                  "displayValue": {}
+                }
+              ],
+              "allowedFormat": "foo",
+              "required": true
+            }
+          },
+          "payloadFieldNameSeparator": "foo"
+        },
+        "actionExecution": {
+          "pluginId": "foo",
+          "payload": {
+            "0": {
+              "value": {}
+            },
+            "1": {
+              "value": {}
+            },
+            "2": {
+              "value": {}
+            }
+          },
+          "payloadFieldNameSeparator": "foo"
+        }
+      }
+    ],
+    "nextToken": "foo"
+  }

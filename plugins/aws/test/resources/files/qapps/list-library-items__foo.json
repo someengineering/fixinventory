@@ -1,0 +1,32 @@
+{
+    "libraryItems": [
+      {
+        "libraryItemId": "foo",
+        "appId": "foo",
+        "appVersion": 123,
+        "categories": [
+          {
+            "id": "foo",
+            "title": "foo"
+          },
+          {
+            "id": "foo",
+            "title": "foo"
+          },
+          {
+            "id": "foo",
+            "title": "foo"
+          }
+        ],
+        "status": "foo",
+        "createdAt": "2024-08-30T12:42:21Z",
+        "createdBy": "foo",
+        "updatedAt": "2024-08-30T12:42:21Z",
+        "updatedBy": "foo",
+        "ratingCount": 123,
+        "isRatedByUser": true,
+        "userCount": 123
+      }
+    ],
+    "nextToken": "foo"
+  }
