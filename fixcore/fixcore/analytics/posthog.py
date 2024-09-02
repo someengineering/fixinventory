@@ -58,7 +58,6 @@ class PostHogEventSender(AnalyticsEventSender):
         self.last_fetched: Optional[datetime] = None
         self.session: Optional[ClientSession] = None
         self.white_listed_events: Set[str] = set()
-        self.last_flushed: Optional[datetime] = None
 
     async def capture(self, event: List[AnalyticsEvent]) -> None:
         """
