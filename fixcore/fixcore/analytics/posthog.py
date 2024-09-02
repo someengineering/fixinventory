@@ -9,11 +9,20 @@ from typing import MutableSequence, Optional, List
 from aiohttp import ClientSession
 from posthog.client import Client
 
-from fixcore.analytics import AnalyticsEventSender, AnalyticsEvent
+from fixcore.analytics import AnalyticsEventSender, AnalyticsEvent, CoreEvent
 from fixcore.db import SystemData
 from fixcore.util import uuid_str, Periodic, utc
 
 log = logging.getLogger(__name__)
+
+WhiteListedEvents = {
+    CoreEvent.SystemInstalled,
+    CoreEvent.SystemStarted,
+    CoreEvent.GraphMerged,
+    CoreEvent.UsageMetricsTurnedOff,
+    CoreEvent.FirstUserCreated,
+    CoreEvent.UserCreated,
+}
 
 
 class PostHogEventSender(AnalyticsEventSender):
@@ -64,7 +73,11 @@ class PostHogEventSender(AnalyticsEventSender):
         Only in the rare case when the queue size reached its maximum the queue will be flushed directly.
         """
         async with self.lock:
-            self.queue.extend(event)
+            for e in event:
+                if e.kind not in WhiteListedEvents:
+                    log.debug(f"Event {e.kind} is not whitelisted and will be ignored.")
+                    continue
+                self.queue.append(e)
 
         if len(self.queue) >= self.flush_at:
             await self.flush()
