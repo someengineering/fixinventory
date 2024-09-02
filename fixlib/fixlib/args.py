@@ -99,6 +99,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     new_default = os.environ.get(env_name)
 
                 if new_default is not None:
+                    type_goal: Any = str
                     if isinstance(action.type, type):
                         type_goal = action.type
                     elif callable(action.type):

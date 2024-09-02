@@ -4566,7 +4566,9 @@ class WorkflowsCommand(CLICommand):
         elif arg and len(args) == 2 and args[0] == "run":
             return CLISource.single(partial(run_workflow, args[1].strip()), required_permissions={Permission.admin})
         elif arg and len(args) == 2 and args[0] == "stop":
-            return CLISource.single(partial(stop_workflow, args[1].strip()), required_permissions={Permission.admin})
+            return CLISource.single(
+                partial(stop_workflow, TaskId(args[1].strip())), required_permissions={Permission.admin}
+            )
         elif arg and len(args) == 1 and args[0] == "running":
             return CLISource.only_count(running_workflows, required_permissions={Permission.read})
         elif arg and len(args) == 1 and args[0] == "list":
@@ -4749,14 +4751,16 @@ class ConfigsCommand(CLICommand):
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if arg and len(args) == 2 and (args[0] == "show" or args[0] == "get"):
-            return CLISource.single(partial(show_config, args[1]), required_permissions={Permission.admin})
+            return CLISource.single(partial(show_config, ConfigId(args[1])), required_permissions={Permission.admin})
         elif arg and len(args) == 2 and args[0] == "delete":
-            return CLISource.single(partial(delete_config, args[1]), required_permissions={Permission.admin})
+            return CLISource.single(partial(delete_config, ConfigId(args[1])), required_permissions={Permission.admin})
         elif arg and len(args) == 3 and args[0] == "set":
             update = path_values_parser.parse(args[2])
-            return CLISource.single(partial(set_config, args[1], update), required_permissions={Permission.admin})
+            return CLISource.single(
+                partial(set_config, ConfigId(args[1]), update), required_permissions={Permission.admin}
+            )
         elif arg and len(args) == 2 and args[0] == "edit":
-            config_id = args[1]
+            config_id = ConfigId(args[1])
             return CLISource.single(
                 partial(edit_config, config_id),
                 produces=MediaType.FilePath,
@@ -4764,9 +4768,11 @@ class ConfigsCommand(CLICommand):
                 required_permissions={Permission.admin},
             )
         elif arg and len(args) == 3 and args[0] == "copy":
-            return CLISource.single(partial(copy_config, args[1], args[2]), required_permissions={Permission.admin})
+            return CLISource.single(
+                partial(copy_config, ConfigId(args[1]), ConfigId(args[2])), required_permissions={Permission.admin}
+            )
         elif arg and len(args) == 3 and args[0] == "update":
-            config_id = args[1]
+            config_id = ConfigId(args[1])
             return CLISource.single(
                 partial(update_config, config_id),
                 produces=MediaType.FilePath,
