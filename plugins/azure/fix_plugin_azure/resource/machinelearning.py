@@ -191,7 +191,7 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningBaseCodeCont
 @define(eq=False, slots=False)
 class AzureMachineLearningBaseCodeVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_code_version"
-    # Collected via AzureMachineLearningCodeContainer()
+    # Collected via AzureMachineLearningBaseCodeContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -226,7 +226,7 @@ class AzureMachineLearningRegistryCodeVersion(AzureMachineLearningBaseCodeVersio
 
 @define(eq=False, slots=False)
 class AzureMachineLearningBaseComponentContainer(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_base_learning_component_container"
+    kind: ClassVar[str] = "azure_machine_learning_base_component_container"
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -779,7 +779,7 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningBaseDataCont
 @define(eq=False, slots=False)
 class AzureMachineLearningBaseDataVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_data_version"
-    # Collected via AzureMachineLearningDataContainer()
+    # Collected via AzureMachineLearningBaseDataContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -1016,7 +1016,7 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningBaseE
 @define(eq=False, slots=False)
 class AzureMachineLearningBaseEnvironmentVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_environment_version"
-    # Collected via AzureMachineLearningEnvironmentContainer()
+    # Collected via AzureMachineLearningBaseEnvironmentContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -1222,7 +1222,7 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_version"
-    # Collected via AzureMachineLearningFeaturesetContainer()
+    # Collected via AzureMachineLearningBaseFeaturesetContainer()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1344,7 +1344,7 @@ class AzureIndexColumn:
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturestoreEntityVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_version"
-    # Collected via AzureMachineLearningFeaturestoreEntityContainer()
+    # Collected via AzureMachineLearningBaseFeaturestoreEntityContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -1699,7 +1699,7 @@ class AzureFlavorData:
 @define(eq=False, slots=False)
 class AzureMachineLearningBaseModelVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_model_version"
-    # Collected via AzureMachineLearningModelContainer()
+    # Collected via AzureMachineLearningBaseModelContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -2806,6 +2806,8 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMachineLearningWorkspaceDataVersion,
     AzureMachineLearningWorkspaceModelContainer,
     AzureMachineLearningWorkspaceModelVersion,
+    AzureMachineLearningWorkspaceEnvironmentContainer,
+    AzureMachineLearningWorkspaceEnvironmentVersion,
     AzureMachineLearningComputeNode,
     AzureMachineLearningCompute,
     AzureMachineLearningDatastore,
@@ -2829,6 +2831,8 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMachineLearningRegistryDataVersion,
     AzureMachineLearningRegistryModelContainer,
     AzureMachineLearningRegistryModelVersion,
+    AzureMachineLearningRegistryEnvironmentContainer,
+    AzureMachineLearningRegistryEnvironmentVersion,
     # AzureMachineLearningQuota,  # TODO: filter only needed quota
     AzureMachineLearningSchedule,
     AzureMachineLearningServerlessEndpoint,
