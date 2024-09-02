@@ -131,17 +131,17 @@ class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningBaseCodeCon
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if container_id := self.id:
+        if (container_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{container_id}/versions/{self.latest_version}",
+                    path=f"{container_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -166,17 +166,17 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningBaseCodeCont
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if container_id := self.id:
+        if (container_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{container_id}/versions/{self.latest_version}",
+                    path=f"{container_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -262,17 +262,17 @@ class AzureMachineLearningWorkspaceComponentContainer(AzureMachineLearningBaseCo
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -298,17 +298,17 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningBaseCom
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -598,17 +598,17 @@ class AzureMachineLearningWorkspaceDataContainer(AzureMachineLearningBaseDataCon
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -634,17 +634,17 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningBaseDataCont
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -835,17 +835,17 @@ class AzureMachineLearningWorkspaceEnvironmentContainer(AzureMachineLearningBase
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -871,17 +871,17 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningBaseE
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -1077,17 +1077,17 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
     properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -1191,17 +1191,17 @@ class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzurePr
     properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -1511,17 +1511,17 @@ class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningBaseModelC
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -1547,17 +1547,17 @@ class AzureMachineLearningRegistryModelContainer(AzureMachineLearningBaseModelCo
     }
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if resource_id := self.id:
+        if (resource_id := self.id) and (latest_version := self.latest_version):
 
             def collect_versions() -> None:
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/versions/{self.latest_version}",
+                    path=f"{resource_id}/versions/{latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+                    access_path=None,
+                    expect_array=False,
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -2245,6 +2245,7 @@ class AzureMachineLearningVirtualMachineSize(MicrosoftResource, BaseInstanceType
         "instance_cores": S("vCPUs"),
         "instance_memory": S("memoryGB"),
     }
+    _is_provider_link: ClassVar[bool] = False
     estimated_vm_prices: Optional[AzureEstimatedVMPrices] = field(default=None, metadata={'description': 'The estimated price info for using a VM.'})  # fmt: skip
     family: Optional[str] = field(default=None, metadata={'description': 'The family name of the virtual machine size.'})  # fmt: skip
     gpus: Optional[int] = field(default=None, metadata={'description': 'The number of gPUs supported by the virtual machine size.'})  # fmt: skip
