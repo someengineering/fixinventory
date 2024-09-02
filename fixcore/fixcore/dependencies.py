@@ -177,7 +177,7 @@ class Dependencies(Service):
         existing = self.get(name)
         if existing is None:
             raise KeyError(f"Service {name} not found")
-        elif clazz is Any or isinstance(existing, clazz):
+        elif clazz is Any or isinstance(existing, clazz):  # type: ignore
             return existing  # type: ignore
         else:
             raise ValueError(f"Service {name} is not of type {clazz}")

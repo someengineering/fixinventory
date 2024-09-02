@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List
 
 from fixlib.baseplugin import BaseCollectorPlugin
 from fixlib.baseresources import BaseResource
@@ -8,7 +8,7 @@ from fixlib.logger import log
 from fixlib.types import Json
 
 
-def core_tag_tasks_processor(plugin: Type[BaseCollectorPlugin], config: Config, task_data: Dict[str, Any]) -> Json:
+def core_tag_tasks_processor(plugin: BaseCollectorPlugin, config: Config, task_data: Dict[str, Any]) -> Json:
     delete_tags: List[str] = task_data.get("delete", [])
     update_tags: Dict[str, str] = task_data.get("update", {})
     node_data: Dict[str, Any] = task_data.get("node", {})
