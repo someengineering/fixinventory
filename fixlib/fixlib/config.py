@@ -318,7 +318,7 @@ class Config(metaclass=MetaConfig):
                         log.error(f"Override key {config_key} is unknown - skipping")
                         break
 
-                target_type = str
+                target_type: Any = str
                 if target_type in (list, tuple, set):
                     config_value = target_type(config_value.split(","))
                 config_value = convert(config_value, target_type)
