@@ -137,7 +137,7 @@ class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningBaseCodeCon
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{container_id}/version/{self.latest_version}",
+                    path=f"{container_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -172,7 +172,7 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningBaseCodeCont
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{container_id}/version/{self.latest_version}",
+                    path=f"{container_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -268,7 +268,7 @@ class AzureMachineLearningWorkspaceComponentContainer(AzureMachineLearningBaseCo
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -304,7 +304,7 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningBaseCom
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -724,7 +724,7 @@ class AzureMachineLearningWorkspaceDataContainer(AzureMachineLearningBaseDataCon
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -760,7 +760,7 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningBaseDataCont
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -961,7 +961,7 @@ class AzureMachineLearningWorkspaceEnvironmentContainer(AzureMachineLearningBase
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -997,7 +997,7 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningBaseE
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -1203,7 +1203,7 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -1317,7 +1317,7 @@ class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzurePr
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -1637,7 +1637,7 @@ class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningBaseModelC
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
@@ -1673,7 +1673,7 @@ class AzureMachineLearningRegistryModelContainer(AzureMachineLearningBaseModelCo
                 api_spec = AzureResourceSpec(
                     service="machinelearningservices",
                     version="2024-04-01",
-                    path=f"{resource_id}/version/{self.latest_version}",
+                    path=f"{resource_id}/versions/{self.latest_version}",
                     path_parameters=[],
                     query_parameters=["api-version"],
                     access_path="value",
