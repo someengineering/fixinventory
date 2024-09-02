@@ -553,8 +553,8 @@ class AzureClientCredentials:
 
 
 @define(eq=False, slots=False)
-class AzureAzureStorage:
-    kind: ClassVar[str] = "azure_azure_storage"
+class AzureDatastoreStorage:
+    kind: ClassVar[str] = "azure_datastore_storage"
     mapping: ClassVar[Dict[str, Bender]] = {
         "account_key": S("accountKey"),
         "account_name": S("accountName"),
@@ -588,8 +588,8 @@ class AzureAzureStorage:
 
 
 @define(eq=False, slots=False)
-class AzureAzureDataLake:
-    kind: ClassVar[str] = "azure_azure_data_lake"
+class AzureDatastoreDataLake:
+    kind: ClassVar[str] = "azure_datastore_data_lake"
     mapping: ClassVar[Dict[str, Bender]] = {
         "authority_url": S("authorityUrl"),
         "certificate": S("certificate"),
@@ -617,8 +617,8 @@ class AzureAzureDataLake:
 
 
 @define(eq=False, slots=False)
-class AzureAzureSqlDatabase:
-    kind: ClassVar[str] = "azure_azure_sql_database"
+class AzureDatastoreSqlDatabase:
+    kind: ClassVar[str] = "azure_datastore_sql_database"
     mapping: ClassVar[Dict[str, Bender]] = {
         "authority_url": S("authorityUrl"),
         "certificate": S("certificate"),
@@ -650,8 +650,8 @@ class AzureAzureSqlDatabase:
 
 
 @define(eq=False, slots=False)
-class AzureAzurePostgreSql:
-    kind: ClassVar[str] = "azure_azure_postgre_sql"
+class AzureDatastorePostgreSql:
+    kind: ClassVar[str] = "azure_datastore_postgre_sql"
     mapping: ClassVar[Dict[str, Bender]] = {
         "database_name": S("databaseName"),
         "endpoint": S("endpoint"),
@@ -678,31 +678,6 @@ class AzureGlusterFs:
     mapping: ClassVar[Dict[str, Bender]] = {"server_address": S("serverAddress"), "volume_name": S("volumeName")}
     server_address: Optional[str] = field(default=None, metadata={'description': 'The server address of one of the servers that hosts the GlusterFS. Can be either the IP address or server name.'})  # fmt: skip
     volume_name: Optional[str] = field(default=None, metadata={'description': 'The name of the created GlusterFS volume.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureDataStore:
-    kind: ClassVar[str] = "azure_data_store"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "azure_data_lake_section": S("azureDataLakeSection") >> Bend(AzureAzureDataLake.mapping),
-        "azure_postgre_sql_section": S("azurePostgreSqlSection") >> Bend(AzureAzurePostgreSql.mapping),
-        "azure_sql_database_section": S("azureSqlDatabaseSection") >> Bend(AzureAzureSqlDatabase.mapping),
-        "azure_storage_section": S("azureStorageSection") >> Bend(AzureAzureStorage.mapping),
-        "data_store_type": S("dataStoreType"),
-        "gluster_fs_section": S("glusterFsSection") >> Bend(AzureGlusterFs.mapping),
-        "has_been_validated": S("hasBeenValidated"),
-        "name": S("name"),
-        "tags": S("tags"),
-    }
-    azure_data_lake_section: Optional[AzureAzureDataLake] = field(default=None, metadata={"description": ""})
-    azure_postgre_sql_section: Optional[AzureAzurePostgreSql] = field(default=None, metadata={"description": ""})
-    azure_sql_database_section: Optional[AzureAzureSqlDatabase] = field(default=None, metadata={"description": ""})
-    azure_storage_section: Optional[AzureAzureStorage] = field(default=None, metadata={"description": ""})
-    data_store_type: Optional[str] = field(default=None, metadata={'description': 'The Azure storage service this datastore points to.'})  # fmt: skip
-    gluster_fs_section: Optional[AzureGlusterFs] = field(default=None, metadata={"description": ""})
-    has_been_validated: Optional[bool] = field(default=None, metadata={'description': 'A read only property that denotes whether the service datastore has been validated with credentials.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "Name of the datastore"})
-    tags: Optional[Dict[str, str]] = field(default=None, metadata={"description": "Tags to datastore"})
 
 
 @define(eq=False, slots=False)
@@ -863,19 +838,6 @@ class AzureMachineLearningDatastore(MicrosoftResource, AzureProxyResource):
     credentials: Optional[str] = field(default=None, metadata={'description': 'Base definition for datastore credentials.'})  # fmt: skip
     datastore_type: Optional[str] = field(default=None, metadata={'description': 'Enum to determine the datastore contents type.'})  # fmt: skip
     is_default: Optional[bool] = field(default=None, metadata={'description': 'Readonly property to indicate if datastore is the workspace default datastore'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureEndpointDeploymentResourceProperties:
-    kind: ClassVar[str] = "azure_endpoint_deployment_resource_properties"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "failure_reason": S("failureReason"),
-        "provisioning_state": S("provisioningState"),
-        "type": S("type"),
-    }
-    failure_reason: Optional[str] = field(default=None, metadata={'description': 'The failure reason if the creation failed.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={"description": ""})
-    type: Optional[str] = field(default=None, metadata={"description": "Kind of the deployment."})
 
 
 @define(eq=False, slots=False)
