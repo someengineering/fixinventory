@@ -18,10 +18,13 @@ from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
     AzurePrivateLinkServiceConnectionState,
 )
+from fix_plugin_azure.resource.compute import AzureVirtualMachineBase
+from fix_plugin_azure.resource.containerservice import AzureManagedCluster
 from fix_plugin_azure.resource.keyvault import AzureKeyVault
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.network import AzureSubnet, AzureVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
+from fix_plugin_azure.resource.web import AzureWebApp
 from fixlib.baseresources import BaseInstanceType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend, K
@@ -523,6 +526,10 @@ class AzureMachineLearningCompute(MicrosoftResource):
                                 f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
                             ),
                         )
+        if compute_resource_id := self.resource_id:
+            builder.add_edge(
+                self, clazz=(AzureVirtualMachineBase, AzureManagedCluster, AzureWebApp), id=compute_resource_id
+            )
 
 
 @define(eq=False, slots=False)

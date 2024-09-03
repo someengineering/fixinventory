@@ -14,6 +14,9 @@
             "description": "Auto-Approved",
             "actionsRequired": "None"
           }
+        },
+        "tags": {
+          "test": "test"
         }
       },
       {
@@ -30,6 +33,9 @@
             "description": "Auto-Approved",
             "actionsRequired": "None"
           }
+        },
+        "tags": {
+          "test": "test"
         }
       }
     ]

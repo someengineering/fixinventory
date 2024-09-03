@@ -43,7 +43,7 @@ def is_retryable_exception(e: Exception) -> bool:
         return True
     if isinstance(e, HttpResponseError):
         error_code = getattr(e.error, "code", None)
-        status_code = getattr(e.response, "status_code", None)
+        status_code = getattr(e, "status_code", None)
 
         if error_code == "TooManyRequests" or status_code == 429:
             log.debug(f"Azure API request limit exceeded or throttling, retrying with exponential backoff: {e}")
@@ -325,8 +325,6 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
                     raise MetricRequestError from e
                 code = error.code or "Unknown"
                 self.accumulator.add_error(False, code, spec.service, spec.action, str(e), self.location)
-            elif e.status_code in [500]:
-                return None
             log.warning(f"[Azure] Client Error: status={e.status_code}, error={e.error}, message={e}, spec={spec}")
             return None
         except Exception as e:
