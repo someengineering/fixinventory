@@ -55,7 +55,7 @@ def test_workspace_child_resources(
         AzureMachineLearningWorkspaceConnection,
     ]
     for resource in workspace_resources:
-        instances = list(subscription_collector.graph.search("kind", resource.kind))
+        instances = list(subscription_collector.graph.search("kind", resource.kind))  # type: ignore
 
         assert len(instances) > 0, f"No instances found for {resource.__name__}"
 
