@@ -34,6 +34,27 @@ log = logging.getLogger("fix.plugins.azure")
 service_name = "azure_machinelearning"
 
 
+class CheckVersionIsArchived:
+    @classmethod
+    def collect(
+        cls,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List[MicrosoftResource]:
+        result: List[MicrosoftResource] = []
+        if issubclass(cls, MicrosoftResource):
+            for js in raw:
+                # map from api
+                if instance := cls.from_api(js, builder):
+                    # If the resource is archived, we will not take it
+                    if instance.is_archived is True:
+                        continue
+                    # add to graph
+                    if (added := builder.add_node(instance, js)) is not None:
+                        result.append(added)
+        return result
+
+
 @define(eq=False, slots=False)
 class AzureEndpointAuthKeys:
     kind: ClassVar[str] = "azure_endpoint_auth_keys"
@@ -192,7 +213,7 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningCodeContaine
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningCodeVersionBase(MicrosoftResource, AzureProxyResource):
+class AzureMachineLearningCodeVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_version_base"
     # Collected via AzureMachineLearningCodeContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -324,7 +345,7 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningCompone
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningComponentVersionBase(MicrosoftResource, AzureProxyResource):
+class AzureMachineLearningComponentVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_component_version_base"
     # Collected via AzureMachineLearningComponentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -664,7 +685,7 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningDataContaine
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningDataVersionBase(MicrosoftResource, AzureProxyResource):
+class AzureMachineLearningDataVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_version_base"
     # Collected via AzureMachineLearningDataContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -901,7 +922,7 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningEnvir
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningEnvironmentVersionBase(MicrosoftResource, AzureProxyResource):
+class AzureMachineLearningEnvironmentVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_version_base"
     # Collected via AzureMachineLearningEnvironmentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -1584,7 +1605,7 @@ class AzureFlavorData:
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningModelVersionBase(MicrosoftResource, AzureProxyResource):
+class AzureMachineLearningModelVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_model_version"
     # Collected via AzureMachineLearningModelContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
