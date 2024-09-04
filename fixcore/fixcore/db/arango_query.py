@@ -263,7 +263,8 @@ def query_view_string(
             return (None, term) if sp is None else (sp, evolve(term, pre_filter=pre))
         elif isinstance(term, NotTerm):
             sp, nt = view_term(term.term)
-            return (None, term) if sp is None else (f"NOT ({sp})", NotTerm(nt))
+            remaining = nt if nt.is_all else NotTerm(nt)  # a remaining filter needs to be negated
+            return (None, term) if sp is None else (f"NOT ({sp})", remaining)
         elif isinstance(term, ContextTerm):
             # context terms cannot be handled by the view search exhaustively
             # we filter the list down as much as possible, but leave the context term untouched
