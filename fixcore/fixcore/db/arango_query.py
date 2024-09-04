@@ -269,8 +269,13 @@ def query_view_string(
             # we filter the list down as much as possible, but leave the context term untouched
             is_array_context = bool(array_marker.search(term.name))
             context_in_array = context_in_array or is_array_context
-            sp, ct = view_term(term.predicate_term())
-            return sp, term if is_array_context else ct
+            # arangosearch view does not handle nested array searches correctly
+            # see: https://github.com/arangodb/arangodb/issues/21281
+            # once this is resolved we can enable the next 3 lines
+            #
+            # sp, ct = view_term(term.predicate_term())
+            # return sp, term if is_array_context else ct
+            return (None, term) if is_array_context else view_term(term.predicate_term())
         elif isinstance(term, IdTerm):
             if len(term.ids) == 1:
                 sp = f"{crs}._key == @{ctx.add_bind_var(term.ids[0])}"
