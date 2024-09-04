@@ -554,41 +554,6 @@ class AzureMachineLearningCompute(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureClientCredentials:
-    kind: ClassVar[str] = "azure_client_credentials"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "authority_url": S("authorityUrl"),
-        "certificate": S("certificate"),
-        "client_id": S("clientId"),
-        "client_secret": S("clientSecret"),
-        "is_cert_auth": S("isCertAuth"),
-        "resource_group": S("resourceGroup"),
-        "resource_uri": S("resourceUri"),
-        "subscription_id": S("subscriptionId"),
-        "tenant_id": S("tenantId"),
-        "thumbprint": S("thumbprint"),
-    }
-    authority_url: Optional[str] = field(default=None, metadata={'description': 'The authority URL used for authentication'})  # fmt: skip
-    certificate: Optional[str] = field(default=None, metadata={'description': 'The content of the certificate used for authentication'})  # fmt: skip
-    client_id: Optional[str] = field(default=None, metadata={"description": "The Client ID/Application ID"})
-    client_secret: Optional[str] = field(default=None, metadata={"description": "The client secret"})
-    is_cert_auth: Optional[bool] = field(default=None, metadata={'description': 'Is it using certificate to authenticate. If false then use client secret'})  # fmt: skip
-    resource_group: Optional[str] = field(default=None, metadata={"description": "Resource Group Name"})
-    resource_uri: Optional[str] = field(default=None, metadata={'description': 'The resource the service principal/app has access to'})  # fmt: skip
-    subscription_id: Optional[str] = field(default=None, metadata={"description": "Subscription Id"})
-    tenant_id: Optional[str] = field(default=None, metadata={'description': 'The ID of the tenant the service principal/app belongs to'})  # fmt: skip
-    thumbprint: Optional[str] = field(default=None, metadata={'description': 'The thumbprint of the certificate above'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureGlusterFs:
-    kind: ClassVar[str] = "azure_gluster_fs"
-    mapping: ClassVar[Dict[str, Bender]] = {"server_address": S("serverAddress"), "volume_name": S("volumeName")}
-    server_address: Optional[str] = field(default=None, metadata={'description': 'The server address of one of the servers that hosts the GlusterFS. Can be either the IP address or server name.'})  # fmt: skip
-    volume_name: Optional[str] = field(default=None, metadata={'description': 'The name of the created GlusterFS volume.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureMachineLearningDataContainerBase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_container_base"
     # Collected via AzureMachineLearningWorkspace()
@@ -1822,22 +1787,6 @@ class AzureRegistryPrivateLinkServiceConnectionState:
 
 
 @define(eq=False, slots=False)
-class AzureRegistryPrivateEndpointConnectionProperties:
-    kind: ClassVar[str] = "azure_registry_private_endpoint_connection_properties"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "group_ids": S("groupIds"),
-        "private_endpoint": S("privateEndpoint", "subnetArmId"),
-        "provisioning_state": S("provisioningState"),
-        "registry_private_link_service_connection_state": S("registryPrivateLinkServiceConnectionState")
-        >> Bend(AzureRegistryPrivateLinkServiceConnectionState.mapping),
-    }
-    group_ids: Optional[List[str]] = field(default=None, metadata={"description": "The group ids"})
-    private_endpoint: Optional[str] = field(default=None, metadata={'description': 'The PE network resource that is linked to this PE connection.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'One of null, Succeeded , Provisioning , Failed . While not approved, it s null.'})  # fmt: skip
-    registry_private_link_service_connection_state: Optional[AzureRegistryPrivateLinkServiceConnectionState] = field(default=None, metadata={'description': 'The connection state.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureRegistryPrivateEndpointConnection:
     kind: ClassVar[str] = "azure_registry_private_endpoint_connection"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2058,14 +2007,6 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
 
 
 @define(eq=False, slots=False)
-class AzureResourceName:
-    kind: ClassVar[str] = "azure_resource_name"
-    mapping: ClassVar[Dict[str, Bender]] = {"localized_value": S("localizedValue"), "value": S("value")}
-    localized_value: Optional[str] = field(default=None, metadata={'description': 'The localized name of the resource.'})  # fmt: skip
-    value: Optional[str] = field(default=None, metadata={"description": "The name of the resource."})
-
-
-@define(eq=False, slots=False)
 class AzureMachineLearningQuota(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_quota"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2192,14 +2133,6 @@ class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedReso
 
 
 @define(eq=False, slots=False)
-class AzureUsageName:
-    kind: ClassVar[str] = "azure_usage_name"
-    mapping: ClassVar[Dict[str, Bender]] = {"localized_value": S("localizedValue"), "value": S("value")}
-    localized_value: Optional[str] = field(default=None, metadata={'description': 'The localized name of the resource.'})  # fmt: skip
-    value: Optional[str] = field(default=None, metadata={"description": "The name of the resource."})
-
-
-@define(eq=False, slots=False)
 class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_machine_learning_usage"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2322,21 +2255,6 @@ class AzureServerlessComputeSettings:
     }
     serverless_compute_custom_subnet: Optional[str] = field(default=None, metadata={'description': 'The resource ID of an existing virtual network subnet in which serverless compute nodes should be deployed'})  # fmt: skip
     serverless_compute_no_public_ip: Optional[bool] = field(default=None, metadata={'description': 'The flag to signal if serverless compute nodes deployed in custom vNet would have no public IP addresses for a workspace with private endpoint'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureSharedPrivateLinkResourceProperty:
-    kind: ClassVar[str] = "azure_shared_private_link_resource_property"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "group_id": S("groupId"),
-        "private_link_resource_id": S("privateLinkResourceId"),
-        "request_message": S("requestMessage"),
-        "status": S("status"),
-    }
-    group_id: Optional[str] = field(default=None, metadata={"description": "The private link resource group id."})
-    private_link_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource id that private link links to.'})  # fmt: skip
-    request_message: Optional[str] = field(default=None, metadata={"description": "Request message."})
-    status: Optional[str] = field(default=None, metadata={"description": "The private endpoint connection status."})
 
 
 @define(eq=False, slots=False)
