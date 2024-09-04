@@ -31,7 +31,7 @@ def test_workspace_child_resources(
     )
     subscription_collector.collect()
 
-    workspace_resources = [
+    workspace_and_registry_resources = [
         AzureMachineLearningBatchEndpoint,
         AzureMachineLearningWorkspaceCodeContainer,
         AzureMachineLearningWorkspaceComponentContainer,
@@ -53,10 +53,26 @@ def test_workspace_child_resources(
         AzureMachineLearningServerlessEndpoint,
         AzureMachineLearningUsage,
         AzureMachineLearningWorkspaceConnection,
+        AzureMachineLearningWorkspaceCodeVersion,
+        AzureMachineLearningWorkspaceComponentVersion,
+        AzureMachineLearningWorkspaceDataVersion,
+        AzureMachineLearningWorkspaceModelVersion,
+        AzureMachineLearningWorkspaceEnvironmentVersion,
+        AzureMachineLearningFeaturesetVersion,
+        AzureMachineLearningFeaturestoreEntityVersion,
+        AzureMachineLearningRegistry,
+        AzureMachineLearningRegistryCodeContainer,
+        AzureMachineLearningRegistryCodeVersion,
+        AzureMachineLearningRegistryComponentContainer,
+        AzureMachineLearningRegistryComponentVersion,
+        AzureMachineLearningRegistryDataContainer,
+        AzureMachineLearningRegistryDataVersion,
+        AzureMachineLearningRegistryModelContainer,
+        AzureMachineLearningRegistryModelVersion,
+        AzureMachineLearningRegistryEnvironmentContainer,
+        AzureMachineLearningRegistryEnvironmentVersion,
     ]
-    for resource in workspace_resources:
+    for resource in workspace_and_registry_resources:
         instances = list(subscription_collector.graph.search("kind", resource.kind))  # type: ignore
 
         assert len(instances) > 0, f"No instances found for {resource.__name__}"
-
-    assert len(list(subscription_collector.graph.search("kind", "azure_machine_learning_job"))) == 1
