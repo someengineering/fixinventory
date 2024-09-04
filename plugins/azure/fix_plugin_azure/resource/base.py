@@ -611,6 +611,8 @@ class AzureTrackedResource:
         "location": S("location"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "type": S("type"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
     }
     location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -623,6 +625,8 @@ class AzureProxyResource:
     mapping: ClassVar[Dict[str, Bender]] = {
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "type": S("type"),
+        "ctime": S("systemData", "createdAt"),
+        "mtime": S("systemData", "lastModifiedAt"),
     }
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
@@ -828,9 +832,9 @@ class GraphBuilder:
         # add edge from location to resource
         if self.location:
             last_edge_key = self.add_edge(self.location, node=node)
-        elif source and "location" in source:
+        elif (source) and (source_location := source.get("location")):
             # reference the location node if available
-            if location := self.location_lookup.get(source["location"]):
+            if location := self.location_lookup.get(source_location):
                 node._region = location
                 last_edge_key = self.add_edge(location, node=node)
         if source and "locations" in source:
