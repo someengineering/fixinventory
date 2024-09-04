@@ -98,8 +98,8 @@ class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource)
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseCodeContainer(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_code_container"
+class AzureMachineLearningCodeContainerBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_code_container_base"
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -122,7 +122,7 @@ class AzureMachineLearningBaseCodeContainer(MicrosoftResource, AzureProxyResourc
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningBaseCodeContainer):
+class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningCodeContainerBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_workspace_code_container"
     reference_kinds: ClassVar[ModelReference] = {
@@ -157,7 +157,7 @@ class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningBaseCodeCon
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningBaseCodeContainer):
+class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningCodeContainerBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_registry_code_container"
     reference_kinds: ClassVar[ModelReference] = {
@@ -192,9 +192,9 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningBaseCodeCont
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseCodeVersion(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_code_version"
-    # Collected via AzureMachineLearningBaseCodeContainer()
+class AzureMachineLearningCodeVersionBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_code_version_base"
+    # Collected via AzureMachineLearningCodeContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -216,20 +216,20 @@ class AzureMachineLearningBaseCodeVersion(MicrosoftResource, AzureProxyResource)
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceCodeVersion(AzureMachineLearningBaseCodeVersion):
+class AzureMachineLearningWorkspaceCodeVersion(AzureMachineLearningCodeVersionBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_workspace_code_version"
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryCodeVersion(AzureMachineLearningBaseCodeVersion):
+class AzureMachineLearningRegistryCodeVersion(AzureMachineLearningCodeVersionBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_registry_code_version"
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseComponentContainer(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_component_container"
+class AzureMachineLearningComponentContainerBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_component_container_base"
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -252,7 +252,7 @@ class AzureMachineLearningBaseComponentContainer(MicrosoftResource, AzureProxyRe
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceComponentContainer(AzureMachineLearningBaseComponentContainer):
+class AzureMachineLearningWorkspaceComponentContainer(AzureMachineLearningComponentContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_component_container"
@@ -288,7 +288,7 @@ class AzureMachineLearningWorkspaceComponentContainer(AzureMachineLearningBaseCo
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningBaseComponentContainer):
+class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningComponentContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_component_container"
@@ -324,9 +324,9 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningBaseCom
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseComponentVersion(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_component_version"
-    # Collected via AzureMachineLearningBaseComponentContainer()
+class AzureMachineLearningComponentVersionBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_component_version_base"
+    # Collected via AzureMachineLearningComponentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -349,14 +349,14 @@ class AzureMachineLearningBaseComponentVersion(MicrosoftResource, AzureProxyReso
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceComponentVersion(AzureMachineLearningBaseComponentVersion):
+class AzureMachineLearningWorkspaceComponentVersion(AzureMachineLearningComponentVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_component_version"
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryComponentVersion(AzureMachineLearningBaseComponentVersion):
+class AzureMachineLearningRegistryComponentVersion(AzureMachineLearningComponentVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_component_version"
@@ -568,8 +568,8 @@ class AzureGlusterFs:
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseDataContainer(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_data_container"
+class AzureMachineLearningDataContainerBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_data_container_base"
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -592,7 +592,7 @@ class AzureMachineLearningBaseDataContainer(MicrosoftResource, AzureProxyResourc
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceDataContainer(AzureMachineLearningBaseDataContainer):
+class AzureMachineLearningWorkspaceDataContainer(AzureMachineLearningDataContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_data_container"
@@ -628,7 +628,7 @@ class AzureMachineLearningWorkspaceDataContainer(AzureMachineLearningBaseDataCon
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryDataContainer(AzureMachineLearningBaseDataContainer):
+class AzureMachineLearningRegistryDataContainer(AzureMachineLearningDataContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_data_container"
@@ -664,9 +664,9 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningBaseDataCont
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseDataVersion(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_data_version"
-    # Collected via AzureMachineLearningBaseDataContainer()
+class AzureMachineLearningDataVersionBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_data_version_base"
+    # Collected via AzureMachineLearningDataContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -691,14 +691,14 @@ class AzureMachineLearningBaseDataVersion(MicrosoftResource, AzureProxyResource)
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceDataVersion(AzureMachineLearningBaseDataVersion):
+class AzureMachineLearningWorkspaceDataVersion(AzureMachineLearningDataVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_data_version"
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryDataVersion(AzureMachineLearningBaseDataVersion):
+class AzureMachineLearningRegistryDataVersion(AzureMachineLearningDataVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_data_version"
@@ -805,8 +805,8 @@ class AzureInferenceContainerProperties:
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseEnvironmentContainer(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_environment_container"
+class AzureMachineLearningEnvironmentContainerBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_environment_container_base"
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -829,7 +829,7 @@ class AzureMachineLearningBaseEnvironmentContainer(MicrosoftResource, AzureProxy
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceEnvironmentContainer(AzureMachineLearningBaseEnvironmentContainer):
+class AzureMachineLearningWorkspaceEnvironmentContainer(AzureMachineLearningEnvironmentContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_environment_container"
@@ -865,7 +865,7 @@ class AzureMachineLearningWorkspaceEnvironmentContainer(AzureMachineLearningBase
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningBaseEnvironmentContainer):
+class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningEnvironmentContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_environment_container"
@@ -901,9 +901,9 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningBaseE
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseEnvironmentVersion(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_environment_version"
-    # Collected via AzureMachineLearningBaseEnvironmentContainer()
+class AzureMachineLearningEnvironmentVersionBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_environment_version_base"
+    # Collected via AzureMachineLearningEnvironmentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -940,14 +940,14 @@ class AzureMachineLearningBaseEnvironmentVersion(MicrosoftResource, AzureProxyRe
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceEnvironmentVersion(AzureMachineLearningBaseEnvironmentVersion):
+class AzureMachineLearningWorkspaceEnvironmentVersion(AzureMachineLearningEnvironmentVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_environment_version"
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryEnvironmentVersion(AzureMachineLearningBaseEnvironmentVersion):
+class AzureMachineLearningRegistryEnvironmentVersion(AzureMachineLearningEnvironmentVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_environment_version"
@@ -1109,7 +1109,7 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_version"
-    # Collected via AzureMachineLearningBaseFeaturesetContainer()
+    # Collected via AzureMachineLearningFeaturesetContainer()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1231,7 +1231,7 @@ class AzureIndexColumn:
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturestoreEntityVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_version"
-    # Collected via AzureMachineLearningBaseFeaturestoreEntityContainer()
+    # Collected via AzureMachineLearningFeaturestoreEntityContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -1481,8 +1481,8 @@ class AzureMachineLearningLabelingJob(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseModelContainer(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_machine_learning_base_model_container"
+class AzureMachineLearningModelContainerBase(MicrosoftResource, AzureProxyResource):
+    kind: ClassVar[str] = "azure_machine_learning_model_container_base"
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -1505,7 +1505,7 @@ class AzureMachineLearningBaseModelContainer(MicrosoftResource, AzureProxyResour
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningBaseModelContainer):
+class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningModelContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_container"
@@ -1541,7 +1541,7 @@ class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningBaseModelC
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryModelContainer(AzureMachineLearningBaseModelContainer):
+class AzureMachineLearningRegistryModelContainer(AzureMachineLearningModelContainerBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_container"
@@ -1584,9 +1584,9 @@ class AzureFlavorData:
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningBaseModelVersion(MicrosoftResource, AzureProxyResource):
+class AzureMachineLearningModelVersionBase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_model_version"
-    # Collected via AzureMachineLearningBaseModelContainer()
+    # Collected via AzureMachineLearningModelContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
         "name": S("name"),
@@ -1617,14 +1617,14 @@ class AzureMachineLearningBaseModelVersion(MicrosoftResource, AzureProxyResource
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceModelVersion(AzureMachineLearningBaseModelVersion):
+class AzureMachineLearningWorkspaceModelVersion(AzureMachineLearningModelVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_version"
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryModelVersion(AzureMachineLearningBaseModelVersion):
+class AzureMachineLearningRegistryModelVersion(AzureMachineLearningModelVersionBase):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_version"
