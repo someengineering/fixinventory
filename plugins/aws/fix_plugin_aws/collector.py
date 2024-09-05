@@ -9,6 +9,7 @@ from attrs import define
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource import (
+    amazonq,
     apigateway,
     athena,
     autoscaling,
@@ -105,6 +106,7 @@ regional_resources: List[Type[AwsResource]] = (
     + sqs.resources
     + redshift.resources
     + backup.resources
+    + amazonq.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 

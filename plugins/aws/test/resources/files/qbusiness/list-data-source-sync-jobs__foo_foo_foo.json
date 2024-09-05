@@ -1,0 +1,23 @@
+{
+    "history": [
+      {
+        "executionId": "foo",
+        "startTime": "2024-08-30T12:48:51Z",
+        "endTime": "2024-08-30T12:48:51Z",
+        "status": "SUCCEEDED",
+        "error": {
+          "errorMessage": "foo",
+          "errorCode": "InvalidRequest"
+        },
+        "dataSourceErrorCode": "foo",
+        "metrics": {
+          "documentsAdded": "foo",
+          "documentsModified": "foo",
+          "documentsDeleted": "foo",
+          "documentsFailed": "foo",
+          "documentsScanned": "foo"
+        }
+      }
+    ],
+    "nextToken": "foo"
+  }

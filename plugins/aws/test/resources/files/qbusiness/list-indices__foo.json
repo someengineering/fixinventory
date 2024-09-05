@@ -1,0 +1,12 @@
+{
+    "nextToken": "foo",
+    "indices": [
+      {
+        "displayName": "foo",
+        "indexId": "foo",
+        "createdAt": "2024-08-30T12:42:21Z",
+        "updatedAt": "2024-08-30T12:42:21Z",
+        "status": "ACTIVE"
+      }
+    ]
+  }

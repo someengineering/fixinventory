@@ -508,13 +508,21 @@ class GraphBuilder:
         # if there is no arn: try to create one from template
         if node.arn is None and (arn_tpl := meta.get("arn_tpl")):
             try:
-                node.arn = arn_tpl.format(
-                    partition=self.account.partition,
-                    id=node.id,
-                    name=node.name,
-                    account=self.account.id,
-                    region=self.region.name,
-                )
+                args = {
+                    "partition": self.account.partition,
+                    "id": node.id,
+                    "name": node.name,
+                    "account": self.account.id,
+                    "region": self.region.name,
+                }
+
+                # Add any additional dynamic arguments from the metadata (if they exist)
+                if extra_args := meta.get("extra_args"):
+                    for extra_arg in extra_args:
+                        args[extra_arg] = getattr(node, extra_arg)
+
+                # Format the ARN with the provided arguments
+                node.arn = arn_tpl.format(**args)
             except Exception as e:
                 log.warning(f"Can not compute ARN for {node} with template: {arn_tpl}: {e}")
 
