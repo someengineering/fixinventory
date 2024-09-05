@@ -1,0 +1,258 @@
+{
+    "value": [
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isAnonymous": false,
+          "codeUri": "https://blobStorage/folderName"
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999Z",
+          "createdBy": "string",
+          "createdByType": "User",
+          "lastModifiedAt": "2020-01-01T12:34:56.999Z",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "User"
+        }
+      },
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isAnonymous": false,
+          "componentSpec": {
+            "50acbce5-cccc-475a-8ac6-c4da402afbd8": null
+          }
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999Z",
+          "createdBy": "string",
+          "createdByType": "User",
+          "lastModifiedAt": "2020-01-01T12:34:56.999Z",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "User"
+        }
+      },
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "dataType": "uri_file",
+          "dataUri": "string",
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isAnonymous": false
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999Z",
+          "createdBy": "string",
+          "createdByType": "User",
+          "lastModifiedAt": "2020-01-01T12:34:56.999Z",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "User"
+        }
+      },
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isAnonymous": false,
+          "environmentType": "Curated",
+          "image": "docker.io/tensorflow/serving:latest",
+          "condaFile": "string",
+          "build": {
+            "contextUri": "https://storage-account.blob.core.windows.net/azureml/DockerBuildContext/95ddede6b9b8c4e90472db3acd0a8d28/",
+            "dockerfilePath": "prod/Dockerfile"
+          },
+          "inferenceConfig": {
+            "livenessRoute": {
+              "path": "string",
+              "port": 1
+            },
+            "readinessRoute": {
+              "path": "string",
+              "port": 1
+            },
+            "scoringRoute": {
+              "path": "string",
+              "port": 1
+            }
+          }
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999Z",
+          "createdBy": "string",
+          "createdByType": "User",
+          "lastModifiedAt": "2020-01-01T12:34:56.999Z",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "User"
+        }
+      },
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isArchived": false,
+          "isAnonymous": false,
+          "specification": {
+            "path": "string"
+          },
+          "materializationSettings": {
+            "storeType": "Offline",
+            "schedule": {
+              "endTime": "string",
+              "startTime": "string",
+              "timeZone": "string",
+              "triggerType": "Recurrence",
+              "frequency": "Month",
+              "interval": 1,
+              "schedule": {
+                "hours": [
+                  1
+                ],
+                "minutes": [
+                  1
+                ],
+                "weekDays": [
+                  "Saturday"
+                ],
+                "monthDays": [
+                  1
+                ]
+              }
+            },
+            "notification": {
+              "emails": [
+                "string"
+              ],
+              "emailOn": [
+                "JobCompleted"
+              ]
+            },
+            "resource": {
+              "instanceType": "string"
+            },
+            "sparkConfiguration": {
+              "string": "string"
+            }
+          },
+          "stage": "string",
+          "entities": [
+            "string"
+          ],
+          "provisioningState": "Canceled"
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999+00:49",
+          "createdBy": "string",
+          "createdByType": "User",
+          "lastModifiedAt": "2020-01-01T12:34:56.999+00:49",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "Key"
+        }
+      },
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isArchived": false,
+          "isAnonymous": false,
+          "indexColumns": [
+            {
+              "dataType": "Datetime",
+              "columnName": "string"
+            }
+          ],
+          "provisioningState": "Creating"
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999+00:55",
+          "createdBy": "string",
+          "createdByType": "Application",
+          "lastModifiedAt": "2020-01-01T12:34:56.999+00:55",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "Key"
+        }
+      },
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isAnonymous": false,
+          "flavors": {
+            "string": {
+              "data": {
+                "string": "string"
+              }
+            }
+          },
+          "modelType": "CustomModel",
+          "modelUri": "string"
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999Z",
+          "createdBy": "string",
+          "createdByType": "User",
+          "lastModifiedAt": "2020-01-01T12:34:56.999Z",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "User"
+        }
+      }
+    ],
+    "nextLink": "string"
+  }

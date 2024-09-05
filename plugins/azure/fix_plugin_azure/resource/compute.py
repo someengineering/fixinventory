@@ -335,57 +335,6 @@ class AzureCloudService(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureContainerServiceServicePrincipalProfile:
-    kind: ClassVar[str] = "azure_container_service_service_principal_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {"client_id": S("clientId"), "secret": S("secret")}
-    client_id: Optional[str] = field(default=None, metadata={"description": "The id for the service principal."})
-    secret: Optional[str] = field(default=None, metadata={'description': 'The secret password associated with the service principal.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureContainerServiceMasterProfile:
-    kind: ClassVar[str] = "azure_container_service_master_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {"count": S("count"), "dns_prefix": S("dnsPrefix"), "fqdn": S("fqdn")}
-    count: Optional[int] = field(default=None, metadata={'description': 'Number of masters (vms) in the container service cluster. Allowed values are 1, 3, and 5. The default value is 1.'})  # fmt: skip
-    dns_prefix: Optional[str] = field(default=None, metadata={'description': 'Dns prefix to be used to create the fqdn for master.'})  # fmt: skip
-    fqdn: Optional[str] = field(default=None, metadata={"description": "Fqdn for the master."})
-
-
-@define(eq=False, slots=False)
-class AzureContainerServiceWindowsProfile:
-    kind: ClassVar[str] = "azure_container_service_windows_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {"admin_password": S("adminPassword"), "admin_username": S("adminUsername")}
-    admin_password: Optional[str] = field(default=None, metadata={'description': 'The administrator password to use for windows vms.'})  # fmt: skip
-    admin_username: Optional[str] = field(default=None, metadata={'description': 'The administrator username to use for windows vms.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureContainerServiceSshConfiguration:
-    kind: ClassVar[str] = "azure_container_service_ssh_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {"public_keys": S("publicKeys", default=[]) >> ForallBend(S("keyData"))}
-    public_keys: Optional[List[str]] = field(default=None, metadata={'description': 'The list of ssh public keys used to authenticate with linux-based vms.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureContainerServiceLinuxProfile:
-    kind: ClassVar[str] = "azure_container_service_linux_profile"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "admin_username": S("adminUsername"),
-        "ssh": S("ssh") >> Bend(AzureContainerServiceSshConfiguration.mapping),
-    }
-    admin_username: Optional[str] = field(default=None, metadata={'description': 'The administrator username to use for linux vms.'})  # fmt: skip
-    ssh: Optional[AzureContainerServiceSshConfiguration] = field(default=None, metadata={'description': 'Ssh configuration for linux-based vms running on azure.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureContainerServiceVMDiagnostics:
-    kind: ClassVar[str] = "azure_container_service_vm_diagnostics"
-    mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "storage_uri": S("storageUri")}
-    enabled: Optional[bool] = field(default=None, metadata={'description': 'Whether the vm diagnostic agent is provisioned on the vm.'})  # fmt: skip
-    storage_uri: Optional[str] = field(default=None, metadata={'description': 'The uri of the storage account where diagnostics are stored.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureDedicatedHostGroupInstanceView:
     kind: ClassVar[str] = "azure_dedicated_host_group_instance_view"
     mapping: ClassVar[Dict[str, Bender]] = {"hosts": S("hosts", default=[]) >> ForallBend(S("name"))}

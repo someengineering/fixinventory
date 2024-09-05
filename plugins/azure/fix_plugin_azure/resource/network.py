@@ -3830,35 +3830,6 @@ class AzureLoadBalancingRule(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureProbe(AzureSubResource):
-    kind: ClassVar[str] = "azure_probe"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "etag": S("etag"),
-        "interval_in_seconds": S("properties", "intervalInSeconds"),
-        "load_balancing_rules": S("properties") >> S("loadBalancingRules", default=[]) >> ForallBend(S("id")),
-        "name": S("name"),
-        "number_of_probes": S("properties", "numberOfProbes"),
-        "port": S("properties", "port"),
-        "probe_threshold": S("properties", "probeThreshold"),
-        "protocol": S("properties", "protocol"),
-        "provisioning_state": S("properties", "provisioningState"),
-        "request_path": S("properties", "requestPath"),
-        "type": S("type"),
-    }
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    interval_in_seconds: Optional[int] = field(default=None, metadata={'description': 'The interval, in seconds, for how frequently to probe the endpoint for health status. Typically, the interval is slightly less than half the allocated timeout period (in seconds) which allows two full probes before taking the instance out of rotation. The default value is 15, the minimum value is 5.'})  # fmt: skip
-    load_balancing_rules: Optional[List[str]] = field(default=None, metadata={'description': 'The load balancer rules that use this probe.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within the set of probes used by the load balancer. This name can be used to access the resource.'})  # fmt: skip
-    number_of_probes: Optional[int] = field(default=None, metadata={'description': 'The number of probes where if no response, will result in stopping further traffic from being delivered to the endpoint. This values allows endpoints to be taken out of rotation faster or slower than the typical times used in Azure.'})  # fmt: skip
-    port: Optional[int] = field(default=None, metadata={'description': 'The port for communicating the probe. Possible values range from 1 to 65535, inclusive.'})  # fmt: skip
-    probe_threshold: Optional[int] = field(default=None, metadata={'description': 'The number of consecutive successful or failed probes in order to allow or deny traffic from being delivered to this endpoint. After failing the number of consecutive probes equal to this value, the endpoint will be taken out of rotation and require the same number of successful consecutive probes to be placed back in rotation.'})  # fmt: skip
-    protocol: Optional[str] = field(default=None, metadata={'description': 'The protocol of the end point. If Tcp is specified, a received ACK is required for the probe to be successful. If Http or Https is specified, a 200 OK response from the specifies URI is required for the probe to be successful.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
-    request_path: Optional[str] = field(default=None, metadata={'description': 'The URI used for requesting health status from the VM. Path is required if a protocol is set to http. Otherwise, it is not allowed. There is no default value.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
-
-
-@define(eq=False, slots=False)
 class AzureInboundNatPool(AzureSubResource):
     kind: ClassVar[str] = "azure_inbound_nat_pool"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
@@ -4450,21 +4421,6 @@ class AzureNetworkWatcher(MicrosoftResource):
                     graph_builder.add_edge(self, node=resource)
 
             graph_builder.submit_work(service_name, collect_flow_logs)
-
-
-@define(eq=False, slots=False)
-class AzureProviderResourceOperationDescription:
-    kind: ClassVar[str] = "azure_provider_resource_operation_description"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "description": S("description"),
-        "operation": S("operation"),
-        "provider": S("provider"),
-        "resource": S("resource"),
-    }
-    description: Optional[str] = field(default=None, metadata={"description": "Description of the operation."})
-    operation: Optional[str] = field(default=None, metadata={'description': 'Type of the operation: get, read, delete, etc.'})  # fmt: skip
-    provider: Optional[str] = field(default=None, metadata={"description": "Service provider: Microsoft Network."})
-    resource: Optional[str] = field(default=None, metadata={'description': 'Resource on which the operation is performed.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

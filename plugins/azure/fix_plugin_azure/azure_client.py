@@ -43,7 +43,7 @@ def is_retryable_exception(e: Exception) -> bool:
         return True
     if isinstance(e, HttpResponseError):
         error_code = getattr(e.error, "code", None)
-        status_code = getattr(e.response, "status_code", None)
+        status_code = getattr(e, "status_code", None)
 
         if error_code == "TooManyRequests" or status_code == 429:
             log.debug(f"Azure API request limit exceeded or throttling, retrying with exponential backoff: {e}")

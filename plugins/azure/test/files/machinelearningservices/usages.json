@@ -1,0 +1,26 @@
+{
+    "value": [
+      {
+        "id": "/subscriptions/00000000-0000-0000-0000-000000000000/usages",
+        "type": "Microsoft.MachineLearningServices/totalCores/usages",
+        "currentValue": 7,
+        "limit": 100,
+        "name": {
+          "localizedValue": "Clusters",
+          "value": "Clusters"
+        },
+        "unit": "Count"
+      },
+      {
+        "id": "/subscriptions/00000000-0000-0000-0000-000000000000/usages",
+        "type": "Microsoft.MachineLearningServices/dedicatedCores/usages",
+        "currentValue": 14,
+        "limit": 24,
+        "name": {
+          "localizedValue": "Total Cluster Dedicated Regional vCPUs",
+          "value": "Total Cluster Dedicated Regional vCPUs"
+        },
+        "unit": "Count"
+      }
+    ]
+  }

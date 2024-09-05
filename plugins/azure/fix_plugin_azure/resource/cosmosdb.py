@@ -2570,21 +2570,6 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, Azur
 
 
 @define(eq=False, slots=False)
-class AzureServerRoleGroupConfiguration:
-    kind: ClassVar[str] = "azure_server_role_group_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "default_value": S("defaultValue"),
-        "role": S("role"),
-        "source": S("source"),
-        "value": S("value"),
-    }
-    default_value: Optional[str] = field(default=None, metadata={"description": "Default value of the configuration."})
-    role: Optional[str] = field(default=None, metadata={"description": "The role of a server."})
-    source: Optional[str] = field(default=None, metadata={"description": "Source of the configuration."})
-    value: Optional[str] = field(default=None, metadata={"description": "Value of the configuration."})
-
-
-@define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_configuration"
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2651,24 +2636,6 @@ class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, Azure
         if (added := builder.add_node(configuration_instance, configuration_instance.config)) is not None:
             return [added]
         return []
-
-
-@define(eq=False, slots=False)
-class AzureCosmosDBPostgresqlClusterFirewallRule(MicrosoftResource, AzureProxyResource):
-    kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_firewall_rule"
-    # Collect via AzureCosmosDBPostgresqlCluster()
-    mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
-        "id": S("id"),
-        "tags": S("tags", default={}),
-        "name": S("name"),
-        "ctime": S("systemData", "createdAt"),
-        "mtime": S("systemData", "lastModifiedAt"),
-        "end_ip_address": S("properties", "endIpAddress"),
-        "provisioning_state": S("properties", "provisioningState"),
-        "start_ip_address": S("properties", "startIpAddress"),
-    }
-    end_ip_address: Optional[str] = field(default=None, metadata={'description': 'The end IP address of the cluster firewall rule. Must be IPv4 format.'})  # fmt: skip
-    start_ip_address: Optional[str] = field(default=None, metadata={'description': 'The start IP address of the cluster firewall rule. Must be IPv4 format.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
