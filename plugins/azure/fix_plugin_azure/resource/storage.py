@@ -303,63 +303,6 @@ class AzureQueue(MicrosoftResource, BaseQueue):
 
 
 @define(eq=False, slots=False)
-class AzureProviderResourceOperationDescription:
-    kind: ClassVar[str] = "azure_provider_resource_operation_description"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "description": S("description"),
-        "operation": S("operation"),
-        "provider": S("provider"),
-        "resource": S("resource"),
-    }
-    description: Optional[str] = field(default=None, metadata={"description": "Description of the operation."})
-    operation: Optional[str] = field(default=None, metadata={'description': 'Type of operation: get, read, delete, etc.'})  # fmt: skip
-    provider: Optional[str] = field(default=None, metadata={"description": "Service provider: Microsoft Storage."})
-    resource: Optional[str] = field(default=None, metadata={'description': 'Resource on which the operation is performed etc.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureDimension:
-    kind: ClassVar[str] = "azure_dimension"
-    mapping: ClassVar[Dict[str, Bender]] = {"display_name": S("displayName"), "name": S("name")}
-    display_name: Optional[str] = field(default=None, metadata={"description": "Display name of dimension."})
-    name: Optional[str] = field(default=None, metadata={"description": "Display name of dimension."})
-
-
-@define(eq=False, slots=False)
-class AzureMetricSpecification:
-    kind: ClassVar[str] = "azure_metric_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "aggregation_type": S("aggregationType"),
-        "category": S("category"),
-        "dimensions": S("dimensions") >> ForallBend(AzureDimension.mapping),
-        "display_description": S("displayDescription"),
-        "display_name": S("displayName"),
-        "fill_gap_with_zero": S("fillGapWithZero"),
-        "name": S("name"),
-        "resource_id_dimension_name_override": S("resourceIdDimensionNameOverride"),
-        "unit": S("unit"),
-    }
-    aggregation_type: Optional[str] = field(default=None, metadata={'description': 'Aggregation type could be Average.'})  # fmt: skip
-    category: Optional[str] = field(default=None, metadata={'description': 'The category this metric specification belong to, could be Capacity.'})  # fmt: skip
-    dimensions: Optional[List[AzureDimension]] = field(default=None, metadata={'description': 'Dimensions of blobs, including blob type and access tier.'})  # fmt: skip
-    display_description: Optional[str] = field(default=None, metadata={'description': 'Display description of metric specification.'})  # fmt: skip
-    display_name: Optional[str] = field(default=None, metadata={'description': 'Display name of metric specification.'})  # fmt: skip
-    fill_gap_with_zero: Optional[bool] = field(default=None, metadata={'description': 'The property to decide fill gap with zero or not.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "Name of metric specification."})
-    resource_id_dimension_name_override: Optional[str] = field(default=None, metadata={'description': 'Account Resource Id.'})  # fmt: skip
-    unit: Optional[str] = field(default=None, metadata={"description": "Unit could be Bytes or Count."})
-
-
-@define(eq=False, slots=False)
-class AzureServiceSpecification:
-    kind: ClassVar[str] = "azure_service_specification"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "metric_specifications": S("metricSpecifications") >> ForallBend(AzureMetricSpecification.mapping)
-    }
-    metric_specifications: Optional[List[AzureMetricSpecification]] = field(default=None, metadata={'description': 'Metric specifications of operation.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureStorageSkuCapability:
     kind: ClassVar[str] = "azure_storage_sku_capability"
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "value": S("value")}
