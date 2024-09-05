@@ -1,0 +1,58 @@
+@startuml
+
+hide empty members
+
+
+class User
+class Group
+class PermissionSet {
+  - inlinePolicy: PolicyStatement[]
+}
+
+Group o--> User
+User o--> PermissionSet
+Group o--> PermissionSet
+
+(Group, PermissionSet) .. Account
+Account .. (User, PermissionSet)
+
+package AwsAccount {
+class Role
+PermissionSet .> Role
+}
+
+note bottom of AwsAccount.Role
+The Permissions of the PermissionSet is
+replicated as Role into every Account.
+end note
+
+class PolicyStatement {
+  - effect: Allow|Deny
+  - actions: string[]
+  - notActions: string[]
+  - resources: string[]
+  - conditions: string[]
+}
+PermissionSet o--> PolicyStatement
+
+note bottom of PermissionSet
+The same PermissionSet can be assigned to multiple
+Users and Groups in multiple accounts.
+end note
+note right of User
+Has nothing to do with Iam User.
+end note
+note right of Group
+Has nothing to do with Iam Group.
+end note
+
+
+
+note top of Group
+AWS SSO User AWS IAM Identity Center (SSO)
+is usually available in one account in the organization
+and one region.
+
+It is allowed to have more than one SSO instance in individual accounts.
+end note
+@enduml

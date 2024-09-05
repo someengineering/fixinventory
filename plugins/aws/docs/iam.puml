@@ -1,0 +1,40 @@
+@startuml
+
+class IAMEntity {
+  - id: string
+  - inlinePolicy: PolicyStatement[]
+}
+
+class User
+class Group
+class Role
+note bottom of Role
+  Role has a trust policy that defines what users,
+  groups or services can assume this role.
+  Can have a cross account trust.
+end note
+IAMEntity <|-- Group
+IAMEntity <|-- Role
+IAMEntity <|-- User
+Group *-- User
+
+class Policy {
+  - managedBy: AWS|Customer
+}
+class PolicyStatement {
+  - effect: Allow|Deny
+  - actions: string[]
+  - notActions: string[]
+  - resources: string[]
+  - conditions: string[]
+  - more...
+}
+class Resource {
+  - inlinePolicy: PolicyStatement[]
+}
+Policy -> PolicyStatement
+IAMEntity ->  Policy
+PolicyStatement ..> Resource
+
+
+@enduml
