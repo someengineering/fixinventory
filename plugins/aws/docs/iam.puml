@@ -1,0 +1,37 @@
+@startuml
+
+class IAMEntity {
+  - id: string
+  - inlinePolicies: PolicyStatement[]
+}
+
+class User
+class Group
+class Role
+note bottom of Role
+  Can have a trust relationship with another account
+end note
+IAMEntity <|-- Group
+IAMEntity <|-- Role
+IAMEntity <|-- User
+Group *-- User
+
+class Policy {
+  - managedBy: AWS|Customer
+}
+class PolicyStatement {
+  - effect: Allow|Deny
+  - actions: string[]
+  - notActions: string[]
+  - resources: string[]
+  - conditions: string[]
+}
+class Resource {
+  - inlinePolicies: PolicyStatement[]
+}
+Policy -> PolicyStatement
+IAMEntity ->  Policy
+PolicyStatement ..> Resource
+
+
+@enduml
