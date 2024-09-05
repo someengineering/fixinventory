@@ -2,14 +2,16 @@
 
 class IAMEntity {
   - id: string
-  - inlinePolicies: PolicyStatement[]
+  - inlinePolicy: PolicyStatement[]
 }
 
 class User
 class Group
 class Role
 note bottom of Role
-  Can have a trust relationship with another account
+  Role has a trust policy that defines what users,
+  groups or services can assume this role.
+  Can have a cross account trust.
 end note
 IAMEntity <|-- Group
 IAMEntity <|-- Role
@@ -25,9 +27,10 @@ class PolicyStatement {
   - notActions: string[]
   - resources: string[]
   - conditions: string[]
+  - more...
 }
 class Resource {
-  - inlinePolicies: PolicyStatement[]
+  - inlinePolicy: PolicyStatement[]
 }
 Policy -> PolicyStatement
 IAMEntity ->  Policy
