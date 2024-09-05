@@ -78,7 +78,7 @@ class ExecutorQueue:
 
     def submit_work(self, key: Any, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         future = Future[T]()
-        task = ExecutorQueueTask(key=key, fn=fn, args=args, kwargs=kwargs, future=future)
+        task = ExecutorQueueTask(key=key, fn=fn, args=args, kwargs=kwargs, future=future)  # type: ignore
         self.__append_work(task)
         return future
 

@@ -381,21 +381,6 @@ class AzurePostgresqlServerFirewallRule(MicrosoftResource, AzureProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzureOperationDisplay:
-    kind: ClassVar[str] = "azure_operation_display"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "description": S("description"),
-        "operation": S("operation"),
-        "provider": S("provider"),
-        "resource": S("resource"),
-    }
-    description: Optional[str] = field(default=None, metadata={"description": "Operation description."})
-    operation: Optional[str] = field(default=None, metadata={'description': 'Localized friendly name for the operation.'})  # fmt: skip
-    provider: Optional[str] = field(default=None, metadata={"description": "Operation resource provider name."})
-    resource: Optional[str] = field(default=None, metadata={'description': 'Resource on which the operation is performed.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureAuthConfig:
     kind: ClassVar[str] = "azure_auth_config"
     mapping: ClassVar[Dict[str, Bender]] = {

@@ -48,45 +48,6 @@ class AzureProxyOnlyResource:
 
 
 @define(eq=False, slots=False)
-class AzureCustomDnsSuffixConfiguration(AzureProxyOnlyResource):
-    kind: ClassVar[str] = "azure_custom_dns_suffix_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = AzureProxyOnlyResource.mapping | {
-        "certificate_url": S("properties", "certificateUrl"),
-        "dns_suffix": S("properties", "dnsSuffix"),
-        "key_vault_reference_identity": S("properties", "keyVaultReferenceIdentity"),
-        "provisioning_details": S("properties", "provisioningDetails"),
-        "provisioning_state": S("properties", "provisioningState"),
-    }
-    certificate_url: Optional[str] = field(default=None, metadata={'description': 'The URL referencing the Azure Key Vault certificate secret that should be used as the default SSL/TLS certificate for sites with the custom domain suffix.'})  # fmt: skip
-    dns_suffix: Optional[str] = field(default=None, metadata={'description': 'The default custom domain suffix to use for all sites deployed on the ASE.'})  # fmt: skip
-    key_vault_reference_identity: Optional[str] = field(default=None, metadata={'description': 'The user-assigned identity to use for resolving the key vault certificate reference. If not specified, the system-assigned ASE identity will be used if available.'})  # fmt: skip
-    provisioning_details: Optional[str] = field(default=None, metadata={"description": ""})
-
-
-@define(eq=False, slots=False)
-class AzureAseV3NetworkingConfiguration(AzureProxyOnlyResource):
-    kind: ClassVar[str] = "azure_ase_v3_networking_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = AzureProxyOnlyResource.mapping | {
-        "allow_new_private_endpoint_connections": S("properties", "allowNewPrivateEndpointConnections"),
-        "external_inbound_ip_addresses": S("properties", "externalInboundIpAddresses"),
-        "ftp_enabled": S("properties", "ftpEnabled"),
-        "inbound_ip_address_override": S("properties", "inboundIpAddressOverride"),
-        "internal_inbound_ip_addresses": S("properties", "internalInboundIpAddresses"),
-        "linux_outbound_ip_addresses": S("properties", "linuxOutboundIpAddresses"),
-        "remote_debug_enabled": S("properties", "remoteDebugEnabled"),
-        "windows_outbound_ip_addresses": S("properties", "windowsOutboundIpAddresses"),
-    }
-    allow_new_private_endpoint_connections: Optional[bool] = field(default=None, metadata={'description': 'Property to enable and disable new private endpoint connection creation on ASE'})  # fmt: skip
-    external_inbound_ip_addresses: Optional[List[str]] = field(default=None, metadata={"description": ""})
-    ftp_enabled: Optional[bool] = field(default=None, metadata={'description': 'Property to enable and disable FTP on ASEV3'})  # fmt: skip
-    inbound_ip_address_override: Optional[str] = field(default=None, metadata={'description': 'Customer provided Inbound IP Address. Only able to be set on Ase create.'})  # fmt: skip
-    internal_inbound_ip_addresses: Optional[List[str]] = field(default=None, metadata={"description": ""})
-    linux_outbound_ip_addresses: Optional[List[str]] = field(default=None, metadata={"description": ""})
-    remote_debug_enabled: Optional[bool] = field(default=None, metadata={'description': 'Property to enable and disable Remote Debug on ASEV3'})  # fmt: skip
-    windows_outbound_ip_addresses: Optional[List[str]] = field(default=None, metadata={"description": ""})
-
-
-@define(eq=False, slots=False)
 class AzureHostingEnvironmentProfile:
     kind: ClassVar[str] = "azure_hosting_environment_profile"
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "name": S("name"), "type": S("type")}

@@ -125,20 +125,6 @@ class AzureFleet(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureKubernetesVersionCapabilities:
-    kind: ClassVar[str] = "azure_kubernetes_version_capabilities"
-    mapping: ClassVar[Dict[str, Bender]] = {"support_plan": S("supportPlan")}
-    support_plan: Optional[List[str]] = field(default=None, metadata={"description": ""})
-
-
-@define(eq=False, slots=False)
-class AzureKubernetesPatchVersion:
-    kind: ClassVar[str] = "azure_kubernetes_patch_version"
-    mapping: ClassVar[Dict[str, Bender]] = {"upgrades": S("upgrades")}
-    upgrades: Optional[List[str]] = field(default=None, metadata={'description': 'Possible upgrade path for given patch version'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureManagedClusterSKU:
     kind: ClassVar[str] = "azure_managed_cluster_sku"
     mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "tier": S("tier")}
@@ -894,35 +880,6 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
             for vmss in builder.nodes(clazz=AzureVirtualMachineScaleSet)
             if (poolname := vmss.tags.get("aks-managed-poolName")) and (vmss_id := vmss.id)
         ]
-
-
-@define(eq=False, slots=False)
-class AzureCompatibleVersions:
-    kind: ClassVar[str] = "azure_compatible_versions"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("name"), "versions": S("versions")}
-    name: Optional[str] = field(default=None, metadata={"description": "The product/service name."})
-    versions: Optional[List[str]] = field(default=None, metadata={'description': 'Product/service versions compatible with a service mesh add-on revision.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMeshRevision:
-    kind: ClassVar[str] = "azure_mesh_revision"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "compatible_with": S("compatibleWith") >> ForallBend(AzureCompatibleVersions.mapping),
-        "revision": S("revision"),
-        "upgrades": S("upgrades"),
-    }
-    compatible_with: Optional[List[AzureCompatibleVersions]] = field(default=None, metadata={'description': 'List of items this revision of service mesh is compatible with, and their associated versions.'})  # fmt: skip
-    revision: Optional[str] = field(default=None, metadata={"description": "The revision of the mesh release."})
-    upgrades: Optional[List[str]] = field(default=None, metadata={'description': 'List of revisions available for upgrade of a specific mesh revision'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureOSOptionProperty:
-    kind: ClassVar[str] = "azure_os_option_property"
-    mapping: ClassVar[Dict[str, Bender]] = {"enable_fips_image": S("enable-fips-image"), "os_type": S("os-type")}
-    enable_fips_image: Optional[bool] = field(default=None, metadata={'description': 'Whether the image is FIPS-enabled.'})  # fmt: skip
-    os_type: Optional[str] = field(default=None, metadata={"description": "The OS type."})
 
 
 @define(eq=False, slots=False)

@@ -263,7 +263,8 @@ def query_view_string(
             return (None, term) if sp is None else (sp, evolve(term, pre_filter=pre))
         elif isinstance(term, NotTerm):
             sp, nt = view_term(term.term)
-            return (None, term) if sp is None else (f"NOT ({sp})", NotTerm(nt))
+            remaining = nt if nt.is_all else NotTerm(nt)  # a remaining filter needs to be negated
+            return (None, term) if sp is None else (f"NOT ({sp})", remaining)
         elif isinstance(term, ContextTerm):
             # context terms cannot be handled by the view search exhaustively
             # we filter the list down as much as possible, but leave the context term untouched
@@ -295,6 +296,12 @@ def query_view_string(
                 return None, term
             return combine_optional(lsp, rsp, lambda ll, rr: f"({ll} {term.op} {rr})"), lt.combine(term.op, rt)
         elif isinstance(term, Predicate):
+            # arangosearch view does not handle nested array searches correctly
+            # see: https://github.com/arangodb/arangodb/issues/21281
+            # once this is resolved we can delete the next 2 lines
+            if term.op in ["!=", "not in"] and bool(array_marker.search(term.name)):
+                return "true", term  # true will not filter anything leaving the term for the filter
+
             return predicate_term(term)
         else:
             return None, term

@@ -1,0 +1,31 @@
+{
+    "value": [
+      {
+        "id": "string",
+        "name": "string",
+        "type": "string",
+        "properties": {
+          "description": "string",
+          "tags": {
+            "string": "string"
+          },
+          "properties": {
+            "string": "string"
+          },
+          "isArchived": false,
+          "latestVersion": "string",
+          "nextVersion": "string",
+          "provisioningState": "Canceled"
+        },
+        "systemData": {
+          "createdAt": "2020-01-01T12:34:56.999+00:46",
+          "createdBy": "string",
+          "createdByType": "Application",
+          "lastModifiedAt": "2020-01-01T12:34:56.999+00:46",
+          "lastModifiedBy": "string",
+          "lastModifiedByType": "User"
+        }
+      }
+    ],
+    "nextLink": "string"
+  }

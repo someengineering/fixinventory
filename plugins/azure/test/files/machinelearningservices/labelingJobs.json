@@ -1,0 +1,26 @@
+{
+    "value": [
+      {
+        "id": "/subscriptions/12345678-1234-5678-abcd-1234567890ab/resourceGroups/myResourceGroup/providers/Microsoft.MachineLearningServices/workspaces/myWorkspace/labelingjobs/job1",
+        "name": "job1",
+        "type": "Microsoft.MachineLearningServices/workspaces/labelingjobs",
+        "properties": {
+          "createdBy": {
+            "userObjectId": "11111111-1111-1111-1111-111111111111",
+            "userPrincipalName": "user@example.com"
+          },
+          "createdDate": "2024-08-22T10:00:00.000Z",
+          "description": "Image classification labeling job",
+          "datasetId": "/subscriptions/12345678-1234-5678-abcd-1234567890ab/resourceGroups/myResourceGroup/providers/Microsoft.MachineLearningServices/workspaces/myWorkspace/datasets/myDataset",
+          "labelingTaskType": "ImageClassification",
+          "status": "InProgress",
+          "progress": {
+            "total": 1000,
+            "labeled": 250,
+            "remaining": 750
+          }
+        }
+      }
+    ],
+    "nextLink": "https://management.azure.com/subscriptions/12345678-1234-5678-abcd-1234567890ab/resourceGroups/myResourceGroup/providers/Microsoft.MachineLearningServices/workspaces/myWorkspace/labelingjobs?$skiptoken=a1b2c3d4"
+  }

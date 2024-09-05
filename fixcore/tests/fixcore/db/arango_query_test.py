@@ -437,7 +437,6 @@ def test_view(foo_model: Model, graph_db: GraphDB) -> None:
     # asking for a specific element in an array can leverage the view
     assert_view("g[*]==1", "SEARCH v0.g == @b0 RETURN v0")
     assert_view("g[*] in [1,2,3]", "SEARCH v0.g in @b0 RETURN v0)  FOR result in view0")
-    assert_view("g[*] not in [1,2,3]", "SEARCH v0.g not in @b0 RETURN v0)  FOR result in view0")
     # use like instead of regex
     if TranslateRegexpToLike:
         assert_view('name=~"^123"', "SEARCH v0.name LIKE @b0", b0="123%")

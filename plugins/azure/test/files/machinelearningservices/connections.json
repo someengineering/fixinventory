@@ -1,0 +1,14 @@
+{
+    "value": [
+      {
+        "id": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/resourceGroup-1/providers/Microsoft.MachineLearningServices/workspaces/workspace-1/linkedWorkspaces/connection-1",
+        "name": "connection-1",
+        "type": "Microsoft.MachineLearningServices/workspaces/connections",
+        "properties": {
+          "category": "ContainerRegistry",
+          "target": "www.facebook.com",
+          "authType": "PAT"
+        }
+      }
+    ]
+  }

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections import deque
 from datetime import timedelta, datetime
-from typing import MutableSequence, Optional, List
+from typing import MutableSequence, Optional, List, Set
 
 from aiohttp import ClientSession
 from posthog.client import Client
@@ -56,6 +57,7 @@ class PostHogEventSender(AnalyticsEventSender):
         self.lock = asyncio.Lock()
         self.last_fetched: Optional[datetime] = None
         self.session: Optional[ClientSession] = None
+        self.white_listed_events: Set[str] = set()
 
     async def capture(self, event: List[AnalyticsEvent]) -> None:
         """
@@ -64,24 +66,34 @@ class PostHogEventSender(AnalyticsEventSender):
         Only in the rare case when the queue size reached its maximum the queue will be flushed directly.
         """
         async with self.lock:
-            self.queue.extend(event)
+            for e in event:
+                if e.kind not in self.white_listed_events:
+                    log.debug(f"Event {e.kind} is not whitelisted and will be ignored.")
+                    continue
+                self.queue.append(e)
 
         if len(self.queue) >= self.flush_at:
             await self.flush()
 
-    async def refresh_public_api_key(self) -> None:
+    async def refresh_from_cdn(self) -> None:
         """
         The API key is public but not static, so we need to refresh it periodically.
         """
         try:
             if not self.session:
                 self.session = ClientSession()
-            async with self.session.get("https://cdn.some.engineering/posthog/public_api_key") as resp:
-                api_key = (await resp.text()).strip()
+            async with self.session.get("https://cdn.some.engineering/posthog/posthog.json") as resp:
+                ph = json.loads(await resp.text())
+                # update the api key
+                api_key = ph["api_key"]
                 self.client.api_key = api_key
                 for consumer in self.client.consumers:
                     consumer.api_key = api_key
+                # update the events to report
+                self.white_listed_events = set(ph["events"])
+                # update the last fetched time
                 self.last_fetched = utc()
+                log.debug("Fetched latest posthog data from CDN.")
         except Exception as ex:
             log.debug(f"Could not fetch latest api key. Will use the current one. {ex}")
 
@@ -91,11 +103,11 @@ class PostHogEventSender(AnalyticsEventSender):
         """
         # check, if we need to fetch or refresh the public api key
         if not self.last_fetched:
-            await self.refresh_public_api_key()
+            await self.refresh_from_cdn()
             sd = self.system_data
             self.client.identify(sd.system_id, {"run_id": self.run_id, "created_at": sd.created_at})  # type: ignore
         elif (utc() - self.last_fetched) > timedelta(hours=1):
-            await self.refresh_public_api_key()
+            await self.refresh_from_cdn()
 
         # acquire the lock, send all events to the client and clear the queue
         async with self.lock:
@@ -114,6 +126,7 @@ class PostHogEventSender(AnalyticsEventSender):
             self.queue.clear()
 
     async def start(self) -> PostHogEventSender:
+        await self.flush()  # flush will make sure to load initial data from CDN
         await self.flusher.start()
         return self
 

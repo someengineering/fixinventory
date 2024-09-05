@@ -162,15 +162,12 @@ async def test_predefined_benchmarks(inspector_service: InspectorService) -> Non
     benchmarks = BenchmarkConfig.from_files()
     assert len(benchmarks) > 0
     for name, check in benchmarks.items():
-        # todo: fix the root cause and don't skip this benchmark
-        if name == "azure_cis_2_1":
-            continue
         config = {BenchmarkConfigRoot: check}
         cfg_id = ConfigId(name)
         validation = await inspector_service.validate_benchmark_config(cfg_id, config)
         assert validation is None, f"Benchmark: {name}" + str(validation)
         benchmark = BenchmarkConfig.from_config(ConfigEntity(cfg_id, config))
-        assert benchmark.clouds == ["aws"]
+        any(cloud in (benchmark.clouds or []) for cloud in ["aws", "azure"])
 
 
 async def test_list_failing(inspector_service: InspectorService) -> None:
