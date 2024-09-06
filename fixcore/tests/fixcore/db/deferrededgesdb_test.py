@@ -12,7 +12,7 @@ from fixcore.model.graph_access import DeferredEdge, ByNodeId, EdgeTypes
 @fixture
 def instances() -> List[DeferredEdges]:
     reported = dict(foo="bla", test=[1, 2, 3])
-    hash = "1234567890"
+    hash_str = "1234567890"
     return [
         DeferredEdges(
             id="1",
@@ -20,7 +20,7 @@ def instances() -> List[DeferredEdges]:
             task_id=TaskId("t1"),
             created_at=datetime(2021, 1, 1, tzinfo=timezone.utc),
             graph=GraphName("test"),
-            edges=[DeferredEdge(ByNodeId(NodeId("e1")), ByNodeId(NodeId("e2")), EdgeTypes.default, reported, hash)],
+            edges=[DeferredEdge(ByNodeId(NodeId("e1")), ByNodeId(NodeId("e2")), EdgeTypes.default, reported, hash_str)],
         ),
         DeferredEdges(
             id="2",
@@ -28,7 +28,7 @@ def instances() -> List[DeferredEdges]:
             task_id=TaskId("t1"),
             created_at=datetime(2021, 1, 1, tzinfo=timezone.utc),
             graph=GraphName("test"),
-            edges=[DeferredEdge(ByNodeId(NodeId("e2")), ByNodeId(NodeId("e3")), EdgeTypes.default, reported, hash)],
+            edges=[DeferredEdge(ByNodeId(NodeId("e2")), ByNodeId(NodeId("e3")), EdgeTypes.default, reported, hash_str)],
         ),
         DeferredEdges(
             id="3",
@@ -36,7 +36,7 @@ def instances() -> List[DeferredEdges]:
             task_id=TaskId("t2"),
             created_at=datetime(2021, 1, 1, tzinfo=timezone.utc),
             graph=GraphName("test"),
-            edges=[DeferredEdge(ByNodeId(NodeId("e2")), ByNodeId(NodeId("e3")), EdgeTypes.default, reported, hash)],
+            edges=[DeferredEdge(ByNodeId(NodeId("e2")), ByNodeId(NodeId("e3")), EdgeTypes.default, reported, hash_str)],
         ),
     ]
 

@@ -390,5 +390,5 @@ def test_edge_properties(person_model: Model) -> None:
     builder.add_from_json(dict(id="p1", reported=dict(kind="Person", id="p1", name="p1")))
     builder.add_from_json(dict(id="p2", reported=dict(kind="Person", id="p2", name="p2")))
     builder.add_from_json({"from": "p1", "to": "p2", "reported": dict(foo="bar")})
-    for fn, tn, data in builder.graph.edges(data=True):
+    for _, tn, data in builder.graph.edges(data=True):
         assert data == dict(reported=dict(foo="bar"), hash="b11b394b")
