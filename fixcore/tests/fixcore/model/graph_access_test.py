@@ -104,9 +104,9 @@ def test_not_visited(graph_access: GraphAccess) -> None:
 
 
 def test_edges(graph_access: GraphAccess) -> None:
-    assert graph_access.has_edge("1", "2", EdgeTypes.default)
-    assert not graph_access.has_edge("1", "9", EdgeTypes.default)
-    assert graph_access.has_edge("2", "3", EdgeTypes.default)
+    assert graph_access.has_edge("1", "2", EdgeTypes.default)[0]
+    assert not graph_access.has_edge("1", "9", EdgeTypes.default)[0]
+    assert graph_access.has_edge("2", "3", EdgeTypes.default)[0]
     not_visited = graph_access.not_visited_edges
     assert [(f, t) for f, t, _ in not_visited(EdgeTypes.default)] == [("1", "3"), ("2", "4"), ("3", "4")]
     assert [(f, t) for f, t, _ in not_visited(EdgeTypes.delete)] == [("1", "2"), ("1", "3"), ("1", "4")]

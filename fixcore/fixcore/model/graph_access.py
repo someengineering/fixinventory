@@ -438,12 +438,12 @@ class GraphAccess:
         assert len(cloud_ids) <= 1, f"More than one cloud node found: {cloud_ids}"
         return cloud_ids[0] if cloud_ids else None
 
-    def has_edge(self, from_id: object, to_id: object, edge_type: EdgeType) -> bool:
+    def has_edge(self, from_id: object, to_id: object, edge_type: EdgeType) -> Tuple[bool, Optional[Json]]:
         key = self.edge_key(from_id, to_id, edge_type)
-        result: bool = self.g.has_edge(from_id, to_id, key)
-        if result:
+        if self.g.has_edge(from_id, to_id, key):
             self.visited_edges.add(key)
-        return result
+            return True, self.g.get_edge_data(from_id, to_id, key)
+        return False, None
 
     def resolve(self) -> None:
         if not self.resolved:
