@@ -124,6 +124,8 @@ class AsyncCursor(AsyncIterator[Any]):
                         # example: vertex_name_default/edge_id -> default
                         "edge_type": re.sub("/.*$", "", link_id[self.vt_len :]),  # noqa: E203
                     }
+                    if reported := element.get("reported"):
+                        edge["reported"] = reported
                     # make sure that both nodes of the edge have been visited already
                     if from_id not in self.visited_node or to_id not in self.visited_node:
                         self.deferred_edges.append(edge)
