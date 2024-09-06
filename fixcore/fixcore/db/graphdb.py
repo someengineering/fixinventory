@@ -1134,7 +1134,7 @@ class ArangoGraphDB(GraphDB):
         for doc in edge_cursor:
             update_edge(doc)
 
-        for edge_from, edge_to in access.not_visited_edges(edge_type):
+        for edge_from, edge_to, _ in access.not_visited_edges(edge_type):
             insert_edge(edge_from, edge_to)
 
         return info, edges_inserts, edges_deletes
@@ -1198,7 +1198,7 @@ class ArangoGraphDB(GraphDB):
         try:
 
             def parent_edges(edge_type: EdgeType) -> Tuple[str, Json]:
-                edge_ids = [self.db_edge_key(f, t) for f, t, et in parent.g.edges(data="edge_type") if et == edge_type]
+                edge_ids = [self.db_edge_key(f, t) for f, t, k in parent.g.edges(keys=True) if k.edge_type == edge_type]
                 return self.edges_by_ids_and_until_replace_node(edge_type, preserve_parent_structure, parent, edge_ids)
 
             parents_nodes = self.nodes_by_ids_and_until_replace_node(preserve_parent_structure, parent)

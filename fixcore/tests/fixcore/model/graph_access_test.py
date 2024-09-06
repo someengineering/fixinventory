@@ -29,22 +29,22 @@ FooTuple = collections.namedtuple(
 def graph_access() -> GraphAccess:
     g = MultiDiGraph()
 
-    def add_edge(from_node: str, to_node: str, edge_type: EdgeType) -> None:
+    def add_edge(from_node: str, to_node: str, edge_type: EdgeType, reported: Json) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
-        g.add_edge(from_node, to_node, key, edge_type=edge_type)
+        g.add_edge(from_node, to_node, key, edge_type=edge_type, reported=reported)
 
     g.add_node("1", reported=to_json(FooTuple("1")), desired={"name": "a"}, metadata={"version": 1}, kinds=["foo"])
     g.add_node("2", reported=to_json(FooTuple("2")), desired={"name": "b"}, metadata={"version": 2}, kinds=["foo"])
     g.add_node("3", reported=to_json(FooTuple("3")), desired={"name": "c"}, metadata={"version": 3}, kinds=["foo"])
     g.add_node("4", reported=to_json(FooTuple("4")), desired={"name": "d"}, metadata={"version": 4}, kinds=["foo"])
-    add_edge("1", "2", edge_type=EdgeTypes.default)
-    add_edge("1", "3", edge_type=EdgeTypes.default)
-    add_edge("2", "3", edge_type=EdgeTypes.default)
-    add_edge("2", "4", edge_type=EdgeTypes.default)
-    add_edge("3", "4", edge_type=EdgeTypes.default)
-    add_edge("1", "2", edge_type=EdgeTypes.delete)
-    add_edge("1", "3", edge_type=EdgeTypes.delete)
-    add_edge("1", "4", edge_type=EdgeTypes.delete)
+    add_edge("1", "2", edge_type=EdgeTypes.default, reported={"prop": "foo"})
+    add_edge("1", "3", edge_type=EdgeTypes.default, reported={"prop": "foo"})
+    add_edge("2", "3", edge_type=EdgeTypes.default, reported={"prop": "foo"})
+    add_edge("2", "4", edge_type=EdgeTypes.default, reported={"prop": "foo"})
+    add_edge("3", "4", edge_type=EdgeTypes.default, reported={"prop": "foo"})
+    add_edge("1", "2", edge_type=EdgeTypes.delete, reported={"prop": "foo"})
+    add_edge("1", "3", edge_type=EdgeTypes.delete, reported={"prop": "foo"})
+    add_edge("1", "4", edge_type=EdgeTypes.delete, reported={"prop": "foo"})
     return GraphAccess(g)
 
 
@@ -107,8 +107,9 @@ def test_edges(graph_access: GraphAccess) -> None:
     assert graph_access.has_edge("1", "2", EdgeTypes.default)
     assert not graph_access.has_edge("1", "9", EdgeTypes.default)
     assert graph_access.has_edge("2", "3", EdgeTypes.default)
-    assert list(graph_access.not_visited_edges(EdgeTypes.default)) == [("1", "3"), ("2", "4"), ("3", "4")]
-    assert list(graph_access.not_visited_edges(EdgeTypes.delete)) == [("1", "2"), ("1", "3"), ("1", "4")]
+    not_visited = graph_access.not_visited_edges
+    assert [(f, t) for f, t, _ in not_visited(EdgeTypes.default)] == [("1", "3"), ("2", "4"), ("3", "4")]
+    assert [(f, t) for f, t, _ in not_visited(EdgeTypes.delete)] == [("1", "2"), ("1", "3"), ("1", "4")]
 
 
 def test_desired(graph_access: GraphAccess) -> None:
@@ -382,3 +383,12 @@ def test_model_size(person_model: Model) -> None:
     base = {"id": 3, "kind": 7, "list": 3, "tags": 88}  # base properties shared by person and address
     assert kind_props(cast(ComplexKind, person_model["Person"])) == base | {"name": 4}
     assert kind_props(cast(ComplexKind, person_model["Address"])) == base | {"city": 6, "zip": 2}
+
+
+def test_edge_properties(person_model: Model) -> None:
+    builder = GraphBuilder(person_model, uuid_str())
+    builder.add_from_json(dict(id="p1", reported=dict(kind="Person", id="p1", name="p1")))
+    builder.add_from_json(dict(id="p2", reported=dict(kind="Person", id="p2", name="p2")))
+    builder.add_from_json({"from": "p1", "to": "p2", "reported": dict(foo="bar")})
+    for fn, tn, data in builder.graph.edges(data=True):
+        assert data == dict(reported=dict(foo="bar"), hash="b11b394b")

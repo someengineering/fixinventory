@@ -6,7 +6,7 @@ import logging
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
-from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union
+from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union, Iterator
 
 from attrs import define
 from networkx import DiGraph, MultiDiGraph, is_directed_acyclic_graph
@@ -30,7 +30,7 @@ from fixcore.model.model import (
 from fixcore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from fixcore.model.typed_model import from_js
 from fixcore.types import Json, EdgeType, JsonElement
-from fixcore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get
+from fixcore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get, path_exists
 
 log = logging.getLogger(__name__)
 
@@ -164,17 +164,15 @@ class GraphBuilder:
             usage_json = js.get(Section.usage, {})
             if len(usage_json) == 0:
                 usage_json = None
-            node = self.add_node(
+            self.add_node(
                 node_id=js["id"],
                 reported=js[Section.reported],
-                desired=js.get(Section.desired, None),
-                metadata=js.get(Section.metadata, None),
-                search=js.get("search", None),
+                desired=js.get(Section.desired),
+                metadata=js.get(Section.metadata),
+                ancestors=js.get(Section.ancestors),
+                search=js.get("search"),
                 replace=js.get("replace", False) is True,
             )
-            if "organizational_root" in node["kinds_set"]:
-                assert self.organizational_root is None, "There can be only one organizational root!"
-                self.organizational_root = node["id"]
             if usage_json:
                 usage = UsageDatapoint(
                     id=js["id"],
@@ -184,7 +182,9 @@ class GraphBuilder:
                 )
                 self.usage.append(usage)
         elif "from" in js and "to" in js:
-            self.add_edge(js["from"], js["to"], js.get("edge_type", EdgeTypes.default))
+            self.add_edge(
+                js["from"], js["to"], js.get("edge_type", EdgeTypes.default), reported=js.get(Section.reported)
+            )
         elif "from_selector" in js and "to_selector" in js:
 
             def parse_selector(js: Json) -> NodeSelector:
@@ -241,9 +241,10 @@ class GraphBuilder:
         reported: Json,
         desired: Optional[Json] = None,
         metadata: Optional[Json] = None,
+        ancestors: Optional[Json] = None,
         search: Optional[str] = None,
         replace: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> None:
         self.nodes += 1
         # validate kind of this reported json
         coerced = self.model.check_valid(reported)
@@ -258,27 +259,34 @@ class GraphBuilder:
         hist_hash = GraphBuilder.history_hash(reported, kind)
         # flat all properties into a single string for search
         flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported, kind))
-        node = dict(
+        # get kind hierarchy
+        kinds = kind.kind_hierarchy()
+        # set organizational root
+        if "organizational_root" in kinds:
+            assert self.organizational_root is None, "There can be only one organizational root!"
+            self.organizational_root = node_id
+        self.graph.add_node(
+            node_id,
             id=node_id,
             reported=reported,
             desired=desired,
             metadata=metadata,
+            ancestors=ancestors,
             hash=sha,
             hist_hash=hist_hash,
             kind=kind,
-            kinds=list(kind.kind_hierarchy()),
-            kinds_set=kind.kind_hierarchy(),
+            kinds=list(kinds),
+            kinds_set=kinds,
             flat=flat,
         )
-        self.graph.add_node(node_id, **node)
         # update property sizes
         self.__update_property_size(kind, reported)
-        return node
 
-    def add_edge(self, from_node: str, to_node: str, edge_type: EdgeType) -> None:
+    def add_edge(self, from_node: str, to_node: str, edge_type: EdgeType, reported: Optional[Json] = None) -> None:
         self.edges += 1
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
-        self.graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+        sha = GraphBuilder.content_hash(reported) if reported else None
+        self.graph.add_edge(from_node, to_node, key, reported=reported, hash=sha)
 
     def store_deferred_connection(self, from_selector: NodeSelector, to_selector: NodeSelector, edge_type: str) -> None:
         self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type))
@@ -368,7 +376,7 @@ class GraphBuilder:
         for node_id, node in self.graph.nodes(data=True):
             assert node.get(Section.reported), f"{node_id} was used in an edge definition but not provided as vertex!"
 
-        edge_types: Set[str] = {edge[2] for edge in self.graph.edges(data="edge_type")}
+        edge_types: Set[str] = {key.edge_type for _, _, key in self.graph.edges(keys=True)}
         al = EdgeTypes.all
         assert not edge_types.difference(al), f"Graph contains unknown edge types! Given: {edge_types}. Known: {al}"
         # make sure there is only one root node
@@ -493,7 +501,7 @@ class GraphAccess:
             if anc:
                 on_self = anc.get("id") == node_id
                 for res in resolver.resolve:
-                    if not on_self or res.apply_on_self:
+                    if not path_exists(node, res.to_path) and (not on_self or res.apply_on_self):
                         with_ancestor(anc, res)
         return node
 
@@ -563,13 +571,14 @@ class GraphAccess:
             node["kinds"] = [reported["kind"]]
         return node
 
-    def not_visited_nodes(self) -> Generator[Json, None, None]:
+    def not_visited_nodes(self) -> Iterator[Json]:
         return (self.dump(nid, self.nodes[nid]) for nid in self.g.nodes if nid not in self.visited_nodes)
 
-    def not_visited_edges(self, edge_type: EdgeType) -> Generator[Tuple[str, str], None, None]:
-        # edge collection with (from, to, type): filter and drop type -> (from, to)
-        edges = self.g.edges(data="edge_type")
-        return (edge[:2] for edge in edges if edge[2] == edge_type and edge not in self.visited_edges)
+    def not_visited_edges(self, edge_type: EdgeType) -> Iterator[Tuple[str, str, Json]]:
+        for fn, tn, key, data in self.g.edges(keys=True, data=True):
+            if key.edge_type == edge_type:
+                if key not in self.visited_edges:
+                    yield fn, tn, data
 
     @staticmethod
     def edge_key(from_node: object, to_node: object, edge_type: EdgeType) -> EdgeKey:
@@ -599,7 +608,7 @@ class GraphAccess:
             C: [A, B]
             D: [A, B]
 
-        Note that all successors of a merge node that is also a predecessors of the merge node is sorted out.
+        Note that all successors of a merge node that is also a predecessors of the merge node are sorted out.
 
         :param graph: the incoming multi graph update.
         :return: the list of all merge roots, the expected parent graph and all merge root graphs.
