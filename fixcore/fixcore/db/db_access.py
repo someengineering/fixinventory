@@ -21,7 +21,7 @@ from fixcore.db import SystemData
 from fixcore.db.arangodb_extensions import ArangoHTTPClient
 from fixcore.db.async_arangodb import AsyncArangoDB, AsyncCursor
 from fixcore.db.configdb import config_entity_db, config_validation_entity_db
-from fixcore.db.deferredouteredgedb import deferred_outer_edge_db
+from fixcore.db.deferrededgesdb import deferred_outer_edge_db
 from fixcore.db.entitydb import EventEntityDb
 from fixcore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from fixcore.db.jobdb import job_db

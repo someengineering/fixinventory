@@ -43,10 +43,10 @@ from fixcore.core_config import (
     SnapshotsScheduleConfig,
     RunConfig,
 )
-from fixcore.db import runningtaskdb, SystemData, deferredouteredgedb, reportdb
+from fixcore.db import runningtaskdb, SystemData, deferrededgesdb, reportdb
 from fixcore.db.async_arangodb import AsyncArangoDB
 from fixcore.db.db_access import DbAccess
-from fixcore.db.deferredouteredgedb import DeferredOuterEdgeDb
+from fixcore.db.deferrededgesdb import DeferredEdgesDb
 from fixcore.db.graphdb import ArangoGraphDB, EventGraphDB
 from fixcore.db.jobdb import JobDb
 from fixcore.db.modeldb import model_db
@@ -229,8 +229,8 @@ async def benchmark_db(async_db: AsyncArangoDB) -> BenchmarkDb:
 
 
 @fixture
-async def pending_deferred_edge_db(async_db: AsyncArangoDB) -> DeferredOuterEdgeDb:
-    edges_db = deferredouteredgedb.deferred_outer_edge_db(async_db, "pending_deferred_edge")
+async def pending_deferred_edge_db(async_db: AsyncArangoDB) -> DeferredEdgesDb:
+    edges_db = deferrededgesdb.deferred_outer_edge_db(async_db, "pending_deferred_edge")
     await edges_db.create_update_schema()
     await edges_db.wipe()
     return edges_db

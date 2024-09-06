@@ -24,7 +24,7 @@ from fixcore.analytics import AnalyticsEventSender, InMemoryEventSender, Analyti
 from fixcore.async_extensions import run_async
 from fixcore.core_config import CoreConfig
 from fixcore.db.db_access import DbAccess
-from fixcore.db.deferredouteredgedb import DeferredOuterEdges
+from fixcore.db.deferrededgesdb import DeferredEdges
 from fixcore.db.graphdb import GraphDB
 from fixcore.db.model import GraphUpdate
 from fixcore.error import ImportAborted
@@ -197,7 +197,7 @@ class DbUpdaterProcess(Process):
             await model_handler.update_model(graphdb.name, list(model.kinds.values()), False)
             if nxt.task_id and builder.deferred_edges:
                 await outer_edge_db.update(
-                    DeferredOuterEdges(uuid_str(), nxt.change_id, nxt.task_id, utc(), nxt.graph, builder.deferred_edges)
+                    DeferredEdges(uuid_str(), nxt.change_id, nxt.task_id, utc(), nxt.graph, builder.deferred_edges)
                 )
                 log.debug(f"Updated {len(builder.deferred_edges)} pending outer edges for collect task {nxt.task_id}")
             return result

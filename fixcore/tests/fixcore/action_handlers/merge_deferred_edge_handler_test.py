@@ -6,7 +6,7 @@ import pytest
 
 from fixcore.action_handlers.merge_deferred_edge_handler import MergeDeferredEdgesHandler, merge_deferred_edges
 from fixcore.db.db_access import DbAccess
-from fixcore.db.deferredouteredgedb import DeferredOuterEdges
+from fixcore.db.deferrededgesdb import DeferredEdges
 from fixcore.db.graphdb import ArangoGraphDB
 from fixcore.db.model import QueryModel
 from fixcore.ids import TaskId, NodeId
@@ -65,7 +65,7 @@ async def test_merge_deferred_edges(
 
     e1 = DeferredEdge(ByNodeId(id1), BySearchCriteria("is(bla)"), EdgeTypes.default)
     await db_access.deferred_outer_edge_db.update(
-        DeferredOuterEdges("t0", "c0", TaskId("task123"), now, graph_db.name, [e1])
+        DeferredEdges("t0", "c0", TaskId("task123"), now, graph_db.name, [e1])
     )
     await merge_handler.merge_deferred_edges([TaskId("task123")])
 
@@ -79,7 +79,7 @@ async def test_merge_deferred_edges(
 
     e2 = DeferredEdge(ByNodeId(id2), ByNodeId(id1), EdgeTypes.default)
     await db_access.deferred_outer_edge_db.update(
-        DeferredOuterEdges("t1", "c1", TaskId("task456"), new_now, graph_db.name, [e2])
+        DeferredEdges("t1", "c1", TaskId("task456"), new_now, graph_db.name, [e2])
     )
     await merge_handler.merge_deferred_edges([TaskId("task456")])
 
@@ -93,7 +93,7 @@ async def test_merge_deferred_edges(
     new_now_2 = now + timedelta(minutes=10)
 
     await db_access.deferred_outer_edge_db.update(
-        DeferredOuterEdges("t2", "c4", TaskId("task789"), new_now_2, graph_db.name, [e2])
+        DeferredEdges("t2", "c4", TaskId("task789"), new_now_2, graph_db.name, [e2])
     )
     r = await merge_handler.merge_deferred_edges([TaskId("task789")])
     assert r.processed == 1
