@@ -99,7 +99,7 @@ class MergeDeferredEdgesHandler(Service):
             # delete processed edge definitions
             for task_id in task_ids:
                 await deferred_outer_edge_db.delete_for_task(task_id)
-            log.info(f"DeferredEdges: {len(edges)} edges: {updated} updated, {deleted} deleted. ({task_ids})")
+            log.info(f"DeferredEdges: {processed} edges: {updated} updated, {deleted} deleted. ({task_ids})")
             return DeferredMergeResult(processed, updated, deleted)
         else:
             log.info(f"MergeOuterEdgesHandler: no pending edges found. ({task_ids})")

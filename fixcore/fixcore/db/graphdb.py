@@ -323,7 +323,7 @@ class ArangoGraphDB(GraphDB):
     async def update_deferred_edges(
         self, edges: Dict[EdgeType, List[Tuple[NodeId, NodeId, DeferredEdge]]], ts: datetime
     ) -> Tuple[int, int]:
-        log.info(f"Update {len(edges)} deferred edges.")
+        log.info(f'Update {", ".join(f"{k}: {len(v)}" for k, v in edges.items())} deferred edges.')
         updated_edges = 0
         deleted_edges = 0
         ts_str = utc_str(ts)
