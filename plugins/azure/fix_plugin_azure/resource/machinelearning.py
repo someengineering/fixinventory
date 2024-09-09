@@ -443,6 +443,9 @@ class AzureMachineLearningCompute(MicrosoftResource):
                 "azure_machine_learning_compute_node",
                 MicrosoftGraphServicePrincipal.kind,
                 MicrosoftGraphUser.kind,
+                AzureVirtualMachineBase.kind,
+                AzureManagedCluster.kind,
+                AzureWebApp.kind,
             ]
         },
     }

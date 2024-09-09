@@ -920,7 +920,6 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_compute_disk_access"]},
         "successors": {"default": ["azure_compute_disk_encryption_set", "azure_compute_disk_type"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1156,8 +1155,6 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
                         volume_throughput=throughput,
                         volume_iops=iops,
                     )
-        if disk_id := self.id:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureComputeDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
             builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeDiskEncryptionSet, id=disk_en_set_id)
 
@@ -2043,7 +2040,7 @@ class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_compute_disk"]},
+        "predecessors": {"default": ["azure_compute_disk", "azure_compute_disk_access"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2112,6 +2109,10 @@ class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (disk_data := self.creation_data) and (disk_id := disk_data.source_resource_id):
             builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureComputeDisk, id=disk_id)
+        if disk_access_id := self.disk_access_id:
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureComputeDiskAccess, id=disk_access_id
+            )
 
 
 @define(eq=False, slots=False)

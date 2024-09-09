@@ -18,6 +18,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzurePrivateEndpointConnection,
 )
+from fix_plugin_azure.resource.keyvault import AzureKeyVaultKey
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.mysql import AzureServerDataEncryption
 from fix_plugin_azure.resource.network import AzureNetworkSubnet
@@ -796,7 +797,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                 MicrosoftGraphUser.kind,
             ]
         },
-        "predecessors": {"default": ["azure_cosmos_db_location", "azure_network_subnet"]},
+        "predecessors": {"default": ["azure_cosmos_db_location", "azure_network_subnet", AzureKeyVaultKey.kind]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1027,6 +1028,14 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                         clazz=AzureNetworkSubnet,
                         id=subnet_id,
                     )
+        if key_vault_key_uri := self.key_vault_key_uri:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureKeyVaultKey,
+                key_uri=key_vault_key_uri,
+            )
 
         # principal: collected via ms graph -> create a deferred edge
         if ai := self.account_identity:

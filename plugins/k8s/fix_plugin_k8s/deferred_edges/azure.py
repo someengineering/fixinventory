@@ -31,7 +31,7 @@ def link_service_to_azure_lb(graph: Graph, resource: BaseResource) -> None:
             for ingress in ingresses:
                 if lb_ip := rgetattr(ingress, "ip", None):
                     graph.add_deferred_edge(
-                        BySearchCriteria(f"is(azure_load_balancer) and reported.aks_public_ip_address={lb_ip}"),
+                        BySearchCriteria(f"is(azure_network_load_balancer) and reported.aks_public_ip_address={lb_ip}"),
                         ByNodeId(resource.chksum),
                     )
 

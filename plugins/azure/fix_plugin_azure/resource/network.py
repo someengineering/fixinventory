@@ -4014,7 +4014,7 @@ class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
             for ip_conf in ip_confs:
                 if p_ip_address_id := ip_conf._public_ip_address_id:
                     for info in p_ip_ids_and_cluster_ids:
-                        ip_ids, clust_id = info
+                        ip_ids, cluster_id = info
                         for ip_id in ip_ids:
                             if ip_id == p_ip_address_id:
                                 builder.add_edge(
@@ -4022,7 +4022,7 @@ class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
                                     edge_type=EdgeType.default,
                                     reverse=True,
                                     clazz=AzureManagedCluster,
-                                    id=clust_id,
+                                    id=cluster_id,
                                 )
                     for ip_info in publ_ip_id_and_p_ip_address:
                         pub_ip_id, ip_address = ip_info

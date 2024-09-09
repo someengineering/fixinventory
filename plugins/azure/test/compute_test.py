@@ -45,10 +45,9 @@ def test_disks(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureComputeDisk, builder, all_props=True, ignore_props={"etag"})
     assert len(collected) == 3
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureComputeDiskAccess, AzureComputeDiskEncryptionSet]
+    resource_types: List[Type[MicrosoftResource]] = [AzureComputeDiskEncryptionSet]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureComputeDiskAccess, AzureComputeDisk)) == 2
     assert len(builder.edges_of(AzureComputeDisk, AzureComputeDiskEncryptionSet)) == 2
 
     first = collected[0]

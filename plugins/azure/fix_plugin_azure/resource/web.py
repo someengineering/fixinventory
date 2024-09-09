@@ -14,6 +14,7 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     parse_json,
 )
+from fix_plugin_azure.resource.keyvault import AzureKeyVault
 from fix_plugin_azure.utils import NoneIfEmpty
 from fixlib.baseresources import BaseServerlessFunction, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend, MapDict
@@ -154,6 +155,7 @@ class AzureWebCertificate(MicrosoftResource):
         "predecessors": {
             "default": [
                 "azure_web_app_service_plan",
+                AzureKeyVault.kind,
             ]
         },
     }
@@ -214,6 +216,8 @@ class AzureWebCertificate(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if server_farm_id := self.server_farm_id:
             builder.add_edge(self, clazz=AzureWebAppServicePlan, reverse=True, id=server_farm_id)
+        if key_vault_id := self.key_vault_id:
+            builder.add_edge(self, clazz=AzureKeyVault, reverse=True, id=key_vault_id)
 
 
 @define(eq=False, slots=False)
