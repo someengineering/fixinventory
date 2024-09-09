@@ -15,6 +15,7 @@ from fix_plugin_azure.resource.base import (
     parse_json,
 )
 from fix_plugin_azure.utils import NoneIfEmpty
+from fixlib.baseresources import BaseServerlessFunction, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend, MapDict
 from fixlib.types import Json
 
@@ -149,6 +150,13 @@ class AzureWebCertificate(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "azure_web_app_service_plan",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -202,6 +210,10 @@ class AzureWebCertificate(MicrosoftResource):
     subject_name: Optional[str] = field(default=None, metadata={"description": "Subject name of the certificate."})
     thumbprint: Optional[str] = field(default=None, metadata={"description": "Certificate thumbprint."})
     valid: Optional[bool] = field(default=None, metadata={"description": "Is the certificate valid?."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if server_farm_id := self.server_farm_id:
+            builder.add_edge(self, clazz=AzureWebAppServicePlan, reverse=True, id=server_farm_id)
 
 
 @define(eq=False, slots=False)
@@ -1352,7 +1364,7 @@ class AzureWebAppAuthSettings:
 
 
 @define(eq=False, slots=False)
-class AzureWebApp(MicrosoftResource):
+class AzureWebApp(MicrosoftResource, BaseServerlessFunction):
     kind: ClassVar[str] = "azure_web_app"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -1363,6 +1375,13 @@ class AzureWebApp(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_web_app_service_plan",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1499,6 +1518,10 @@ class AzureWebApp(MicrosoftResource):
                 )
 
         graph_builder.submit_work(service_name, auth_settings)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if server_farm_id := self.server_farm_id:
+            builder.add_edge(self, clazz=AzureWebAppServicePlan, id=server_farm_id)
 
 
 @define(eq=False, slots=False)
