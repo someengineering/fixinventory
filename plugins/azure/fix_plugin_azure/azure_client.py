@@ -69,6 +69,7 @@ class AzureResourceSpec:
     access_path: Optional[str] = None
     expect_array: bool = False
     expected_error_codes: List[str] = field(factory=list)
+    expected_error_codes_with_hints: Dict[str, str] = field(factory=dict)
 
     def request(self, client: "MicrosoftResourceManagementClient", **kwargs: Any) -> HttpRequest:
         ser = Serializer()
@@ -320,6 +321,9 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
                 if error.code == "NoRegisteredProviderFound":
                     return None  # API not available in this region
                 elif error.code in spec.expected_error_codes:
+                    return None
+                elif hint := spec.expected_error_codes_with_hints.get(error.code):
+                    self.accumulator.add_error(False, error.code, spec.service, spec.action, hint)
                     return None
                 elif error.code == "BadRequest" and spec.service == "metric":
                     raise MetricRequestError from e

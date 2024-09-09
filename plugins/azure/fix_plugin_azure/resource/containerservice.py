@@ -570,8 +570,8 @@ class AzureManagedClusterSecurityProfileDefender:
 
 
 @define(eq=False, slots=False)
-class AzureAzureKeyVaultKms:
-    kind: ClassVar[str] = "azure_azure_key_vault_kms"
+class AzureKeyVaultKms:
+    kind: ClassVar[str] = "azure_key_vault_kms"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("enabled"),
         "key_id": S("keyId"),
@@ -596,12 +596,12 @@ class AzureManagedClusterSecurityProfileImageCleaner:
 class AzureManagedClusterSecurityProfile:
     kind: ClassVar[str] = "azure_managed_cluster_security_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "azure_key_vault_kms": S("azureKeyVaultKms") >> Bend(AzureAzureKeyVaultKms.mapping),
+        "azure_key_vault_kms": S("azureKeyVaultKms") >> Bend(AzureKeyVaultKms.mapping),
         "defender": S("defender") >> Bend(AzureManagedClusterSecurityProfileDefender.mapping),
         "image_cleaner": S("imageCleaner") >> Bend(AzureManagedClusterSecurityProfileImageCleaner.mapping),
         "workload_identity": S("workloadIdentity", "enabled"),
     }
-    azure_key_vault_kms: Optional[AzureAzureKeyVaultKms] = field(default=None, metadata={'description': 'Azure Key Vault key management service settings for the security profile.'})  # fmt: skip
+    azure_key_vault_kms: Optional[AzureKeyVaultKms] = field(default=None, metadata={'description': 'Azure Key Vault key management service settings for the security profile.'})  # fmt: skip
     defender: Optional[AzureManagedClusterSecurityProfileDefender] = field(default=None, metadata={'description': 'Microsoft Defender settings for the security profile.'})  # fmt: skip
     image_cleaner: Optional[AzureManagedClusterSecurityProfileImageCleaner] = field(default=None, metadata={'description': 'Image Cleaner removes unused images from nodes, freeing up disk space and helping to reduce attack surface area. Here are settings for the security profile.'})  # fmt: skip
     workload_identity: Optional[bool] = field(default=None, metadata={'description': 'Workload identity settings for the security profile.'})  # fmt: skip

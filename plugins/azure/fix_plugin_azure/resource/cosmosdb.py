@@ -765,6 +765,17 @@ class AzureDatabaseAccountKeysMetadata:
     secondary_readonly_master_key: Optional[datetime] = field(default=None, metadata={'description': 'The metadata related to an access key for a given database account.'})  # fmt: skip
 
 
+mongo_cosmosdb_error_message = """Error: The action failed because Mongo User and Role Definitions are not enabled for your Azure Cosmos DB MongoDB account. 
+This means the database cannot perform operations that involve user or role management. You received a "BadRequest" error, indicating that Mongo User and Role Definition features are disabled.
+Hint: To resolve this issue, enable Role-based access control (RBAC) for your Cosmos DB account. 
+Steps:
+1. Navigate to the Azure portal.
+2. Go to your Cosmos DB MongoDB account settings.
+3. Enable the "Role-based access control (RBAC)" option in "Features".
+Enabling RBAC will allow user permissions and role assignments to be managed within the database, which is essential for actions such as Mongo user and role definitions.
+"""
+
+
 @define(eq=False, slots=False)
 class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_cosmos_db_account"
@@ -781,7 +792,6 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
         "successors": {
             "default": [
                 "azure_cosmos_db_cassandra_keyspace",
-                "azure_cosmos_db_account_read_only_keys",
                 "azure_cosmos_db_gremlin_database",
                 "azure_cosmos_db_mongo_db_database",
                 "azure_cosmos_db_mongo_db_role_definition",
@@ -915,37 +925,23 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, str]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
-        if issubclass(AzureCosmosDBAccountReadOnlyKeys, class_instance):  # type: ignore
-            api_spec = AzureResourceSpec(
-                service="cosmos-db",
-                version="2024-05-15",
-                path=path,
-                path_parameters=[],
-                query_parameters=["api-version"],
-                access_path=None,
-                expect_array=False,
-                expected_error_codes=expected_errors or [],
-            )
-        else:
-            api_spec = AzureResourceSpec(
-                service="cosmos-db",
-                version="2024-05-15",
-                path=path,
-                path_parameters=[],
-                query_parameters=["api-version"],
-                access_path="value",
-                expect_array=True,
-                expected_error_codes=expected_errors or [],
-            )
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes_with_hints=expected_errors or {},
+        )
         items = graph_builder.client.list(api_spec)
         if not items:
             return
-        if issubclass(AzureCosmosDBAccountReadOnlyKeys, class_instance):  # type: ignore
-            collected = class_instance.collect_keys(account_id, items, graph_builder)  # type: ignore
-        elif issubclass(AzureCosmosDBAccountUsage, class_instance):  # type: ignore
+        if issubclass(AzureCosmosDBAccountUsage, class_instance):  # type: ignore
             collected = class_instance.collect_usages(account_id, items, graph_builder)  # type: ignore
         else:
             collected = class_instance.collect(items, graph_builder)
@@ -955,7 +951,6 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
             resources_to_collect = [
-                ("readonlykeys", AzureCosmosDBAccountReadOnlyKeys, None),
                 ("notebookWorkspaces", AzureCosmosDBNotebookWorkspace, None),
                 ("privateLinkResources", AzureCosmosDBPrivateLink, None),
                 ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
@@ -981,8 +976,16 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                     resources_to_collect.extend(
                         [
                             ("mongodbDatabases", AzureCosmosDBMongoDBDatabase, None),
-                            ("mongodbRoleDefinitions", AzureCosmosDBMongoDBRoleDefinition, None),
-                            ("mongodbUserDefinitions", AzureCosmosDBMongoDBUserDefinition, None),
+                            (
+                                "mongodbRoleDefinitions",
+                                AzureCosmosDBMongoDBRoleDefinition,
+                                {"BadRequest": mongo_cosmosdb_error_message},
+                            ),
+                            (
+                                "mongodbUserDefinitions",
+                                AzureCosmosDBMongoDBUserDefinition,
+                                {"BadRequest": mongo_cosmosdb_error_message},
+                            ),
                         ]
                     )
                 elif api_type == "Table":
@@ -1053,33 +1056,6 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                                 f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
                             ),
                         )
-
-
-@define(eq=False, slots=False)
-class AzureCosmosDBAccountReadOnlyKeys(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_account_read_only_keys"
-    # Collect via AzureCosmosDBAccount()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "primary_readonly_master_key": S("primaryReadonlyMasterKey"),
-        "secondary_readonly_master_key": S("secondaryReadonlyMasterKey"),
-    }
-    primary_readonly_master_key: Optional[str] = field(default=None, metadata={'description': 'Base 64 encoded value of the primary read-only key.'})  # fmt: skip
-    secondary_readonly_master_key: Optional[str] = field(default=None, metadata={'description': 'Base 64 encoded value of the secondary read-only key.'})  # fmt: skip
-
-    @classmethod
-    def collect_keys(
-        cls, account_id: str, raw: List[Json], builder: GraphBuilder
-    ) -> List[AzureCosmosDBAccountReadOnlyKeys]:
-        result = []
-        for js in raw:
-            # map from api
-            if instance := cls.from_api(js, builder):
-                # Set account id to resource name and id
-                instance.name = instance.id = account_id
-                if (added := builder.add_node(instance, js)) is not None:
-                    result.append(added)
-        return result
 
 
 @define(eq=False, slots=False)
@@ -2714,7 +2690,6 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBCassandraCluster,
     AzureCosmosDBCassandraClusterDataCenter,
     AzureCosmosDBAccount,
-    AzureCosmosDBAccountReadOnlyKeys,
     AzureCosmosDBGremlinDatabase,
     AzureCosmosDBGremlinGraph,
     AzureCosmosDBMongoDBCollection,

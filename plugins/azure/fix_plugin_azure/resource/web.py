@@ -1016,8 +1016,8 @@ class AzureIpSecurityRestriction:
 
 
 @define(eq=False, slots=False)
-class AzureAzureStorageInfoValue:
-    kind: ClassVar[str] = "azure_azure_storage_info_value"
+class AzureStorageInfoValue:
+    kind: ClassVar[str] = "azure_storage_info_value"
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_key": S("accessKey"),
         "account_name": S("accountName"),
@@ -1122,7 +1122,7 @@ class AzureSiteConfig:
     app_settings: Optional[Json] = field(default=None, metadata={"description": "Application settings."})
     auto_heal_enabled: Optional[bool] = field(default=None, metadata={'description': '<code>true</code> if Auto Heal is enabled; otherwise, <code>false</code>.'})  # fmt: skip
     auto_swap_slot_name: Optional[str] = field(default=None, metadata={"description": "Auto-swap slot name."})
-    azure_storage_accounts: Optional[Dict[str, AzureAzureStorageInfoValue]] = field(default=None, metadata={'description': 'List of Azure Storage Accounts.'})  # fmt: skip
+    azure_storage_accounts: Optional[Dict[str, AzureStorageInfoValue]] = field(default=None, metadata={'description': 'List of Azure Storage Accounts.'})  # fmt: skip
     connection_strings: Optional[List[AzureConnStringInfo]] = field(default=None, metadata={'description': 'Connection strings.'})  # fmt: skip
     cors: Optional[AzureCorsSettings] = field(default=None, metadata={'description': 'Cross-Origin Resource Sharing (CORS) settings for the app.'})  # fmt: skip
     default_documents: Optional[List[str]] = field(default=None, metadata={"description": "Default documents."})
