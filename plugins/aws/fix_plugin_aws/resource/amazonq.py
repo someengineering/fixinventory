@@ -350,9 +350,9 @@ class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     )
     # Collected via AwsQBusinessApplication()
     aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{app_id}/indices/{indice_id}/datasources/{id}/details?region={region}",  # fmt: skip
+        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{application_id}/indices/{indice_id}/datasources/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{indice_id}/data-source/{id}",
-        "extra_args": ["application_id", "indice_id"],
+        "extra_args_for_arn": ["application_id", "indice_id"],
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("dataSourceId"),
@@ -516,7 +516,7 @@ class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{id}",
-        "extra_args": ["application_id"],
+        "extra_args_for_arn": ["application_id"],
     }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -737,7 +737,7 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/plugin/{id}",
-        "extra_args": ["application_id"],
+        "extra_args_for_arn": ["application_id"],
     }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -801,7 +801,7 @@ class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/retriever/{id}",
-        "extra_args": ["application_id"],
+        "extra_args_for_arn": ["application_id"],
     }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -856,7 +856,7 @@ class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/web-experience/{id}",
-        "extra_args": ["application_id"],
+        "extra_args_for_arn": ["application_id"],
     }
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
