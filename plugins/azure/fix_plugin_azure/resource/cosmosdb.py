@@ -770,7 +770,7 @@ This means the database cannot perform operations that involve user or role mana
 Hint: To resolve this issue, enable Role-based access control (RBAC) for your Cosmos DB account.
 Steps:
 1. Navigate to the Azure portal.
-2. Go to your Cosmos DB MongoDB account settings.
+2. Go to your Cosmos DB MongoDB account settings -> {provider_link}.
 3. Enable the "Role-based access control (RBAC)" option in "Features".
 Enabling RBAC will allow user permissions and role assignments to be managed within the database, which is essential for actions such as Mongo user and role definitions.
 """
@@ -953,7 +953,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
-            resources_to_collect = [
+            resources_to_collect: List = [  # type: ignore
                 ("notebookWorkspaces", AzureCosmosDBNotebookWorkspace, None),
                 ("privateLinkResources", AzureCosmosDBPrivateLink, None),
                 ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
@@ -970,11 +970,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                         ]
                     )
                 elif api_type == "Cassandra":
-                    resources_to_collect.extend(
-                        [
-                            ("cassandraKeyspaces", AzureCosmosDBCassandraKeyspace, None),
-                        ]
-                    )
+                    resources_to_collect.append(("cassandraKeyspaces", AzureCosmosDBCassandraKeyspace, None))
                 elif api_type == "MongoDB":
                     resources_to_collect.extend(
                         [
@@ -982,27 +978,27 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                             (
                                 "mongodbRoleDefinitions",
                                 AzureCosmosDBMongoDBRoleDefinition,
-                                {"BadRequest": mongo_cosmosdb_error_message},
+                                {
+                                    "BadRequest": mongo_cosmosdb_error_message.format(
+                                        provider_link=self._metadata.get("provider_link")
+                                    )
+                                },
                             ),
                             (
                                 "mongodbUserDefinitions",
                                 AzureCosmosDBMongoDBUserDefinition,
-                                {"BadRequest": mongo_cosmosdb_error_message},
+                                {
+                                    "BadRequest": mongo_cosmosdb_error_message.format(
+                                        provider_link=self._metadata.get("provider_link")
+                                    )
+                                },
                             ),
                         ]
                     )
                 elif api_type == "Table":
-                    resources_to_collect.extend(
-                        [
-                            ("tables", AzureCosmosDBTable, None),
-                        ]
-                    )
+                    resources_to_collect.append(("tables", AzureCosmosDBTable, None))
                 elif api_type == "Gremlin":
-                    resources_to_collect.extend(
-                        [
-                            ("gremlinDatabases", AzureCosmosDBGremlinDatabase, None),
-                        ]
-                    )
+                    resources_to_collect.append(("gremlinDatabases", AzureCosmosDBGremlinDatabase, None))
             for resource_type, resource_class, expected_errors in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
