@@ -253,8 +253,9 @@ async def lock_db(async_db: AsyncArangoDB) -> LockDB:
 
 
 @fixture()
-def db_access(graph_db: ArangoGraphDB, default_config: CoreConfig) -> DbAccess:
+async def db_access(graph_db: ArangoGraphDB, default_config: CoreConfig) -> DbAccess:
     access = DbAccess(graph_db.db.db, NoEventSender(), NoAdjust(), default_config)
+    await access.migrate()
     return access
 
 
