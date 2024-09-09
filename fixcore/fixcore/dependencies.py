@@ -476,7 +476,7 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         core_config_handler = deps.add(
             ServiceNames.core_config_handler,
             CoreConfigHandler(
-                config, message_bus, worker_task_queue, config_handler, event_sender, inspector, db_change
+                config, message_bus, worker_task_queue, config_handler, event_sender, inspector, db_change, db.lock_db
             ),
         )
         # Enable package manager and runtime for infra apps when required

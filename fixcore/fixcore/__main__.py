@@ -199,7 +199,9 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     subscriptions = deps.add(ServiceNames.subscription_handler, SubscriptionHandlerService(message_bus))
     core_config_handler = deps.add(
         ServiceNames.core_config_handler,
-        CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector, db_change),
+        CoreConfigHandler(
+            config, message_bus, worker_task_queue, config_handler, event_sender, inspector, db_change, db.lock_db
+        ),
     )
     deps.add(ServiceNames.infra_apps_runtime, LocalfixcoreAppRuntime(cli))
     deps.add(

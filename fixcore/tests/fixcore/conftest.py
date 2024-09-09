@@ -50,6 +50,7 @@ from fixcore.db.db_access import DbAccess
 from fixcore.db.deferredouteredgedb import DeferredOuterEdgeDb
 from fixcore.db.graphdb import ArangoGraphDB, EventGraphDB
 from fixcore.db.jobdb import JobDb
+from fixcore.db.lockdb import LockDB
 from fixcore.db.modeldb import model_db
 from fixcore.db.packagedb import PackageEntityDb, app_package_entity_db
 from fixcore.db.reportdb import ReportCheckDb, BenchmarkDb
@@ -240,6 +241,13 @@ async def pending_deferred_edge_db(async_db: AsyncArangoDB) -> DeferredOuterEdge
 @fixture
 async def timeseries_db(async_db: AsyncArangoDB, default_config: CoreConfig) -> TimeSeriesDB:
     db = TimeSeriesDB(async_db, "ts", default_config)
+    await db.create_update_schema()
+    return db
+
+
+@fixture
+async def lock_db(async_db: AsyncArangoDB) -> LockDB:
+    db = LockDB(async_db, "locks")
     await db.create_update_schema()
     return db
 
@@ -521,6 +529,7 @@ async def core_config_handler(
     core_config_handler_exits: List[bool],
     default_config: CoreConfig,
     db_change: DatabaseChange,
+    db_access: DbAccess,
 ) -> CoreConfigHandler:
     def on_exit() -> None:
         core_config_handler_exits.append(True)
@@ -528,7 +537,15 @@ async def core_config_handler(
     config = default_config
     sender = InMemoryEventSender()
     return CoreConfigHandler(
-        config, message_bus, task_queue, config_handler, sender, inspector_service, db_change, on_exit
+        config,
+        message_bus,
+        task_queue,
+        config_handler,
+        sender,
+        inspector_service,
+        db_change,
+        db_access.lock_db,
+        on_exit,
     )
 
 

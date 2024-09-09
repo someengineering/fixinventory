@@ -26,6 +26,7 @@ from fixcore.core_config import (
     migrate_command_config,
 )
 from fixcore.db import DatabaseChange
+from fixcore.db.lockdb import LockDB
 from fixcore.ids import SubscriberId, WorkerId, ConfigId
 from fixcore.message_bus import MessageBus, CoreMessage
 from fixcore.model.model import Kind
@@ -52,6 +53,7 @@ class CoreConfigHandler(Service):
         event_sender: AnalyticsEventSender,
         inspector: Inspector,
         db_change: DatabaseChange,
+        lock_db: LockDB,
         exit_fn: Callable[[], None] = partial(restart_service, "fixcore config changed."),
     ):
         super().__init__()
@@ -64,6 +66,7 @@ class CoreConfigHandler(Service):
         self.event_sender = event_sender
         self.inspector = inspector
         self.db_change = db_change
+        self.lock_db = lock_db
         self.exit_fn = exit_fn
         self.config_updated_callbacks: List[Callable[[ConfigId], Awaitable[None]]] = []
 
@@ -254,8 +257,9 @@ class CoreConfigHandler(Service):
 
     async def start(self) -> None:
         if self.db_change.has_changed() and not self.config.multi_tenant_setup:
-            await self.__update_model()
-            await self.__update_config()
+            async with self.lock_db.lock("fixcore.config.update"):
+                await self.__update_model()
+                await self.__update_config()
         self.config_updated_listener = asyncio.create_task(self.__handle_events())
         self.config_validator = asyncio.create_task(self.__validate_config())
 

@@ -25,6 +25,7 @@ from fixcore.db.deferredouteredgedb import deferred_outer_edge_db
 from fixcore.db.entitydb import EventEntityDb
 from fixcore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from fixcore.db.jobdb import job_db
+from fixcore.db.lockdb import LockDB
 from fixcore.db.modeldb import ModelDb, model_db
 from fixcore.db.packagedb import app_package_entity_db
 from fixcore.db.reportdb import report_check_db, benchmark_db
@@ -76,6 +77,7 @@ class DbAccess(Service):
         time_series: str = "ts",
         report_checks: str = "report_checks",
         benchmarks: str = "report_benchmarks",
+        locks: str = "locks",
     ):
         super().__init__()
         self.event_sender = event_sender
@@ -95,6 +97,7 @@ class DbAccess(Service):
         self.report_check_db = report_check_db(self.db, report_checks)
         self.benchmark_db = benchmark_db(self.db, benchmarks)
         self.time_series_db = TimeSeriesDB(self.db, time_series, config)
+        self.lock_db = LockDB(self.db, locks)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
@@ -130,6 +133,7 @@ class DbAccess(Service):
 
             # will be executed on every git change
             log.info(f"Git hash change detected. Update schema. {system_data.version} -> {git_hash}")
+            await self.lock_db.create_update_schema()
             await self.running_task_db.create_update_schema()
             await self.job_db.create_update_schema()
             await self.config_entity_db.create_update_schema()
