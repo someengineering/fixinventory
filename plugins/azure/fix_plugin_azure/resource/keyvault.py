@@ -204,8 +204,8 @@ class AzureSecret(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureManagedHsm(MicrosoftResource):
-    kind: ClassVar[str] = "azure_managed_hsm"
+class AzureKeyVaultManagedHsm(MicrosoftResource):
+    kind: ClassVar[str] = "azure_key_vault_managed_hsm"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",
@@ -264,8 +264,8 @@ class AzureManagedHsm(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureKey(MicrosoftResource):
-    kind: ClassVar[str] = "azure_key"
+class AzureKeyVaultKey(MicrosoftResource):
+    kind: ClassVar[str] = "azure_key_vault_key"
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -307,7 +307,7 @@ class AzureKeyVault(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": [AzureKey.kind, AzureMonitorDiagnosticSettings.kind]},
+        "successors": {"default": [AzureKeyVaultKey.kind, AzureMonitorDiagnosticSettings.kind]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -369,13 +369,13 @@ class AzureKeyVault(MicrosoftResource):
                     graph_builder.add_node(dep)
                     graph_builder.add_edge(self, node=dep)
 
-        graph_builder.submit_work(service_name, collect_dependant, AzureKey, "keys")
+        graph_builder.submit_work(service_name, collect_dependant, AzureKeyVaultKey, "keys")
         graph_builder.submit_work(service_name, collect_dependant, AzureSecret, "secrets")
         AzureMonitorDiagnosticSettings.fetch_diagnostics(graph_builder, self)
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureManagedHsm,
+    AzureKeyVaultManagedHsm,
     AzureKeyVault,
-    AzureKey,
+    AzureKeyVaultKey,
 ]

@@ -66,8 +66,8 @@ class AzureKubeEnvironmentProfile:
 
 
 @define(eq=False, slots=False)
-class AzureAppServicePlan(MicrosoftResource):
-    kind: ClassVar[str] = "azure_app_service_plan"
+class AzureWebAppServicePlan(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_app_service_plan"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -138,8 +138,8 @@ class AzureAppServicePlan(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_certificate"
+class AzureWebCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_certificate"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -366,8 +366,8 @@ class AzureTemplate:
 
 
 @define(eq=False, slots=False)
-class AzureContainerApp(MicrosoftResource):
-    kind: ClassVar[str] = "azure_container_app"
+class AzureWebContainerApp(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_container_app"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2021-03-01",
@@ -474,8 +474,8 @@ class AzureDomainPurchaseConsent:
 
 
 @define(eq=False, slots=False)
-class AzureDomain(MicrosoftResource):
-    kind: ClassVar[str] = "azure_domain"
+class AzureWebDomain(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_domain"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -614,8 +614,8 @@ class AzureNetworkAccessControlEntry:
 
 
 @define(eq=False, slots=False)
-class AzureHostingEnvironment(MicrosoftResource):
-    kind: ClassVar[str] = "azure_hosting_environment"
+class AzureWebHostingEnvironment(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_hosting_environment"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2015-08-01",
@@ -755,8 +755,8 @@ class AzureContainerAppsConfiguration:
 
 
 @define(eq=False, slots=False)
-class AzureKubeEnvironment(MicrosoftResource):
-    kind: ClassVar[str] = "azure_kube_environment"
+class AzureWebKubeEnvironment(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_kube_environment"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -1597,8 +1597,8 @@ class AzureDatabaseConnectionOverview:
 
 
 @define(eq=False, slots=False)
-class AzureAppStaticSite(MicrosoftResource):
-    kind: ClassVar[str] = "azure_app_static_site"
+class AzureWebAppStaticSite(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_app_static_site"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -1662,12 +1662,12 @@ class AzureAppStaticSite(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureAppServicePlan,
+    AzureWebAppServicePlan,
     AzureWebApp,
-    AzureAppStaticSite,
-    AzureCertificate,
-    AzureContainerApp,
-    AzureDomain,
-    AzureHostingEnvironment,
-    AzureKubeEnvironment,
+    AzureWebAppStaticSite,
+    AzureWebCertificate,
+    AzureWebContainerApp,
+    AzureWebDomain,
+    AzureWebHostingEnvironment,
+    AzureWebKubeEnvironment,
 ]

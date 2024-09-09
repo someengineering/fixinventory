@@ -131,8 +131,8 @@ class AzureImmutableStorageWithVersioning:
 
 
 @define(eq=False, slots=False)
-class AzureBlobContainer(MicrosoftResource, BaseBucket):
-    kind: ClassVar[str] = "azure_blob_container"
+class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
+    kind: ClassVar[str] = "azure_storage_blob_container"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -238,8 +238,8 @@ class AzureSignedIdentifier:
 
 
 @define(eq=False, slots=False)
-class AzureFileShare(MicrosoftResource, BaseNetworkShare):
-    kind: ClassVar[str] = "azure_file_share"
+class AzureStorageFileShare(MicrosoftResource, BaseNetworkShare):
+    kind: ClassVar[str] = "azure_storage_file_share"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -289,8 +289,8 @@ class AzureFileShare(MicrosoftResource, BaseNetworkShare):
 
 
 @define(eq=False, slots=False)
-class AzureQueue(MicrosoftResource, BaseQueue):
-    kind: ClassVar[str] = "azure_queue"
+class AzureStorageQueue(MicrosoftResource, BaseQueue):
+    kind: ClassVar[str] = "azure_storage_queue"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -704,7 +704,7 @@ class AzureStorageAccount(MicrosoftResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["azure_storage_sku", "azure_file_share", "azure_blob_container", "azure_queue", "azure_table"]
+            "default": ["azure_storage_sku", "azure_storage_file_share", "azure_storage_blob_container", "azure_storage_queue", "azure_storage_table"]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -855,7 +855,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "fileServices",
                 "shares",
-                AzureFileShare,
+                AzureStorageFileShare,
             )
             graph_builder.submit_work(
                 service_name,
@@ -864,7 +864,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "blobServices",
                 "containers",
-                AzureBlobContainer,
+                AzureStorageBlobContainer,
             )
             graph_builder.submit_work(
                 service_name,
@@ -873,7 +873,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "queueServices",
                 "queues",
-                AzureQueue,
+                AzureStorageQueue,
             )
             graph_builder.submit_work(
                 service_name,
@@ -882,7 +882,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "tableServices",
                 "tables",
-                AzureTable,
+                AzureStorageTable,
             )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1071,8 +1071,8 @@ class AzureTableSignedIdentifier:
 
 
 @define(eq=False, slots=False)
-class AzureTable(MicrosoftResource):
-    kind: ClassVar[str] = "azure_table"
+class AzureStorageTable(MicrosoftResource):
+    kind: ClassVar[str] = "azure_storage_table"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1088,10 +1088,10 @@ class AzureTable(MicrosoftResource):
 resources: List[Type[MicrosoftResource]] = [
     AzureStorageAccountDeleted,
     AzureStorageSku,
-    AzureFileShare,
-    AzureQueue,
-    AzureBlobContainer,
-    AzureTable,
+    AzureStorageFileShare,
+    AzureStorageQueue,
+    AzureStorageBlobContainer,
+    AzureStorageTable,
     AzureStorageAccount,
     AzureStorageAccountUsage,
 ]
