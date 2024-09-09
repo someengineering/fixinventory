@@ -120,6 +120,7 @@ class RestApiSpec:
     access_path: Optional[str] = None
     expect_array: bool = False
     expected_error_codes: List[str] = field(factory=list)
+    expected_error_codes_with_hints: Dict[str, str] = field(factory=dict)
 
     def __attrs_post_init__(self) -> None:
         if self.scope == "":
@@ -322,8 +323,8 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
                     return None  # API not available in this region
                 elif error.code in spec.expected_error_codes:
                     return None
-                elif hint := spec.expected_error_codes_with_hints.get(error.code):
-                    self.accumulator.add_error(False, error.code, spec.service, spec.action, hint)
+                elif hint := spec.expected_error_codes_with_hints.get(error.code or ""):
+                    self.accumulator.add_error(False, error.code, spec.service, spec.action, str(hint))
                     return None
                 elif error.code == "BadRequest" and spec.service == "metric":
                     raise MetricRequestError from e

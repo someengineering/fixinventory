@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Union
 
 from attr import define, field
 
@@ -765,9 +765,9 @@ class AzureDatabaseAccountKeysMetadata:
     secondary_readonly_master_key: Optional[datetime] = field(default=None, metadata={'description': 'The metadata related to an access key for a given database account.'})  # fmt: skip
 
 
-mongo_cosmosdb_error_message = """Error: The action failed because Mongo User and Role Definitions are not enabled for your Azure Cosmos DB MongoDB account. 
+mongo_cosmosdb_error_message = """Error: The action failed because Mongo User and Role Definitions are not enabled for your Azure Cosmos DB MongoDB account.
 This means the database cannot perform operations that involve user or role management. You received a "BadRequest" error, indicating that Mongo User and Role Definition features are disabled.
-Hint: To resolve this issue, enable Role-based access control (RBAC) for your Cosmos DB account. 
+Hint: To resolve this issue, enable Role-based access control (RBAC) for your Cosmos DB account.
 Steps:
 1. Navigate to the Azure portal.
 2. Go to your Cosmos DB MongoDB account settings.
@@ -925,7 +925,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[Dict[str, str]] = None,
+        expected_errors: Optional[Union[Dict[str, str], List[str]]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -936,8 +936,11 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes_with_hints=expected_errors or {},
         )
+        if isinstance(expected_errors, dict):
+            api_spec.expected_error_codes_with_hints = expected_errors or {}
+        elif isinstance(expected_errors, list):
+            api_spec.expected_error_codes = expected_errors or []
         items = graph_builder.client.list(api_spec)
         if not items:
             return

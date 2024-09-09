@@ -821,7 +821,7 @@ class KubernetesVolume:
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "aws_elastic_block_store": S("awsElasticBlockStore"),
-        "azure_compute_disk": S("azureDisk"),
+        "azure_compute": S("azureDisk"),
         "azure_file": S("azureFile"),
         "cephfs": S("cephfs"),
         "cinder": S("cinder"),
@@ -852,7 +852,7 @@ class KubernetesVolume:
         "vsphere_volume": S("vsphereVolume"),
     }
     aws_elastic_block_store: Optional[Any] = field(default=None)
-    azure_compute_disk: Optional[Any] = field(default=None)
+    azure_compute: Optional[Any] = field(default=None)
     azure_file: Optional[Any] = field(default=None)
     cephfs: Optional[Any] = field(default=None)
     cinder: Optional[Any] = field(default=None)
@@ -1663,7 +1663,7 @@ class KubernetesPersistentVolumeSpec:
         "access_modes": S("accessModes", default=[]),
         "aws_elastic_block_store": S("awsElasticBlockStore")
         >> Bend(KubernetesPersistentVolumeSpecAwsElasticBlockStore.mapping),
-        "azure_compute_disk": S("azureDisk"),
+        "azure_compute": S("azureDisk"),
         "azure_file": S("azureFile"),
         "capacity": S("capacity"),
         "cephfs": S("cephfs"),
@@ -1694,7 +1694,7 @@ class KubernetesPersistentVolumeSpec:
     }
     access_modes: List[str] = field(factory=list)
     aws_elastic_block_store: Optional[KubernetesPersistentVolumeSpecAwsElasticBlockStore] = field(default=None)
-    azure_compute_disk: Optional[str] = field(default=None)
+    azure_compute: Optional[str] = field(default=None)
     azure_file: Optional[str] = field(default=None)
     capacity: Optional[Json] = field(default=None)
     cephfs: Optional[str] = field(default=None)
