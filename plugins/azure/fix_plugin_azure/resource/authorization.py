@@ -130,9 +130,16 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
         "Resource": "azure_resource",
     }
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_authorization_role_definition", *(p.kind for p in MicrosoftGraphPrincipalTypes)]},
+        "successors": {
+            "default": ["azure_authorization_role_definition", *(p.kind for p in MicrosoftGraphPrincipalTypes)]
+        },
         "predecessors": {
-            "default": ["azure_authorization_role_definition", "azure_subscription", "azure_resource_group", "azure_resource"]
+            "default": [
+                "azure_authorization_role_definition",
+                "azure_subscription",
+                "azure_resource_group",
+                "azure_resource",
+            ]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {

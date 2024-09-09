@@ -22,7 +22,7 @@ from fix_plugin_azure.resource.compute import AzureVirtualMachineBase
 from fix_plugin_azure.resource.containerservice import AzureManagedCluster
 from fix_plugin_azure.resource.keyvault import AzureKeyVault
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
-from fix_plugin_azure.resource.network import AzureSubnet, AzureVirtualNetwork
+from fix_plugin_azure.resource.network import AzureNetworkSubnet, AzureNetworkVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.resource.web import AzureWebApp
 from fixlib.baseresources import BaseInstanceType, ModelReference
@@ -2401,9 +2401,9 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         "predecessors": {
             "default": [
                 AzureKeyVault.kind,
-                AzureVirtualNetwork.kind,
+                AzureNetworkVirtualNetwork.kind,
                 AzureStorageAccount.kind,
-                AzureSubnet.kind,
+                AzureNetworkSubnet.kind,
             ]
         },
     }
@@ -2554,13 +2554,13 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         if key_vault_id := self.key_vault:
             builder.add_edge(self, clazz=AzureKeyVault, reverse=True, id=key_vault_id)
         if (network := self.managed_network) and (network_id := network.network_id):
-            builder.add_edge(self, clazz=AzureVirtualNetwork, reverse=True, id=network_id)
+            builder.add_edge(self, clazz=AzureNetworkVirtualNetwork, reverse=True, id=network_id)
         if storage_id := self.storage_account:
             builder.add_edge(self, clazz=AzureStorageAccount, reverse=True, id=storage_id)
         if (compute_settings := self.serverless_compute_settings) and (
             subnet_id := compute_settings.serverless_compute_custom_subnet
         ):
-            builder.add_edge(self, clazz=AzureSubnet, reverse=True, id=subnet_id)
+            builder.add_edge(self, clazz=AzureNetworkSubnet, reverse=True, id=subnet_id)
 
         # principal: collected via ms graph -> create a deferred edge
         if ai := self.identity:

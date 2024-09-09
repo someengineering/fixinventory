@@ -1,5 +1,9 @@
 from conftest import roundtrip_check
-from fix_plugin_azure.resource.authorization import AzureAuthorizationRoleAssignment, AzureAuthorizationRoleDefinition, AzureAuthorizationDenyAssignment
+from fix_plugin_azure.resource.authorization import (
+    AzureAuthorizationRoleAssignment,
+    AzureAuthorizationRoleDefinition,
+    AzureAuthorizationDenyAssignment,
+)
 from fix_plugin_azure.resource.base import GraphBuilder
 
 

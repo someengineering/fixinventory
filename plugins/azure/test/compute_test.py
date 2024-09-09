@@ -2,7 +2,7 @@ from conftest import roundtrip_check, connect_resources
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
 from fix_plugin_azure.resource.compute import *
 from fix_plugin_azure.resource.network import (
-    AzureLoadBalancer,
+    AzureNetworkLoadBalancer,
     AzureNetworkInterface,
     AzureNetworkSecurityGroup,
 )
@@ -115,7 +115,7 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
         AzureComputeDisk,
         AzureNetworkInterface,
         AzureNetworkSecurityGroup,
-        AzureLoadBalancer,
+        AzureNetworkLoadBalancer,
         AzureComputeVirtualMachineSize,
     ]
     connect_resources(builder, resource_types)
@@ -125,7 +125,7 @@ def test_virtual_machine(builder: GraphBuilder) -> None:
     assert len(builder.edges_of(AzureComputeVirtualMachine, AzureComputeDisk)) == 2
     assert len(builder.edges_of(AzureComputeVirtualMachine, AzureNetworkInterface)) == 1
     assert len(builder.edges_of(AzureNetworkSecurityGroup, AzureComputeVirtualMachine)) == 1
-    assert len(builder.edges_of(AzureLoadBalancer, AzureComputeVirtualMachine)) == 1
+    assert len(builder.edges_of(AzureNetworkLoadBalancer, AzureComputeVirtualMachine)) == 1
     assert len(builder.edges_of(AzureComputeVirtualMachine, AzureComputeVirtualMachineSize)) == 2
 
 
@@ -140,11 +140,11 @@ def test_virtual_machine_scale_set(builder: GraphBuilder) -> None:
     assert len(collected) == 1
 
     resource_types: List[Type[MicrosoftResource]] = [
-        AzureLoadBalancer,
+        AzureNetworkLoadBalancer,
     ]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureLoadBalancer, AzureComputeVirtualMachineScaleSet)) == 1
+    assert len(builder.edges_of(AzureNetworkLoadBalancer, AzureComputeVirtualMachineScaleSet)) == 1
 
 
 def test_snapshot(builder: GraphBuilder) -> None:

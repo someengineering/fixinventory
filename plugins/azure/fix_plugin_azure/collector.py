@@ -32,7 +32,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
 from fix_plugin_azure.resource.monitor import resources as monitor_resources
 from fix_plugin_azure.resource.mysql import AzureMysqlServerType, resources as mysql_resources
 from fix_plugin_azure.resource.network import (
-    AzureExpressRoutePortsLocation,
+    AzureNetworkExpressRoutePortsLocation,
     AzureNetworkVirtualApplianceSku,
     AzureNetworkUsage,
     resources as network_resources,
@@ -257,7 +257,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
             self._delete_nodes(remove_nodes)
 
         rm_nodes(AzureComputeVirtualMachineSize, AzureLocation)
-        rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
+        rm_nodes(AzureNetworkExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
         rm_nodes(AzureComputeDiskType, AzureSubscription)
         rm_nodes(AzureMachineLearningVirtualMachineSize, AzureLocation)

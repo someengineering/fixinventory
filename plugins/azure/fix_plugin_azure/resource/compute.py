@@ -20,9 +20,9 @@ from fix_plugin_azure.resource.base import (
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.resource.network import (
     AzureNetworkSecurityGroup,
-    AzureSubnet,
+    AzureNetworkSubnet,
     AzureNetworkInterface,
-    AzureLoadBalancer,
+    AzureNetworkLoadBalancer,
 )
 from fix_plugin_azure.utils import MetricNormalization, rgetvalue
 from fixlib.baseresources import (
@@ -885,7 +885,9 @@ class AzureComputeDiskType(MicrosoftResource, BaseVolumeType):
                 if volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]:
                     continue
 
-                generic_size = AzureComputeDiskType.build_custom_disk_size(location, volume_type, size, iops, throughput)
+                generic_size = AzureComputeDiskType.build_custom_disk_size(
+                    location, volume_type, size, iops, throughput
+                )
                 hash_value = hash(tuple(generic_size.items()))
                 if hash_value not in seen_hashes:
                     disk_sizes.append(generic_size)
@@ -1499,7 +1501,9 @@ class AzureComputeProximityPlacementGroup(MicrosoftResource):
         if vmsss := self.virtual_machine_scale_sets:
             for vmss in vmsss:
                 if vmss_id := vmss.id:
-                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineScaleSet, id=vmss_id)
+                    builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineScaleSet, id=vmss_id
+                    )
 
 
 @define(eq=False, slots=False)
@@ -2754,12 +2758,17 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
             "default": [
                 "azure_compute_proximity_placement_group",
                 "azure_network_security_group",
-                "azure_subnet",
-                "azure_load_balancer",
+                "azure_network_subnet",
+                "azure_network_load_balancer",
             ]
         },
         "successors": {
-            "default": ["azure_compute_image", "azure_compute_disk", "azure_network_interface", "azure_compute_virtual_machine_size"]
+            "default": [
+                "azure_compute_image",
+                "azure_compute_disk",
+                "azure_network_interface",
+                "azure_compute_virtual_machine_size",
+            ]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3004,14 +3013,18 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                     for ip_configuration in ip_configurations:
                         if subnet_id := ip_configuration.subnet:
                             builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
+                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureNetworkSubnet, id=subnet_id
                             )
                         if lbbap_ids := ip_configuration.load_balancer_backend_address_pools:
                             for lbbap_id in lbbap_ids:
                                 # take only id of load balancer
                                 lbbap_id = "/".join(lbbap_id.split("/")[:-2])
                                 builder.add_edge(
-                                    self, edge_type=EdgeType.default, reverse=True, clazz=AzureLoadBalancer, id=lbbap_id
+                                    self,
+                                    edge_type=EdgeType.default,
+                                    reverse=True,
+                                    clazz=AzureNetworkLoadBalancer,
+                                    id=lbbap_id,
                                 )
 
         if (vm_network_profile := self.virtual_machine_network_profile) and (
@@ -3022,7 +3035,11 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                     builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkInterface, id=ni_id)
         if (vms_type := self.instance_type) and (vm_location := self.location):
             builder.add_edge(
-                self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineSize, name=vms_type, location=vm_location
+                self,
+                edge_type=EdgeType.default,
+                clazz=AzureComputeVirtualMachineSize,
+                name=vms_type,
+                location=vm_location,
             )
 
 
@@ -3489,7 +3506,7 @@ class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_load_balancer", "azure_subnet"]},
+        "predecessors": {"default": ["azure_network_load_balancer", "azure_network_subnet"]},
         "successors": {"default": ["azure_virtual_machine_scale_set_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3587,7 +3604,7 @@ class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup
                                     self,
                                     edge_type=EdgeType.default,
                                     reverse=True,
-                                    clazz=AzureLoadBalancer,
+                                    clazz=AzureNetworkLoadBalancer,
                                     id=bap_id,
                                 )
                         if subnet_id := ip_config.subnet:
@@ -3595,7 +3612,7 @@ class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup
                                 self,
                                 edge_type=EdgeType.default,
                                 reverse=True,
-                                clazz=AzureSubnet,
+                                clazz=AzureNetworkSubnet,
                                 id=subnet_id,
                             )
 

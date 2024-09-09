@@ -74,7 +74,9 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
 
     collector.remove_unused()
 
-    assert len(list(collector.graph.search("kind", "azure_compute_virtual_machine_size"))) < len(num_all_virtual_machine_types)
+    assert len(list(collector.graph.search("kind", "azure_compute_virtual_machine_size"))) < len(
+        num_all_virtual_machine_types
+    )
 
     pricing_info = list(collector.graph.search("kind", "azure_compute_disk_type_pricing"))
 
