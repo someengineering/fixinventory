@@ -44,7 +44,7 @@ def link_pv_to_azure_disk(graph: Graph, resource: BaseResource) -> None:
             and (vol_id := csi.get("volumeHandle"))
         ):
             graph.add_deferred_edge(
-                BySearchCriteria(f"is(azure_disk) and reported.id={vol_id}"), ByNodeId(resource.chksum)
+                BySearchCriteria(f"is(azure_compute_disk) and reported.id={vol_id}"), ByNodeId(resource.chksum)
             )
 
 

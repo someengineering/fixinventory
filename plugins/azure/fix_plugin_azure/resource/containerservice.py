@@ -617,7 +617,7 @@ class AzureManagedClusterStorageProfile:
         "snapshot_controller": S("snapshotController", "enabled"),
     }
     blob_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureBlob CSI Driver settings for the storage profile.'})  # fmt: skip
-    disk_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureDisk CSI Driver settings for the storage profile.'})  # fmt: skip
+    disk_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureComputeDisk CSI Driver settings for the storage profile.'})  # fmt: skip
     file_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureFile CSI Driver settings for the storage profile.'})  # fmt: skip
     snapshot_controller: Optional[bool] = field(default=None, metadata={'description': 'Snapshot Controller settings for the storage profile.'})  # fmt: skip
 
@@ -753,7 +753,7 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_disk_encryption_set", "azure_virtual_machine_scale_set"]},
+        "successors": {"default": ["azure_compute_disk_encryption_set", "azure_compute_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -857,10 +857,10 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
     workload_auto_scaler_profile: Optional[AzureManagedClusterWorkloadAutoScalerProfile] = field(default=None, metadata={'description': 'Workload Auto-scaler profile for the managed cluster.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        from fix_plugin_azure.resource.compute import AzureDiskEncryptionSet, AzureVirtualMachineScaleSet
+        from fix_plugin_azure.resource.compute import AzureComputeDiskEncryptionSet, AzureComputeVirtualMachineScaleSet
 
         if disk_id := self.disk_encryption_set_id:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeDiskEncryptionSet, id=disk_id)
 
         if agent_pool_profiles := self.agent_pool_profiles:
             vmss_agent_pool_names_and_ids = self._get_poolnames_and_vmss_ids(builder)
@@ -869,15 +869,15 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
                     pool_name, vmss_id = info
                     if agent_pool_profile_name == pool_name:
                         builder.add_edge(
-                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSet, id=vmss_id
+                            self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineScaleSet, id=vmss_id
                         )
 
     def _get_poolnames_and_vmss_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
-        from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSet
+        from fix_plugin_azure.resource.compute import AzureComputeVirtualMachineScaleSet
 
         return [
             (poolname, vmss_id)
-            for vmss in builder.nodes(clazz=AzureVirtualMachineScaleSet)
+            for vmss in builder.nodes(clazz=AzureComputeVirtualMachineScaleSet)
             if (poolname := vmss.tags.get("aks-managed-poolName")) and (vmss_id := vmss.id)
         ]
 
@@ -925,10 +925,10 @@ class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        from fix_plugin_azure.resource.compute import AzureVirtualMachineSize
+        from fix_plugin_azure.resource.compute import AzureComputeVirtualMachineSize
 
         if (snapshot_vm_size := self.vm_size) and (location := self.location):
-            vm_sizes = builder.nodes(clazz=AzureVirtualMachineSize, name=snapshot_vm_size, location=location)
+            vm_sizes = builder.nodes(clazz=AzureComputeVirtualMachineSize, name=snapshot_vm_size, location=location)
             for vm_size in vm_sizes:
                 if size := vm_size.os_disk_size_in_mb:
                     self.volume_size = size // 1024

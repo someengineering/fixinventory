@@ -142,17 +142,17 @@ def test_load_balancer(builder: GraphBuilder) -> None:
 
 
 def test_network_profile(builder: GraphBuilder) -> None:
-    from fix_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
+    from fix_plugin_azure.resource.compute import AzureComputeVirtualMachine  # pylint: disable=import-outside-toplevel
 
     collected = roundtrip_check(AzureNetworkProfile, builder)
 
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualMachine]
+    resource_types: List[Type[MicrosoftResource]] = [AzureComputeVirtualMachine]
     roundtrip_check(AzureNetworkInterface, builder)
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureNetworkProfile, AzureVirtualMachine)) == 1
+    assert len(builder.edges_of(AzureNetworkProfile, AzureComputeVirtualMachine)) == 1
 
 
 def test_network_virtual_appliance(builder: GraphBuilder) -> None:
