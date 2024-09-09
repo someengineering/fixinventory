@@ -4,9 +4,9 @@ from asyncio import Task
 from contextlib import suppress
 from functools import partial
 from typing import Optional, List, Callable, Awaitable
-from apscheduler.triggers.cron import CronTrigger
 
 import yaml
+from apscheduler.triggers.cron import CronTrigger
 
 from fixcore.analytics import AnalyticsEventSender, CoreEvent
 from fixcore.config import ConfigHandler, ConfigEntity, ConfigValidation
@@ -25,7 +25,7 @@ from fixcore.core_config import (
     config_model as core_config_model,
     migrate_command_config,
 )
-from fixcore.system_start import empty_config
+from fixcore.db import DatabaseChange
 from fixcore.ids import SubscriberId, WorkerId, ConfigId
 from fixcore.message_bus import MessageBus, CoreMessage
 from fixcore.model.model import Kind
@@ -33,6 +33,7 @@ from fixcore.model.typed_model import from_js
 from fixcore.report import FixReportBenchmark, FixReportCheck, Inspector, BenchmarkConfigRoot, CheckConfigRoot
 from fixcore.report.report_config import config_model as report_config_model
 from fixcore.service import Service
+from fixcore.system_start import empty_config
 from fixcore.types import Json
 from fixcore.user import config_model as user_config_model, UsersConfigId, FixInventoryUsersConfig
 from fixcore.util import deep_merge, restart_service, value_in_path, value_in_path_get
@@ -50,6 +51,7 @@ class CoreConfigHandler(Service):
         config_handler: ConfigHandler,
         event_sender: AnalyticsEventSender,
         inspector: Inspector,
+        db_change: DatabaseChange,
         exit_fn: Callable[[], None] = partial(restart_service, "fixcore config changed."),
     ):
         super().__init__()
@@ -61,6 +63,7 @@ class CoreConfigHandler(Service):
         self.config_handler = config_handler
         self.event_sender = event_sender
         self.inspector = inspector
+        self.db_change = db_change
         self.exit_fn = exit_fn
         self.config_updated_callbacks: List[Callable[[ConfigId], Awaitable[None]]] = []
 
@@ -250,7 +253,7 @@ class CoreConfigHandler(Service):
             log.error(f"Could not update fix core config model: {ex}", exc_info=ex)
 
     async def start(self) -> None:
-        if not self.config.multi_tenant_setup:
+        if self.db_change.has_changed() and not self.config.multi_tenant_setup:
             await self.__update_model()
             await self.__update_config()
         self.config_updated_listener = asyncio.create_task(self.__handle_events())

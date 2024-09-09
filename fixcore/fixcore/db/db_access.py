@@ -17,7 +17,7 @@ from requests.exceptions import RequestException
 from fixcore.analytics import AnalyticsEventSender
 from fixcore.async_extensions import run_async
 from fixcore.core_config import CoreConfig, current_git_hash
-from fixcore.db import SystemData
+from fixcore.db import SystemData, DatabaseChange
 from fixcore.db.arangodb_extensions import ArangoHTTPClient
 from fixcore.db.async_arangodb import AsyncArangoDB, AsyncCursor
 from fixcore.db.configdb import config_entity_db, config_validation_entity_db
@@ -100,29 +100,23 @@ class DbAccess(Service):
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
-        await self.__migrate()
         await self.cleaner.start()
 
     async def stop(self) -> None:
         await self.cleaner.stop()
 
-    async def __migrate(self) -> None:
+    async def migrate(self) -> DatabaseChange:
         try:
             system_data = await self.system_data_db.system_data()
         except Exception:
             system_data = None
             if not await self.db.has_collection("system_data"):  # make sure the system data collection exists
                 await self.db.create_collection("system_data")
+        existing = system_data
         if system_data is None:  # in case no version is available, create a genesis version
             system_data = SystemData(uuid_str(), utc(), CurrentDatabaseVersion)
-        git_hash = current_git_hash()
-        if (
-            MigrateAlways
-            or system_data.db_version != CurrentDatabaseVersion
-            or system_data.version is None
-            or git_hash is None
-            or git_hash != system_data.version
-        ):
+        if system_data.detect_change():
+            git_hash = current_git_hash()
             # check if we need to run a migration
             if system_data.db_version < CurrentDatabaseVersion:
                 log.info(f"Database migration required: db={system_data.db_version} -> latest={CurrentDatabaseVersion}")
@@ -163,6 +157,7 @@ class DbAccess(Service):
 
             # update the system data version to not migrate the next time
             await self.system_data_db.update_system_data(system_data)
+        return DatabaseChange(existing, system_data)
 
     async def __migrate_v1_to_v2(self) -> None:
         def migrate_config(old_id: str, old_root: str, config: Json) -> Json:

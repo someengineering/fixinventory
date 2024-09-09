@@ -446,6 +446,8 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         # direct db access
         sdb = deps.add(ServiceNames.system_database, await run_async(standard_database))
         db = deps.add(ServiceNames.db_access, DbAccess(sdb, dp.event_sender, NoAdjust(), config))
+        db_change = await db.migrate()
+        deps.add(ServiceNames.system_data, db_change.current)
         # no scheduler required in multi-tenant mode
         scheduler = deps.add(ServiceNames.scheduler, NoScheduler())
         # all tenants use the same model (derived from code)
@@ -473,7 +475,9 @@ class FromRequestTenantDependencyProvider(TenantDependencyProvider):
         subscriptions = deps.add(ServiceNames.subscription_handler, NoSubscriptionHandler())
         core_config_handler = deps.add(
             ServiceNames.core_config_handler,
-            CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
+            CoreConfigHandler(
+                config, message_bus, worker_task_queue, config_handler, event_sender, inspector, db_change
+            ),
         )
         # Enable package manager and runtime for infra apps when required
         # deps.add(ServiceNames.infra_apps_runtime, LocalfixcoreAppRuntime(cli))

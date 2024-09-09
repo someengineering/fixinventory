@@ -42,8 +42,9 @@ from fixcore.core_config import (
     CustomCommandsConfig,
     SnapshotsScheduleConfig,
     RunConfig,
+    current_git_hash,
 )
-from fixcore.db import runningtaskdb, SystemData, deferredouteredgedb, reportdb
+from fixcore.db import runningtaskdb, SystemData, deferredouteredgedb, reportdb, CurrentDatabaseVersion, DatabaseChange
 from fixcore.db.async_arangodb import AsyncArangoDB
 from fixcore.db.db_access import DbAccess
 from fixcore.db.deferredouteredgedb import DeferredOuterEdgeDb
@@ -507,6 +508,11 @@ def core_config_handler_exits() -> List[bool]:
 
 
 @fixture
+def db_change() -> DatabaseChange:
+    return DatabaseChange(None, SystemData("test", utc(), CurrentDatabaseVersion, current_git_hash()))
+
+
+@fixture
 async def core_config_handler(
     message_bus: MessageBus,
     task_queue: WorkerTaskQueue,
@@ -514,13 +520,16 @@ async def core_config_handler(
     inspector_service: InspectorService,
     core_config_handler_exits: List[bool],
     default_config: CoreConfig,
+    db_change: DatabaseChange,
 ) -> CoreConfigHandler:
     def on_exit() -> None:
         core_config_handler_exits.append(True)
 
     config = default_config
     sender = InMemoryEventSender()
-    return CoreConfigHandler(config, message_bus, task_queue, config_handler, sender, inspector_service, on_exit)
+    return CoreConfigHandler(
+        config, message_bus, task_queue, config_handler, sender, inspector_service, db_change, on_exit
+    )
 
 
 @fixture
