@@ -770,8 +770,8 @@ This means the database cannot perform operations that involve user or role mana
 Hint: To resolve this issue, enable Role-based access control (RBAC) for your Cosmos DB account.
 Steps:
 1. Navigate to the Azure portal.
-2. Go to your Cosmos DB MongoDB account settings -> {provider_link}.
-3. Enable the "Role-based access control (RBAC)" option in "Features".
+2. Go to your Cosmos DB MongoDB account -> {provider_link}.
+3. Enable the "Role-based access control (RBAC)" option in "Settings -> Features".
 Enabling RBAC will allow user permissions and role assignments to be managed within the database, which is essential for actions such as Mongo user and role definitions.
 """
 
