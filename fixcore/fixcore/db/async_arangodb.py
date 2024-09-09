@@ -34,6 +34,15 @@ from fixcore.ids import GraphName
 log = logging.getLogger(__name__)
 
 
+def drop_edge_props(json: Json) -> Json:
+    res = json.copy()
+    res.pop("_from", None)
+    res.pop("_to", None)
+    res.pop("_link_id", None)
+    res.pop("_link_reported", None)
+    return res
+
+
 class AsyncCursor(AsyncIterator[Any]):
     def __init__(
         self,
@@ -51,7 +60,7 @@ class AsyncCursor(AsyncIterator[Any]):
         self.visited_edge: Set[str] = set()
         self.deferred_edges: List[Json] = []
         self.cursor_exhausted = False
-        self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else identity  # type: ignore
+        self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else drop_edge_props
         self.vt_len: Optional[int] = None
         self.on_hold: Optional[Json] = None
         self.get_next: Callable[[], Awaitable[Optional[Json]]] = (
@@ -99,6 +108,7 @@ class AsyncCursor(AsyncIterator[Any]):
 
     async def next_filtered(self) -> Optional[Json]:
         element = await self.next_from_db()
+        print("\n>>>>FOUND NEXT ELEMENT!\n", element)
         vertex: Optional[Json] = None
         edge = None
         try:
@@ -124,7 +134,7 @@ class AsyncCursor(AsyncIterator[Any]):
                         # example: vertex_name_default/edge_id -> default
                         "edge_type": re.sub("/.*$", "", link_id[self.vt_len :]),  # noqa: E203
                     }
-                    if reported := element.get("reported"):
+                    if reported := element.get("_link_reported"):
                         edge["reported"] = reported
                     # make sure that both nodes of the edge have been visited already
                     if from_id not in self.visited_node or to_id not in self.visited_node:

@@ -882,12 +882,13 @@ def query_string(
             in_c = ctx.next_crs("io_in")
             out = ctx.next_crs("io_out")
             out_crsr = ctx.next_crs("io_crs")
-            link = ctx.next_crs("io_link")
+            e = ctx.next_crs("io_link")
             unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
-            link_str = f", {link}" if with_edges else ""
+            link_str = f", {e}" if with_edges else ""
             dir_bound = "OUTBOUND" if direction == Direction.outbound else "INBOUND"
             inout_result = (
-                f"MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to, _link_id:{link}._id}})"
+                # merge edge and vertex properties - will be split in the output transformer
+                f"MERGE({out_crsr}, {{_from:{e}._from, _to:{e}._to, _link_id:{e}._id, _link_reported:{e}.reported}})"
                 if with_edges
                 else out_crsr
             )
