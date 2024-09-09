@@ -307,7 +307,9 @@ class AzureKeyVault(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": [AzureKeyVaultKey.kind, AzureMonitorDiagnosticSettings.kind]},
+        "successors": {
+            "default": [AzureKeyVaultKey.kind, AzureMonitorDiagnosticSettings.kind, AzureKeyVaultManagedHsm.kind]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -372,6 +374,10 @@ class AzureKeyVault(MicrosoftResource):
         graph_builder.submit_work(service_name, collect_dependant, AzureKeyVaultKey, "keys")
         graph_builder.submit_work(service_name, collect_dependant, AzureSecret, "secrets")
         AzureMonitorDiagnosticSettings.fetch_diagnostics(graph_builder, self)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if hsm_pool_resource_id := self.hsm_pool_resource_id:
+            builder.add_edge(self, clazz=AzureKeyVaultManagedHsm, id=hsm_pool_resource_id)
 
 
 resources: List[Type[MicrosoftResource]] = [
