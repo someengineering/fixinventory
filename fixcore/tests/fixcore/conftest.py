@@ -42,13 +42,15 @@ from fixcore.core_config import (
     CustomCommandsConfig,
     SnapshotsScheduleConfig,
     RunConfig,
+    current_git_hash,
 )
-from fixcore.db import runningtaskdb, SystemData, deferredouteredgedb, reportdb
+from fixcore.db import runningtaskdb, SystemData, deferredouteredgedb, reportdb, CurrentDatabaseVersion, DatabaseChange
 from fixcore.db.async_arangodb import AsyncArangoDB
 from fixcore.db.db_access import DbAccess
 from fixcore.db.deferredouteredgedb import DeferredOuterEdgeDb
 from fixcore.db.graphdb import ArangoGraphDB, EventGraphDB
 from fixcore.db.jobdb import JobDb
+from fixcore.db.lockdb import LockDB
 from fixcore.db.modeldb import model_db
 from fixcore.db.packagedb import PackageEntityDb, app_package_entity_db
 from fixcore.db.reportdb import ReportCheckDb, BenchmarkDb
@@ -243,9 +245,17 @@ async def timeseries_db(async_db: AsyncArangoDB, default_config: CoreConfig) -> 
     return db
 
 
+@fixture
+async def lock_db(async_db: AsyncArangoDB) -> LockDB:
+    db = LockDB(async_db, "locks")
+    await db.create_update_schema()
+    return db
+
+
 @fixture()
-def db_access(graph_db: ArangoGraphDB, default_config: CoreConfig) -> DbAccess:
+async def db_access(graph_db: ArangoGraphDB, default_config: CoreConfig) -> DbAccess:
     access = DbAccess(graph_db.db.db, NoEventSender(), NoAdjust(), default_config)
+    await access.migrate()
     return access
 
 
@@ -507,6 +517,11 @@ def core_config_handler_exits() -> List[bool]:
 
 
 @fixture
+def db_change() -> DatabaseChange:
+    return DatabaseChange(None, SystemData("test", utc(), CurrentDatabaseVersion, current_git_hash()))
+
+
+@fixture
 async def core_config_handler(
     message_bus: MessageBus,
     task_queue: WorkerTaskQueue,
@@ -514,13 +529,25 @@ async def core_config_handler(
     inspector_service: InspectorService,
     core_config_handler_exits: List[bool],
     default_config: CoreConfig,
+    db_change: DatabaseChange,
+    db_access: DbAccess,
 ) -> CoreConfigHandler:
     def on_exit() -> None:
         core_config_handler_exits.append(True)
 
     config = default_config
     sender = InMemoryEventSender()
-    return CoreConfigHandler(config, message_bus, task_queue, config_handler, sender, inspector_service, on_exit)
+    return CoreConfigHandler(
+        config,
+        message_bus,
+        task_queue,
+        config_handler,
+        sender,
+        inspector_service,
+        db_change,
+        db_access.lock_db,
+        on_exit,
+    )
 
 
 @fixture
