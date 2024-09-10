@@ -930,7 +930,7 @@ class ArangoGraphDB(GraphDB):
             return self.db.collection(temp_name)
         elif create:
             temp = await self.db.create_collection(temp_name, replication_factor=1)
-            temp.add_persistent_index(["action"])
+            temp.add_index(dict(type="persistent", fields=["action"]))
             return temp
         else:
             raise NoSuchChangeError(change_id)
@@ -1375,25 +1375,34 @@ class ArangoGraphDB(GraphDB):
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_replace_nodes" not in node_idxes:
                 log.info(f"Add index update_replace_nodes on {nodes.name}")
-                nodes.add_persistent_index(
-                    ["refs.account_id", "refs.cloud_id"],
-                    storedValues=["_key", "hash", "hist_hash", "created"],
-                    sparse=False,
-                    name="update_replace_nodes",
+                nodes.add_index(
+                    dict(
+                        type="persistent",
+                        fields=["refs.account_id", "refs.cloud_id"],
+                        storedValues=["_key", "hash", "hist_hash", "created"],
+                        sparse=False,
+                        name="update_replace_nodes",
+                    )
                 )
 
             if "kinds_id_name_ctime" not in node_idxes:
-                nodes.add_persistent_index(
-                    ["kinds[*]", "reported.id", "reported.name", "reported.ctime"],
-                    sparse=False,
-                    name="kinds_id_name_ctime",
+                nodes.add_index(
+                    dict(
+                        type="persistent",
+                        fields=["kinds[*]", "reported.id", "reported.name", "reported.ctime"],
+                        sparse=False,
+                        name="kinds_id_name_ctime",
+                    )
                 )
 
             if "security_overview" not in node_idxes:
-                nodes.add_persistent_index(
-                    fields=["security.run_id", "security.has_issues", "security.opened_at", "security.severity"],
-                    sparse=True,
-                    name="security_overview",
+                nodes.add_index(
+                    dict(
+                        type="persistent",
+                        fields=["security.run_id", "security.has_issues", "security.opened_at", "security.severity"],
+                        sparse=True,
+                        name="security_overview",
+                    )
                 )
 
         def create_update_collection_indexes(progress: StandardCollection, node_history: StandardCollection) -> None:
@@ -1401,17 +1410,28 @@ class ArangoGraphDB(GraphDB):
             progress_idxes = {idx["name"]: idx for idx in cast(List[Json], progress.indexes())}
             if "parent_nodes" not in progress_idxes:
                 log.info(f"Add index parent_nodes on {progress.name}")
-                progress.add_persistent_index(["parent_nodes[*]"], name="parent_nodes")
+                progress.add_index(dict(type="persistent", fields=["parent_nodes[*]"], name="parent_nodes"))
             if "root_nodes" not in progress_idxes:
                 log.info(f"Add index root_nodes on {progress.name}")
-                progress.add_persistent_index(["root_nodes[*]"], name="root_nodes")
+                progress.add_index(dict(type="persistent", fields=["root_nodes[*]"], name="root_nodes"))
             # history indexes ------
             nh_idx = {idx["name"]: idx for idx in cast(List[Json], node_history.indexes())}
             if "history_access" not in nh_idx:
-                node_history.add_persistent_index(
-                    ["id", "change", "changed_at", "kinds[*]", "reported.id", "reported.name", "reported.ctime"],
-                    sparse=False,
-                    name="history_access",
+                node_history.add_index(
+                    dict(
+                        type="persistent",
+                        fields=[
+                            "id",
+                            "change",
+                            "changed_at",
+                            "kinds[*]",
+                            "reported.id",
+                            "reported.name",
+                            "reported.ctime",
+                        ],
+                        sparse=False,
+                        name="history_access",
+                    )
                 )
             ttl_secs = self.config.keep_history_for_days * (24 * 60 * 60)  # days to seconds
             if "ttl_index" in nh_idx:
@@ -1419,7 +1439,9 @@ class ArangoGraphDB(GraphDB):
             if "history_ttl" not in nh_idx or value_in_path(nh_idx, ["history_ttl", "expiry_time"]) != ttl_secs:
                 if "history_ttl" in nh_idx:
                     node_history.delete_index("history_ttl")
-                node_history.add_ttl_index(["changed_at"], ttl_secs, name="history_ttl")
+                node_history.add_index(
+                    dict(type="ttl", fields=["changed_at"], expireAfter=ttl_secs, name="history_ttl")
+                )
 
         def create_update_edge_indexes(edges: EdgeCollection) -> None:
             edge_idxes = {idx["name"]: idx for idx in cast(List[Json], edges.indexes())}
@@ -1431,16 +1453,21 @@ class ArangoGraphDB(GraphDB):
             # this index will hold all the necessary data to query for an update (index only query)
             if "update_edges_replace_nodes" not in edge_idxes:
                 log.info(f"Add index update_edges_replace_nodes on {edges.name}")
-                edges.add_persistent_index(
-                    ["refs.account_id", "refs.cloud_id"],
-                    storedValues=["_key", "_from", "_to"],
-                    sparse=False,
-                    name="update_edges_replace_nodes",
+                edges.add_index(
+                    dict(
+                        type="persistent",
+                        fields=["refs.account_id", "refs.cloud_id"],
+                        storedValues=["_key", "_from", "_to"],
+                        sparse=False,
+                        name="update_edges_replace_nodes",
+                    )
                 )
             outer_edge_ts_index_name = "outer_edge_timestamp_index"
             if outer_edge_ts_index_name not in edge_idxes:
                 log.info(f"Add index {outer_edge_ts_index_name} on {edges.name}")
-                edges.add_persistent_index(["outer_edge_ts"], sparse=True, name=outer_edge_ts_index_name)
+                edges.add_index(
+                    dict(type="persistent", fields=["outer_edge_ts"], sparse=True, name=outer_edge_ts_index_name)
+                )
 
         async def create_collection(name: str) -> StandardCollection:
             return db.collection(name) if await db.has_collection(name) else await db.create_collection(name)

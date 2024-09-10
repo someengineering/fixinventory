@@ -53,7 +53,9 @@ class DeferredEdgesDb(ArangoEntityDb[str, DeferredEdges]):
         collection = self.db.collection(self.collection_name)
         if ttl_index_name not in {idx["name"] for idx in cast(List[Json], collection.indexes())}:
             log.info(f"Add index {ttl_index_name} on {collection.name}")
-            collection.add_ttl_index(["created_at"], TWO_HOURS, "deferred_edges_expiration_index")
+            collection.add_index(
+                dict(type="ttl", fields=["created_at"], expireAfter=TWO_HOURS, name="deferred_edges_expiration_index")
+            )
 
 
 def deferred_outer_edge_db(db: AsyncArangoDB, collection: str) -> DeferredEdgesDb:

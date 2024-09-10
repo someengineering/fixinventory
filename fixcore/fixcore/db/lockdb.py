@@ -63,6 +63,6 @@ class LockDB:
         if "ttl" not in indexes:
             try:
                 # The ttl expiry is only a safeguard - if the process is not able to clean up requested locks
-                collection.add_ttl_index(["expires"], expiry_time=0, name="ttl")
+                collection.add_index(dict(type="ttl", fields=["expires"], expireAfter=0, name="ttl"))
             except Exception as ex:
                 log.info(f"Could not create TTL index for lock collection: {ex}")
