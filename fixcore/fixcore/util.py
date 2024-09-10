@@ -281,6 +281,21 @@ def value_in_path_get(element: JsonElement, path_or_name: Union[List[str], str],
     return result if result is not None and isinstance(result, type(if_none)) else if_none  # type: ignore
 
 
+def path_exists(element: JsonElement, path_or_name: Union[List[str], str]) -> bool:
+    path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
+    at = len(path)
+
+    def at_idx(current: JsonElement, idx: int) -> bool:
+        if at == idx:
+            return True
+        elif current is None or not isinstance(current, dict) or path[idx] not in current:
+            return False
+        else:
+            return at_idx(current[path[idx]], idx + 1)
+
+    return at_idx(element, 0)
+
+
 def value_in_path(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
     path = path_or_name if isinstance(path_or_name, list) else path_or_name.split(".")
     at = len(path)

@@ -7,7 +7,7 @@ from typing import List, AsyncGenerator, Any
 import pytest
 
 from fixcore.analytics import AnalyticsEventSender
-from fixcore.db.deferredouteredgedb import deferred_outer_edge_db
+from fixcore.db.deferrededgesdb import deferred_outer_edge_db
 from fixcore.db.graphdb import ArangoGraphDB
 from fixcore.db.model import GraphUpdate
 from fixcore.model.graph_access import DeferredEdge, ByNodeId

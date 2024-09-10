@@ -148,19 +148,32 @@ class ArangoRunningTaskDb(ArangoEntityDb[str, RunningTaskData], RunningTaskDb):
         # descriptor_id, descriptor_name, done, created_at
         id_idx = f"{self.collection_name}_id_done"
         if id_idx not in indexes:
-            collection.add_persistent_index(
-                ["task_descriptor_id", "task_descriptor_name", "task_started_at", "has_info", "has_error", "done"],
-                sparse=False,
-                name=id_idx,
+            collection.add_index(
+                dict(
+                    type="persistent",
+                    fields=[
+                        "task_descriptor_id",
+                        "task_descriptor_name",
+                        "task_started_at",
+                        "has_info",
+                        "has_error",
+                        "done",
+                    ],
+                    sparse=False,
+                    name=id_idx,
+                )
             )
         # ttl index to get rid of old entries
         ttl_idx = f"{self.collection_name}_ttl"
         if ttl_idx not in indexes:
-            collection.add_ttl_index(
-                ["task_started_at"],
-                expiry_time=int(timedelta(days=60).total_seconds()),
-                in_background=True,
-                name=ttl_idx,
+            collection.add_index(
+                dict(
+                    type="ttl",
+                    fields=["task_started_at"],
+                    expireAfter=int(timedelta(days=60).total_seconds()),
+                    inBackground=True,
+                    name=ttl_idx,
+                )
             )
 
     async def all_running(self) -> AsyncGenerator[RunningTaskData, None]:
