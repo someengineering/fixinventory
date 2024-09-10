@@ -181,8 +181,8 @@ class AzureKeyReleasePolicy:
 
 
 @define(eq=False, slots=False)
-class AzureSecret(MicrosoftResource):
-    kind: ClassVar[str] = "azure_secret"
+class AzureKeyVaultSecret(MicrosoftResource):
+    kind: ClassVar[str] = "azure_key_vault_secret"
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -372,7 +372,7 @@ class AzureKeyVault(MicrosoftResource):
                     graph_builder.add_edge(self, node=dep)
 
         graph_builder.submit_work(service_name, collect_dependant, AzureKeyVaultKey, "keys")
-        graph_builder.submit_work(service_name, collect_dependant, AzureSecret, "secrets")
+        graph_builder.submit_work(service_name, collect_dependant, AzureKeyVaultSecret, "secrets")
         AzureMonitorDiagnosticSettings.fetch_diagnostics(graph_builder, self)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -383,5 +383,6 @@ class AzureKeyVault(MicrosoftResource):
 resources: List[Type[MicrosoftResource]] = [
     AzureKeyVaultManagedHsm,
     AzureKeyVault,
+    AzureKeyVaultSecret,
     AzureKeyVaultKey,
 ]
