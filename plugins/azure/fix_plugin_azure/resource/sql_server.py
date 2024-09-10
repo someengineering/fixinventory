@@ -232,7 +232,7 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
         database_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_error_codes: Optional[List[str]] = None,
+        expected_error_codes: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{database_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -243,7 +243,7 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_error_codes or [],
+            expected_error_codes=expected_error_codes or {},
         )
         items = graph_builder.client.list(api_spec)
         collected = class_instance.collect(items, graph_builder)
@@ -271,9 +271,9 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
                 (
                     "advisors?$expand=recommendedAction",
                     AzureSqlServerAdvisor,
-                    ["DataWarehouseNotSupported", "DatabaseDoesNotExist"],
+                    {"DataWarehouseNotSupported": None, "DatabaseDoesNotExist": None},
                 ),
-                ("workloadGroups", AzureSqlServerDatabaseWorkloadGroup, ["FeatureDisabledOnSelectedEdition"]),
+                ("workloadGroups", AzureSqlServerDatabaseWorkloadGroup, {"FeatureDisabledOnSelectedEdition": None}),
             ]
 
             for resource_type, resource_class, expected_error_codes in resources_to_collect:

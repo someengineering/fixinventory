@@ -1949,7 +1949,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
         registry_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{registry_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -1960,7 +1960,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -1972,7 +1972,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if registry_id := self.id:
             resources_to_collect = [
-                ("codes", AzureMachineLearningRegistryCodeContainer, ["UserError"]),
+                ("codes", AzureMachineLearningRegistryCodeContainer, {"UserError": None}),
                 ("components", AzureMachineLearningRegistryComponentContainer, None),
                 ("data", AzureMachineLearningRegistryDataContainer, None),
                 ("environments", AzureMachineLearningRegistryEnvironmentContainer, None),
@@ -2020,7 +2020,7 @@ class AzureMachineLearningQuota(MicrosoftResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=["InternalServerError", "ServiceError"],
+        expected_error_codes={"InternalServerError": None, "ServiceError": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2146,7 +2146,11 @@ class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=AzureBaseUsage._expected_error_codes + ["InternalServerError", "ServiceError"],
+        expected_error_codes={
+            **AzureBaseUsage._expected_error_codes,
+            "InternalServerError": None,
+            "ServiceError": None,
+        },
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("id"),
@@ -2498,7 +2502,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         workspace_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{workspace_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -2509,7 +2513,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -2533,12 +2537,12 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
                 ("schedules", AzureMachineLearningSchedule, None),
                 ("serverlessEndpoints", AzureMachineLearningServerlessEndpoint, None),
                 ("connections", AzureMachineLearningWorkspaceConnection, None),
-                ("codes", AzureMachineLearningWorkspaceCodeContainer, ["UserError"]),
+                ("codes", AzureMachineLearningWorkspaceCodeContainer, {"UserError": None}),
                 ("components", AzureMachineLearningWorkspaceComponentContainer, None),
                 ("data", AzureMachineLearningWorkspaceDataContainer, None),
                 ("environments", AzureMachineLearningWorkspaceEnvironmentContainer, None),
-                ("featuresets", AzureMachineLearningFeaturesetContainer, ["UserError"]),
-                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, ["UserError"]),
+                ("featuresets", AzureMachineLearningFeaturesetContainer, {"UserError": None}),
+                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, {"UserError": None}),
                 ("models", AzureMachineLearningWorkspaceModelContainer, None),
             ]
 

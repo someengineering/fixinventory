@@ -453,7 +453,7 @@ class AzureBaseUsage:
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
     unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
-    _expected_error_codes: ClassVar[List[str]] = ["SubscriptionHasNoUsages"]
+    _expected_error_codes: ClassVar[Dict[str, Optional[str]]] = {"SubscriptionHasNoUsages": None}
 
 
 @define(eq=False, slots=False)

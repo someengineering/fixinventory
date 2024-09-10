@@ -509,7 +509,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         server_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -520,7 +520,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -538,10 +538,18 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                 (
                     "administrators",
                     AzurePostgresqlServerADAdministrator,
-                    ["InternalServerError", "DatabaseDoesNotExist"],
+                    {"InternalServerError": None, "DatabaseDoesNotExist": None},
                 ),
-                ("configurations", AzurePostgresqlServerConfiguration, ["ServerStoppedError", "InternalServerError"]),
-                ("databases", AzurePostgresqlServerDatabase, ["ServerStoppedError", "InternalServerError"]),
+                (
+                    "configurations",
+                    AzurePostgresqlServerConfiguration,
+                    {"InternalServerError": None, "DatabaseDoesNotExist": None},
+                ),
+                (
+                    "databases",
+                    AzurePostgresqlServerDatabase,
+                    {"InternalServerError": None, "DatabaseDoesNotExist": None},
+                ),
                 ("firewallRules", AzurePostgresqlServerFirewallRule, None),
                 ("backups", AzurePostgresqlServerBackup, None),
             ]
@@ -574,7 +582,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                     query_parameters=["api-version"],
                     access_path="value",
                     expect_array=True,
-                    expected_error_codes=["InternalServerError"],
+                    expected_error_codes={"InternalServerError": None},
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:

@@ -68,10 +68,9 @@ class AzureResourceSpec:
     query_parameters: List[str] = []
     access_path: Optional[str] = None
     expect_array: bool = False
-    expected_error_codes: List[str] = field(factory=list)
-    expected_error_codes_with_hints: Dict[str, str] = field(factory=dict)
+    expected_error_codes: Dict[str, Optional[str]] = field(factory=dict)
     """
-    A dictionary that maps specific error codes (str) to corresponding hints (str) to provide additional context or troubleshooting information when an error occurs.
+    A dictionary that maps specific error codes (str) to corresponding hints (Optional[str]) to provide additional context or troubleshooting information when an error occurs.
     """
 
     def request(self, client: "MicrosoftResourceManagementClient", **kwargs: Any) -> HttpRequest:
@@ -122,10 +121,9 @@ class RestApiSpec:
     parameters: Optional[Dict[str, str]] = None
     access_path: Optional[str] = None
     expect_array: bool = False
-    expected_error_codes: List[str] = field(factory=list)
-    expected_error_codes_with_hints: Dict[str, str] = field(factory=dict)
+    expected_error_codes: Dict[str, Optional[str]] = field(factory=dict)
     """
-    A dictionary that maps specific error codes (str) to corresponding hints (str) to provide additional context or troubleshooting information when an error occurs.
+    A dictionary that maps specific error codes (str) to corresponding hints (Optional[str]) to provide additional context or troubleshooting information when an error occurs.
     """
 
     def __attrs_post_init__(self) -> None:
@@ -329,9 +327,8 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
                 if error.code == "NoRegisteredProviderFound":
                     return None  # API not available in this region
                 elif error.code in spec.expected_error_codes:
-                    return None
-                elif hint := spec.expected_error_codes_with_hints.get(code):
-                    self.accumulator.add_error(False, code, spec.service, spec.action, str(hint))
+                    if hint := spec.expected_error_codes.get(code):
+                        self.accumulator.add_error(False, code, spec.service, spec.action, str(hint))
                     return None
                 elif error.code == "BadRequest" and spec.service == "metric":
                     raise MetricRequestError from e

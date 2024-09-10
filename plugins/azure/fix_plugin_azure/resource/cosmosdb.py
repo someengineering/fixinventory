@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Type, Union
+from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
 
@@ -468,7 +468,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -479,7 +478,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -491,11 +489,11 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
             resources_to_collect = [
-                ("status", AzureCosmosDBCassandraClusterPublicStatus, None),
-                ("dataCenters", AzureCosmosDBCassandraClusterDataCenter, None),
+                ("status", AzureCosmosDBCassandraClusterPublicStatus),
+                ("dataCenters", AzureCosmosDBCassandraClusterDataCenter),
             ]
 
-            for resource_type, resource_class, expected_errors in resources_to_collect:
+            for resource_type, resource_class in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
                     self._collect_items,
@@ -503,7 +501,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
                     account_id,
                     resource_type,
                     resource_class,
-                    expected_errors,
                 )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -765,15 +762,7 @@ class AzureDatabaseAccountKeysMetadata:
     secondary_readonly_master_key: Optional[datetime] = field(default=None, metadata={'description': 'The metadata related to an access key for a given database account.'})  # fmt: skip
 
 
-mongo_cosmosdb_error_message = """Error: The action failed because Mongo User and Role Definitions are not enabled for your Azure Cosmos DB MongoDB account.
-This means the database cannot perform operations that involve user or role management. You received a "BadRequest" error, indicating that Mongo User and Role Definition features are disabled.
-Hint: To resolve this issue, enable Role-based access control (RBAC) for your Cosmos DB account.
-Steps:
-1. Navigate to the Azure portal.
-2. Go to your Cosmos DB MongoDB account -> {provider_link}.
-3. Enable the "Role-based access control (RBAC)" option in "Settings -> Features".
-Enabling RBAC will allow user permissions and role assignments to be managed within the database, which is essential for actions such as Mongo user and role definitions.
-"""
+mongo_cosmosdb_error_message = "Mongo User and Role Definitions are not enabled in your Azure Cosmos DB MongoDB account and can not be collected. In Cosmos DB MongoDB account under “Settings -> Features”, turn on the “Role-based access control (RBAC)” option."
 
 
 @define(eq=False, slots=False)
@@ -925,7 +914,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[Union[Dict[str, str], List[str]]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -936,11 +925,8 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
+            expected_error_codes=expected_errors or {},
         )
-        if isinstance(expected_errors, dict):
-            api_spec.expected_error_codes_with_hints = expected_errors or {}
-        elif isinstance(expected_errors, list):
-            api_spec.expected_error_codes = expected_errors or []
         items = graph_builder.client.list(api_spec)
         if not items:
             return
@@ -956,7 +942,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
             resources_to_collect: List = [  # type: ignore
                 ("notebookWorkspaces", AzureCosmosDBNotebookWorkspace, None),
                 ("privateLinkResources", AzureCosmosDBPrivateLink, None),
-                ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
+                ("usages", AzureCosmosDBAccountUsage, {"SubscriptionHasNoUsages": None}),
             ]
             # For fetching SQL resources required filtering by API type
             if database_api_type := self.database_api_type:
@@ -1547,7 +1533,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -1558,7 +1543,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -1574,21 +1558,21 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
             if api_type := self.api_type:
                 api_type = api_type.split(",")[0]
                 if api_type == "Sql":
-                    resources_to_collect.append(("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None))
+                    resources_to_collect.append(("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase))
                 elif api_type == "MongoDB":
                     resources_to_collect.append(
-                        ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),  # type: ignore
+                        ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase),  # type: ignore
                     )
                 elif api_type == "Table":
                     resources_to_collect.append(
-                        ("restorableTables", AzureCosmosDBRestorableTable, None),  # type: ignore
+                        ("restorableTables", AzureCosmosDBRestorableTable),  # type: ignore
                     )
                 elif api_type == "Gremlin":
                     resources_to_collect.append(
-                        ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),  # type: ignore
+                        ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase),  # type: ignore
                     )
 
-            for resource_type, resource_class, expected_errors in resources_to_collect:
+            for resource_type, resource_class in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
                     self._collect_items,
@@ -1596,7 +1580,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
                     account_id,
                     resource_type,
                     resource_class,
-                    expected_errors,
                 )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1763,7 +1746,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
         database_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{database_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -1774,7 +1757,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -1788,7 +1771,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
             resources_to_collect = [
                 ("containers", AzureCosmosDBSqlDatabaseContainer, None),
                 ("clientEncryptionKeys", AzureCosmosDBSqlDatabaseClientEncryptionKey, None),
-                ("throughputSettings/default", AzureCosmosDBSqlThroughputSetting, ["BadRequest"]),
+                ("throughputSettings/default", AzureCosmosDBSqlThroughputSetting, {"BadRequest": None}),
             ]
 
             for resource_type, resource_class, expected_errors in resources_to_collect:
@@ -2409,7 +2392,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -2420,7 +2403,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -2443,7 +2426,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
         if account_id := self.id:
             resources_to_collect = [
                 ("servers", AzureCosmosDBPostgresqlClusterServer, None),
-                ("configurations", AzureCosmosDBPostgresqlClusterConfiguration, ["internal_server_error"]),
+                ("configurations", AzureCosmosDBPostgresqlClusterConfiguration, {"internal_server_error": None}),
                 ("privateEndpointConnections", AzureCosmosDBPostgresqlClusterPrivateEndpointConnection, None),
                 ("privateLinkResources", AzureCosmosDBPostgresqlClusterPrivateLink, None),
                 ("roles", AzureCosmosDBPostgresqlClusterRole, None),
@@ -2539,7 +2522,7 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, Azur
                     query_parameters=["api-version"],
                     access_path="value",
                     expect_array=True,
-                    expected_error_codes=["internal_server_error"],
+                    expected_error_codes={"internal_server_error": None},
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
