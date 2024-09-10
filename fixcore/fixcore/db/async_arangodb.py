@@ -28,7 +28,6 @@ from arango.typings import Json, Jsons
 
 from fixcore.async_extensions import run_async
 from fixcore.error import QueryTookToLongError
-from fixcore.util import identity
 from fixcore.ids import GraphName
 
 log = logging.getLogger(__name__)
