@@ -29,19 +29,9 @@ from arango.typings import Json, Jsons
 from fixcore.async_extensions import run_async
 from fixcore.error import QueryTookToLongError
 from fixcore.ids import GraphName
+from fixcore.util import identity
 
 log = logging.getLogger(__name__)
-
-
-def drop_edge_props(json: Json) -> Json:
-    if isinstance(json, dict):
-        res = json.copy()
-        res.pop("_from", None)
-        res.pop("_to", None)
-        res.pop("_link_id", None)
-        res.pop("_link_reported", None)
-        return res
-    return json
 
 
 class AsyncCursor(AsyncIterator[Any]):
@@ -61,7 +51,7 @@ class AsyncCursor(AsyncIterator[Any]):
         self.visited_edge: Set[str] = set()
         self.deferred_edges: List[Json] = []
         self.cursor_exhausted = False
-        self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else drop_edge_props
+        self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else identity
         self.vt_len: Optional[int] = None
         self.on_hold: Optional[Json] = None
         self.get_next: Callable[[], Awaitable[Optional[Json]]] = (

@@ -167,3 +167,4 @@ async def test_graph_manager(
     for graph in await graph_manager.list(".*"):
         await db_access.delete_graph(graph)
         await db_access.delete_graph_model(graph)
+    await graph_manager.stop()
