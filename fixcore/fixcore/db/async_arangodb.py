@@ -35,12 +35,14 @@ log = logging.getLogger(__name__)
 
 
 def drop_edge_props(json: Json) -> Json:
-    res = json.copy()
-    res.pop("_from", None)
-    res.pop("_to", None)
-    res.pop("_link_id", None)
-    res.pop("_link_reported", None)
-    return res
+    if isinstance(json, dict):
+        res = json.copy()
+        res.pop("_from", None)
+        res.pop("_to", None)
+        res.pop("_link_id", None)
+        res.pop("_link_reported", None)
+        return res
+    return json
 
 
 class AsyncCursor(AsyncIterator[Any]):
@@ -108,7 +110,6 @@ class AsyncCursor(AsyncIterator[Any]):
 
     async def next_filtered(self) -> Optional[Json]:
         element = await self.next_from_db()
-        print("\n>>>>FOUND NEXT ELEMENT!\n", element)
         vertex: Optional[Json] = None
         edge = None
         try:
