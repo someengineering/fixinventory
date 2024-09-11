@@ -1,5 +1,3 @@
-from string import ascii_letters
-
 from hypothesis.strategies import (
     composite,
     SearchStrategy,
