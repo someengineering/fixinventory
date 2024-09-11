@@ -13,7 +13,7 @@ def create_graph(bla_text: str, width: int = 10) -> MultiDiGraph:
 
     def add_edge(from_node: str, to_node: str, edge_type: EdgeType = EdgeTypes.default) -> None:
         key = GraphAccess.edge_key(from_node, to_node, edge_type)
-        graph.add_edge(from_node, to_node, key, edge_type=edge_type)
+        graph.add_edge(from_node, to_node, key, reported=dict(a=1, b=[{"c": 1, "d": 2}, {"c": 2, "d": 2}]))
 
     def add_node(uid: str, kind: str, node: Optional[Json] = None, replace: bool = False) -> None:
         reported = {**(node if node else to_js(Foo(uid))), "kind": kind}
