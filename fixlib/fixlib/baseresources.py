@@ -1555,4 +1555,5 @@ class UnknownLocation(BaseResource):
     def delete(self, graph: Any) -> bool:
         return False
 
+
 resolve_types(BaseResource)  # noqa
