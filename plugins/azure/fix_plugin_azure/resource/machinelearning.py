@@ -18,11 +18,11 @@ from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
     AzurePrivateLinkServiceConnectionState,
 )
-from fix_plugin_azure.resource.compute import AzureVirtualMachineBase
-from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.compute import AzureComputeVirtualMachineBase
+from fix_plugin_azure.resource.containerservice import AzureContainerServiceManagedCluster
 from fix_plugin_azure.resource.keyvault import AzureKeyVault
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
-from fix_plugin_azure.resource.network import AzureSubnet, AzureVirtualNetwork
+from fix_plugin_azure.resource.network import AzureNetworkSubnet, AzureNetworkVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.resource.web import AzureWebApp
 from fixlib.baseresources import BaseInstanceType, ModelReference
@@ -443,6 +443,9 @@ class AzureMachineLearningCompute(MicrosoftResource):
                 "azure_machine_learning_compute_node",
                 MicrosoftGraphServicePrincipal.kind,
                 MicrosoftGraphUser.kind,
+                AzureComputeVirtualMachineBase.kind,
+                AzureContainerServiceManagedCluster.kind,
+                AzureWebApp.kind,
             ]
         },
     }
@@ -549,7 +552,9 @@ class AzureMachineLearningCompute(MicrosoftResource):
                         )
         if compute_resource_id := self.resource_id:
             builder.add_edge(
-                self, clazz=(AzureVirtualMachineBase, AzureManagedCluster, AzureWebApp), id=compute_resource_id
+                self,
+                clazz=(AzureComputeVirtualMachineBase, AzureContainerServiceManagedCluster, AzureWebApp),
+                id=compute_resource_id,
             )
 
 
@@ -1946,7 +1951,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
         registry_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{registry_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -1957,7 +1962,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -1969,7 +1974,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if registry_id := self.id:
             resources_to_collect = [
-                ("codes", AzureMachineLearningRegistryCodeContainer, ["UserError"]),
+                ("codes", AzureMachineLearningRegistryCodeContainer, {"UserError": None}),
                 ("components", AzureMachineLearningRegistryComponentContainer, None),
                 ("data", AzureMachineLearningRegistryDataContainer, None),
                 ("environments", AzureMachineLearningRegistryEnvironmentContainer, None),
@@ -2017,7 +2022,7 @@ class AzureMachineLearningQuota(MicrosoftResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=["InternalServerError", "ServiceError"],
+        expected_error_codes={"InternalServerError": None, "ServiceError": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2143,7 +2148,11 @@ class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=AzureBaseUsage._expected_error_codes + ["InternalServerError", "ServiceError"],
+        expected_error_codes={
+            **AzureBaseUsage._expected_error_codes,
+            "InternalServerError": None,
+            "ServiceError": None,
+        },
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("id"),
@@ -2401,9 +2410,9 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         "predecessors": {
             "default": [
                 AzureKeyVault.kind,
-                AzureVirtualNetwork.kind,
+                AzureNetworkVirtualNetwork.kind,
                 AzureStorageAccount.kind,
-                AzureSubnet.kind,
+                AzureNetworkSubnet.kind,
             ]
         },
     }
@@ -2495,7 +2504,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         workspace_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{workspace_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -2506,7 +2515,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -2530,12 +2539,12 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
                 ("schedules", AzureMachineLearningSchedule, None),
                 ("serverlessEndpoints", AzureMachineLearningServerlessEndpoint, None),
                 ("connections", AzureMachineLearningWorkspaceConnection, None),
-                ("codes", AzureMachineLearningWorkspaceCodeContainer, ["UserError"]),
+                ("codes", AzureMachineLearningWorkspaceCodeContainer, {"UserError": None}),
                 ("components", AzureMachineLearningWorkspaceComponentContainer, None),
                 ("data", AzureMachineLearningWorkspaceDataContainer, None),
                 ("environments", AzureMachineLearningWorkspaceEnvironmentContainer, None),
-                ("featuresets", AzureMachineLearningFeaturesetContainer, ["UserError"]),
-                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, ["UserError"]),
+                ("featuresets", AzureMachineLearningFeaturesetContainer, {"UserError": None}),
+                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, {"UserError": None}),
                 ("models", AzureMachineLearningWorkspaceModelContainer, None),
             ]
 
@@ -2554,13 +2563,13 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         if key_vault_id := self.key_vault:
             builder.add_edge(self, clazz=AzureKeyVault, reverse=True, id=key_vault_id)
         if (network := self.managed_network) and (network_id := network.network_id):
-            builder.add_edge(self, clazz=AzureVirtualNetwork, reverse=True, id=network_id)
+            builder.add_edge(self, clazz=AzureNetworkVirtualNetwork, reverse=True, id=network_id)
         if storage_id := self.storage_account:
             builder.add_edge(self, clazz=AzureStorageAccount, reverse=True, id=storage_id)
         if (compute_settings := self.serverless_compute_settings) and (
             subnet_id := compute_settings.serverless_compute_custom_subnet
         ):
-            builder.add_edge(self, clazz=AzureSubnet, reverse=True, id=subnet_id)
+            builder.add_edge(self, clazz=AzureNetworkSubnet, reverse=True, id=subnet_id)
 
         # principal: collected via ms graph -> create a deferred edge
         if ai := self.identity:

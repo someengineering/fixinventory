@@ -1,129 +1,132 @@
 from conftest import roundtrip_check, connect_resources
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
-from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.containerservice import AzureContainerServiceManagedCluster
 from fix_plugin_azure.resource.network import *
 
 from typing import List, Type
 
 
 def test_application_gateway_available_waf_rule_set(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureApplicationGatewayFirewallRuleSet, builder)
+    collected = roundtrip_check(AzureNetworkApplicationGatewayFirewallRuleSet, builder)
     assert len(collected) == 1
 
 
 def test_application_gateway(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureApplicationGateway, builder)
+    collected = roundtrip_check(AzureNetworkApplicationGateway, builder)
     assert len(collected) == 1
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureWebApplicationFirewallPolicy]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkWebApplicationFirewallPolicy]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureApplicationGateway, AzureWebApplicationFirewallPolicy)) == 1
+    assert len(builder.edges_of(AzureNetworkApplicationGateway, AzureNetworkWebApplicationFirewallPolicy)) == 1
 
 
 def test_application_gateway_web_application_firewall_policy(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureWebApplicationFirewallPolicy, builder)
+    collected = roundtrip_check(AzureNetworkWebApplicationFirewallPolicy, builder)
     assert len(collected) == 1
 
 
 def test_azure_firewall(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureFirewall, builder)
+    collected = roundtrip_check(AzureNetworkFirewall, builder)
     assert len(collected) == 1
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureFirewallPolicy, AzureVirtualHub]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkFirewallPolicy, AzureNetworkVirtualHub]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureFirewall, AzureFirewallPolicy)) == 1
-    assert len(builder.edges_of(AzureFirewall, AzureVirtualHub)) == 1
+    assert len(builder.edges_of(AzureNetworkFirewall, AzureNetworkFirewallPolicy)) == 1
+    assert len(builder.edges_of(AzureNetworkFirewall, AzureNetworkVirtualHub)) == 1
 
 
 def test_bastion_host(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureBastionHost, builder)
+    collected = roundtrip_check(AzureNetworkBastionHost, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork, AzurePublicIPAddress]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkVirtualNetwork, AzureNetworkPublicIPAddress]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualNetwork, AzureBastionHost)) == 1
-    assert len(builder.edges_of(AzureBastionHost, AzurePublicIPAddress)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualNetwork, AzureNetworkBastionHost)) == 1
+    assert len(builder.edges_of(AzureNetworkBastionHost, AzureNetworkPublicIPAddress)) == 1
 
 
 def test_custom_ip_prefix(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureCustomIpPrefix, builder)
+    collected = roundtrip_check(AzureNetworkCustomIpPrefix, builder)
     assert len(collected) == 12
 
 
 def test_ddos_protection_plan(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureDdosProtectionPlan, builder)
+    collected = roundtrip_check(AzureNetworkDdosProtectionPlan, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork, AzurePublicIPAddress]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkVirtualNetwork, AzureNetworkPublicIPAddress]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureDdosProtectionPlan, AzureVirtualNetwork)) == 1
-    assert len(builder.edges_of(AzureDdosProtectionPlan, AzurePublicIPAddress)) == 1
+    assert len(builder.edges_of(AzureNetworkDdosProtectionPlan, AzureNetworkVirtualNetwork)) == 1
+    assert len(builder.edges_of(AzureNetworkDdosProtectionPlan, AzureNetworkPublicIPAddress)) == 1
 
 
 def test_dscp_configuration(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureDscpConfiguration, builder)
+    collected = roundtrip_check(AzureNetworkDscpConfiguration, builder)
     assert len(collected) == 2
 
 
 def test_express_route_circuit(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureExpressRouteCircuit, builder)
+    collected = roundtrip_check(AzureNetworkExpressRouteCircuit, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureExpressRoutePort, AzureExpressRoutePortsLocation]
-    roundtrip_check(AzureExpressRoutePortsLocation, builder)
+    resource_types: List[Type[MicrosoftResource]] = [
+        AzureNetworkExpressRoutePort,
+        AzureNetworkExpressRoutePortsLocation,
+    ]
+    roundtrip_check(AzureNetworkExpressRoutePortsLocation, builder)
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureExpressRouteCircuit, AzureExpressRoutePort)) == 1
-    assert len(builder.edges_of(AzureExpressRouteCircuit, AzureExpressRoutePortsLocation)) == 1
+    assert len(builder.edges_of(AzureNetworkExpressRouteCircuit, AzureNetworkExpressRoutePort)) == 1
+    assert len(builder.edges_of(AzureNetworkExpressRouteCircuit, AzureNetworkExpressRoutePortsLocation)) == 1
 
 
 def test_express_route_gateway(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureExpressRouteGateway, builder)
+    collected = roundtrip_check(AzureNetworkExpressRouteGateway, builder)
     assert len(collected) == 1
 
 
 def test_express_route_port(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureExpressRoutePort, builder)
+    collected = roundtrip_check(AzureNetworkExpressRoutePort, builder)
     assert len(collected) == 1
 
 
 def test_express_route_port_location(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureExpressRoutePortsLocation, builder)
+    collected = roundtrip_check(AzureNetworkExpressRoutePortsLocation, builder)
     assert len(collected) == 1
 
 
 def test_firewall_policy(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureFirewallPolicy, builder)
+    collected = roundtrip_check(AzureNetworkFirewallPolicy, builder)
     assert len(collected) == 1
 
 
 def test_ip_allocation(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureIpAllocation, builder)
+    collected = roundtrip_check(AzureNetworkIpAllocation, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkVirtualNetwork]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualNetwork, AzureIpAllocation)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualNetwork, AzureNetworkIpAllocation)) == 1
 
 
 def test_ip_group(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureIpGroup, builder)
+    collected = roundtrip_check(AzureNetworkIpGroup, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork]
-    roundtrip_check(AzureVirtualNetwork, builder)
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkVirtualNetwork]
+    roundtrip_check(AzureNetworkVirtualNetwork, builder)
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualNetwork, AzureIpGroup)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualNetwork, AzureNetworkIpGroup)) == 1
 
 
 def test_load_balancer(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureLoadBalancer, builder)
+    collected = roundtrip_check(AzureNetworkLoadBalancer, builder)
     assert collected[0].lb_type == "Microsoft.Network/loadBalancers"
     assert collected[0].backends == [
         "/subscriptions/subid/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1",
@@ -131,28 +134,32 @@ def test_load_balancer(builder: GraphBuilder) -> None:
     ]
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork, AzureManagedCluster, AzureLoadBalancerProbe]
-    roundtrip_check(AzurePublicIPAddress, builder)
+    resource_types: List[Type[MicrosoftResource]] = [
+        AzureNetworkVirtualNetwork,
+        AzureContainerServiceManagedCluster,
+        AzureNetworkLoadBalancerProbe,
+    ]
+    roundtrip_check(AzureNetworkPublicIPAddress, builder)
     connect_resources(builder, resource_types)
 
     assert collected[0].aks_public_ip_address == "41.85.154.247"
-    assert len(builder.edges_of(AzureVirtualNetwork, AzureLoadBalancer)) == 1
-    assert len(builder.edges_of(AzureManagedCluster, AzureLoadBalancer)) == 1
-    assert len(builder.edges_of(AzureLoadBalancer, AzureLoadBalancerProbe)) == 2
+    assert len(builder.edges_of(AzureNetworkVirtualNetwork, AzureNetworkLoadBalancer)) == 1
+    assert len(builder.edges_of(AzureContainerServiceManagedCluster, AzureNetworkLoadBalancer)) == 1
+    assert len(builder.edges_of(AzureNetworkLoadBalancer, AzureNetworkLoadBalancerProbe)) == 2
 
 
 def test_network_profile(builder: GraphBuilder) -> None:
-    from fix_plugin_azure.resource.compute import AzureVirtualMachine  # pylint: disable=import-outside-toplevel
+    from fix_plugin_azure.resource.compute import AzureComputeVirtualMachine  # pylint: disable=import-outside-toplevel
 
     collected = roundtrip_check(AzureNetworkProfile, builder)
 
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualMachine]
+    resource_types: List[Type[MicrosoftResource]] = [AzureComputeVirtualMachine]
     roundtrip_check(AzureNetworkInterface, builder)
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureNetworkProfile, AzureVirtualMachine)) == 1
+    assert len(builder.edges_of(AzureNetworkProfile, AzureComputeVirtualMachine)) == 1
 
 
 def test_network_virtual_appliance(builder: GraphBuilder) -> None:
@@ -175,35 +182,35 @@ def test_network_watcher(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureNetworkWatcher, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualNetwork]
-    roundtrip_check(AzureVirtualNetwork, builder)
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkVirtualNetwork]
+    roundtrip_check(AzureNetworkVirtualNetwork, builder)
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualNetwork, AzureNetworkWatcher)) == 2
+    assert len(builder.edges_of(AzureNetworkVirtualNetwork, AzureNetworkWatcher)) == 2
 
 
 def test_p2s_vpn_gateway(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureP2SVpnGateway, builder)
+    collected = roundtrip_check(AzureNetworkP2SVpnGateway, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualHub]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkVirtualHub]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureP2SVpnGateway, AzureVirtualHub)) == 2
+    assert len(builder.edges_of(AzureNetworkP2SVpnGateway, AzureNetworkVirtualHub)) == 2
 
 
 def test_public_ip_prefix(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzurePublicIPPrefix, builder)
+    collected = roundtrip_check(AzureNetworkPublicIPPrefix, builder)
     assert len(collected) == 3
 
 
 def test_route_filter(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureRouteFilter, builder)
+    collected = roundtrip_check(AzureNetworkRouteFilter, builder)
     assert len(collected) == 1
 
 
 def test_security_partner_provider(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureSecurityPartnerProvider, builder)
+    collected = roundtrip_check(AzureNetworkSecurityPartnerProvider, builder)
     assert len(collected) == 1
 
 
@@ -213,68 +220,68 @@ def test_usage(builder: GraphBuilder) -> None:
 
 
 def test_virtual_hub(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualHub, builder)
+    collected = roundtrip_check(AzureNetworkVirtualHub, builder)
     assert len(collected) == 2
 
     resource_types: List[Type[MicrosoftResource]] = [
-        AzureExpressRouteGateway,
-        AzureVirtualWANVpnGateway,
-        AzureVirtualWAN,
-        AzurePublicIPAddress,
+        AzureNetworkExpressRouteGateway,
+        AzureNetworkVirtualWANVpnGateway,
+        AzureNetworkVirtualWAN,
+        AzureNetworkPublicIPAddress,
     ]
     roundtrip_check(AzureNetworkInterface, builder)
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureExpressRouteGateway, AzureVirtualHub)) == 1
-    assert len(builder.edges_of(AzureVirtualWANVpnGateway, AzureVirtualHub)) == 1
-    assert len(builder.edges_of(AzureVirtualWAN, AzureVirtualHub)) == 1
-    assert len(builder.edges_of(AzureVirtualHub, AzurePublicIPAddress)) == 1
+    assert len(builder.edges_of(AzureNetworkExpressRouteGateway, AzureNetworkVirtualHub)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualWANVpnGateway, AzureNetworkVirtualHub)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualWAN, AzureNetworkVirtualHub)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualHub, AzureNetworkPublicIPAddress)) == 1
 
 
 def test_virtual_network(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualNetwork, builder)
+    collected = roundtrip_check(AzureNetworkVirtualNetwork, builder)
     assert len(collected) == 2
 
 
 def test_virtual_router(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualRouter, builder)
+    collected = roundtrip_check(AzureNetworkVirtualRouter, builder)
     assert len(collected) == 1
 
 
 def test_virtual_wan(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualWAN, builder)
+    collected = roundtrip_check(AzureNetworkVirtualWAN, builder)
     assert len(collected) == 2
 
 
 def test_vpn_gateway(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualWANVpnGateway, builder)
+    collected = roundtrip_check(AzureNetworkVirtualWANVpnGateway, builder)
     assert len(collected) == 2
 
     resource_types: List[Type[MicrosoftResource]] = [
-        AzureVirtualWANVpnConnection,
+        AzureNetworkVirtualWANVpnConnection,
     ]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualWANVpnGateway, AzureVirtualWANVpnConnection)) == 2
+    assert len(builder.edges_of(AzureNetworkVirtualWANVpnGateway, AzureNetworkVirtualWANVpnConnection)) == 2
 
 
 def test_vpn_server_configuration(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVpnServerConfiguration, builder)
+    collected = roundtrip_check(AzureNetworkVpnServerConfiguration, builder)
     assert len(collected) == 2
 
 
 def test_vpn_site(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVpnSite, builder)
+    collected = roundtrip_check(AzureNetworkVpnSite, builder)
     assert len(collected) == 2
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureVirtualWAN]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkVirtualWAN]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualWAN, AzureVpnSite)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualWAN, AzureNetworkVpnSite)) == 1
 
 
 def test_nat_gateway(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureNatGateway, builder)
+    collected = roundtrip_check(AzureNetworkNatGateway, builder)
     assert len(collected) == 2
 
 
@@ -283,17 +290,17 @@ def test_network_interface(builder: GraphBuilder) -> None:
     assert len(collected) == 2
 
     resource_types: List[Type[MicrosoftResource]] = [
-        AzureVirtualNetworkTap,
-        AzureDscpConfiguration,
+        AzureNetworkVirtualNetworkTap,
+        AzureNetworkDscpConfiguration,
         AzureNetworkSecurityGroup,
-        AzurePrivateLinkService,
+        AzureNetworkPrivateLinkService,
     ]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureVirtualNetworkTap, AzureNetworkInterface)) == 1
-    assert len(builder.edges_of(AzurePrivateLinkService, AzureNetworkInterface)) == 1
+    assert len(builder.edges_of(AzureNetworkVirtualNetworkTap, AzureNetworkInterface)) == 1
+    assert len(builder.edges_of(AzureNetworkPrivateLinkService, AzureNetworkInterface)) == 1
     assert len(builder.edges_of(AzureNetworkSecurityGroup, AzureNetworkInterface)) == 1
-    assert len(builder.edges_of(AzureNetworkInterface, AzureDscpConfiguration)) == 1
+    assert len(builder.edges_of(AzureNetworkInterface, AzureNetworkDscpConfiguration)) == 1
 
 
 def test_network_security_group(builder: GraphBuilder) -> None:
@@ -302,21 +309,21 @@ def test_network_security_group(builder: GraphBuilder) -> None:
 
 
 def test_private_link_service(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzurePrivateLinkService, builder)
+    collected = roundtrip_check(AzureNetworkPrivateLinkService, builder)
     assert len(collected) == 2
 
 
 def test_public_ip_address(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzurePublicIPAddress, builder)
+    collected = roundtrip_check(AzureNetworkPublicIPAddress, builder)
     assert len(collected) == 3
 
-    resource_types: List[Type[MicrosoftResource]] = [AzureNatGateway, AzurePublicIPPrefix]
+    resource_types: List[Type[MicrosoftResource]] = [AzureNetworkNatGateway, AzureNetworkPublicIPPrefix]
     connect_resources(builder, resource_types)
 
-    assert len(builder.edges_of(AzureNatGateway, AzurePublicIPAddress)) == 1
-    assert len(builder.edges_of(AzurePublicIPPrefix, AzurePublicIPAddress)) == 1
+    assert len(builder.edges_of(AzureNetworkNatGateway, AzureNetworkPublicIPAddress)) == 1
+    assert len(builder.edges_of(AzureNetworkPublicIPPrefix, AzureNetworkPublicIPAddress)) == 1
 
 
 def test_virtual_network_tap(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureVirtualNetworkTap, builder)
+    collected = roundtrip_check(AzureNetworkVirtualNetworkTap, builder)
     assert len(collected) == 2

@@ -171,8 +171,8 @@ class AzureSecuritySetting(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureAutoProvisioningSetting(MicrosoftResource):
-    kind: ClassVar[str] = "azure_auto_provisioning_setting"
+class AzureSecurityAutoProvisioningSetting(MicrosoftResource):
+    kind: ClassVar[str] = "azure_security_auto_provisioning_setting"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="security",
         version="2017-08-01-preview",
@@ -191,7 +191,7 @@ class AzureAutoProvisioningSetting(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureAutoProvisioningSetting,
+    AzureSecurityAutoProvisioningSetting,
     AzureSecurityAssessment,
     AzureSecurityPricing,
     AzureSecurityServerVulnerabilityAssessmentsSetting,

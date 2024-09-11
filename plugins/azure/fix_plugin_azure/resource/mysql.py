@@ -623,7 +623,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         resource_type: str,
         class_instance: MicrosoftResource,
         api_version: str,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -634,7 +634,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:

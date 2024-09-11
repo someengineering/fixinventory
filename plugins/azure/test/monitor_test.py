@@ -2,7 +2,7 @@ from conftest import roundtrip_check
 from fix_plugin_azure.resource.base import GraphBuilder
 from fix_plugin_azure.resource.monitor import (
     AzureMonitorActionGroup,
-    AzureActivityLogAlert,
+    AzureMonitorActivityLogAlert,
     AzureMonitorAlertRule,
     AzureMonitorLogProfile,
     AzureMetricAlert,
@@ -21,7 +21,7 @@ def test_action_groups(builder: GraphBuilder) -> None:
 
 
 def test_activity_log_alert(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureActivityLogAlert, builder)
+    collected = roundtrip_check(AzureMonitorActivityLogAlert, builder)
     assert len(collected) == 2
 
 
