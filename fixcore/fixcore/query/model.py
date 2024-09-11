@@ -627,6 +627,9 @@ class Navigation:
         else:
             return f"<-{nav}->"
 
+    def change_variable(self, fn: Callable[[str], str]) -> Navigation:
+        return evolve(self, edge_filter=self.edge_filter.change_variable(fn)) if self.edge_filter else self
+
 
 NavigateUntilRoot = Navigation(
     start=1, until=Navigation.Max, maybe_edge_types=[EdgeTypes.default], direction=Direction.inbound
@@ -742,6 +745,7 @@ class Part:
             term=self.term.change_variable(fn),
             with_clause=self.with_clause.change_variable(fn) if self.with_clause else None,
             sort=[sort.change_variable(fn) for sort in self.sort],
+            navigation=self.navigation.change_variable(fn) if self.navigation else None,
         )
 
     # ancestor.some_type.reported.prop -> MergeQuery
@@ -1060,10 +1064,14 @@ class Query:
             # this is another traversal: so we need to start a new part
             else:
                 parts.insert(
-                    0, Part(AllTerm(), navigation=Navigation(start, until, [edge_type], direction, edge_filter))
+                    0,
+                    Part(
+                        AllTerm(),
+                        navigation=Navigation(start, until, [edge_type], direction, edge_filter=edge_filter),
+                    ),
                 )
         else:
-            parts[0] = evolve(p0, navigation=Navigation(start, until, [edge_type], direction, edge_filter))
+            parts[0] = evolve(p0, navigation=Navigation(start, until, [edge_type], direction, edge_filter=edge_filter))
         return evolve(self, parts=parts)
 
     def group_by(self, variables: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:

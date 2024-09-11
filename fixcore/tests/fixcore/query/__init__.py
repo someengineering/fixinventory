@@ -1,3 +1,5 @@
+from string import ascii_letters
+
 from hypothesis.strategies import (
     composite,
     SearchStrategy,
@@ -7,10 +9,12 @@ from hypothesis.strategies import (
     just,
     integers,
     booleans,
+    text,
     tuples,
 )
 
 from fixcore.model.graph_access import EdgeTypes, Direction
+from fixcore.query.query_parser import fulltext_term
 from tests.fixcore.hypothesis_extension import Drawer, optional, UD, any_string, any_datetime
 from fixcore.query.model import (
     IsTerm,
@@ -34,22 +38,25 @@ from fixcore.query.model import (
     AggregateFunction,
     Limit,
     WithUsage,
+    ContextTerm,
+    IdTerm,
+    FulltextTerm,
 )
 
 
-query_property = sampled_from(["reported.name", "reported.cpu_count"])
-kind = sampled_from(["bucket", "volume", "certificate", "cloud", "database", "endpoint"])
-query_operations = sampled_from(["==", ">=", "<=", ">", "<"])
-query_values = sampled_from(["test", 23, True, False, None])
-combine_term = sampled_from(["and", "or"])
-edge_direction = sampled_from(list(Direction.all))
-edge_type = sampled_from(list(EdgeTypes.all))
-sort_order = sampled_from([SortOrder.Asc, SortOrder.Desc])
-aggregate_functions = sampled_from(["sum", "count", "min", "max", "avg"])
-is_term = builds(IsTerm, lists(kind, min_size=1, max_size=2))
-predicate_term = builds(Predicate, query_property, query_operations, query_values, just({}))
-leaf_term: SearchStrategy[Term] = is_term | predicate_term
-limit_gen = builds(Limit, integers(min_value=0), integers(min_value=1))
+@composite
+def composite_predicate_term(ud: UD) -> CombinedTerm:
+    d = Drawer(ud)
+    trm = leaf_term | composite_predicate_term()
+    return CombinedTerm(d.draw(trm), d.draw(combine_term), d.draw(trm))
+
+
+@composite
+def context_term(ud: UD) -> ContextTerm:
+    d = Drawer(ud)
+    prop = query_property | query_arr_property
+    trm = predicate_term | composite_predicate_term()
+    return ContextTerm(d.draw(prop), d.draw(trm))
 
 
 @composite
@@ -59,6 +66,24 @@ def composite_term(ud: UD) -> CombinedTerm:
     return CombinedTerm(d.draw(trm), d.draw(combine_term), d.draw(trm))
 
 
+strings = text(ascii_letters, min_size=1, max_size=10)
+query_property = sampled_from(["reported.name", "reported.cpu_count"])
+query_arr_property = sampled_from(["reported.arr[*]", "reported.arr[*].inner[*]"])
+kind = sampled_from(["bucket", "volume", "certificate", "cloud", "database", "endpoint"])
+query_operations = sampled_from(["==", ">=", "<=", ">", "<"])
+query_values = sampled_from(["test", 23, True, False, None])
+combine_term = sampled_from(["and", "or"])
+edge_direction = sampled_from(list(Direction.all))
+edge_type = sampled_from(list(EdgeTypes.all))
+sort_order = sampled_from([SortOrder.Asc, SortOrder.Desc])
+aggregate_functions = sampled_from(["sum", "count", "min", "max", "avg"])
+is_term = builds(IsTerm, lists(kind, min_size=1, max_size=2))
+id_term = builds(IdTerm, lists(strings, min_size=1, max_size=2))
+predicate_term = builds(Predicate, query_property, query_operations, query_values, just({}))
+fulltext_term = builds(FulltextTerm, strings)
+leaf_term: SearchStrategy[Term] = is_term | id_term | predicate_term | fulltext_term | context_term() | just(AllTerm())
+edge_term: SearchStrategy[Term] = predicate_term | context_term() | just(AllTerm())
+limit_gen = builds(Limit, integers(min_value=0), integers(min_value=1))
 term: SearchStrategy[Term] = leaf_term | composite_term()
 sort = builds(Sort, query_property, sort_order)
 
@@ -79,7 +104,8 @@ def navigation(ud: UD) -> Navigation:
     length = d.draw(integers(min_value=0, max_value=100))
     ed = d.draw(edge_type)
     direction = d.draw(edge_direction)
-    return Navigation(start, length + start, [ed], direction)
+    edge_filter = d.optional(edge_term)
+    return Navigation(start, length + start, [ed], direction, edge_filter=edge_filter)
 
 
 @composite
