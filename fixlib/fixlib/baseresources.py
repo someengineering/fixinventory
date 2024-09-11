@@ -1240,8 +1240,9 @@ class BaseNetworkInterface(BaseResource):
 class BaseIamPrincipal(BaseResource):
     kind: ClassVar[str] = "iam_principal"
     kind_display: ClassVar[str] = "IAM Principal"
-    kind_description: ClassVar[str] = ("An IAM principal is an entity that can be authenticated "
-                                       "and authorized to access resources.")
+    kind_description: ClassVar[str] = (
+        "An IAM principal is an entity that can be authenticated and authorized to access resources."
+    )
     metadata: ClassVar[Dict[str, Any]] = {"icon": "iam_principal", "group": "access_control"}
     _categories: ClassVar[List[Category]] = [Category.iam]
 
