@@ -1237,6 +1237,15 @@ class BaseNetworkInterface(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseIamPrincipal(BaseResource):
+    kind: ClassVar[str] = "iam_principal"
+    kind_display: ClassVar[str] = "IAM Principal"
+    kind_description: ClassVar[str] = "An IAM principal."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "iam_principal", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam]
+
+
+@define(eq=False, slots=False)
 class BaseUser(BaseResource):
     kind: ClassVar[str] = "user"
     kind_display: ClassVar[str] = "User"
@@ -1545,6 +1554,5 @@ class UnknownLocation(BaseResource):
 
     def delete(self, graph: Any) -> bool:
         return False
-
 
 resolve_types(BaseResource)  # noqa
