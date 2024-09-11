@@ -18,7 +18,7 @@ from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
     AzurePrivateLinkServiceConnectionState,
 )
-from fix_plugin_azure.resource.compute import AzureVirtualMachineBase
+from fix_plugin_azure.resource.compute import AzureComputeVirtualMachineBase
 from fix_plugin_azure.resource.containerservice import AzureContainerServiceManagedCluster
 from fix_plugin_azure.resource.keyvault import AzureKeyVault
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
@@ -443,7 +443,7 @@ class AzureMachineLearningCompute(MicrosoftResource):
                 "azure_machine_learning_compute_node",
                 MicrosoftGraphServicePrincipal.kind,
                 MicrosoftGraphUser.kind,
-                AzureVirtualMachineBase.kind,
+                AzureComputeVirtualMachineBase.kind,
                 AzureContainerServiceManagedCluster.kind,
                 AzureWebApp.kind,
             ]
@@ -552,7 +552,9 @@ class AzureMachineLearningCompute(MicrosoftResource):
                         )
         if compute_resource_id := self.resource_id:
             builder.add_edge(
-                self, clazz=(AzureVirtualMachineBase, AzureContainerServiceManagedCluster, AzureWebApp), id=compute_resource_id
+                self,
+                clazz=(AzureComputeVirtualMachineBase, AzureContainerServiceManagedCluster, AzureWebApp),
+                id=compute_resource_id,
             )
 
 

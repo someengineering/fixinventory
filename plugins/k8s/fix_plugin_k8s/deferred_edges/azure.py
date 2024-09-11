@@ -9,7 +9,7 @@ def link_k8s_node_to_vmss_instance(graph: Graph, resource: BaseResource) -> None
             vmss_vmss_instance_id = pid.replace("azure://", "", 1)
             graph.add_deferred_edge(
                 BySearchCriteria(
-                    f"is(azure_virtual_machine_scale_set_instance) and reported.id={vmss_vmss_instance_id}"
+                    f"is(azure_compute_virtual_machine_scale_set_instance) and reported.id={vmss_vmss_instance_id}"
                 ),
                 ByNodeId(resource.chksum),
             )

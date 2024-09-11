@@ -3931,7 +3931,13 @@ class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_network_virtual_network", "azure_network_subnet", "azure_container_service_managed_cluster"]},
+        "predecessors": {
+            "default": [
+                "azure_network_virtual_network",
+                "azure_network_subnet",
+                "azure_container_service_managed_cluster",
+            ]
+        },
         "successors": {"default": ["azure_network_load_balancer_probe"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4124,7 +4130,7 @@ class AzureNetworkProfile(MicrosoftResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_network_subnet"]},
-        "successors": {"default": ["azure_virtual_machine_base"]},
+        "successors": {"default": ["azure_compute_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -4145,7 +4151,7 @@ class AzureNetworkProfile(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # Import placed inside the method due to circular import error resolution
         from fix_plugin_azure.resource.compute import (
-            AzureVirtualMachineBase,
+            AzureComputeVirtualMachineBase,
         )  # pylint: disable=import-outside-toplevel
 
         if container_nic := self.container_network_interface_configurations:
@@ -4164,7 +4170,10 @@ class AzureNetworkProfile(MicrosoftResource):
                                 for ip_conf_id in ip_conf_ids:
                                     if ip_conf_id == c_ip_conf_id:
                                         builder.add_edge(
-                                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id
+                                            self,
+                                            edge_type=EdgeType.default,
+                                            clazz=AzureComputeVirtualMachineBase,
+                                            id=vm_id,
                                         )
 
     def _get_ip_config_ids_and_vm_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:

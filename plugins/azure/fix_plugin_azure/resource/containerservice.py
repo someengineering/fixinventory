@@ -121,7 +121,9 @@ class AzureContainerServiceFleet(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if cluster_ids := self._cluster_resource_ids:
             for cluster_id in cluster_ids:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureContainerServiceManagedCluster, id=cluster_id)
+                builder.add_edge(
+                    self, edge_type=EdgeType.default, clazz=AzureContainerServiceManagedCluster, id=cluster_id
+                )
 
 
 @define(eq=False, slots=False)
@@ -935,7 +937,13 @@ class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapsho
 
         if agent_pool_id := self.creation_data_source_id:
             cluster_id = "/".join((agent_pool_id.split("/")[:-2]))
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureContainerServiceManagedCluster, id=cluster_id)
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureContainerServiceManagedCluster, id=cluster_id
+            )
 
 
-resources: List[Type[MicrosoftResource]] = [AzureContainerServiceManagedCluster, AzureContainerServiceFleet, AzureContainerServiceManagedClusterSnapshot]
+resources: List[Type[MicrosoftResource]] = [
+    AzureContainerServiceManagedCluster,
+    AzureContainerServiceFleet,
+    AzureContainerServiceManagedClusterSnapshot,
+]

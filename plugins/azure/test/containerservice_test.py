@@ -1,6 +1,10 @@
 from conftest import roundtrip_check, connect_resources
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
-from fix_plugin_azure.resource.containerservice import AzureContainerServiceFleet, AzureContainerServiceManagedCluster, AzureContainerServiceManagedClusterSnapshot
+from fix_plugin_azure.resource.containerservice import (
+    AzureContainerServiceFleet,
+    AzureContainerServiceManagedCluster,
+    AzureContainerServiceManagedClusterSnapshot,
+)
 from fix_plugin_azure.resource.compute import AzureComputeDiskEncryptionSet, AzureComputeVirtualMachineScaleSet
 from typing import List, Type
 
