@@ -15,7 +15,7 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzurePrivateEndpointConnection,
 )
-from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.containerservice import AzureContainerServiceManagedCluster
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.utils import rgetattr
 from fixlib.baseresources import (
@@ -3931,7 +3931,7 @@ class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_network_virtual_network", "azure_network_subnet", "azure_managed_cluster"]},
+        "predecessors": {"default": ["azure_network_virtual_network", "azure_network_subnet", "azure_container_service_managed_cluster"]},
         "successors": {"default": ["azure_network_load_balancer_probe"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -4021,7 +4021,7 @@ class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
                                     self,
                                     edge_type=EdgeType.default,
                                     reverse=True,
-                                    clazz=AzureManagedCluster,
+                                    clazz=AzureContainerServiceManagedCluster,
                                     id=cluster_id,
                                 )
                     for ip_info in publ_ip_id_and_p_ip_address:
@@ -4039,14 +4039,14 @@ class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
         ]
 
     def _get_p_ip_ids_and_cluster_ids(self, builder: GraphBuilder) -> List[Tuple[List[str], str]]:
-        get_p_ip_ids: Callable[[AzureManagedCluster], List[str]] = lambda cluster: (
+        get_p_ip_ids: Callable[[AzureContainerServiceManagedCluster], List[str]] = lambda cluster: (
             rgetattr(cluster, "container_service_network_profile.load_balancer_profile.effective_outbound_i_ps", None)
             or []
         )
 
         return [
             (get_p_ip_ids(cluster), cluster_id)
-            for cluster in builder.nodes(clazz=AzureManagedCluster)
+            for cluster in builder.nodes(clazz=AzureContainerServiceManagedCluster)
             if (cluster_id := cluster.id)
         ]
 

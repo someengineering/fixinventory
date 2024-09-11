@@ -63,8 +63,8 @@ class AzureFleetHubProfile:
 
 
 @define(eq=False, slots=False)
-class AzureFleet(MicrosoftResource):
-    kind: ClassVar[str] = "azure_fleet"
+class AzureContainerServiceFleet(MicrosoftResource):
+    kind: ClassVar[str] = "azure_container_service_fleet"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-15-preview",
@@ -75,7 +75,7 @@ class AzureFleet(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_managed_cluster"]},
+        "successors": {"default": ["azure_container_service_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -121,7 +121,7 @@ class AzureFleet(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if cluster_ids := self._cluster_resource_ids:
             for cluster_id in cluster_ids:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureContainerServiceManagedCluster, id=cluster_id)
 
 
 @define(eq=False, slots=False)
@@ -741,8 +741,8 @@ class AzureServiceMeshProfile:
 
 
 @define(eq=False, slots=False)
-class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
-    kind: ClassVar[str] = "azure_managed_cluster"
+class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
+    kind: ClassVar[str] = "azure_container_service_managed_cluster"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
@@ -883,8 +883,8 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
 
 
 @define(eq=False, slots=False)
-class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
-    kind: ClassVar[str] = "azure_managed_cluster_snapshot"
+class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
+    kind: ClassVar[str] = "azure_container_service_managed_cluster_snapshot"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
@@ -895,7 +895,7 @@ class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_managed_cluster"]},
+        "predecessors": {"default": ["azure_container_service_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -935,7 +935,7 @@ class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
 
         if agent_pool_id := self.creation_data_source_id:
             cluster_id = "/".join((agent_pool_id.split("/")[:-2]))
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureManagedCluster, id=cluster_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureContainerServiceManagedCluster, id=cluster_id)
 
 
-resources: List[Type[MicrosoftResource]] = [AzureManagedCluster, AzureFleet, AzureManagedClusterSnapshot]
+resources: List[Type[MicrosoftResource]] = [AzureContainerServiceManagedCluster, AzureContainerServiceFleet, AzureContainerServiceManagedClusterSnapshot]

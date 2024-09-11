@@ -1,6 +1,6 @@
 from conftest import roundtrip_check, connect_resources
 from fix_plugin_azure.resource.base import GraphBuilder, MicrosoftResource
-from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.containerservice import AzureContainerServiceManagedCluster
 from fix_plugin_azure.resource.network import *
 
 from typing import List, Type
@@ -136,7 +136,7 @@ def test_load_balancer(builder: GraphBuilder) -> None:
 
     resource_types: List[Type[MicrosoftResource]] = [
         AzureNetworkVirtualNetwork,
-        AzureManagedCluster,
+        AzureContainerServiceManagedCluster,
         AzureNetworkLoadBalancerProbe,
     ]
     roundtrip_check(AzureNetworkPublicIPAddress, builder)
@@ -144,7 +144,7 @@ def test_load_balancer(builder: GraphBuilder) -> None:
 
     assert collected[0].aks_public_ip_address == "41.85.154.247"
     assert len(builder.edges_of(AzureNetworkVirtualNetwork, AzureNetworkLoadBalancer)) == 1
-    assert len(builder.edges_of(AzureManagedCluster, AzureNetworkLoadBalancer)) == 1
+    assert len(builder.edges_of(AzureContainerServiceManagedCluster, AzureNetworkLoadBalancer)) == 1
     assert len(builder.edges_of(AzureNetworkLoadBalancer, AzureNetworkLoadBalancerProbe)) == 2
 
 

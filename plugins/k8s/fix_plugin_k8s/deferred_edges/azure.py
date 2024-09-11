@@ -18,7 +18,7 @@ def link_k8s_node_to_vmss_instance(graph: Graph, resource: BaseResource) -> None
 def link_k8s_cluster_to_aks_cluster(graph: Graph, resource: BaseResource) -> None:
     if resource.kind == "kubernetes_cluster":
         graph.add_deferred_edge(
-            BySearchCriteria(f"is(azure_managed_cluster) and reported.name={resource.id}"),
+            BySearchCriteria(f"is(azure_container_service_managed_cluster) and reported.name={resource.id}"),
             ByNodeId(resource.chksum),
         )
 
