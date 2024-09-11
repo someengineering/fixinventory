@@ -154,10 +154,10 @@ def test_filter_term() -> None:
 def test_fulltext_term() -> None:
     assert_round_trip(term_parser, FulltextTerm("test"))
     assert term_parser.parse('"foo"') == FulltextTerm("foo")
-    # multiple strings are not allowed
+    # multiple any_string are not allowed
     with pytest.raises(ParseError):
         term_parser.parse("foo bla bar")
-    # multiple strings in quotes are allowed
+    # multiple any_string in quotes are allowed
     assert term_parser.parse('"foo bla bar"') == FulltextTerm("foo bla bar")
     # combined term can be parsed
     assert term_parser.parse('"foo" and test>3') == CombinedTerm(

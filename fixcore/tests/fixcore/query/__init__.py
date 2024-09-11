@@ -9,13 +9,12 @@ from hypothesis.strategies import (
     just,
     integers,
     booleans,
-    text,
     tuples,
+    DrawFn,
 )
 
 from fixcore.model.graph_access import EdgeTypes, Direction
-from fixcore.query.query_parser import fulltext_term
-from tests.fixcore.hypothesis_extension import Drawer, optional, UD, any_string, any_datetime
+from tests.fixcore.hypothesis_extension import optional, any_string, any_datetime
 from fixcore.query.model import (
     IsTerm,
     Predicate,
@@ -45,28 +44,24 @@ from fixcore.query.model import (
 
 
 @composite
-def composite_predicate_term(ud: UD) -> CombinedTerm:
-    d = Drawer(ud)
+def composite_predicate_term(draw: DrawFn) -> CombinedTerm:
     trm = leaf_term | composite_predicate_term()
-    return CombinedTerm(d.draw(trm), d.draw(combine_term), d.draw(trm))
+    return CombinedTerm(draw(trm), draw(combine_term), draw(trm))
 
 
 @composite
-def context_term(ud: UD) -> ContextTerm:
-    d = Drawer(ud)
+def context_term(draw: DrawFn) -> ContextTerm:
     prop = query_property | query_arr_property
     trm = predicate_term | composite_predicate_term()
-    return ContextTerm(d.draw(prop), d.draw(trm))
+    return ContextTerm(draw(prop), draw(trm))
 
 
 @composite
-def composite_term(ud: UD) -> CombinedTerm:
-    d = Drawer(ud)
+def composite_term(draw: DrawFn) -> CombinedTerm:
     trm = leaf_term | composite_term()
-    return CombinedTerm(d.draw(trm), d.draw(combine_term), d.draw(trm))
+    return CombinedTerm(draw(trm), draw(combine_term), draw(trm))
 
 
-strings = text(ascii_letters, min_size=1, max_size=10)
 query_property = sampled_from(["reported.name", "reported.cpu_count"])
 query_arr_property = sampled_from(["reported.arr[*]", "reported.arr[*].inner[*]"])
 kind = sampled_from(["bucket", "volume", "certificate", "cloud", "database", "endpoint"])
@@ -78,9 +73,9 @@ edge_type = sampled_from(list(EdgeTypes.all))
 sort_order = sampled_from([SortOrder.Asc, SortOrder.Desc])
 aggregate_functions = sampled_from(["sum", "count", "min", "max", "avg"])
 is_term = builds(IsTerm, lists(kind, min_size=1, max_size=2))
-id_term = builds(IdTerm, lists(strings, min_size=1, max_size=2))
+id_term = builds(IdTerm, lists(any_string, min_size=1, max_size=2))
 predicate_term = builds(Predicate, query_property, query_operations, query_values, just({}))
-fulltext_term = builds(FulltextTerm, strings)
+fulltext_term = builds(FulltextTerm, any_string)
 leaf_term: SearchStrategy[Term] = is_term | id_term | predicate_term | fulltext_term | context_term() | just(AllTerm())
 edge_term: SearchStrategy[Term] = predicate_term | context_term() | just(AllTerm())
 limit_gen = builds(Limit, integers(min_value=0), integers(min_value=1))
@@ -89,42 +84,38 @@ sort = builds(Sort, query_property, sort_order)
 
 
 @composite
-def merge_term(ud: UD) -> MergeTerm:
-    d = Drawer(ud)
-    pre = d.draw(term)
-    queries = d.draw(lists(merge_query, min_size=1, max_size=1))
-    pst = d.optional(term)
+def merge_term(draw: DrawFn) -> MergeTerm:
+    pre = draw(term)
+    queries = draw(lists(merge_query, min_size=1, max_size=1))
+    pst = draw(optional(term))
     return MergeTerm(pre, queries, pst)
 
 
 @composite
-def navigation(ud: UD) -> Navigation:
-    d = Drawer(ud)
-    start = d.draw(integers(min_value=0, max_value=1))
-    length = d.draw(integers(min_value=0, max_value=100))
-    ed = d.draw(edge_type)
-    direction = d.draw(edge_direction)
-    edge_filter = d.optional(edge_term)
+def navigation(draw: DrawFn) -> Navigation:
+    start = draw(integers(min_value=0, max_value=1))
+    length = draw(integers(min_value=0, max_value=100))
+    ed = draw(edge_type)
+    direction = draw(edge_direction)
+    edge_filter = draw(optional(edge_term))
     return Navigation(start, length + start, [ed], direction, edge_filter=edge_filter)
 
 
 @composite
-def with_clause(ud: UD) -> WithClause:
-    d = Drawer(ud)
-    op = d.draw(query_operations)
-    num = d.draw(integers(min_value=0))
-    nav = d.draw(navigation())
-    trm = d.optional(term)
-    wc = d.optional(with_clause())
+def with_clause(draw: DrawFn) -> WithClause:
+    op = draw(query_operations)
+    num = draw(integers(min_value=0))
+    nav = draw(navigation())
+    trm = draw(optional(term))
+    wc = draw(optional(with_clause()))
     return WithClause(WithClauseFilter(op, num), nav, trm, wc)
 
 
 @composite
-def with_usage(ud: UD) -> WithUsage:
-    d = Drawer(ud)
-    start = d.draw(any_datetime)
-    end = d.optional(any_datetime)
-    metrics = d.draw(lists(any_string, min_size=1, max_size=3))
+def with_usage(draw: DrawFn) -> WithUsage:
+    start = draw(any_datetime)
+    end = draw(optional(any_datetime))
+    metrics = draw(lists(any_string, min_size=1, max_size=3))
     return WithUsage(start, end, metrics)
 
 
@@ -145,10 +136,9 @@ only_filter_part = builds(
 
 
 @composite
-def merge_query_query(ud: UD) -> Query:
-    d = Drawer(ud)
-    nav = d.draw(navigation())
-    trm = d.draw(term)
+def merge_query_query(draw: DrawFn) -> Query:
+    nav = draw(navigation())
+    trm = draw(term)
     # merge query need to start with navigation part without additional props
     parts = [Part(trm), Part(AllTerm(), navigation=nav)]
     return Query(parts)
@@ -158,9 +148,8 @@ merge_query = builds(MergeQuery, any_string, merge_query_query(), booleans())
 
 
 @composite
-def aggregate_variable_combined(ud: UD) -> AggregateVariableCombined:
-    d = Drawer(ud)
-    return AggregateVariableCombined([d.draw(any_string), d.draw(aggregate_variable_name), d.draw(any_string)])
+def aggregate_variable_combined(draw: DrawFn) -> AggregateVariableCombined:
+    return AggregateVariableCombined([draw(any_string), draw(aggregate_variable_name), draw(any_string)])
 
 
 aggregate_variable_name = builds(AggregateVariableName, any_string)
