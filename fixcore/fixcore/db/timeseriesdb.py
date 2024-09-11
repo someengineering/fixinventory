@@ -257,14 +257,16 @@ class TimeSeriesDB:
         if "ttl" in indexes:
             collection.delete_index("ttl")
         if "access" not in indexes:
-            collection.add_persistent_index(["ts", "at"], name="access")
+            collection.add_index(dict(type="persistent", fields=["ts", "at"], name="access"))
         if not await self.db.has_collection(self.meta_db):
             await self.db.create_collection(self.meta_db)
         # meta collection: store information to handle ts
         collection = self.db.collection(self.meta_db)
         indexes = {idx["name"]: idx for idx in cast(List[Json], collection.indexes())}
         if "ttl" not in indexes:
-            collection.add_ttl_index(["expires"], expiry_time=int(timedelta(hours=3).total_seconds()), name="ttl")
+            collection.add_index(
+                dict(type="ttl", fields=["expires"], expireAfter=int(timedelta(hours=3).total_seconds()), name="ttl")
+            )
         # names collection: store all names of time series
         if not await self.db.has_collection(self.names_db):
             await self.db.create_collection(self.names_db)

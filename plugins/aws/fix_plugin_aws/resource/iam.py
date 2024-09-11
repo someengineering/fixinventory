@@ -10,6 +10,7 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, 
 from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import (
     BaseCertificate,
+    BaseIamPrincipal,
     BasePolicy,
     BaseGroup,
     BaseAccessKey,
@@ -104,7 +105,7 @@ class AwsIamRoleLastUsed:
 
 
 @define(eq=False, slots=False)
-class AwsIamRole(AwsResource, BaseRole):
+class AwsIamRole(AwsResource, BaseRole, BaseIamPrincipal):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/roles/details/{RoleName}", "arn_tpl": "arn:{partition}:iam:{region}:{account}:role/{name}"}  # fmt: skip
@@ -619,7 +620,7 @@ class AwsIamVirtualMfaDevice:
 
 
 @define(eq=False, slots=False)
-class AwsRootUser(AwsResource, BaseUser):
+class AwsRootUser(AwsResource, BaseUser, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_root_user"
     kind_display: ClassVar[str] = "AWS Root User"
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:None:{region}:{account}:resource/{id}"}  # fmt: skip
@@ -639,7 +640,7 @@ class AwsRootUser(AwsResource, BaseUser):
 
 
 @define(eq=False, slots=False)
-class AwsIamUser(AwsResource, BaseUser):
+class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_iam_user"
     kind_display: ClassVar[str] = "AWS IAM User"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:user/{name}"}  # fmt: skip

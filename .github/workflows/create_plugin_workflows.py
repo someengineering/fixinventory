@@ -94,7 +94,7 @@ step_run_test = """
         run: tox
 
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: plugin-@name@-code-coverage-report
           path: @directory@/htmlcov/

@@ -10,21 +10,22 @@ from typing import Dict, List, Tuple, Union, cast, Optional, AsyncIterator, Awai
 from arango import ArangoServerError
 from arango.client import ArangoClient
 from arango.database import StandardDatabase
-from attr import frozen
+from attr import frozen, evolve
 from dateutil.parser import parse
 from requests.exceptions import RequestException
 
 from fixcore.analytics import AnalyticsEventSender
 from fixcore.async_extensions import run_async
 from fixcore.core_config import CoreConfig, current_git_hash
-from fixcore.db import SystemData
+from fixcore.db import SystemData, DatabaseChange
 from fixcore.db.arangodb_extensions import ArangoHTTPClient
 from fixcore.db.async_arangodb import AsyncArangoDB, AsyncCursor
 from fixcore.db.configdb import config_entity_db, config_validation_entity_db
-from fixcore.db.deferredouteredgedb import deferred_outer_edge_db
+from fixcore.db.deferrededgesdb import deferred_outer_edge_db
 from fixcore.db.entitydb import EventEntityDb
 from fixcore.db.graphdb import ArangoGraphDB, GraphDB, EventGraphDB
 from fixcore.db.jobdb import job_db
+from fixcore.db.lockdb import LockDB
 from fixcore.db.modeldb import ModelDb, model_db
 from fixcore.db.packagedb import app_package_entity_db
 from fixcore.db.reportdb import report_check_db, benchmark_db
@@ -76,6 +77,7 @@ class DbAccess(Service):
         time_series: str = "ts",
         report_checks: str = "report_checks",
         benchmarks: str = "report_benchmarks",
+        locks: str = "locks",
     ):
         super().__init__()
         self.event_sender = event_sender
@@ -95,34 +97,28 @@ class DbAccess(Service):
         self.report_check_db = report_check_db(self.db, report_checks)
         self.benchmark_db = benchmark_db(self.db, benchmarks)
         self.time_series_db = TimeSeriesDB(self.db, time_series, config)
+        self.lock_db = LockDB(self.db, locks)
         self.graph_dbs: Dict[str, GraphDB] = {}
         self.config = config
         self.cleaner = Periodic("outdated_updates_cleaner", self.check_outdated_updates, timedelta(seconds=60))
 
     async def start(self) -> None:
-        await self.__migrate()
         await self.cleaner.start()
 
     async def stop(self) -> None:
         await self.cleaner.stop()
 
-    async def __migrate(self) -> None:
-        try:
-            system_data = await self.system_data_db.system_data()
-        except Exception:
-            system_data = None
-            if not await self.db.has_collection("system_data"):  # make sure the system data collection exists
-                await self.db.create_collection("system_data")
-        if system_data is None:  # in case no version is available, create a genesis version
-            system_data = SystemData(uuid_str(), utc(), CurrentDatabaseVersion)
-        git_hash = current_git_hash()
-        if (
-            MigrateAlways
-            or system_data.db_version != CurrentDatabaseVersion
-            or system_data.version is None
-            or git_hash is None
-            or git_hash != system_data.version
-        ):
+    async def migrate(self) -> DatabaseChange:
+        async def sys_data() -> Optional[SystemData]:
+            try:
+                return await self.system_data_db.system_data()
+            except Exception:
+                if not await self.db.has_collection("system_data"):  # make sure the system data collection exists
+                    await self.db.create_collection("system_data")
+                return None
+
+        async def do_migrate(system_data: SystemData) -> SystemData:
+            git_hash = current_git_hash()
             # check if we need to run a migration
             if system_data.db_version < CurrentDatabaseVersion:
                 log.info(f"Database migration required: db={system_data.db_version} -> latest={CurrentDatabaseVersion}")
@@ -131,7 +127,7 @@ class DbAccess(Service):
                 for version in range(system_data.db_version, CurrentDatabaseVersion):
                     log.info(f"Running migration {version} -> {version + 1}")
                     await migrations[version]()
-                system_data.db_version = CurrentDatabaseVersion
+                system_data = evolve(system_data, db_version=CurrentDatabaseVersion)
                 await self.system_data_db.update_system_data(system_data)
 
             # will be executed on every git change
@@ -159,10 +155,22 @@ class DbAccess(Service):
                 await em.create_update_schema()
 
             # update the system data version to the current git hash
-            system_data.version = git_hash
-
+            system_data = evolve(system_data, version=git_hash)
             # update the system data version to not migrate the next time
             await self.system_data_db.update_system_data(system_data)
+            return system_data
+
+        existing = await sys_data()
+        if existing is None or existing.detect_change():
+            # create `lock` collection to be able to create database locks
+            await self.lock_db.create_update_schema()
+            async with self.lock_db.lock("db_access.migrate"):
+                # lookup again with an exclusive database lock
+                existing = await sys_data()
+                if existing is None or existing.detect_change():
+                    updated = await do_migrate(existing or SystemData(uuid_str(), utc(), CurrentDatabaseVersion))
+                    return DatabaseChange(existing, updated)
+        return DatabaseChange(existing, existing)
 
     async def __migrate_v1_to_v2(self) -> None:
         def migrate_config(old_id: str, old_root: str, config: Json) -> Json:

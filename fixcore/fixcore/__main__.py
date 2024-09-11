@@ -37,8 +37,8 @@ from fixcore.core_config import (
     parse_config,
     CoreConfig,
 )
-from fixcore.db import SystemData
-from fixcore.db.db_access import DbAccess, CurrentDatabaseVersion
+from fixcore.db import SystemData, CurrentDatabaseVersion
+from fixcore.db.db_access import DbAccess
 from fixcore.db.system_data_db import EphemeralJwtSigningKey
 from fixcore.dependencies import Dependencies, ServiceNames, TenantDependencies
 from fixcore.dependencies import (
@@ -129,12 +129,9 @@ def run_process(args: Namespace) -> None:
             cert_handler_no_ca = deps.add(ServiceNames.cert_handler, CertificateHandlerNoCA.lookup(config, temp))
             verify: Union[bool, str] = False if args.graphdb_no_ssl_verify else str(cert_handler_no_ca.ca_bundle)
             deps.add(ServiceNames.config, evolve(config, run=RunConfig(temp, verify)))
+            # surrogate system data for multi-tenant setup: the real one is available per tenant
             deps.add(ServiceNames.system_data, SystemData("multi-tenant", utc(), CurrentDatabaseVersion))
-            deps.add(
-                ServiceNames.event_sender,
-                PostHogEventSender(deps.system_data) if config.runtime.usage_metrics else NoEventSender(),
-            )
-
+            deps.add(ServiceNames.event_sender, NoEventSender())
             provider: TenantDependencyProvider = deps.add(
                 ServiceNames.tenant_dependency_provider, FromRequestTenantDependencyProvider(deps)
             )
@@ -172,6 +169,9 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     config = deps.config
     event_sender = deps.event_sender
     db = deps.service(ServiceNames.db_access, DbAccess)
+    # migrate the database to latest schema
+    db_change = await db.migrate()
+    deps.add(ServiceNames.system_data, db_change.current)
     message_bus = deps.add(ServiceNames.message_bus, MessageBus())
     scheduler = deps.add(ServiceNames.scheduler, APScheduler() if not config.args.no_scheduling else NoScheduler())
     model = deps.add(ServiceNames.model_handler, ModelHandlerDB(db, config.runtime.plantuml_server))
@@ -202,7 +202,9 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     subscriptions = deps.add(ServiceNames.subscription_handler, SubscriptionHandlerService(message_bus))
     core_config_handler = deps.add(
         ServiceNames.core_config_handler,
-        CoreConfigHandler(config, message_bus, worker_task_queue, config_handler, event_sender, inspector),
+        CoreConfigHandler(
+            config, message_bus, worker_task_queue, config_handler, event_sender, inspector, db_change, db.lock_db
+        ),
     )
     deps.add(ServiceNames.infra_apps_runtime, LocalfixcoreAppRuntime(cli))
     deps.add(

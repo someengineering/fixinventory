@@ -48,7 +48,7 @@ jobs:
         run: tox
 
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: plugin-dockerhub-code-coverage-report
           path: ./plugins/dockerhub/htmlcov/
