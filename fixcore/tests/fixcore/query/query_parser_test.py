@@ -389,3 +389,29 @@ def test_merge_query() -> None:
     ).on_section()
     # the merge part is moved to the end of the query where it is required
     assert str(q) == '((is("aws_s3_bucket") and (bucket_acl.grants[*].{(permission in ["READ", "READ_ACP", "WRITE", "WRITE_ACP", "FULL_CONTROL"] and grantee.uri == "http://acs.amazonaws.com/groups/global/AllUsers")} or bucket_policy.Statement[*].{((Effect == "Allow" and ((Principal == "*" or Principal.AWS == "*") or Principal.CanonicalUser == "*")) and (Action in ["s3:GetObject", "s3:PutObject", "s3:Get*", "s3:Put*", "s3:*", "*"] or Action[*] in ["s3:GetObject", "s3:PutObject", "s3:Get*", "s3:Put*", "s3:*", "*"]))})) and bucket_public_access_block_configuration.{(((block_public_acls != true or ignore_public_acls != true) or block_public_policy != true) or restrict_public_buckets != true)}) {account_setting: all <-default[0:]- is("aws_account") -default-> is("aws_s3_account_settings")} account_setting.reported.bucket_public_access_block_configuration.{(((block_public_acls != true or ignore_public_acls != true) or block_public_policy != true) or restrict_public_buckets != true)}'  # fmt: skip # noqa
+
+
+def test_navigation_filter() -> None:
+    def assert_query(q: str, expect_filter: bool) -> None:
+        parsed = parse_query(q)
+        assert len(parsed.parts) == 2
+        assert parsed.parts[1].navigation is not None
+        if expect_filter:
+            assert parsed.parts[1].navigation.edge_filter is not None
+
+    edge_types = EdgeTypes.all | {""}
+    start_until = ["", "[1]", "[1:2]", "[1:]"]
+    filters = [
+        "",
+        "{foo == bar}",
+        "{foo == bar and bla > 23}",
+        "{(foo == bar and bla > 23) or  boo < 42}",
+        "{permissions[*].{level=read and scope[*].source=resource}}",
+    ]
+    for et in edge_types:
+        for su in start_until:
+            for f in filters:
+                assert_query(f"is(principal) -{et}{su}{f}-> is(resource)", bool(f))
+                assert_query(f"is(principal) <-{et}{su}{f}- is(resource)", bool(f))
+                assert_query(f"is(principal) <-{et}{su}{f}-> is(resource)", bool(f))
+                assert_query(f"is(principal) <-{et}{su}{f}{et}-> is(resource)", bool(f))
