@@ -20,9 +20,9 @@ from fix_plugin_azure.resource.base import (
 from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
 from fix_plugin_azure.resource.network import (
     AzureNetworkSecurityGroup,
-    AzureSubnet,
+    AzureNetworkSubnet,
     AzureNetworkInterface,
-    AzureLoadBalancer,
+    AzureNetworkLoadBalancer,
 )
 from fix_plugin_azure.utils import MetricNormalization, rgetvalue
 from fixlib.baseresources import (
@@ -65,8 +65,8 @@ class AzureInstanceViewStatus:
 
 
 @define(eq=False, slots=False)
-class AzureAvailabilitySet(MicrosoftResource):
-    kind: ClassVar[str] = "azure_availability_set"
+class AzureComputeAvailabilitySet(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_availability_set"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -77,7 +77,7 @@ class AzureAvailabilitySet(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_proximity_placement_group", "azure_virtual_machine_base"]},
+        "successors": {"default": ["azure_compute_proximity_placement_group", "azure_compute_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -100,16 +100,16 @@ class AzureAvailabilitySet(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:
             builder.add_edge(
-                self, edge_type=EdgeType.default, clazz=AzureProximityPlacementGroup, id=placement_group_id
+                self, edge_type=EdgeType.default, clazz=AzureComputeProximityPlacementGroup, id=placement_group_id
             )
         if virtual_machines := self.virtual_machines_availability:
             for vm_id in virtual_machines:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineBase, id=vm_id)
 
 
 @define(eq=False, slots=False)
-class AzureCapacityReservationGroupInstanceView:
-    kind: ClassVar[str] = "azure_capacity_reservation_group_instance_view"
+class AzureComputeCapacityReservationGroupInstanceView:
+    kind: ClassVar[str] = "azure_compute_capacity_reservation_group_instance_view"
     mapping: ClassVar[Dict[str, Bender]] = {
         "capacity_reservations": S("capacityReservations", default=[]) >> ForallBend(S("name"))
     }
@@ -117,8 +117,8 @@ class AzureCapacityReservationGroupInstanceView:
 
 
 @define(eq=False, slots=False)
-class AzureCapacityReservationGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_capacity_reservation_group"
+class AzureComputeCapacityReservationGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_capacity_reservation_group"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -129,7 +129,7 @@ class AzureCapacityReservationGroup(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_virtual_machine_base"]},
+        "successors": {"default": ["azure_compute_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -137,19 +137,19 @@ class AzureCapacityReservationGroup(MicrosoftResource):
         "name": S("name"),
         "capacity_reservations": S("properties") >> S("capacityReservations", default=[]) >> ForallBend(S("id")),
         "reservation_group_instance_view": S("properties", "instanceView")
-        >> Bend(AzureCapacityReservationGroupInstanceView.mapping),
+        >> Bend(AzureComputeCapacityReservationGroupInstanceView.mapping),
         "virtual_machines_associated": S("properties")
         >> S("virtualMachinesAssociated", default=[])
         >> ForallBend(S("id")),
     }
     capacity_reservations: Optional[List[str]] = field(default=None, metadata={'description': 'A list of all capacity reservation resource ids that belong to capacity reservation group.'})  # fmt: skip
-    reservation_group_instance_view: Optional[AzureCapacityReservationGroupInstanceView] = field(default=None, metadata={'description': ''})  # fmt: skip
+    reservation_group_instance_view: Optional[AzureComputeCapacityReservationGroupInstanceView] = field(default=None, metadata={'description': ''})  # fmt: skip
     virtual_machines_associated: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to all virtual machines associated to the capacity reservation group.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if virtual_machines := self.virtual_machines_associated:
             for vm_id in virtual_machines:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
+                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineBase, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -290,8 +290,8 @@ class AzureCloudServiceExtensionProfile:
 
 
 @define(eq=False, slots=False)
-class AzureCloudService(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cloud_service"
+class AzureComputeCloudService(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_cloud_service"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2022-09-04",
@@ -342,8 +342,8 @@ class AzureDedicatedHostGroupInstanceView:
 
 
 @define(eq=False, slots=False)
-class AzureDedicatedHostGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_dedicated_host_group"
+class AzureComputeDedicatedHostGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_dedicated_host_group"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -705,8 +705,8 @@ class AzurePricingOffers:
 
 
 @define(eq=False, slots=False)
-class AzureDiskTypePricing(MicrosoftResource):
-    kind: ClassVar[str] = "azure_disk_type_pricing"
+class AzureComputeDiskTypePricing(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_disk_type_pricing"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="",
@@ -727,9 +727,9 @@ class AzureDiskTypePricing(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureDiskType(MicrosoftResource, BaseVolumeType):
-    kind: ClassVar[str] = "azure_disk_type"
-    # Collect via AzureDisk()
+class AzureComputeDiskType(MicrosoftResource, BaseVolumeType):
+    kind: ClassVar[str] = "azure_compute_disk_type"
+    # Collect via AzureComputeDisk()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("skuName"),
         "name": S("skuName"),
@@ -772,7 +772,7 @@ class AzureDiskType(MicrosoftResource, BaseVolumeType):
 
         if location and volume_type in ("UltraSSD_LRS", "PremiumV2_LRS"):
             # Fetch price for Ultra SSD and Premium SSD V2
-            pricing_node = builder.nodes(AzureDiskTypePricing)[0]
+            pricing_node = builder.nodes(AzureComputeDiskTypePricing)[0]
 
             offers = pricing_node.offers
             grad_offers = pricing_node.graduated_offers
@@ -845,7 +845,7 @@ class AzureDiskType(MicrosoftResource, BaseVolumeType):
         location: str, disk_type: str, disk_size: int, disk_iops: int, disk_throughput: int
     ) -> Json:
         if disk_type == "UltraSSD_LRS":
-            nearest_ultra_disk_size = AzureDisk._get_nearest_size(disk_size, ultra_disk_sku_info)
+            nearest_ultra_disk_size = AzureComputeDisk._get_nearest_size(disk_size, ultra_disk_sku_info)
             ultra_disk_config = ultra_disk_sku_info.get(nearest_ultra_disk_size, {})
             ulta_ssd_object = {
                 "size": disk_size,
@@ -873,7 +873,7 @@ class AzureDiskType(MicrosoftResource, BaseVolumeType):
         disk_sizes: List[Json] = []
         seen_hashes = set()  # Set to keep track of unique hashes
         for disk in collected_disks:
-            if not isinstance(disk, AzureDisk):
+            if not isinstance(disk, AzureComputeDisk):
                 continue
             if (
                 (volume_type := disk.volume_type)
@@ -885,12 +885,14 @@ class AzureDiskType(MicrosoftResource, BaseVolumeType):
                 if volume_type not in ["UltraSSD_LRS", "PremiumV2_LRS"]:
                     continue
 
-                generic_size = AzureDiskType.build_custom_disk_size(location, volume_type, size, iops, throughput)
+                generic_size = AzureComputeDiskType.build_custom_disk_size(
+                    location, volume_type, size, iops, throughput
+                )
                 hash_value = hash(tuple(generic_size.items()))
                 if hash_value not in seen_hashes:
                     disk_sizes.append(generic_size)
                     seen_hashes.add(hash_value)
-        AzureDiskType.collect(disk_sizes, builder)
+        AzureComputeDiskType.collect(disk_sizes, builder)
 
 
 VolumeStatusMapping = {
@@ -906,8 +908,8 @@ VolumeStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AzureDisk(MicrosoftResource, BaseVolume):
-    kind: ClassVar[str] = "azure_disk"
+class AzureComputeDisk(MicrosoftResource, BaseVolume):
+    kind: ClassVar[str] = "azure_compute_disk"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -918,8 +920,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_disk_access"]},
-        "successors": {"default": ["azure_disk_encryption_set", "azure_disk_type"]},
+        "successors": {"default": ["azure_compute_disk_encryption_set", "azure_compute_disk_type"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1018,7 +1019,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
             items = builder.client.list(spec, **kwargs)
             collected = cls.collect(items, builder)
             # Create additional custom disk sizes for disks with Ultra SSD or Premium SSD v2 types
-            AzureDiskType.create_unique_disk_sizes(collected, builder)
+            AzureComputeDiskType.create_unique_disk_sizes(collected, builder)
             if builder.config.collect_usage_metrics:
                 try:
                     cls.collect_usage_metrics(builder, collected)
@@ -1031,7 +1032,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
         if location := self.location:
 
             def collect_disk_types() -> None:
-                log.debug(f"[Azure:{graph_builder.account.id}] Collecting AzureDiskType")
+                log.debug(f"[Azure:{graph_builder.account.id}] Collecting AzureComputeDiskType")
                 product_names = {
                     "Standard SSD Managed Disks",
                     "Premium SSD Managed Disks",
@@ -1051,7 +1052,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
 
                     items = graph_builder.client.list(api_spec)
                     sku_items.extend(items)
-                AzureDiskType.collect(sku_items, graph_builder)
+                AzureComputeDiskType.collect(sku_items, graph_builder)
 
             graph_builder.submit_work(service_name, collect_disk_types)
 
@@ -1136,7 +1137,7 @@ class AzureDisk(MicrosoftResource, BaseVolume):
                     builder.add_edge(
                         self,
                         edge_type=EdgeType.default,
-                        clazz=AzureDiskType,
+                        clazz=AzureComputeDiskType,
                         location=location,
                         volume_type=volume_type,
                         tier=tier,
@@ -1147,22 +1148,20 @@ class AzureDisk(MicrosoftResource, BaseVolume):
                     builder.add_edge(
                         self,
                         edge_type=EdgeType.default,
-                        clazz=AzureDiskType,
+                        clazz=AzureComputeDiskType,
                         location=location,
                         volume_type=volume_type,
                         volume_size=size,
                         volume_throughput=throughput,
                         volume_iops=iops,
                     )
-        if disk_id := self.id:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDiskAccess, id=disk_id)
         if (disk_encryption := self.disk_encryption) and (disk_en_set_id := disk_encryption.disk_encryption_set_id):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_en_set_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeDiskEncryptionSet, id=disk_en_set_id)
 
 
 @define(eq=False, slots=False)
-class AzureDiskAccess(MicrosoftResource):
-    kind: ClassVar[str] = "azure_disk_access"
+class AzureComputeDiskAccess(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_disk_access"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -1246,8 +1245,8 @@ class AzureApiError:
 
 
 @define(eq=False, slots=False)
-class AzureDiskEncryptionSet(MicrosoftResource):
-    kind: ClassVar[str] = "azure_disk_encryption_set"
+class AzureComputeDiskEncryptionSet(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_disk_encryption_set"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -1344,8 +1343,8 @@ class AzureSharingStatus:
 
 
 @define(eq=False, slots=False)
-class AzureGallery(MicrosoftResource):
-    kind: ClassVar[str] = "azure_gallery"
+class AzureComputeGallery(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_gallery"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2022-03-03",
@@ -1416,8 +1415,8 @@ class AzureImageStorageProfile:
 
 
 @define(eq=False, slots=False)
-class AzureImage(MicrosoftResource):
-    kind: ClassVar[str] = "azure_image"
+class AzureComputeImage(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_image"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -1460,8 +1459,8 @@ class AzureVmSizes:
 
 
 @define(eq=False, slots=False)
-class AzureProximityPlacementGroup(MicrosoftResource):
-    kind: ClassVar[str] = "azure_proximity_placement_group"
+class AzureComputeProximityPlacementGroup(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_proximity_placement_group"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -1472,7 +1471,7 @@ class AzureProximityPlacementGroup(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_virtual_machine_scale_set"]},
+        "successors": {"default": ["azure_compute_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1499,7 +1498,9 @@ class AzureProximityPlacementGroup(MicrosoftResource):
         if vmsss := self.virtual_machine_scale_sets:
             for vmss in vmsss:
                 if vmss_id := vmss.id:
-                    builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSet, id=vmss_id)
+                    builder.add_edge(
+                        self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineScaleSet, id=vmss_id
+                    )
 
 
 @define(eq=False, slots=False)
@@ -1975,8 +1976,8 @@ class AzureRestorePoint(AzureProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzureRestorePointCollection(MicrosoftResource):
-    kind: ClassVar[str] = "azure_restore_point_collection"
+class AzureComputeRestorePointCollection(MicrosoftResource):
+    kind: ClassVar[str] = "azure_compute_restore_point_collection"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -1987,7 +1988,7 @@ class AzureRestorePointCollection(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_virtual_machine_base"]},
+        "successors": {"default": ["azure_compute_virtual_machine_base"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2007,7 +2008,7 @@ class AzureRestorePointCollection(MicrosoftResource):
         if (restore_point_collection_source := self.restore_point_collection_resource) and (
             vm_id := restore_point_collection_source.id
         ):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureVirtualMachineBase, id=vm_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineBase, id=vm_id)
 
 
 @define(eq=False, slots=False)
@@ -2027,8 +2028,8 @@ class AzureCopyCompletionError:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
-    kind: ClassVar[str] = "azure_virtual_machine_snapshot"
+class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
+    kind: ClassVar[str] = "azure_compute_virtual_machine_snapshot"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -2039,7 +2040,7 @@ class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_disk"]},
+        "predecessors": {"default": ["azure_compute_disk", "azure_compute_disk_access"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2107,12 +2108,16 @@ class AzureVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (disk_data := self.creation_data) and (disk_id := disk_data.source_resource_id):
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureDisk, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureComputeDisk, id=disk_id)
+        if disk_access_id := self.disk_access_id:
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureComputeDiskAccess, id=disk_access_id
+            )
 
 
 @define(eq=False, slots=False)
-class AzureSshPublicKeyResource(MicrosoftResource, BaseKeyPair):
-    kind: ClassVar[str] = "azure_ssh_public_key_resource"
+class AzureComputeSshPublicKey(MicrosoftResource, BaseKeyPair):
+    kind: ClassVar[str] = "azure_compute_ssh_public_key"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -2747,19 +2752,24 @@ InstanceStatusMapping = {
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
-    kind: ClassVar[str] = "azure_virtual_machine_base"
+class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
+    kind: ClassVar[str] = "azure_compute_virtual_machine_base"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
-                "azure_proximity_placement_group",
+                "azure_compute_proximity_placement_group",
                 "azure_network_security_group",
-                "azure_subnet",
-                "azure_load_balancer",
+                "azure_network_subnet",
+                "azure_network_load_balancer",
             ]
         },
         "successors": {
-            "default": ["azure_image", "azure_disk", "azure_network_interface", "azure_virtual_machine_size"]
+            "default": [
+                "azure_compute_image",
+                "azure_compute_disk",
+                "azure_network_interface",
+                "azure_compute_virtual_machine_size",
+            ]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2883,7 +2893,7 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                 # Set location for further connect_in_graph method
                 for item in items:
                     item["location"] = location
-                AzureVirtualMachineSize.collect(items, graph_builder)
+                AzureComputeVirtualMachineSize.collect(items, graph_builder)
 
             graph_builder.submit_work(service_name, collect_vm_sizes)
 
@@ -2973,7 +2983,7 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                 self,
                 edge_type=EdgeType.default,
                 reverse=True,
-                clazz=AzureProximityPlacementGroup,
+                clazz=AzureComputeProximityPlacementGroup,
                 id=placement_group_id,
             )
 
@@ -2982,7 +2992,7 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
             and (image_ref := sp.image_reference)
             and (image_reference_id := image_ref.id)
         ):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureImage, id=image_reference_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeImage, id=image_reference_id)
 
         if (
             (sp := self.virtual_machine_storage_profile)
@@ -2990,7 +3000,7 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
             and (managed := disk.managed_disk)
             and (managed_disk_id := managed.id)
         ):
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDisk, id=managed_disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeDisk, id=managed_disk_id)
 
         if (vm_network_profile := self.virtual_machine_network_profile) and (
             ni_cofigurations := vm_network_profile.network_interface_configurations
@@ -3004,14 +3014,18 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                     for ip_configuration in ip_configurations:
                         if subnet_id := ip_configuration.subnet:
                             builder.add_edge(
-                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id
+                                self, edge_type=EdgeType.default, reverse=True, clazz=AzureNetworkSubnet, id=subnet_id
                             )
                         if lbbap_ids := ip_configuration.load_balancer_backend_address_pools:
                             for lbbap_id in lbbap_ids:
                                 # take only id of load balancer
                                 lbbap_id = "/".join(lbbap_id.split("/")[:-2])
                                 builder.add_edge(
-                                    self, edge_type=EdgeType.default, reverse=True, clazz=AzureLoadBalancer, id=lbbap_id
+                                    self,
+                                    edge_type=EdgeType.default,
+                                    reverse=True,
+                                    clazz=AzureNetworkLoadBalancer,
+                                    id=lbbap_id,
                                 )
 
         if (vm_network_profile := self.virtual_machine_network_profile) and (
@@ -3022,13 +3036,17 @@ class AzureVirtualMachineBase(MicrosoftResource, BaseInstance):
                     builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureNetworkInterface, id=ni_id)
         if (vms_type := self.instance_type) and (vm_location := self.location):
             builder.add_edge(
-                self, edge_type=EdgeType.default, clazz=AzureVirtualMachineSize, name=vms_type, location=vm_location
+                self,
+                edge_type=EdgeType.default,
+                clazz=AzureComputeVirtualMachineSize,
+                name=vms_type,
+                location=vm_location,
             )
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachine(AzureVirtualMachineBase):
-    kind: ClassVar[str] = "azure_virtual_machine"
+class AzureComputeVirtualMachine(AzureComputeVirtualMachineBase):
+    kind: ClassVar[str] = "azure_compute_virtual_machine"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -3477,8 +3495,8 @@ class AzureVirtualMachineScaleSetIdentity:
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
-    kind: ClassVar[str] = "azure_virtual_machine_scale_set"
+class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
+    kind: ClassVar[str] = "azure_compute_virtual_machine_scale_set"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -3489,8 +3507,8 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_load_balancer", "azure_subnet"]},
-        "successors": {"default": ["azure_virtual_machine_scale_set_instance"]},
+        "predecessors": {"default": ["azure_network_load_balancer", "azure_network_subnet"]},
+        "successors": {"default": ["azure_compute_virtual_machine_scale_set_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -3562,11 +3580,14 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
             items = graph_builder.client.list(api_spec)
             vmss_instance_ids = [str(item.get("id")) for item in items if item.get("id") is not None]
 
-            AzureVirtualMachineScaleSetInstance.collect(items, graph_builder)
+            AzureComputeVirtualMachineScaleSetInstance.collect(items, graph_builder)
 
             for vmss_instance_id in vmss_instance_ids:
                 graph_builder.add_edge(
-                    self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSetInstance, id=vmss_instance_id
+                    self,
+                    edge_type=EdgeType.default,
+                    clazz=AzureComputeVirtualMachineScaleSetInstance,
+                    id=vmss_instance_id,
                 )
 
         graph_builder.submit_work(service_name, collect_vmss_instances)
@@ -3587,7 +3608,7 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
                                     self,
                                     edge_type=EdgeType.default,
                                     reverse=True,
-                                    clazz=AzureLoadBalancer,
+                                    clazz=AzureNetworkLoadBalancer,
                                     id=bap_id,
                                 )
                         if subnet_id := ip_config.subnet:
@@ -3595,14 +3616,14 @@ class AzureVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
                                 self,
                                 edge_type=EdgeType.default,
                                 reverse=True,
-                                clazz=AzureSubnet,
+                                clazz=AzureNetworkSubnet,
                                 id=subnet_id,
                             )
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
-    kind: ClassVar[str] = "azure_virtual_machine_size"
+class AzureComputeVirtualMachineSize(MicrosoftResource, BaseInstanceType):
+    kind: ClassVar[str] = "azure_compute_virtual_machine_size"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("tags", default={}),
@@ -3643,29 +3664,30 @@ class AzureVirtualMachineSize(MicrosoftResource, BaseInstanceType):
 
 
 @define(eq=False, slots=False)
-class AzureVirtualMachineScaleSetInstance(AzureVirtualMachineBase):
-    # note: instances are collected as part of collecting AzureVirtualMachineScaleSets
+class AzureComputeVirtualMachineScaleSetInstance(AzureComputeVirtualMachineBase):
+    # note: instances are collected as part of collecting AzureComputeVirtualMachineScaleSet
 
-    kind: ClassVar[str] = "azure_virtual_machine_scale_set_instance"
+    kind: ClassVar[str] = "azure_compute_virtual_machine_scale_set_instance"
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureAvailabilitySet,
-    AzureCapacityReservationGroup,
-    AzureCloudService,
-    AzureDedicatedHostGroup,
-    AzureDiskTypePricing,
-    AzureDisk,
-    AzureDiskType,
-    AzureDiskAccess,
-    AzureDiskEncryptionSet,
-    AzureGallery,
-    AzureImage,
-    AzureProximityPlacementGroup,
-    AzureRestorePointCollection,
-    AzureVirtualMachineSnapshot,
-    AzureSshPublicKeyResource,
-    AzureVirtualMachine,
-    AzureVirtualMachineScaleSet,
-    AzureVirtualMachineSize,
+    AzureComputeAvailabilitySet,
+    AzureComputeCapacityReservationGroup,
+    AzureComputeCloudService,
+    AzureComputeDedicatedHostGroup,
+    AzureComputeDiskTypePricing,
+    AzureComputeDisk,
+    AzureComputeDiskType,
+    AzureComputeDiskAccess,
+    AzureComputeDiskEncryptionSet,
+    AzureComputeGallery,
+    AzureComputeImage,
+    AzureComputeProximityPlacementGroup,
+    AzureComputeRestorePointCollection,
+    AzureComputeVirtualMachineSnapshot,
+    AzureComputeSshPublicKey,
+    AzureComputeVirtualMachine,
+    AzureComputeVirtualMachineScaleSet,
+    AzureComputeVirtualMachineScaleSetInstance,
+    AzureComputeVirtualMachineSize,
 ]

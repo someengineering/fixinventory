@@ -131,8 +131,8 @@ class AzureImmutableStorageWithVersioning:
 
 
 @define(eq=False, slots=False)
-class AzureBlobContainer(MicrosoftResource, BaseBucket):
-    kind: ClassVar[str] = "azure_blob_container"
+class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
+    kind: ClassVar[str] = "azure_storage_blob_container"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -238,8 +238,8 @@ class AzureSignedIdentifier:
 
 
 @define(eq=False, slots=False)
-class AzureFileShare(MicrosoftResource, BaseNetworkShare):
-    kind: ClassVar[str] = "azure_file_share"
+class AzureStorageFileShare(MicrosoftResource, BaseNetworkShare):
+    kind: ClassVar[str] = "azure_storage_file_share"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -289,8 +289,8 @@ class AzureFileShare(MicrosoftResource, BaseNetworkShare):
 
 
 @define(eq=False, slots=False)
-class AzureQueue(MicrosoftResource, BaseQueue):
-    kind: ClassVar[str] = "azure_queue"
+class AzureStorageQueue(MicrosoftResource, BaseQueue):
+    kind: ClassVar[str] = "azure_storage_queue"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -531,8 +531,8 @@ class AzureActiveDirectoryProperties:
 
 
 @define(eq=False, slots=False)
-class AzureAzureFilesIdentityBasedAuthentication:
-    kind: ClassVar[str] = "azure_azure_files_identity_based_authentication"
+class AzureFilesIdentityBasedAuthentication:
+    kind: ClassVar[str] = "azure_files_identity_based_authentication"
     mapping: ClassVar[Dict[str, Bender]] = {
         "active_directory_properties": S("activeDirectoryProperties") >> Bend(AzureActiveDirectoryProperties.mapping),
         "default_share_permission": S("defaultSharePermission"),
@@ -704,7 +704,13 @@ class AzureStorageAccount(MicrosoftResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
-            "default": ["azure_storage_sku", "azure_file_share", "azure_blob_container", "azure_queue", "azure_table"]
+            "default": [
+                "azure_storage_sku",
+                "azure_storage_file_share",
+                "azure_storage_blob_container",
+                "azure_storage_queue",
+                "azure_storage_table",
+            ]
         },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -720,7 +726,7 @@ class AzureStorageAccount(MicrosoftResource):
         "allow_shared_key_access": S("properties", "allowSharedKeyAccess"),
         "allowed_copy_scope": S("properties", "allowedCopyScope"),
         "azure_files_identity_based_authentication": S("properties", "azureFilesIdentityBasedAuthentication")
-        >> Bend(AzureAzureFilesIdentityBasedAuthentication.mapping),
+        >> Bend(AzureFilesIdentityBasedAuthentication.mapping),
         "blob_restore_status": S("properties", "blobRestoreStatus") >> Bend(AzureBlobRestoreStatus.mapping),
         "creation_time": S("properties", "creationTime"),
         "storage_custom_domain": S("properties", "customDomain") >> Bend(AzureCustomDomain.mapping),
@@ -776,12 +782,12 @@ class AzureStorageAccount(MicrosoftResource):
     allow_cross_tenant_replication: Optional[bool] = field(default=None, metadata={'description': 'Allow or disallow cross AAD tenant object replication. Set this property to true for new or existing accounts only if object replication policies will involve storage accounts in different AAD tenants. The default interpretation is false for new accounts to follow best security practices by default.'})  # fmt: skip
     allow_shared_key_access: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key. If false, then all requests, including shared access signatures, must be authorized with Azure Active Directory (Azure AD). The default value is null, which is equivalent to true.'})  # fmt: skip
     allowed_copy_scope: Optional[str] = field(default=None, metadata={'description': 'Restrict copy to and from Storage Accounts within an AAD tenant or with Private Links to the same VNet.'})  # fmt: skip
-    azure_files_identity_based_authentication: Optional[AzureAzureFilesIdentityBasedAuthentication] = field(default=None, metadata={'description': 'Settings for Azure Files identity based authentication.'})  # fmt: skip
+    azure_files_identity_based_authentication: Optional[AzureFilesIdentityBasedAuthentication] = field(default=None, metadata={'description': 'Settings for Azure Files identity based authentication.'})  # fmt: skip
     blob_restore_status: Optional[AzureBlobRestoreStatus] = field(default=None, metadata={'description': 'Blob restore status.'})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={'description': 'Gets the creation date and time of the storage account in UTC.'})  # fmt: skip
     storage_custom_domain: Optional[AzureCustomDomain] = field(default=None, metadata={'description': 'The custom domain assigned to this storage account. This can be set via Update.'})  # fmt: skip
     default_to_oauth_authentication: Optional[bool] = field(default=None, metadata={'description': 'A boolean flag which indicates whether the default authentication is OAuth or not. The default interpretation is false for this property.'})  # fmt: skip
-    dns_endpoint_type: Optional[str] = field(default=None, metadata={'description': 'Allows you to specify the type of endpoint. Set this to AzureDNSZone to create a large number of accounts in a single subscription, which creates accounts in an Azure DNS Zone and the endpoint URL will have an alphanumeric DNS Zone identifier.'})  # fmt: skip
+    dns_endpoint_type: Optional[str] = field(default=None, metadata={'description': 'Allows you to specify the type of endpoint. Set this to AzureNetworkDNSZone to create a large number of accounts in a single subscription, which creates accounts in an Azure DNS Zone and the endpoint URL will have an alphanumeric DNS Zone identifier.'})  # fmt: skip
     storage_encryption: Optional[AzureStorageEncryption] = field(default=None, metadata={'description': 'The encryption settings on the storage account.'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
     failover_in_progress: Optional[bool] = field(default=None, metadata={'description': 'If the failover is in progress, the value will be true, otherwise, it will be null.'})  # fmt: skip
@@ -855,7 +861,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "fileServices",
                 "shares",
-                AzureFileShare,
+                AzureStorageFileShare,
             )
             graph_builder.submit_work(
                 service_name,
@@ -864,7 +870,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "blobServices",
                 "containers",
-                AzureBlobContainer,
+                AzureStorageBlobContainer,
             )
             graph_builder.submit_work(
                 service_name,
@@ -873,7 +879,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "queueServices",
                 "queues",
-                AzureQueue,
+                AzureStorageQueue,
             )
             graph_builder.submit_work(
                 service_name,
@@ -882,7 +888,7 @@ class AzureStorageAccount(MicrosoftResource):
                 account_id,
                 "tableServices",
                 "tables",
-                AzureTable,
+                AzureStorageTable,
             )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1071,8 +1077,8 @@ class AzureTableSignedIdentifier:
 
 
 @define(eq=False, slots=False)
-class AzureTable(MicrosoftResource):
-    kind: ClassVar[str] = "azure_table"
+class AzureStorageTable(MicrosoftResource):
+    kind: ClassVar[str] = "azure_storage_table"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1088,10 +1094,10 @@ class AzureTable(MicrosoftResource):
 resources: List[Type[MicrosoftResource]] = [
     AzureStorageAccountDeleted,
     AzureStorageSku,
-    AzureFileShare,
-    AzureQueue,
-    AzureBlobContainer,
-    AzureTable,
+    AzureStorageFileShare,
+    AzureStorageQueue,
+    AzureStorageBlobContainer,
+    AzureStorageTable,
     AzureStorageAccount,
     AzureStorageAccountUsage,
 ]

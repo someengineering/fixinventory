@@ -14,7 +14,7 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateEndpointConnection,
 )
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
-from fix_plugin_azure.resource.network import AzureSubnet
+from fix_plugin_azure.resource.network import AzureNetworkSubnet
 from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json import value_in_path
@@ -232,7 +232,7 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
         database_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_error_codes: Optional[List[str]] = None,
+        expected_error_codes: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{database_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -243,7 +243,7 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_error_codes or [],
+            expected_error_codes=expected_error_codes or {},
         )
         items = graph_builder.client.list(api_spec)
         collected = class_instance.collect(items, graph_builder)
@@ -271,9 +271,9 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
                 (
                     "advisors?$expand=recommendedAction",
                     AzureSqlServerAdvisor,
-                    ["DataWarehouseNotSupported", "DatabaseDoesNotExist"],
+                    {"DataWarehouseNotSupported": None, "DatabaseDoesNotExist": None},
                 ),
-                ("workloadGroups", AzureSqlServerDatabaseWorkloadGroup, ["FeatureDisabledOnSelectedEdition"]),
+                ("workloadGroups", AzureSqlServerDatabaseWorkloadGroup, {"FeatureDisabledOnSelectedEdition": None}),
             ]
 
             for resource_type, resource_class, expected_error_codes in resources_to_collect:
@@ -541,7 +541,7 @@ class AzureSqlServerManagedInstancePool(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_subnet"]},
+        "predecessors": {"default": ["azure_network_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -563,7 +563,7 @@ class AzureSqlServerManagedInstancePool(MicrosoftResource):
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if subnet_id := self.subnet_id:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureNetworkSubnet, id=subnet_id)
 
 
 @define(eq=False, slots=False)
@@ -801,7 +801,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
                 "azure_sql_server_managed_instance_ad_administrator",
             ]
         },
-        "predecessors": {"default": ["azure_sql_server_managed_instance_pool", "azure_subnet"]},
+        "predecessors": {"default": ["azure_sql_server_managed_instance_pool", "azure_network_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -969,7 +969,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
                 id=instance_pool_id,
             )
         if subnet_id := self.subnet_id:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureNetworkSubnet, id=subnet_id)
 
         # principal: collected via ms graph -> create a deferred edge
         if mii := self.managed_instance_identity:
@@ -1003,7 +1003,7 @@ class AzureSqlServerVirtualCluster(MicrosoftResource):
     )
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["azure_sql_server_managed_instance"]},
-        "predecessors": {"default": ["azure_subnet"]},
+        "predecessors": {"default": ["azure_network_subnet"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1030,7 +1030,7 @@ class AzureSqlServerVirtualCluster(MicrosoftResource):
                     self, edge_type=EdgeType.default, clazz=AzureSqlServerManagedInstance, id=managed_instance_id
                 )
         if subnet_id := self.subnet_id:
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureSubnet, id=subnet_id)
+            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureNetworkSubnet, id=subnet_id)
 
 
 @define(eq=False, slots=False)

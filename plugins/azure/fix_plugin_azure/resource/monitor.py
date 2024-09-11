@@ -291,8 +291,8 @@ class AzureMonitorActionGroupRef:
 
 
 @define(eq=False, slots=False)
-class AzureActivityLogAlert(MicrosoftResource):
-    kind: ClassVar[str] = "azure_activity_log_alert"
+class AzureMonitorActivityLogAlert(MicrosoftResource):
+    kind: ClassVar[str] = "azure_monitor_activity_log_alert"
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AzureMonitorActionGroup.kind]},
     }
@@ -1361,7 +1361,7 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
 
 resources: List[Type[MicrosoftResource]] = [
     AzureMonitorActionGroup,
-    AzureActivityLogAlert,
+    AzureMonitorActivityLogAlert,
     AzureMonitorAlertRule,
     AzureMonitorDataCollectionRule,
     AzureMonitorLogProfile,

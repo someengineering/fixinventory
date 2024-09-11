@@ -17,9 +17,9 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
 )
 from fix_plugin_azure.resource.compute import (
-    AzureVirtualMachineSize,
-    AzureDiskType,
-    AzureDiskTypePricing,
+    AzureComputeVirtualMachineSize,
+    AzureComputeDiskType,
+    AzureComputeDiskTypePricing,
     resources as compute_resources,
 )
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
@@ -32,7 +32,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
 from fix_plugin_azure.resource.monitor import resources as monitor_resources
 from fix_plugin_azure.resource.mysql import AzureMysqlServerType, resources as mysql_resources
 from fix_plugin_azure.resource.network import (
-    AzureExpressRoutePortsLocation,
+    AzureNetworkExpressRoutePortsLocation,
     AzureNetworkVirtualApplianceSku,
     AzureNetworkUsage,
     resources as network_resources,
@@ -256,10 +256,10 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
 
-        rm_nodes(AzureVirtualMachineSize, AzureLocation)
-        rm_nodes(AzureExpressRoutePortsLocation, AzureSubscription)
+        rm_nodes(AzureComputeVirtualMachineSize, AzureLocation)
+        rm_nodes(AzureNetworkExpressRoutePortsLocation, AzureSubscription)
         rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
-        rm_nodes(AzureDiskType, AzureSubscription)
+        rm_nodes(AzureComputeDiskType, AzureSubscription)
         rm_nodes(AzureMachineLearningVirtualMachineSize, AzureLocation)
         rm_nodes(AzureStorageSku, AzureLocation)
         rm_nodes(AzureMysqlServerType, AzureSubscription)
@@ -269,9 +269,9 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         remove_usage_zero_value()
 
     def after_collect(self) -> None:
-        # Filter unnecessary nodes such as AzureDiskTypePricing
+        # Filter unnecessary nodes such as AzureComputeDiskTypePricing
         nodes_to_remove = []
-        node_types = (AzureDiskTypePricing,)
+        node_types = (AzureComputeDiskTypePricing,)
 
         for node in self.graph.nodes:
             if not isinstance(node, node_types):
