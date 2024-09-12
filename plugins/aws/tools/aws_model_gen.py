@@ -944,20 +944,20 @@ models: Dict[str, List[AwsFixModel]] = {
         # AwsFixModel("get-logging-configuration", "LoggingConfigurations", "LoggingConfiguration", prefix="Waf")
     ],
     "qbusiness": [
-        AwsFixModel(
-            api_action="list-applications",
-            result_property="applications",
-            result_shape="Applications",
-            prefix="QBusiness",
-        ),
+        # AwsFixModel(
+        #     api_action="list-applications",
+        #     result_property="applications",
+        #     result_shape="Applications",
+        #     prefix="QBusiness",
+        # ),
     ],
     "qapps": [
-        AwsFixModel(
-            api_action="list-qapps",
-            result_property="apps",
-            result_shape="ListQAppsOutput",
-            prefix="QApps",
-        ),
+        # AwsFixModel(
+        #     api_action="list-qapps",
+        #     result_property="apps",
+        #     result_shape="ListQAppsOutput",
+        #     prefix="QApps",
+        # ),
     ],
     "backup": [
         # AwsFixModel(
@@ -966,6 +966,22 @@ models: Dict[str, List[AwsFixModel]] = {
         #     result_shape="BackupJobSummaryList",
         #     prefix="Backup",
         # ),
+    ],
+    "bedrock": [
+        # AwsFixModel(
+        #     api_action="get-custom-model",
+        #     result_property="modelSummaries",
+        #     result_shape=None,  # Updated result shape
+        #     prefix="Bedrock",
+        # )
+    ],
+    "bedrock-agent": [
+        # AwsFixModel(
+        #     api_action="get-agent",
+        #     result_property="Agents",
+        #     result_shape=None,  # Updated result shape
+        #     prefix="Bedrock",
+        # )
     ],
 }
 
