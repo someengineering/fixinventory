@@ -48,6 +48,7 @@ from fix_plugin_aws.resource import (
     acm,
     waf,
     backup,
+    bedrock,
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
@@ -107,6 +108,7 @@ regional_resources: List[Type[AwsResource]] = (
     + redshift.resources
     + backup.resources
     + amazonq.resources
+    + bedrock.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
