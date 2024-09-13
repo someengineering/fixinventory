@@ -2392,7 +2392,7 @@ class AzureServerNameItem:
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster"
-    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2546,7 +2546,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server"
-    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Server"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2641,7 +2641,7 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, Azur
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_configuration"
-    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Configuration"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Configuration"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2679,7 +2679,7 @@ class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyR
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server_configuration"
-    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Server Configuration"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server Configuration"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlClusterServer()
@@ -2716,7 +2716,7 @@ class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, Azure
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_endpoint_connection"
-    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Private Endpoint Connection"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Endpoint Connection"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2742,7 +2742,7 @@ class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource)
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_link"
-    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Private Link"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Link"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2766,7 +2766,7 @@ class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterRole(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_role"
-    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Role"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Role"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBPostgresqlCluster()

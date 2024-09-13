@@ -1517,7 +1517,7 @@ class AzureNetworkBastionHost(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkCustomIpPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_custom_ip_prefix"
-    kind_display: ClassVar[str] = "Azure Network Custom Ip Prefix"
+    kind_display: ClassVar[str] = "Azure Network Custom IP Prefix"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -3661,7 +3661,7 @@ class AzureNetworkFirewallPolicy(MicrosoftResource, BasePolicy):
 @define(eq=False, slots=False)
 class AzureNetworkIpAllocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ip_allocation"
-    kind_display: ClassVar[str] = "Azure Network Ip Allocation"
+    kind_display: ClassVar[str] = "Azure Network IP Allocation"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -3707,7 +3707,7 @@ class AzureNetworkIpAllocation(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkIpGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ip_group"
-    kind_display: ClassVar[str] = "Azure Network Ip Group"
+    kind_display: ClassVar[str] = "Azure Network IP Group"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -4694,7 +4694,7 @@ class AzureNetworkP2SVpnGateway(MicrosoftResource, BaseGateway):
 @define(eq=False, slots=False)
 class AzureNetworkPublicIPPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_public_ip_prefix"
-    kind_display: ClassVar[str] = "Azure Network Public Ip Prefix"
+    kind_display: ClassVar[str] = "Azure Network Public IP Prefix"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
