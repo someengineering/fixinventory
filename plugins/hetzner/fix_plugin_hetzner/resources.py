@@ -1,5 +1,5 @@
 from attrs import define
-from typing import ClassVar, Optional, Union, Any
+from typing import ClassVar, Optional, Union
 from datetime import datetime
 from fixlib.graph import Graph
 from fixlib.baseresources import (
@@ -13,7 +13,6 @@ from fixlib.baseresources import (
     BaseInstanceType,
     BaseIPAddress,
     BaseFirewall,
-    BaseLoadBalancer,
 )
 
 
@@ -236,19 +235,3 @@ class HcloudImage(HcloudResource):
     rapid_deploy: Optional[bool] = None
     protection: Optional[dict[str, bool]] = None
     deprecated_at: Optional[datetime] = None
-
-
-@define(eq=False, slots=False)
-class HcloudLoadBalancer(BaseLoadBalancer, HcloudResource):
-    kind: ClassVar[str] = "hcloud_load_balancer"
-
-    protection: Optional[dict[str, bool]] = None
-    public_net: Optional[HcloudPublicNetwork] = None
-    private_net: Optional[list[HcloudPrivateNetwork]] = None
-    algorithm: Optional[str] = None
-    services: Optional[list[dict[str, Union[str, int, list[str]]]]] = None
-    targets: Optional[list[dict[str, Union[str, int, list[str]]]]] = None
-    load_balancer_type: Optional[str] = None
-    outgoing_traffic: Optional[int] = None
-    ingoing_traffic: Optional[int] = None
-    included_traffic: Optional[int] = None
