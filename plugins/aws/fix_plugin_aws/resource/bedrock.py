@@ -152,7 +152,7 @@ class AwsBedrockCustomModel(BedrockTaggable, AwsResource):
             for result in builder.client.list(
                 service_name,
                 "get-custom-model",
-                modelIdentifier=js["id"],
+                modelIdentifier=js["modelArn"],
             ):
                 if instance := cls.from_api(result, builder):
                     builder.add_node(instance, js)
@@ -686,7 +686,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, AwsResource):
             for result in builder.client.list(
                 service_name,
                 "get-evaluation-job",
-                jobIdentifier=js["id"],
+                jobIdentifier=js["jobArn"],
             ):
                 if instance := cls.from_api(result, builder):
                     builder.add_node(instance, js)
@@ -864,20 +864,22 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
         def collect_knowledge_bases(agent: AwsBedrockAgent) -> None:
-            result = builder.client.list(
+            for result in builder.client.list(
                 "bedrock-agent",
                 "list-knowledge-bases",
                 "agentKnowledgeBaseSummaries",
                 agentId=agent.id,
                 agentVersion=agent.agent_version,
-            )
-            AwsBedrockAgentKnowledgeBase.collect(result, builder)
+            ):
+                if instance := AwsBedrockAgentKnowledgeBase.from_api(result, builder):
+                    builder.add_node(instance, js)
+                    builder.submit_work("bedrock-agent", add_tags, instance)
 
         for js in json:
             for result in builder.client.list(
                 "bedrock-agent",
                 "get-agent",
-                agentId=js["id"],
+                agentId=js["agentId"],
             ):
                 if instance := cls.from_api(result, builder):
                     builder.add_node(instance, js)
@@ -1158,7 +1160,7 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
     )
     # Collected via AwsBedrockAgent()
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("knowledgeBase", "knowledgeBaseArn"),
+        "id": S("knowledgeBase", "knowledgeBaseId"),
         "name": S("knowledgeBase", "name"),
         "arn": S("knowledgeBase", "knowledgeBaseArn"),
         "ctime": S("knowledgeBase", "createdAt"),
@@ -1190,36 +1192,12 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return super().called_collect_apis() + [
-            AwsApiSpec("bedrock-agent", "get-knowledge-base"),
             AwsApiSpec("bedrock-agent", "list-knowledge-bases"),
         ]
 
     @classmethod
     def service_name(cls) -> str:
         return "bedrock-agent"
-
-    @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(flow: AwsResource) -> None:
-            tags = builder.client.list(
-                "bedrock-agent",
-                "list-tags-for-resource",
-                "tags",
-                expected_errors=["ResourceNotFoundException"],
-                resourceArn=flow.arn,
-            )
-            if tags:
-                flow.tags.update(tags)
-
-        for js in json:
-            for result in builder.client.list(
-                "bedrock-agent",
-                "get-knowledge-base",
-                knowledgeBaseId=js["id"],
-            ):
-                if instance := cls.from_api(result, builder):
-                    builder.add_node(instance, js)
-                    builder.submit_work("bedrock-agent", add_tags, instance)
 
 
 @define(eq=False, slots=False)
