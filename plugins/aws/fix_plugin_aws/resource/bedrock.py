@@ -7,6 +7,7 @@ from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fixlib.baseresources import ModelReference
+from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
@@ -126,6 +127,15 @@ class AwsBedrockCustomModel(BedrockTaggable, AwsResource):
     validation_metrics: Optional[List[float]] = field(factory=list, metadata={"description": "The validation metrics from the job creation."})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "Creation time of the model."})  # fmt: skip
 
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-custom-model",
+            result_name=None,
+            modelIdentifier=self.name,
+        )
+        return True
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if job_arn := self.job_arn:
             builder.add_edge(self, clazz=AwsBedrockModelCustomizationJob, id=job_arn)
@@ -203,6 +213,15 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, AwsResource):
     commitment_expiration_time: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the commitment term of the Provisioned Throughput expires."})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "The time that the Provisioned Throughput was created."})  # fmt: skip
     last_modified_time: Optional[datetime] = field(default=None, metadata={"description": "The time that the Provisioned Throughput was last modified."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-provisioned-model-throughput",
+            result_name=None,
+            provisionedModelId=self.safe_name,
+        )
+        return True
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model_arn := self.model_arn:
@@ -375,6 +394,16 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
     blocked_input_messaging: Optional[str] = field(default=None, metadata={"description": "The message that the guardrail returns when it blocks a prompt."})  # fmt: skip
     blocked_outputs_messaging: Optional[str] = field(default=None, metadata={"description": "The message that the guardrail returns when it blocks a model response."})  # fmt: skip
     kms_key_arn: Optional[str] = field(default=None, metadata={"description": "The ARN of the KMS key that encrypts the guardrail."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=service_name,
+            action="delete-guardrail",
+            result_name=None,
+            guardrailIdentifier=self.id or self.arn,
+            guardrailVersion=self.version,
+        )
+        return True
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -827,6 +856,15 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
     agent_recommended_actions: Optional[List[str]] = field(factory=list, metadata={"description": "Contains recommended actions to take for the agent-related API that you invoked to succeed."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the agent was last updated."})  # fmt: skip
 
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="bedrock-agent",
+            action="delete-agent",
+            result_name=None,
+            agentId=self.id,
+        )
+        return True
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
             builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
@@ -946,6 +984,16 @@ class AwsBedrockAgentVersion(BedrockTaggable, AwsResource):
     agent_recommended_actions: Optional[List[str]] = field(factory=list, metadata={"description": "A list of recommended actions to take for the failed API operation on the version to succeed."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the version was last updated."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version number."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="bedrock-agent",
+            action="delete-agent-version",
+            result_name=None,
+            agentId=self.agent_id,
+            agentVersion=self.version,
+        )
+        return True
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -1192,6 +1240,12 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
     storage_configuration: Optional[AwsBedrockStorageConfiguration] = field(default=None, metadata={"description": "Contains details about the storage configuration of the knowledge base."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the knowledge base was last updated."})  # fmt: skip
 
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="bedrock-agent", action="delete-knowledge-base", result_name=None, knowledgeBaseId=self.id
+        )
+        return True
+
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return super().called_collect_apis() + [
@@ -1301,6 +1355,16 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the prompt was last updated."})  # fmt: skip
     prompt_variants: Optional[List[AwsBedrockPromptVariant]] = field(factory=list, metadata={"description": "A list of objects, each containing details about a variant of the prompt."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the prompt."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="bedrock-agent",
+            action="delete-prompt",
+            result_name=None,
+            promptIdentifier=self.id,
+            promptVersion=self.version,
+        )
+        return True
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -1626,6 +1690,15 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
     validations: Optional[List[AwsBedrockFlowValidation]] = field(factory=list, metadata={"description": "A list of validation error messages related to the last failed operation on the flow."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the flow for which information was retrieved."})  # fmt: skip
 
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="bedrock-agent",
+            action="delete-flow",
+            result_name=None,
+            flowIdentifier=self.id,
+        )
+        return True
+
     @classmethod
     def service_name(cls) -> str:
         return "bedrock-agent"
@@ -1701,6 +1774,16 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, AwsResource):
     execution_role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the service role with permissions to create a flow. For more information, see Create a service role for flows in Amazon Bedrock in the Amazon Bedrock User Guide."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the flow."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the flow for which information was retrieved."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service="bedrock-agent",
+            action="delete-flow-version",
+            result_name=None,
+            flowIdentifier=self.id,
+            flowVersion=self.version,
+        )
+        return True
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
