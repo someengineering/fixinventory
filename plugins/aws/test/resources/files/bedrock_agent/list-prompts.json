@@ -1,0 +1,14 @@
+{
+    "nextToken": "foo",
+    "promptSummaries": [
+      {
+        "arn": "foo",
+        "createdAt": "2024-09-13T12:32:05Z",
+        "description": "foo",
+        "id": "foo",
+        "name": "foo",
+        "updatedAt": "2024-09-13T12:32:05Z",
+        "version": "foo"
+      }
+    ]
+  }

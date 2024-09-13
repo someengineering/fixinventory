@@ -1,0 +1,12 @@
+{
+    "id": "foo",
+    "name": "foo",
+    "status": "ACTIVE",
+    "createdAt": "2024-09-12T10:00:00Z",
+    "lastModifiedAt": "2024-09-12T12:00:00Z",
+    "description": "A custom model created for specific use cases",
+    "trainingData": {
+      "source": "s3://bucket/training-data"
+    }
+  }
+  

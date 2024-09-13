@@ -988,10 +988,16 @@ models: Dict[str, List[AwsFixModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("dynamodb", "describe-continuous-backups"), indent=2))
+    print(json.dumps(create_test_response("bedrock", "get-custom-model"), indent=2))
+    print(json.dumps(create_test_response("bedrock", "get-evaluation-job"), indent=2))
+    print(json.dumps(create_test_response("bedrock", "get-guardrail"), indent=2))
+    print(json.dumps(create_test_response("bedrock", "get-model-customization-job"), indent=2))
 
-    """print the class models"""
-    # print(default_imports())
-    for model in all_models():
-        # pass
-        print(model.to_class())
+    print(json.dumps(create_test_response("bedrock-agent", "get-agent"), indent=2))
+    print(json.dumps(create_test_response("bedrock-agent", "get-prompt"), indent=2))
+
+    # """print the class models"""
+    # # print(default_imports())
+    # for model in all_models():
+    #     # pass
+    #     print(model.to_class())

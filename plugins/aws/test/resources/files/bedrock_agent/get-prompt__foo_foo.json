@@ -1,0 +1,9 @@
+{
+    "id": "foo",
+    "name": "foo",
+    "text": "Generate a response based on the following input.",
+    "createdAt": "2024-09-12T08:00:00Z",
+    "lastModifiedAt": "2024-09-12T10:00:00Z",
+    "agentId": "foo"
+}
+  

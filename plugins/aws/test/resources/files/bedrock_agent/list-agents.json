@@ -1,0 +1,17 @@
+{
+    "agentSummaries": [
+      {
+        "agentId": "foo",
+        "agentName": "foo",
+        "agentStatus": "PREPARING",
+        "description": "foo",
+        "guardrailConfiguration": {
+          "guardrailIdentifier": "foo",
+          "guardrailVersion": "foo"
+        },
+        "latestAgentVersion": "foo",
+        "updatedAt": "2024-09-13T12:32:05Z"
+      }
+    ],
+    "nextToken": "foo"
+  }

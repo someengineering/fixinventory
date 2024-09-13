@@ -841,18 +841,20 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(flow: AwsResource) -> None:
+        def add_tags(agent: AwsResource) -> None:
             tags = builder.client.list(
                 "bedrock-agent",
                 "list-tags-for-resource",
                 "tags",
                 expected_errors=["ResourceNotFoundException"],
-                resourceArn=flow.arn,
+                resourceArn=agent.arn,
             )
             if tags:
-                flow.tags.update(tags)
+                agent.tags.update(tags[0])
 
         def collect_agent_versions(agent: AwsBedrockAgent) -> None:
+            if not agent.agent_version:
+                return
             for result in builder.client.list(
                 "bedrock-agent",
                 "get-agent-version",
@@ -864,6 +866,8 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
         def collect_knowledge_bases(agent: AwsBedrockAgent) -> None:
+            if not agent.agent_version:
+                return
             for result in builder.client.list(
                 "bedrock-agent",
                 "list-knowledge-bases",
@@ -1160,23 +1164,22 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
     )
     # Collected via AwsBedrockAgent()
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("knowledgeBase", "knowledgeBaseId"),
-        "name": S("knowledgeBase", "name"),
-        "arn": S("knowledgeBase", "knowledgeBaseArn"),
-        "ctime": S("knowledgeBase", "createdAt"),
-        "mtime": S("knowledgeBase", "updatedAt"),
-        "created_at": S("knowledgeBase", "createdAt"),
-        "description": S("knowledgeBase", "description"),
-        "failure_reasons": S("knowledgeBase", "failureReasons", default=[]),
-        "knowledge_base_arn": S("knowledgeBase", "knowledgeBaseArn"),
-        "knowledge_base_configuration": S("knowledgeBase", "knowledgeBaseConfiguration")
+        "id": S("knowledgeBaseId"),
+        "name": S("name"),
+        "arn": S("knowledgeBaseArn"),
+        "ctime": S("createdAt"),
+        "mtime": S("updatedAt"),
+        "created_at": S("createdAt"),
+        "description": S("description"),
+        "failure_reasons": S("failureReasons", default=[]),
+        "knowledge_base_arn": S("knowledgeBaseArn"),
+        "knowledge_base_configuration": S("knowledgeBaseConfiguration")
         >> Bend(AwsBedrockKnowledgeBaseConfiguration.mapping),
-        "knowledge_base_id": S("knowledgeBase", "knowledgeBaseId"),
-        "role_arn": S("knowledgeBase", "roleArn"),
-        "status": S("knowledgeBase", "status"),
-        "storage_configuration": S("knowledgeBase", "storageConfiguration")
-        >> Bend(AwsBedrockStorageConfiguration.mapping),
-        "updated_at": S("knowledgeBase", "updatedAt"),
+        "knowledge_base_id": S("knowledgeBaseId"),
+        "role_arn": S("roleArn"),
+        "status": S("status"),
+        "storage_configuration": S("storageConfiguration") >> Bend(AwsBedrockStorageConfiguration.mapping),
+        "updated_at": S("updatedAt"),
     }
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the knowledge base was created."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the knowledge base."})  # fmt: skip
@@ -1314,16 +1317,16 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def add_tags(flow: AwsResource) -> None:
+        def add_tags(prompt: AwsResource) -> None:
             tags = builder.client.list(
                 "bedrock-agent",
                 "list-tags-for-resource",
                 "tags",
                 expected_errors=["ResourceNotFoundException"],
-                resourceArn=flow.arn,
+                resourceArn=prompt.arn,
             )
             if tags:
-                flow.tags.update(tags)
+                prompt.tags.update(tags[0])
 
         for js in json:
             for result in builder.client.list(
@@ -1642,9 +1645,11 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
                 resourceArn=flow.arn,
             )
             if tags:
-                flow.tags.update(tags)
+                flow.tags.update(tags[0])
 
         def collect_flow_versions(flow: AwsBedrockAgentFlow) -> None:
+            if not flow.version or flow.version == "DRAFT":
+                return
             for result in builder.client.list(
                 "bedrock-agent",
                 "get-flow-version",

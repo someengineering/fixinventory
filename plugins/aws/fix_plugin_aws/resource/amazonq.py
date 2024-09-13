@@ -141,7 +141,7 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
                     resourceARN=tag_resource.arn,
                 )
                 if tags:
-                    tag_resource.tags.update(tags)
+                    tag_resource.tags.update(tags[0])
             else:
                 tags = builder.client.list(
                     service_name,
