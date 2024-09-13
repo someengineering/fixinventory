@@ -1571,7 +1571,7 @@ class AzureNetworkCustomIpPrefix(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkDdosProtectionPlan(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ddos_protection_plan"
-    kind_display: ClassVar[str] = "Azure Network Ddos Protection Plan"
+    kind_display: ClassVar[str] = "Azure Network DDoS Protection Plan"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2016,7 +2016,7 @@ class AzureIpTag:
 @define(eq=False, slots=False)
 class AzureNetworkNatGateway(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_nat_gateway"
-    kind_display: ClassVar[str] = "Azure Network Nat Gateway"
+    kind_display: ClassVar[str] = "Azure Network NAT Gateway"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2349,7 +2349,7 @@ class AzureFrontendIPConfiguration(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualNetworkTap(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_network_tap"
-    kind_display: ClassVar[str] = "Azure Network Virtual Network Tap"
+    kind_display: ClassVar[str] = "Azure Network Virtual Network TAP"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -4647,7 +4647,7 @@ class AzureVpnClientConnectionHealth:
 @define(eq=False, slots=False)
 class AzureNetworkP2SVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_p2_s_vpn_gateway"
-    kind_display: ClassVar[str] = "Azure Network P2 S Vpn Gateway"
+    kind_display: ClassVar[str] = "Azure Network P2 S VPN Gateway"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -5212,7 +5212,7 @@ class AzureNetworkVirtualRouter(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualWAN(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_wan"
-    kind_display: ClassVar[str] = "Azure Network Virtual Wan"
+    kind_display: ClassVar[str] = "Azure Network Virtual WAN"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -5345,7 +5345,7 @@ class AzureVpnSiteLinkConnection(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualWANVpnConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_network_virtual_wan_vpn_connection"
-    kind_display: ClassVar[str] = "Azure Network Virtual Wan Vpn Connection"
+    kind_display: ClassVar[str] = "Azure Network Virtual WAN VPN Connection"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     # Collect via AzureNetworkVirtualWANVpnGateway
@@ -5481,7 +5481,7 @@ class AzureVpnGatewayNatRule(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_virtual_wan_vpn_gateway"
-    kind_display: ClassVar[str] = "Azure Network Virtual Wan Vpn Gateway"
+    kind_display: ClassVar[str] = "Azure Network Virtual WAN VPN Gateway"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -5607,7 +5607,7 @@ class AzureAadAuthenticationParameters:
 @define(eq=False, slots=False)
 class AzureNetworkVpnServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_vpn_server_configuration"
-    kind_display: ClassVar[str] = "Azure Network Vpn Server Configuration"
+    kind_display: ClassVar[str] = "Azure Network VPN Server Configuration"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -5736,7 +5736,7 @@ class AzureO365PolicyProperties:
 @define(eq=False, slots=False)
 class AzureNetworkVpnSite(MicrosoftResource, BasePeeringConnection):
     kind: ClassVar[str] = "azure_network_vpn_site"
-    kind_display: ClassVar[str] = "Azure Network Vpn Site"
+    kind_display: ClassVar[str] = "Azure Network VPN Site"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -6505,7 +6505,7 @@ class AzureCaaRecord:
 @define(eq=False, slots=False)
 class AzureNetworkDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "azure_network_dns_record_set"
-    kind_display: ClassVar[str] = "Azure Network Dns Record Set"
+    kind_display: ClassVar[str] = "Azure Network DNS Record Set"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
@@ -6551,7 +6551,7 @@ class AzureNetworkDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
 @define(eq=False, slots=False)
 class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
     kind: ClassVar[str] = "azure_network_dns_zone"
-    kind_display: ClassVar[str] = "Azure Network Dns Zone"
+    kind_display: ClassVar[str] = "Azure Network DNS Zone"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(

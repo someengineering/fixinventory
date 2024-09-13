@@ -164,7 +164,7 @@ class AzureCosmosDbNodes:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraClusterPublicStatus(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_public_status"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Cassandra Cluster Public Status"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Public Status"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "database"}
     # Collect via AzureCosmosDBCassandraCluster()
@@ -228,7 +228,7 @@ class AzureCassandraKeyspace(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraKeyspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_keyspace"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Cassandra Keyspace"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Keyspace"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
@@ -321,7 +321,7 @@ class AzureCassandraTable(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_table"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Cassandra Table"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Table"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBCassandraKeyspace()
@@ -369,7 +369,7 @@ class AzureClientEncryptionKey(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabaseClientEncryptionKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_client_encryption_key"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Sql Database Client Encryption Key"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database Client Encryption Key"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
@@ -398,7 +398,7 @@ class AzureManagedCassandraManagedServiceIdentity:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Cassandra Cluster"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -562,7 +562,7 @@ class AzureAuthenticationMethodLdap:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_data_center"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Cassandra Cluster Data Center"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Data Center"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     # Collect via AzureCosmosDBCassandraCluster()
@@ -786,7 +786,7 @@ mongo_cosmosdb_error_message = "Mongo User and Role Definitions are not enabled 
 @define(eq=False, slots=False)
 class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_cosmos_db_account"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Account"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Account"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -1086,7 +1086,7 @@ class AzureGremlinDatabase(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_database"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Gremlin Database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Gremlin Database"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
@@ -1259,7 +1259,7 @@ class AzureGremlinGraph(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBGremlinGraph(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_graph"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Gremlin Graph"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Gremlin Graph"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBGremlinDatabase()
@@ -1322,7 +1322,7 @@ class AzureMongoDBCollection(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_collection"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Mongo Db Collection"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Collection"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBMongoDBDatabase()
@@ -1353,7 +1353,7 @@ class AzureMongoDBDatabase(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_database"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Mongo Db Database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Database"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
@@ -1427,7 +1427,7 @@ class AzureRole:
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_role_definition"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Mongo Db Role Definition"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Role Definition"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
@@ -1449,7 +1449,7 @@ class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_user_definition"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Mongo Db User Definition"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB User Definition"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
@@ -1475,7 +1475,7 @@ class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBNotebookWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_notebook_workspace"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Notebook Workspace"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Notebook Workspace"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
@@ -1493,7 +1493,7 @@ class AzureCosmosDBNotebookWorkspace(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_private_link"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Private Link"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Private Link"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     # Collect via AzureCosmosDBAccount()
@@ -1528,7 +1528,7 @@ class AzureRestorableLocationResource:
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableAccount(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_account"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Account"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Account"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -1708,7 +1708,7 @@ class AzureSqlContainer(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_container"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Sql Database Container"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database Container"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
@@ -1771,7 +1771,7 @@ class AzureCollsUsers(AzureSqlDatabaseResource, AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Sql Database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
@@ -1843,7 +1843,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_assignment"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Sql Role Assignment"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Role Assignment"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
@@ -1898,7 +1898,7 @@ class AzureRolePermission:
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_definition"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Sql Role Definition"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Role Definition"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
@@ -1931,7 +1931,7 @@ class AzureDbTable(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_table"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Table"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Table"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
@@ -1949,7 +1949,7 @@ class AzureCosmosDBTable(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlThroughputSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_throughput_setting"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Sql Throughput Setting"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Throughput Setting"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
@@ -1965,7 +1965,7 @@ class AzureCosmosDBSqlThroughputSetting(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Account Usage"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Account Usage"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
     # Collect via AzureCosmosDBAccount()
@@ -1992,7 +1992,7 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
 @define(eq=False, slots=False)
 class AzureCosmosDBLocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_location"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Location"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Location"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2056,7 +2056,7 @@ class AzureNodeGroupSpec:
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_cluster"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Mongo Db Cluster"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Cluster"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2119,7 +2119,7 @@ class AzureRestorableDatabase:
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_database"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Gremlin Database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Database"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2165,7 +2165,7 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_graph"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Gremlin Graph"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Graph"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2181,7 +2181,7 @@ class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_collection"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Mongo Db Collection"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Collection"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2197,7 +2197,7 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_database"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Mongo Db Database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Database"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2243,7 +2243,7 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableSqlContainer(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_container"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Sql Container"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Container"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2290,7 +2290,7 @@ class AzureExtendedPropertiesSqlDatabase(AzureSqlDatabaseResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_database"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Sql Database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Database"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2350,7 +2350,7 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_table"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Restorable Table"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Table"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
@@ -2392,7 +2392,7 @@ class AzureServerNameItem:
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Postgresql Cluster"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -2546,7 +2546,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Postgresql Cluster Server"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Server"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2641,7 +2641,7 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, Azur
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_configuration"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Postgresql Cluster Configuration"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Configuration"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2679,7 +2679,7 @@ class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyR
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server_configuration"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Postgresql Cluster Server Configuration"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Server Configuration"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlClusterServer()
@@ -2716,7 +2716,7 @@ class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, Azure
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_endpoint_connection"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Postgresql Cluster Private Endpoint Connection"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Private Endpoint Connection"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2742,7 +2742,7 @@ class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource)
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_link"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Postgresql Cluster Private Link"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Private Link"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
@@ -2766,7 +2766,7 @@ class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterRole(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_role"
-    kind_display: ClassVar[str] = "Azure Cosmos Db Postgresql Cluster Role"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Postgresql Cluster Role"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBPostgresqlCluster()

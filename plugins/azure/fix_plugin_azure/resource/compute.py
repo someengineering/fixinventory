@@ -2160,7 +2160,7 @@ class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
 @define(eq=False, slots=False)
 class AzureComputeSshPublicKey(MicrosoftResource, BaseKeyPair):
     kind: ClassVar[str] = "azure_compute_ssh_public_key"
-    kind_display: ClassVar[str] = "Azure Compute Ssh Public Key"
+    kind_display: ClassVar[str] = "Azure Compute SSH Public Key"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
