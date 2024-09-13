@@ -378,7 +378,6 @@ class HcloudCollector:
         log.info(f"Collecting firewalls in {self.project.kdname}")
         client = get_client(self.api_token)
         for firewall in client.firewalls.get_all():
-            rules = None
             if firewall.rules:
                 firewall_rules = [
                     HcloudFirewallRule(
