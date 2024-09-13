@@ -2058,7 +2058,7 @@ class AzureNetworkNatGateway(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkPublicIPAddress(MicrosoftResource, BaseIPAddress):
     kind: ClassVar[str] = "azure_network_public_ip_address"
-    kind_display: ClassVar[str] = "Azure Network Public Ip Address"
+    kind_display: ClassVar[str] = "Azure Network Public IP Address"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
