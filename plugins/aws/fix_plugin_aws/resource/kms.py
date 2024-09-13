@@ -66,12 +66,14 @@ class AwsKmsMultiRegionConfig:
 class AwsKmsKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_kms_key"
     kind_display: ClassVar[str] = "AWS KMS Key"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kms/home?region={region}#/kms/keys/{id}", "arn_tpl": "arn:{partition}:kms:{region}:{account}:key/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS KMS (Key Management Service) Key is a managed service that allows you to"
         " create and control the encryption keys used to encrypt your data stored on"
         " various AWS services and applications."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kms/home?region={region}#/kms/keys/{id}", "arn_tpl": "arn:{partition}:kms:{region}:{account}:key/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-keys", "Keys")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("KeyId"),

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple, Type
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attr import define, field
 
@@ -18,7 +18,7 @@ from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnaps
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
-service = "azure_container_service"
+service_name = "azure_container_service"
 log = logging.getLogger("fix.plugins.azure")
 
 
@@ -65,6 +65,9 @@ class AzureFleetHubProfile:
 @define(eq=False, slots=False)
 class AzureContainerServiceFleet(MicrosoftResource):
     kind: ClassVar[str] = "azure_container_service_fleet"
+    kind_display: ClassVar[str] = "Azure Container Service Fleet"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-15-preview",
@@ -116,7 +119,7 @@ class AzureContainerServiceFleet(MicrosoftResource):
             except KeyError as e:
                 log.warning(f"An error occured while taking cluster id: {e}")
 
-        graph_builder.submit_work(service, collect_fleets)
+        graph_builder.submit_work(service_name, collect_fleets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if cluster_ids := self._cluster_resource_ids:
@@ -745,6 +748,9 @@ class AzureServiceMeshProfile:
 @define(eq=False, slots=False)
 class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
     kind: ClassVar[str] = "azure_container_service_managed_cluster"
+    kind_display: ClassVar[str] = "Azure Container Service Managed Cluster"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
@@ -887,6 +893,9 @@ class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernet
 @define(eq=False, slots=False)
 class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_container_service_managed_cluster_snapshot"
+    kind_display: ClassVar[str] = "Azure Container Service Managed Cluster Snapshot"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",

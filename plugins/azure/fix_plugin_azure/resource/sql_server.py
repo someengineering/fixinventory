@@ -28,6 +28,9 @@ log = logging.getLogger("fix.plugins.azure")
 @define(eq=False, slots=False)
 class AzureSqlServerADAdministrator(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_ad_administrator"
+    kind_display: ClassVar[str] = "Azure SQL Server Ad Administrator"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -80,6 +83,9 @@ class AzureDatabaseIdentity:
 @define(eq=False, slots=False)
 class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_database"
+    kind_display: ClassVar[str] = "Azure SQL Server Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -315,6 +321,9 @@ class AzureElasticPoolPerDatabaseSettings:
 @define(eq=False, slots=False)
 class AzureSqlServerElasticPool(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_elastic_pool"
+    kind_display: ClassVar[str] = "Azure SQL Server Elastic Pool"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "compute"}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -378,6 +387,9 @@ class AzurePartnerInfo:
 @define(eq=False, slots=False)
 class AzureSqlServerFailoverGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_failover_group"
+    kind_display: ClassVar[str] = "Azure SQL Server Failover Group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_sql_server_database"]},
@@ -414,6 +426,9 @@ class AzureSqlServerFailoverGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerFirewallRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_firewall_rule"
+    kind_display: ClassVar[str] = "Azure SQL Server Firewall Rule"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -431,6 +446,9 @@ class AzureSqlServerFirewallRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerDatabaseGeoBackupPolicy(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_database_geo_backup_policy"
+    kind_display: ClassVar[str] = "Azure SQL Server Database Geo Backup Policy"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "database"}
     # Collect via AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -480,6 +498,9 @@ class AzureManagedInstancePairInfo:
 @define(eq=False, slots=False)
 class AzureSqlServerManagedInstanceFailoverGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_failover_group"
+    kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Failover Group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureSqlServerManagedInstance()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_sql_server_managed_instance"]},
@@ -531,6 +552,9 @@ class AzureSqlServerManagedInstanceFailoverGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerManagedInstancePool(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_pool"
+    kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Pool"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
         version="2021-11-01",
@@ -569,6 +593,9 @@ class AzureSqlServerManagedInstancePool(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerJobAgent(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_job_agent"
+    kind_display: ClassVar[str] = "Azure SQL Server Job Agent"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "database"}
     # Collect via AzureSqlServer()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_sql_server_database"]},
@@ -599,6 +626,9 @@ class AzureSqlServerJobAgent(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerManagedInstanceADAdministrator(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_ad_administrator"
+    kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Ad Administrator"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     # Collect via AzureSqlManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -628,6 +658,9 @@ class AzureSqlServerManagedInstanceADAdministrator(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerManagedInstanceDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_database"
+    kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -782,6 +815,9 @@ class AzureServicePrincipal:
 @define(eq=False, slots=False)
 class AzureSqlServerManagedInstance(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance"
+    kind_display: ClassVar[str] = "Azure SQL Server Managed Instance"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
         version="2021-11-01",
@@ -992,6 +1028,9 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerVirtualCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_virtual_cluster"
+    kind_display: ClassVar[str] = "Azure SQL Server Virtual Cluster"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
         version="2022-05-01-preview",
@@ -1036,6 +1075,9 @@ class AzureSqlServerVirtualCluster(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerTrustGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_trust_group"
+    kind_display: ClassVar[str] = "Azure SQL Server Trust Group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
     # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1053,6 +1095,9 @@ class AzureSqlServerTrustGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerVirtualNetworkRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_virtual_network_rule"
+    kind_display: ClassVar[str] = "Azure SQL Server Virtual Network Rule"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1072,6 +1117,8 @@ class AzureSqlServerVirtualNetworkRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSqlServerDatabaseWorkloadGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_database_workload_group"
+    kind_display: ClassVar[str] = "Azure SQL Server Database Workload Group"
+    kind_service: ClassVar[Optional[str]] = service_name
     # Collect via AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1223,6 +1270,9 @@ class AzureRecommendedAction:
 @define(eq=False, slots=False)
 class AzureSqlServerAdvisor(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_advisor"
+    kind_display: ClassVar[str] = "Azure SQL Server Advisor"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "database"}
     # Collect via AzureSqlServer() and AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1321,6 +1371,9 @@ class AzureSqlEncryptionProtector:
 @define(eq=False, slots=False)
 class AzureSqlServer(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server"
+    kind_display: ClassVar[str] = "Azure SQL Server"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
         version="2021-11-01",

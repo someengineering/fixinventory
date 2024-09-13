@@ -71,6 +71,7 @@ class AwsServiceQuota(AwsResource, BaseQuota):
         "AWS Service Quota is a feature that enables you to view and manage your"
         " quotas (also referred to as limits) for AWS services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [

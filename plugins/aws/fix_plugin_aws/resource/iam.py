@@ -116,6 +116,7 @@ class AwsIamRole(AwsResource, BaseRole, BaseIamPrincipal):
         " However, instead of being uniquely associated with one person, IAM roles are"
         " intended to be assumable by anyone who needs it."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_iam_policy", "aws_iam_instance_profile"],
@@ -228,6 +229,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
         " HTTPS server. It enables secure communication between the server and AWS"
         " services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-server-certificates", "ServerCertificateMetadataList"
     )
@@ -319,6 +321,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
         "IAM Policies in AWS are used to define permissions and access controls for"
         " users, groups, and roles within the AWS ecosystem."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -396,6 +399,7 @@ class AwsIamGroup(AwsResource, BaseGroup):
         " permissions collectively for multiple users, making it easier to manage"
         " access to AWS resources."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
     }
@@ -495,6 +499,7 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     kind_description: ClassVar[str] = (
         "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -628,6 +633,7 @@ class AwsRootUser(AwsResource, BaseUser, BaseIamPrincipal):
         "The AWS Root User is the initial user created when setting up an AWS account"
         " and has unrestricted access to all resources in the account."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_account"]},
     }
@@ -648,6 +654,7 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
         "IAM Users are identities created within AWS Identity and Access Management"
         " (IAM) that can be assigned permissions to access and manage AWS resources."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "get-account-authorization-details")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_group"]},
@@ -808,11 +815,13 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
     kind_display: ClassVar[str] = "AWS IAM Instance Profile"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:instance-profile/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "IAM Instance Profiles are used to associate IAM roles with EC2 instances,"
         " allowing the instances to securely access AWS services and resources."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "access_control"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:instance-profile/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-instance-profiles", "InstanceProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceProfileId"),

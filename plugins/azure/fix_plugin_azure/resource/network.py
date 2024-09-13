@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, ClassVar, Dict, Optional, List, Type, Tuple
+from typing import Callable, ClassVar, Dict, Optional, List, Type, Tuple, Any
 
 from attr import define, field
 
@@ -956,6 +956,9 @@ class AzureApplicationGatewayGlobalConfiguration:
 @define(eq=False, slots=False)
 class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_application_gateway"
+    kind_display: ClassVar[str] = "Azure Network Application Gateway"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -1116,6 +1119,9 @@ class AzureApplicationGatewayFirewallRuleGroup:
 @define(eq=False, slots=False)
 class AzureNetworkApplicationGatewayFirewallRuleSet(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_application_gateway_firewall_rule_set"
+    kind_display: ClassVar[str] = "Azure Network Application Gateway Firewall Rule Set"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -1344,6 +1350,9 @@ class AzureFirewallSku:
 @define(eq=False, slots=False)
 class AzureNetworkFirewall(MicrosoftResource, BaseFirewall):
     kind: ClassVar[str] = "azure_network_firewall"
+    kind_display: ClassVar[str] = "Azure Network Firewall"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -1440,6 +1449,9 @@ class AzureIpRules:
 @define(eq=False, slots=False)
 class AzureNetworkBastionHost(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_bastion_host"
+    kind_display: ClassVar[str] = "Azure Network Bastion Host"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "host", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -1505,6 +1517,9 @@ class AzureNetworkBastionHost(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkCustomIpPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_custom_ip_prefix"
+    kind_display: ClassVar[str] = "Azure Network Custom IP Prefix"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -1556,6 +1571,9 @@ class AzureNetworkCustomIpPrefix(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkDdosProtectionPlan(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ddos_protection_plan"
+    kind_display: ClassVar[str] = "Azure Network DDoS Protection Plan"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -1735,6 +1753,9 @@ class AzureTrafficAnalyticsProperties:
 @define(eq=False, slots=False)
 class AzureNetworkFlowLog(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_flow_log"
+    kind_display: ClassVar[str] = "Azure Network Flow Log"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     # Collect via AzureNetworkWatcher()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_storage_account"]},
@@ -1776,6 +1797,9 @@ class AzureNetworkFlowLog(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkSecurityGroup(MicrosoftResource, BaseSecurityGroup):
     kind: ClassVar[str] = "azure_network_security_group"
+    kind_display: ClassVar[str] = "Azure Network Security Group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "security_group", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -1853,6 +1877,9 @@ class AzureRoute(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkRouteTable(MicrosoftResource, BaseRoutingTable):
     kind: ClassVar[str] = "azure_network_route_table"
+    kind_display: ClassVar[str] = "Azure Network Route Table"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-09-01",
@@ -1989,6 +2016,9 @@ class AzureIpTag:
 @define(eq=False, slots=False)
 class AzureNetworkNatGateway(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_nat_gateway"
+    kind_display: ClassVar[str] = "Azure Network NAT Gateway"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -2028,6 +2058,9 @@ class AzureNetworkNatGateway(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkPublicIPAddress(MicrosoftResource, BaseIPAddress):
     kind: ClassVar[str] = "azure_network_public_ip_address"
+    kind_display: ClassVar[str] = "Azure Network Public IP Address"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -2199,6 +2232,9 @@ class AzureDelegation(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkSubnet(MicrosoftResource, BaseSubnet):
     kind: ClassVar[str] = "azure_network_subnet"
+    kind_display: ClassVar[str] = "Azure Network Subnet"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "subnet", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -2313,6 +2349,9 @@ class AzureFrontendIPConfiguration(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualNetworkTap(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_network_tap"
+    kind_display: ClassVar[str] = "Azure Network Virtual Network TAP"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -2514,6 +2553,9 @@ class AzureResourceSet:
 @define(eq=False, slots=False)
 class AzureNetworkPrivateLinkService(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_private_link_service"
+    kind_display: ClassVar[str] = "Azure Network Private Link Service"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -2562,6 +2604,9 @@ class AzureNetworkPrivateLinkService(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkInterface(MicrosoftResource, BaseNetworkInterface):
     kind: ClassVar[str] = "azure_network_interface"
+    kind_display: ClassVar[str] = "Azure Network Interface"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -2673,6 +2718,9 @@ class AzureNetworkInterface(MicrosoftResource, BaseNetworkInterface):
 @define(eq=False, slots=False)
 class AzureNetworkDscpConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_dscp_configuration"
+    kind_display: ClassVar[str] = "Azure Network Dscp Configuration"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -2957,6 +3005,9 @@ class AzureExpressRouteCircuitServiceProviderProperties:
 @define(eq=False, slots=False)
 class AzureNetworkExpressRouteCircuit(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_circuit"
+    kind_display: ClassVar[str] = "Azure Network Express Route Circuit"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3084,6 +3135,9 @@ class AzureExpressRouteCrossConnectionPeering(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkExpressRouteCrossConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_cross_connection"
+    kind_display: ClassVar[str] = "Azure Network Express Route Cross Connection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3228,6 +3282,9 @@ class AzureExpressRouteConnection(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkExpressRouteGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_express_route_gateway"
+    kind_display: ClassVar[str] = "Azure Network Express Route Gateway"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3302,6 +3359,9 @@ class AzureExpressRouteLink(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkExpressRoutePort(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_port"
+    kind_display: ClassVar[str] = "Azure Network Express Route Port"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3355,6 +3415,9 @@ class AzureExpressRoutePortsLocationBandwidths:
 @define(eq=False, slots=False)
 class AzureNetworkExpressRoutePortsLocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_ports_location"
+    kind_display: ClassVar[str] = "Azure Network Express Route Ports Location"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3539,6 +3602,9 @@ class AzureFirewallPolicyTransportSecurity:
 @define(eq=False, slots=False)
 class AzureNetworkFirewallPolicy(MicrosoftResource, BasePolicy):
     kind: ClassVar[str] = "azure_network_firewall_policy"
+    kind_display: ClassVar[str] = "Azure Network Firewall Policy"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3595,6 +3661,9 @@ class AzureNetworkFirewallPolicy(MicrosoftResource, BasePolicy):
 @define(eq=False, slots=False)
 class AzureNetworkIpAllocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ip_allocation"
+    kind_display: ClassVar[str] = "Azure Network IP Allocation"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3638,6 +3707,9 @@ class AzureNetworkIpAllocation(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkIpGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ip_group"
+    kind_display: ClassVar[str] = "Azure Network IP Group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -3697,6 +3769,9 @@ class AzureNetworkIpGroup(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkLoadBalancerProbe(MicrosoftResource, BaseHealthCheck):
     kind: ClassVar[str] = "azure_network_load_balancer_probe"
+    kind_display: ClassVar[str] = "Azure Network Load Balancer Probe"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     # Collect via AzureNetworkLoadBalancer
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -3921,6 +3996,9 @@ class AzureOutboundRule(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
     kind: ClassVar[str] = "azure_network_load_balancer"
+    kind_display: ClassVar[str] = "Azure Network Load Balancer"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4119,6 +4197,9 @@ class AzureContainerNetworkInterface(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkProfile(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_profile"
+    kind_display: ClassVar[str] = "Azure Network Profile"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4251,6 +4332,9 @@ class AzurePartnerManagedResourceProperties:
 @define(eq=False, slots=False)
 class AzureNetworkVirtualAppliance(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance"
+    kind_display: ClassVar[str] = "Azure Network Virtual Appliance"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4372,6 +4456,9 @@ class AzureNetworkVirtualApplianceSkuInstances:
 @define(eq=False, slots=False)
 class AzureNetworkVirtualApplianceSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance_sku"
+    kind_display: ClassVar[str] = "Azure Network Virtual Appliance SKU"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-04-01",
@@ -4400,6 +4487,9 @@ class AzureNetworkVirtualApplianceSku(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkWatcher(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_watcher"
+    kind_display: ClassVar[str] = "Azure Network Watcher"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4557,6 +4647,9 @@ class AzureVpnClientConnectionHealth:
 @define(eq=False, slots=False)
 class AzureNetworkP2SVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_p2_s_vpn_gateway"
+    kind_display: ClassVar[str] = "Azure Network P2 S VPN Gateway"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4601,6 +4694,9 @@ class AzureNetworkP2SVpnGateway(MicrosoftResource, BaseGateway):
 @define(eq=False, slots=False)
 class AzureNetworkPublicIPPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_public_ip_prefix"
+    kind_display: ClassVar[str] = "Azure Network Public IP Prefix"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4665,6 +4761,9 @@ class AzureRouteFilterRule(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkRouteFilter(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_route_filter"
+    kind_display: ClassVar[str] = "Azure Network Route Filter"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4692,6 +4791,9 @@ class AzureNetworkRouteFilter(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkSecurityPartnerProvider(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_security_partner_provider"
+    kind_display: ClassVar[str] = "Azure Network Security Partner Provider"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4719,6 +4821,9 @@ class AzureNetworkSecurityPartnerProvider(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkUsage(MicrosoftResource, AzureBaseUsage, BaseNetworkQuota):
     kind: ClassVar[str] = "azure_network_usage"
+    kind_display: ClassVar[str] = "Azure Network Usage"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4791,6 +4896,9 @@ class AzureVirtualHubRouteTableV2(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualHub(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_hub"
+    kind_display: ClassVar[str] = "Azure Network Virtual Hub"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -4990,6 +5098,9 @@ class AzureVirtualNetworkPeering(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualNetwork(MicrosoftResource, BaseNetwork):
     kind: ClassVar[str] = "azure_network_virtual_network"
+    kind_display: ClassVar[str] = "Azure Network Virtual Network"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -5067,6 +5178,9 @@ class AzureNetworkVirtualNetwork(MicrosoftResource, BaseNetwork):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualRouter(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_router"
+    kind_display: ClassVar[str] = "Azure Network Virtual Router"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -5098,6 +5212,9 @@ class AzureNetworkVirtualRouter(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualWAN(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_wan"
+    kind_display: ClassVar[str] = "Azure Network Virtual WAN"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -5228,6 +5345,9 @@ class AzureVpnSiteLinkConnection(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualWANVpnConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_network_virtual_wan_vpn_connection"
+    kind_display: ClassVar[str] = "Azure Network Virtual WAN VPN Connection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     # Collect via AzureNetworkVirtualWANVpnGateway
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -5361,6 +5481,9 @@ class AzureVpnGatewayNatRule(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_virtual_wan_vpn_gateway"
+    kind_display: ClassVar[str] = "Azure Network Virtual WAN VPN Gateway"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -5484,6 +5607,9 @@ class AzureAadAuthenticationParameters:
 @define(eq=False, slots=False)
 class AzureNetworkVpnServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_vpn_server_configuration"
+    kind_display: ClassVar[str] = "Azure Network VPN Server Configuration"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -5610,6 +5736,9 @@ class AzureO365PolicyProperties:
 @define(eq=False, slots=False)
 class AzureNetworkVpnSite(MicrosoftResource, BasePeeringConnection):
     kind: ClassVar[str] = "azure_network_vpn_site"
+    kind_display: ClassVar[str] = "Azure Network VPN Site"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -5856,6 +5985,9 @@ class AzureManagedRulesDefinition:
 @define(eq=False, slots=False)
 class AzureNetworkWebApplicationFirewallPolicy(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_web_application_firewall_policy"
+    kind_display: ClassVar[str] = "Azure Network Web Application Firewall Policy"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2023-05-01",
@@ -6090,6 +6222,9 @@ class AzureVirtualNetworkGatewayNatRule(AzureSubResource):
 @define(eq=False, slots=False)
 class AzureNetworkVirtualNetworkGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_virtual_network_gateway"
+    kind_display: ClassVar[str] = "Azure Network Virtual Network Gateway"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
         "active_active": S("properties", "activeActive"),
@@ -6163,6 +6298,9 @@ class AzureNetworkVirtualNetworkGateway(MicrosoftResource, BaseGateway):
 @define(eq=False, slots=False)
 class AzureNetworkLocalNetworkGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_local_network_gateway"
+    kind_display: ClassVar[str] = "Azure Network Local Network Gateway"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
         "bgp_settings": S("properties", "bgpSettings") >> Bend(AzureBgpSettings.mapping),
@@ -6207,7 +6345,10 @@ class AzureTunnelConnectionHealth:
 @define(eq=False, slots=False)
 class AzureNetworkVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_network_virtual_network_gateway_connection"
+    kind_display: ClassVar[str] = "Azure Network Virtual Network Gateway Connection"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     # Collect via AzureResourceGroup
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_network_virtual_network_gateway", "azure_network_local_network_gateway"]},
     }
@@ -6364,6 +6505,9 @@ class AzureCaaRecord:
 @define(eq=False, slots=False)
 class AzureNetworkDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "azure_network_dns_record_set"
+    kind_display: ClassVar[str] = "Azure Network DNS Record Set"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_network_dns_zone"]},
     }
@@ -6407,6 +6551,9 @@ class AzureNetworkDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
 @define(eq=False, slots=False)
 class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
     kind: ClassVar[str] = "azure_network_dns_zone"
+    kind_display: ClassVar[str] = "Azure Network DNS Zone"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
         version="2018-05-01",

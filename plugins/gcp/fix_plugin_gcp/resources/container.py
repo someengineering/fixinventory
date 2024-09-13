@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -11,6 +11,8 @@ from fixlib.types import Json
 
 # This service is called Google Kubernetes Engine in the docs
 # https://cloud.google.com/kubernetes-engine/docs
+
+service_name = "container"
 
 
 @define(eq=False, slots=False)
@@ -1091,8 +1093,10 @@ class GcpContainerCluster(BaseManagedKubernetesClusterProvider, GcpResource):
         " Cloud Platform, which allows users to deploy, manage, and scale"
         " containerized applications using Kubernetes."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="container",
+        service=service_name,
         version="v1",
         accessors=["projects", "locations", "clusters"],
         action="list",
@@ -1302,9 +1306,11 @@ class GcpContainerOperation(GcpResource):
         " Cloud Platform, including creating, starting, stopping, and deleting"
         " containers."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "managed_kubernetes"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_container_cluster"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="container",
+        service=service_name,
         version="v1",
         accessors=["projects", "locations", "operations"],
         action="list",

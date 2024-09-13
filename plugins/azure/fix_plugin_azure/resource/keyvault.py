@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -183,6 +183,9 @@ class AzureKeyReleasePolicy:
 @define(eq=False, slots=False)
 class AzureKeyVaultSecret(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_secret"
+    kind_display: ClassVar[str] = "Azure Key Vault Secret"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -206,6 +209,9 @@ class AzureKeyVaultSecret(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVaultManagedHsm(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_managed_hsm"
+    kind_display: ClassVar[str] = "Azure Key Vault Managed Hsm"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",
@@ -266,6 +272,9 @@ class AzureKeyVaultManagedHsm(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVaultKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_key"
+    kind_display: ClassVar[str] = "Azure Key Vault Key"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -297,6 +306,9 @@ class AzureKeyVaultKey(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVault(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault"
+    kind_display: ClassVar[str] = "Azure Key Vault"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",

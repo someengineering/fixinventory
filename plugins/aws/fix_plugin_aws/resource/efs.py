@@ -51,11 +51,13 @@ class EfsTaggable:
 class AwsEfsMountTarget(AwsResource):
     kind: ClassVar[str] = "aws_efs_mount_target"
     kind_display: ClassVar[str] = "AWS EFS Mount Target"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EFS Mount Targets are endpoints in Amazon's Elastic File System that allow"
         " EC2 instances to mount the file system and access the shared data."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("MountTargetId"),
         "owner_id": S("OwnerId"),
@@ -83,6 +85,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
         "EFS (Elastic File System) provides a scalable and fully managed file storage"
         " service for Amazon EC2 instances."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-file-systems",
@@ -228,12 +231,14 @@ class AwsEfsRootDirectory:
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
     kind_display: ClassVar[str] = "AWS EFS Access Point"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS EFS Access Point is a way to securely access files in Amazon EFS"
         " (Elastic File System) using a unique hostname and optional path, providing"
         " fine-grained access control."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "storage"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-access-points",
