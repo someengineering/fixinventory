@@ -10,13 +10,13 @@ This collector is in alpha stage and may not work as expected. Use at your own r
 
 ## Configuration
 
+Hetzner has no API to introspect a token, so you need to manually maintain the project name associated with an API token. Provide names in the same order as the corresponding API tokens.
+
 ```
 fixworker:
-  # List of collectors to run
   collector:
     - 'hetzner'
 hetzner:
-  # Hetzner Cloud project names - Hetzner has no API to introspect a token, so you need to manually maintain the project name associated with an API token. Provide names in the same order as the corresponding API tokens.
   hcloud_project_names:
     - 'dev'
     - 'global'
