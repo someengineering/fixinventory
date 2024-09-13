@@ -250,13 +250,15 @@ class AwsElbLoadBalancerAttributes:
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     kind_display: ClassVar[str] = "AWS ELB"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={name}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ELB stands for Elastic Load Balancer. It is a service provided by Amazon Web"
         " Services that automatically distributes incoming application traffic across"
         " multiple Amazon EC2 instances, making it easier to achieve fault tolerance"
         " in your applications."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={name}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-load-balancers",

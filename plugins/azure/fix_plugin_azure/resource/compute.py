@@ -67,6 +67,9 @@ class AzureInstanceViewStatus:
 @define(eq=False, slots=False)
 class AzureComputeAvailabilitySet(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_availability_set"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Availability Set"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -119,6 +122,9 @@ class AzureComputeCapacityReservationGroupInstanceView:
 @define(eq=False, slots=False)
 class AzureComputeCapacityReservationGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_capacity_reservation_group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Capacity Reservation Group"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -292,6 +298,9 @@ class AzureCloudServiceExtensionProfile:
 @define(eq=False, slots=False)
 class AzureComputeCloudService(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_cloud_service"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Cloud Service"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2022-09-04",
@@ -344,6 +353,9 @@ class AzureDedicatedHostGroupInstanceView:
 @define(eq=False, slots=False)
 class AzureComputeDedicatedHostGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_dedicated_host_group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Dedicated Host Group"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -707,6 +719,9 @@ class AzurePricingOffers:
 @define(eq=False, slots=False)
 class AzureComputeDiskTypePricing(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_type_pricing"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Disk Type Pricing"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="",
@@ -729,6 +744,9 @@ class AzureComputeDiskTypePricing(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureComputeDiskType(MicrosoftResource, BaseVolumeType):
     kind: ClassVar[str] = "azure_compute_disk_type"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Disk Type"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
     # Collect via AzureComputeDisk()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("skuName"),
@@ -910,6 +928,9 @@ VolumeStatusMapping = {
 @define(eq=False, slots=False)
 class AzureComputeDisk(MicrosoftResource, BaseVolume):
     kind: ClassVar[str] = "azure_compute_disk"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Disk"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -1162,6 +1183,9 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
 @define(eq=False, slots=False)
 class AzureComputeDiskAccess(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_access"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Disk Access"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -1247,6 +1271,9 @@ class AzureApiError:
 @define(eq=False, slots=False)
 class AzureComputeDiskEncryptionSet(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_encryption_set"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Disk Encryption Set"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -1345,6 +1372,9 @@ class AzureSharingStatus:
 @define(eq=False, slots=False)
 class AzureComputeGallery(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_gallery"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Gallery"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2022-03-03",
@@ -1417,6 +1447,9 @@ class AzureImageStorageProfile:
 @define(eq=False, slots=False)
 class AzureComputeImage(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_image"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Image"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -1461,6 +1494,9 @@ class AzureVmSizes:
 @define(eq=False, slots=False)
 class AzureComputeProximityPlacementGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_proximity_placement_group"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Proximity Placement Group"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -1978,6 +2014,9 @@ class AzureRestorePoint(AzureProxyResource):
 @define(eq=False, slots=False)
 class AzureComputeRestorePointCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_restore_point_collection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Restore Point Collection"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -2030,6 +2069,9 @@ class AzureCopyCompletionError:
 @define(eq=False, slots=False)
 class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_compute_virtual_machine_snapshot"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Virtual Machine Snapshot"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",
@@ -2118,6 +2160,9 @@ class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
 @define(eq=False, slots=False)
 class AzureComputeSshPublicKey(MicrosoftResource, BaseKeyPair):
     kind: ClassVar[str] = "azure_compute_ssh_public_key"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Ssh Public Key"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -2754,6 +2799,9 @@ InstanceStatusMapping = {
 @define(eq=False, slots=False)
 class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
     kind: ClassVar[str] = "azure_compute_virtual_machine_base"
+    kind_display: ClassVar[str] = "Azure Compute Virtual Machine Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
@@ -3047,6 +3095,7 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
 @define(eq=False, slots=False)
 class AzureComputeVirtualMachine(AzureComputeVirtualMachineBase):
     kind: ClassVar[str] = "azure_compute_virtual_machine"
+    kind_display: ClassVar[str] = "Azure Compute Virtual Machine"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -3497,6 +3546,9 @@ class AzureVirtualMachineScaleSetIdentity:
 @define(eq=False, slots=False)
 class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "azure_compute_virtual_machine_scale_set"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Virtual Machine Scale Set"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "autoscaling_group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -3624,6 +3676,9 @@ class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup
 @define(eq=False, slots=False)
 class AzureComputeVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_compute_virtual_machine_size"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Compute Virtual Machine Size"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("tags", default={}),
@@ -3668,6 +3723,7 @@ class AzureComputeVirtualMachineScaleSetInstance(AzureComputeVirtualMachineBase)
     # note: instances are collected as part of collecting AzureComputeVirtualMachineScaleSet
 
     kind: ClassVar[str] = "azure_compute_virtual_machine_scale_set_instance"
+    kind_display: ClassVar[str] = "Azure Compute Virtual Machine Scale Set Instance"
 
 
 resources: List[Type[MicrosoftResource]] = [

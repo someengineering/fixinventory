@@ -72,6 +72,7 @@ class AwsAcmCertificate(AwsResource, BaseCertificate):
     kind_display: ClassVar[str] = "AWS ACM Certificate"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/acm/home?region={region}#/certificates/{id}", "arn_tpl": "arn:{partition}:acm:{region}:{account}:certificate/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = "An AWS ACM Certificate is used to provision, manage, and deploy Secure Sockets Layer/Transport Layer Security (SSL/TLS) certificates for secure web traffic on AWS services."  # fmt: skip
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("acm", "describe-certificate", "Certificate")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CertificateArn") >> F(AwsResource.id_from_arn),

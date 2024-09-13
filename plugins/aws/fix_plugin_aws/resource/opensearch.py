@@ -250,6 +250,8 @@ class AwsOpenSearchDomain(AwsResource):
     kind: ClassVar[str] = "aws_opensearch_domain"
     kind_display: ClassVar[str] = "AWS OpenSearch Domain"
     kind_description: ClassVar[str] = "An AWS OpenSearch Domain provides a managed environment in the AWS cloud to easily deploy, operate, and scale OpenSearch, a popular search and analytics engine."  # fmt: skip
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/aos/home?region={region}#opensearch/domains/{name}", "arn_tpl": "arn:{partition}:opensearch:{region}:{account}:domain/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),

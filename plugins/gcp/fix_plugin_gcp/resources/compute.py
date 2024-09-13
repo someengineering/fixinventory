@@ -1,7 +1,7 @@
 import logging
 import ipaddress
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple, Type
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from urllib.parse import urlparse
 
 from attr import define, field
@@ -39,6 +39,8 @@ log = logging.getLogger("fix.plugins.gcp")
 # This service is called Compute Engine in the GCP API.
 # https://cloud.google.com/kubernetes-engine/docs
 
+service_name = "compute"
+
 
 def health_check_types() -> Tuple[Type[GcpResource], ...]:
     return GcpHealthCheck, GcpHttpsHealthCheck, GcpHttpHealthCheck
@@ -53,8 +55,10 @@ class GcpAcceleratorType(GcpResource):
         " Google Cloud Platform (GCP) that are designed to enhance the performance of"
         " certain workloads, such as machine learning models or graphics processing."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["acceleratorTypes"],
         action="aggregatedList",
@@ -97,6 +101,8 @@ class GcpAddress(GcpResource, BaseIPAddress):
         " address for virtual machine instances or other resources within the Google"
         " Cloud network."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_subnetwork"]},
         "successors": {
@@ -104,7 +110,7 @@ class GcpAddress(GcpResource, BaseIPAddress):
         },
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["addresses"],
         action="aggregatedList",
@@ -328,6 +334,7 @@ class GcpAutoscaler(GcpResource, BaseAutoScalingGroup):
         " adjusts the number of instances in a managed instance group based on the"
         " workload, helping to maintain cost efficiency and performance."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["gcp_instance_group_manager"],
@@ -335,7 +342,7 @@ class GcpAutoscaler(GcpResource, BaseAutoScalingGroup):
         }
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["autoscalers"],
         action="aggregatedList",
@@ -457,8 +464,9 @@ class GcpBackendBucket(GcpResource, BaseBucket):
         "A GCP Backend Bucket is a storage bucket used to distribute static content"
         " for a load balanced website or application running on Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["backendBuckets"],
         action="list",
@@ -850,6 +858,8 @@ class GcpBackendService(GcpResource):
         " Cloud Platform that allows you to distribute traffic across multiple"
         " backends and regions in a flexible and scalable manner."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_network"],
@@ -873,7 +883,7 @@ class GcpBackendService(GcpResource):
         },
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["backendServices"],
         action="aggregatedList",
@@ -978,8 +988,10 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         "GCP Disk Types are storage options provided by Google Cloud Platform, which"
         " define the performance characteristics and pricing of persistent disks."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["diskTypes"],
         action="aggregatedList",
@@ -1102,12 +1114,13 @@ class GcpDisk(GcpResource, BaseVolume):
         "GCP Disk is a persistent block storage service provided by Google Cloud"
         " Platform, allowing users to store and manage data in the cloud."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_disk_type", "gcp_instance"]},
         "successors": {"delete": ["gcp_instance"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["disks"],
         action="aggregatedList",
@@ -1230,8 +1243,9 @@ class GcpExternalVpnGateway(GcpResource, BaseGateway):
         "GCP External VPN Gateway is a resource that provides connectivity from Google Cloud to external networks"
         " via VPN, featuring interfaces for tunnel configuration and redundancy options for high availability."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["externalVpnGateways"],
         action="list",
@@ -1376,9 +1390,11 @@ class GcpFirewallPolicy(GcpResource):
         "GCP Firewall Policy is a security rule set that controls incoming and"
         " outgoing network traffic for resources in the Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["firewallPolicies"],
         action="list",
@@ -1471,9 +1487,10 @@ class GcpFirewall(GcpResource, BaseFirewall):
         " that controls incoming and outgoing traffic to and from virtual machine"
         " instances."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["firewalls"],
         action="list",
@@ -1579,6 +1596,8 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
         " different destinations based on the configuration settings. They can be used"
         " to load balance or redirect traffic within a network or between networks."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"]},
         "successors": {
@@ -1595,7 +1614,7 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
         },
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["forwardingRules"],
         action="aggregatedList",
@@ -1699,7 +1718,7 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
 
                             def fetch_instances(group: str) -> None:
                                 api_spec = GcpApiSpec(
-                                    service="compute",
+                                    service=service_name,
                                     version="v1",
                                     accessors=["instanceGroups"],
                                     action="listInstances",
@@ -1797,11 +1816,13 @@ class GcpNetworkEndpointGroup(GcpResource):
         " allowing users to distribute network traffic across multiple endpoints in"
         " Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["networkEndpointGroups"],
         action="aggregatedList",
@@ -1994,6 +2015,8 @@ class GcpOperation(GcpResource):
         "An operation represents a long-running asynchronous API call in Google Cloud"
         " Platform (GCP), allowing users to create, update, or delete resources"
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             # operation can target multiple resources, unclear which others are possible
@@ -2001,7 +2024,7 @@ class GcpOperation(GcpResource):
         }
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["globalOperations"],
         action="aggregatedList",
@@ -2094,8 +2117,10 @@ class GcpPublicDelegatedPrefix(GcpResource):
         " use their own IPv6 addresses on GCP resources for public internet"
         " connectivity."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["publicDelegatedPrefixes"],
         action="aggregatedList",
@@ -2291,8 +2316,10 @@ class GcpHealthCheck(GcpResource, BaseHealthCheck):
         " monitor the health and availability of your resources by periodically"
         " sending requests to them and verifying the responses."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "health", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["healthChecks"],
         action="aggregatedList",
@@ -2347,8 +2374,10 @@ class GcpHttpHealthCheck(GcpResource):
         " of web services and determine if they are reachable and responding correctly"
         " to requests."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "health", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["httpHealthChecks"],
         action="list",
@@ -2393,8 +2422,10 @@ class GcpHttpsHealthCheck(GcpResource):
         " check the availability and performance of their HTTPS endpoints on Google"
         " Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "health", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["httpsHealthChecks"],
         action="list",
@@ -2489,8 +2520,9 @@ class GcpImage(GcpResource):
         "GCP Images are pre-configured virtual machine templates that can be used to"
         " create and deploy virtual machines in the Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk"]}}
-
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -2790,6 +2822,8 @@ class GcpInstanceGroupManager(GcpResource):
         "GCP Instance Group Manager is a resource in Google Cloud Platform that helps"
         " manage and scale groups of Compute Engine instances."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_instance_group"],
@@ -2798,7 +2832,7 @@ class GcpInstanceGroupManager(GcpResource):
         "successors": {"default": ["gcp_health_check", "gcp_http_health_check", "gcp_https_health_check"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["instanceGroupManagers"],
         action="aggregatedList",
@@ -2872,11 +2906,9 @@ class GcpInstanceGroup(GcpResource):
         "Instance Group is a resource in Google Cloud Platform that allows you to"
         " manage and scale multiple instances together as a single unit."
     )
-    reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
-    }
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["instanceGroups"],
         action="aggregatedList",
@@ -3370,9 +3402,11 @@ class GcpInstanceTemplate(GcpResource):
         "GCP Instance Templates are reusable configuration templates that define the"
         " settings for Google Compute Engine virtual machine instances."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_machine_type"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["instanceTemplates"],
         action="list",
@@ -3386,10 +3420,6 @@ class GcpInstanceTemplate(GcpResource):
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
         "name": S("name"),
-        "ctime": S("creationTimestamp"),
-        "description": S("description"),
-        "link": S("selfLink"),
-        "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "template_properties": S("properties", default={}) >> Bend(GcpInstanceProperties.mapping),
         "source_instance": S("sourceInstance"),
@@ -3426,6 +3456,7 @@ class GcpInstance(GcpResource, BaseInstance):
         "GCP Instances are virtual machines in Google Cloud Platform that can be used"
         " to run applications and services on Google's infrastructure."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_network", "gcp_subnetwork", "gcp_machine_type"],
@@ -3433,7 +3464,7 @@ class GcpInstance(GcpResource, BaseInstance):
         }
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["instances"],
         action="aggregatedList",
@@ -3625,8 +3656,10 @@ class GcpInterconnectAttachment(GcpResource):
         " premises network to Google Cloud Platform (GCP) using a dedicated physical"
         " link."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["interconnectAttachments"],
         action="aggregatedList",
@@ -3731,8 +3764,10 @@ class GcpInterconnectLocation(GcpResource):
         " connectivity options between an organization's on-premises network and GCP's"
         " network."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["interconnectLocations"],
         action="list",
@@ -3831,8 +3866,10 @@ class GcpInterconnect(GcpResource):
         " and Google Cloud Platform, providing a high-speed and reliable link for data"
         " transfer."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["interconnects"],
         action="list",
@@ -3910,8 +3947,10 @@ class GcpLicense(GcpResource):
     kind_description: ClassVar[str] = (
         "GCP Licenses are used to authorize the use of certain Google Cloud Platform services and resources."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["licenses"],
         action="list",
@@ -4073,13 +4112,15 @@ class GcpMachineImage(GcpResource):
         " disk that can be used to create new instances with the same configuration"
         " and data."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["gcp_disk"],
         }
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["machineImages"],
         action="list",
@@ -4159,8 +4200,10 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "GCP Machine Types are predefined hardware configurations that define the"
         " virtualized hardware resources for Google Cloud Platform virtual machines."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["machineTypes"],
         action="aggregatedList",
@@ -4171,7 +4214,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         mutate_iam_permissions=[],  # can not be mutated
     )
     collect_individual_api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["machineTypes"],
         action="get",
@@ -4331,8 +4374,10 @@ class GcpNetworkEdgeSecurityService(GcpResource):
         " resources in the Google Cloud Platform network, reducing the risk of"
         " unauthorized access and data breaches."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["networkEdgeSecurityServices"],
         action="aggregatedList",
@@ -4408,8 +4453,9 @@ class GcpNetwork(GcpResource, BaseNetwork):
         "GCP Network is a virtual network infrastructure that allows users to"
         " securely connect and isolate their resources in the Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["networks"],
         action="list",
@@ -4525,9 +4571,11 @@ class GcpNodeGroup(GcpResource):
         " capabilities for autoscaling, scheduled maintenance, and specifying node affinity to optimize placement"
         " and utilization."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_node_template"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["nodeGroups"],
         action="aggregatedList",
@@ -4612,9 +4660,11 @@ class GcpNodeTemplate(GcpResource):
         "GCP Node Template is a reusable configuration template used to create and"
         " manage virtual machine instances in the Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk_type"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["nodeTemplates"],
         action="aggregatedList",
@@ -4669,8 +4719,10 @@ class GcpNodeType(GcpResource):
         " Google Cloud Platform (GCP). Each node type has specific CPU, memory, and"
         " storage capacity."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["nodeTypes"],
         action="aggregatedList",
@@ -4804,9 +4856,11 @@ class GcpPacketMirroring(GcpResource):
         " allows users to capture and mirror network traffic in order to monitor and"
         " analyze network data for security and troubleshooting purposes."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_instance", "gcp_subnetwork"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["packetMirrorings"],
         action="aggregatedList",
@@ -4879,9 +4933,11 @@ class GcpPublicAdvertisedPrefix(GcpResource):
         "A GCP Public Advertised Prefix is a range of IP addresses that can be"
         " advertised over the internet to allow communication with GCP resources."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_public_delegated_prefix"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["publicAdvertisedPrefixes"],
         action="list",
@@ -5068,8 +5124,10 @@ class GcpCommitment(GcpResource):
         "A GCP Commitment is a pre-purchased commitment in Google Cloud Platform,"
         " which provides discounted pricing for certain services and resources."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["regionCommitments"],
         action="aggregatedList",
@@ -5127,8 +5185,10 @@ class GcpHealthCheckService(GcpResource):
         " (GCP) that monitors the health and availability of backend services and"
         " instances."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "access_control"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["regionHealthCheckServices"],
         action="list",
@@ -5192,8 +5252,10 @@ class GcpNotificationEndpoint(GcpResource):
         "A GCP Notification Endpoint is a specific destination to send notifications"
         " from Google Cloud Platform services to, such as Pub/Sub or HTTP endpoints."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "control"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["regionNotificationEndpoints"],
         action="list",
@@ -5459,8 +5521,10 @@ class GcpSecurityPolicy(GcpResource):
         " to define and enforce security rules and policies for their virtual machine"
         " instances."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["securityPolicies"],
         action="aggregatedList",
@@ -5540,8 +5604,10 @@ class GcpSslCertificate(GcpResource, BaseCertificate):
         " a website and encrypts information sent to the server, ensuring secure"
         " communication over the Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["sslCertificates"],
         action="aggregatedList",
@@ -5587,8 +5653,10 @@ class GcpSslPolicy(GcpResource):
         "SSL policies in Google Cloud Platform (GCP) manage how SSL/TLS connections"
         " are established and maintained for HTTPS services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["sslPolicies"],
         action="aggregatedList",
@@ -5630,12 +5698,14 @@ class GcpTargetHttpProxy(GcpResource):
         "GCP Target HTTP Proxy is a resource in Google Cloud Platform that allows for"
         " load balancing and routing of HTTP traffic to backend services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_url_map"]},
         "successors": {"default": ["gcp_url_map"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetHttpProxies"],
         action="aggregatedList",
@@ -5676,12 +5746,14 @@ class GcpTargetHttpsProxy(GcpResource):
         " you to configure SSL/TLS termination for HTTP(S) load balancing, allowing"
         " secure communication between clients and your backend services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_ssl_certificate", "gcp_ssl_policy"], "delete": ["gcp_url_map"]},
         "successors": {"default": ["gcp_url_map"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetHttpsProxies"],
         action="aggregatedList",
@@ -5739,12 +5811,14 @@ class GcpTargetTcpProxy(GcpResource):
         " balance TCP traffic to backend instances based on target proxy"
         " configuration."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_backend_service"]},
         "successors": {"default": ["gcp_backend_service"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetTcpProxies"],
         action="list",
@@ -6231,9 +6305,11 @@ class GcpUrlMap(GcpResource):
         " service in Google Cloud Platform. It allows for routing of requests based on"
         " the URL path."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_backend_service"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["urlMaps"],
         action="aggregatedList",
@@ -6504,8 +6580,10 @@ class GcpResourcePolicy(GcpResource):
         " Cloud, enabling users to define scheduling for instance creation, automated snapshots, and"
         " resource grouping, which can optimize costs and maintain the necessary resource availability."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "control"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["resourcePolicies"],
         action="aggregatedList",
@@ -6815,11 +6893,13 @@ class GcpRouter(GcpResource):
         "GCP Router is a networking component in Google Cloud Platform that directs"
         " traffic between virtual networks."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]}
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["routers"],
         action="aggregatedList",
@@ -6884,11 +6964,13 @@ class GcpRoute(GcpResource):
         "A GCP Route is a rule that specifies the next-hop information for network"
         " traffic within a Google Cloud Platform virtual network."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]}
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["routes"],
         action="list",
@@ -7002,9 +7084,10 @@ class GcpServiceAttachment(GcpResource):
         " Google Cloud services and external services, offering controls like connection preferences, domain"
         " names management, and protocol support."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_backend_service", "gcp_subnetwork"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["serviceAttachments"],
         action="aggregatedList",
@@ -7065,9 +7148,10 @@ class GcpSnapshot(GcpResource, BaseSnapshot):
         "GCP Snapshot is a point-in-time copy of the data in a persistent disk in"
         " Google Cloud Platform, allowing for data backup and recovery."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["snapshots"],
         action="list",
@@ -7190,11 +7274,13 @@ class GcpSubnetwork(GcpResource, BaseSubnet):
         " that allows for more granular control over network traffic and IP address"
         " allocation."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]}
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["subnetworks"],
         action="aggregatedList",
@@ -7262,6 +7348,8 @@ class GcpTargetGrpcProxy(GcpResource):
         "GCP Target gRPC Proxy is a service in Google Cloud Platform that allows you"
         " to load balance gRPC traffic to backend services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["gcp_url_map"],
@@ -7269,7 +7357,7 @@ class GcpTargetGrpcProxy(GcpResource):
         "successors": {"default": ["gcp_url_map"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetGrpcProxies"],
         action="list",
@@ -7311,12 +7399,14 @@ class GcpTargetInstance(GcpResource):
         "Target Instances in Google Cloud Platform are virtual machine instances that"
         " are used as forwarding targets for load balancing and traffic routing."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_instance"]},
         "successors": {"default": ["gcp_instance"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetInstances"],
         action="aggregatedList",
@@ -7359,12 +7449,14 @@ class GcpTargetPool(GcpResource):
         " receive traffic from a load balancer. They are used to distribute incoming"
         " requests across multiple backend instances."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_http_health_check", "gcp_instance"]},
         "successors": {"delete": ["gcp_http_health_check", "gcp_instance"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetPools"],
         action="aggregatedList",
@@ -7413,12 +7505,14 @@ class GcpTargetSslProxy(GcpResource):
         " specific target HTTPS or SSL Proxy load balancing setup in Google Cloud"
         " Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["gcp_ssl_certificate", "gcp_backend_service"]},
         "successors": {"default": ["gcp_ssl_certificate", "gcp_backend_service"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetSslProxies"],
         action="list",
@@ -7466,11 +7560,13 @@ class GcpTargetVpnGateway(GcpResource):
         " secure communication between on-premises networks and networks running on"
         " Google Cloud Platform (GCP)."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["targetVpnGateways"],
         action="aggregatedList",
@@ -7532,12 +7628,13 @@ class GcpVpnGateway(GcpResource, BaseGateway):
         " Platform that allows users to securely connect their on-premises network to"
         " their GCP network."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
         "successors": {"default": ["gcp_interconnect_attachment"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["vpnGateways"],
         action="aggregatedList",
@@ -7581,6 +7678,8 @@ class GcpVpnTunnel(GcpResource, BaseTunnel):
         " their on-premises network to their Google Cloud Platform (GCP) Virtual"
         " Private Cloud (VPC)."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["gcp_target_vpn_gateway", "gcp_vpn_gateway", "gcp_router"],
@@ -7588,7 +7687,7 @@ class GcpVpnTunnel(GcpResource, BaseTunnel):
         }
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="compute",
+        service=service_name,
         version="v1",
         accessors=["vpnTunnels"],
         action="aggregatedList",

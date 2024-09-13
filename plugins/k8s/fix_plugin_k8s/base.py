@@ -30,6 +30,7 @@ SortTransitionTime = Sort(S("lastTransitionTime").or_else(K("1970-01-01T00:00:00
 @define(eq=False, slots=False)
 class KubernetesResource(BaseResource):
     kind: ClassVar[str] = "kubernetes_resource"
+    kind_service: ClassVar[Optional[str]] = "kubernetes"
 
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("metadata", "uid"),

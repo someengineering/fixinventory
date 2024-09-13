@@ -8,6 +8,8 @@ from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, G
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
+service_name = "security"
+
 
 @define(eq=False, slots=False)
 class AzureSecurityOperationStatus:
@@ -35,8 +37,11 @@ class AzureSecurityExtension:
 @define(eq=False, slots=False)
 class AzureSecurityPricing(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_pricing"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Security Pricing"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="security",
+        service=service_name,
         version="2023-01-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Security/pricings",
         path_parameters=["subscriptionId"],
@@ -86,8 +91,11 @@ class AzureAssessmentStatus:
 @define(eq=False, slots=False)
 class AzureSecurityAssessment(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_assessment"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Security Assessment"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="security",
+        service=service_name,
         version="2021-06-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Security/assessments",
         path_parameters=["subscriptionId"],
@@ -125,8 +133,11 @@ class AzureSecurityAssessment(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSecurityServerVulnerabilityAssessmentsSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_server_vulnerability_assessments_setting"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Security Server Vulnerability Assessments Setting"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="security",
+        service=service_name,
         version="2023-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Security/serverVulnerabilityAssessmentsSettings",
         path_parameters=["subscriptionId"],
@@ -150,8 +161,11 @@ class AzureSecurityServerVulnerabilityAssessmentsSetting(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSecuritySetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_setting"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Security Setting"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="security",
+        service=service_name,
         version="2022-05-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Security/settings",
         path_parameters=["subscriptionId"],
@@ -173,8 +187,11 @@ class AzureSecuritySetting(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSecurityAutoProvisioningSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_auto_provisioning_setting"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Security Auto Provisioning Setting"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="security",
+        service=service_name,
         version="2017-08-01-preview",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Security/autoProvisioningSettings",
         path_parameters=["subscriptionId"],

@@ -9,6 +9,8 @@ from fixlib.baseresources import BaseBucket
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
+service_name = "storage"
+
 
 @define(eq=False, slots=False)
 class GcpProjectteam:
@@ -319,8 +321,9 @@ class GcpObject(GcpResource):
         "GCP Object, specifically referring to the Google Cloud Storage, is a basic unit of data that is stored"
         " in Google Cloud Storage, often matching to an individual file."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="storage",
+        service=service_name,
         version="v1",
         accessors=["objects"],
         action="list",
@@ -343,8 +346,9 @@ class GcpBucket(GcpResource, BaseBucket):
         "A GCP Bucket is a cloud storage container provided by Google Cloud Platform,"
         " allowing users to store and access data in a scalable and durable manner."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="storage",
+        service=service_name,
         version="v1",
         accessors=["buckets"],
         action="list",

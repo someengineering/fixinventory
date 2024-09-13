@@ -267,6 +267,7 @@ class BaseResource(ABC):
     kind: ClassVar[str] = "resource"
     kind_display: ClassVar[str] = "Resource"
     kind_description: ClassVar[str] = "A generic resource."
+    kind_service: ClassVar[Optional[str]] = None
     phantom: ClassVar[bool] = False
     reference_kinds: ClassVar[ModelReference] = {}
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}

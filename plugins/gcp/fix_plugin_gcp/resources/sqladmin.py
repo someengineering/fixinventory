@@ -12,6 +12,7 @@ from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum, AsInt
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
+service_name = "sqladmin"
 
 
 @define(eq=False, slots=False)
@@ -37,9 +38,11 @@ class GcpSqlBackupRun(GcpResource):
         "GCP SQL Backup Run is a feature in Google Cloud Platform that allows users"
         " to schedule and execute automated backups of their SQL databases."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
+        service=service_name,
         version="v1",
         accessors=["backupRuns"],
         action="list",
@@ -116,8 +119,10 @@ class GcpSqlDatabase(GcpResource):
     kind_description: ClassVar[str] = (
         "GCP SQL Database is a managed relational database service provided by Google Cloud Platform."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
+        service=service_name,
         version="v1",
         accessors=["databases"],
         action="list",
@@ -645,9 +650,11 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
         "GCP SQL Database Instance is a resource provided by Google Cloud Platform"
         " that allows users to create and manage relational databases in the cloud."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ssl_certificate"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
+        service=service_name,
         version="v1",
         accessors=["instances"],
         action="list",
@@ -941,9 +948,11 @@ class GcpSqlOperation(GcpResource):
         " instance, such as backups, imports, and exports, including details about execution times, status, and any"
         " errors encountered."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "database"}
     reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
+        service=service_name,
         version="v1",
         accessors=["operations"],
         action="list",
@@ -1058,8 +1067,10 @@ class GcpSqlUser(GcpResource):
         "A GCP SQL User refers to a user account that can access and manage databases"
         " in Google Cloud SQL, a fully-managed relational database service."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="sqladmin",
+        service=service_name,
         version="v1",
         accessors=["users"],
         action="list",

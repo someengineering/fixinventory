@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -22,6 +22,8 @@ from fixlib.baseresources import BaseRole, ModelReference
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
+
+service_name = "authorization"
 
 
 @define(eq=False, slots=False)
@@ -61,8 +63,11 @@ class AzurePrincipal:
 @define(eq=False, slots=False)
 class AzureAuthorizationDenyAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_deny_assignment"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Authorization Deny Assignment"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="authorization",
+        service=service_name,
         version="2022-04-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/denyAssignments",
         path_parameters=["subscriptionId"],
@@ -111,8 +116,11 @@ class AzureAuthorizationDenyAssignment(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureAuthorizationRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_role_assignment"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Authorization Role Assignment"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="authorization",
+        service=service_name,
         version="2022-04-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleAssignments",
         path_parameters=["subscriptionId"],
@@ -215,8 +223,11 @@ class AzurePermission:
 @define(eq=False, slots=False)
 class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
     kind: ClassVar[str] = "azure_authorization_role_definition"
+    kind_service: ClassVar[Optional[str]] = service_name
+    kind_display: ClassVar[str] = "Azure Authorization Role Definition"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="authorization",
+        service=service_name,
         version="2022-04-01",
         path="/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions",
         path_parameters=["subscriptionId"],
@@ -251,6 +262,9 @@ class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
 @define(eq=False, slots=False)
 class AzureAuthorizationManagementLock(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_management_lock"
+    kind_service: ClassVar[Optional[str]] = "resources"
+    kind_display: ClassVar[str] = "Azure Authorization Management Lock"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "lock", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2020-05-01",
