@@ -1,4 +1,3 @@
-import fixlib.logger
 from fixlib.baseplugin import BaseCollectorPlugin
 from fixlib.args import ArgumentParser
 from fixlib.config import Config
@@ -10,8 +9,6 @@ from typing import Any, Optional
 from .config import HetznerConfig
 from .collector import HcloudCollector
 from .resources import HcloudProject
-
-log = fixlib.logger.getLogger("fix." + __name__)
 
 
 class HetznerCollectorPlugin(BaseCollectorPlugin):

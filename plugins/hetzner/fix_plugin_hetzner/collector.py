@@ -13,7 +13,6 @@ from .resources import (
     HcloudSubnet,
     HcloudRoute,
     HcloudIso,
-    HcloudImage,
     HcloudDeprecationInfo,
     HcloudServerType,
     HcloudFloatingIP,
@@ -22,7 +21,8 @@ from .resources import (
     HcloudPublicNetwork,
     HcloudIPv4Address,
     HcloudIPv6Network,
-    HcloudPrimaryIP,
+    HcloudFirewall,
+    HcloudFirewallRule,
 )
 from .client import get_client
 
@@ -54,12 +54,13 @@ class HcloudCollector:
         self.add_servers()
         self.add_networks()
         self.add_floating_ips()
+        self.add_firewalls()
 
     def add_locations(self):
         log.info(f"Collecting locations in {self.project.kdname}")
         client = get_client(self.api_token)
         for location in client.locations.get_all():
-            l = HcloudLocation(
+            hcl = HcloudLocation(
                 hcloud_id=location.id,
                 id=location.name,
                 name=location.name,
@@ -69,14 +70,14 @@ class HcloudCollector:
                 cloud=self.cloud,
                 account=self.project,
             )
-            self.graph.add_resource(self.project, l)
+            self.graph.add_resource(self.project, hcl)
 
     def add_datacenters(self):
         log.info(f"Collecting datacenters in {self.project.kdname}")
         client = get_client(self.api_token)
         for datacenter in client.datacenters.get_all():
-            l = self.graph.search_first_all({"kind": "hcloud_location", "id": datacenter.location.name})
-            if not l:
+            hcl = self.graph.search_first_all({"kind": "hcloud_location", "id": datacenter.location.name})
+            if not hcl:
                 log.error(f"Location {datacenter.location.name} not found for datacenter {datacenter.name}")
                 continue
             d = HcloudDatacenter(
@@ -86,15 +87,15 @@ class HcloudCollector:
                 long_name=datacenter.description,
                 cloud=self.cloud,
                 account=self.project,
-                region=l,
+                region=hcl,
             )
-            self.graph.add_resource(l, d)
+            self.graph.add_resource(hcl, d)
 
     def add_networks(self):
         log.info(f"Collecting networks in {self.project.kdname}")
         client = get_client(self.api_token)
         for network in client.networks.get_all():
-            n = HcloudNetwork(
+            hcn = HcloudNetwork(
                 hcloud_id=network.id,
                 id=network.name,
                 name=network.name,
@@ -116,20 +117,20 @@ class HcloudCollector:
                 expose_routes_to_vswitch=network.expose_routes_to_vswitch,
                 protection=network.protection,
             )
-            self.graph.add_resource(self.project, n)
+            self.graph.add_resource(self.project, hcn)
             for server in network.servers:
-                s = self.graph.search_first_all({"kind": "hcloud_server", "id": server.name})
-                if not s:
+                hcs = self.graph.search_first_all({"kind": "hcloud_server", "id": server.name})
+                if not hcs:
                     log.error(f"Server {server.name} not found for network {network.name}")
                     continue
-                self.graph.add_edge(n, s)
+                self.graph.add_edge(hcn, hcs)
 
     def add_volumes(self):
         log.info(f"Collecting volumes in {self.project.kdname}")
         client = get_client(self.api_token)
         for volume in client.volumes.get_all():
-            l = self.graph.search_first_all({"kind": "hcloud_location", "id": volume.location.name})
-            if not l:
+            hcl = self.graph.search_first_all({"kind": "hcloud_location", "id": volume.location.name})
+            if not hcl:
                 log.error(f"Location {volume.location.name} not found for volume {volume.name}")
                 continue
 
@@ -142,7 +143,7 @@ class HcloudCollector:
             elif volume.status == "creating":
                 volume_status = VolumeStatus.BUSY
 
-            v = HcloudVolume(
+            hcv = HcloudVolume(
                 hcloud_id=volume.id,
                 id=volume.name,
                 name=volume.name,
@@ -155,28 +156,29 @@ class HcloudCollector:
                 format=volume.format,
                 cloud=self.cloud,
                 account=self.project,
-                region=l,
+                region=hcl,
             )
-            self.graph.add_resource(l, v)
+            self.graph.add_resource(hcl, hcv)
 
     def add_servers(self):
         log.info(f"Collecting servers in {self.project.kdname}")
         client = get_client(self.api_token)
         for server in client.servers.get_all():
-            d = self.graph.search_first_all({"kind": "hcloud_datacenter", "id": server.datacenter.name})
-            if not d:
+            hcd = self.graph.search_first_all({"kind": "hcloud_datacenter", "id": server.datacenter.name})
+            if not hcd:
                 log.error(f"Datacenter {server.datacenter.name} not found for server {server.name}")
                 continue
-            l = d.region()
+            hcl = hcd.region()
 
             public_net = None
-            floating_ips = None
+            instance_cores = None
+            instance_memory = None
+            instance_type = None
             if server.public_net:
                 ipv4 = None
                 ipv6 = None
                 primary_ipv4 = None
                 primary_ipv6 = None
-                firewalls = None
                 if server.public_net.ipv4:
                     ipv4 = HcloudIPv4Address(
                         ip_address=server.public_net.ipv4.ip,
@@ -208,12 +210,24 @@ class HcloudCollector:
                         private_net = []
                     private_net.append(pn)
 
+            st = None
+            if server.server_type:
+                st: HcloudServerType = self.graph.search_first_all(
+                    {"kind": "hcloud_server_type", "id": server.server_type.name}
+                )
+                if st:
+                    instance_cores = st.instance_cores
+                    instance_memory = st.instance_memory
+                    instance_type = st.name
             s = HcloudServer(
                 hcloud_id=server.id,
                 id=server.name,
                 name=server.name,
                 ctime=server.created,
                 tags=server.labels,
+                instance_cores=instance_cores,
+                instance_memory=instance_memory,
+                instance_type=instance_type,
                 public_net=public_net,
                 private_net=private_net,
                 rescue_enabled=server.rescue_enabled,
@@ -226,11 +240,13 @@ class HcloudCollector:
                 protection=server.protection,
                 cloud=self.cloud,
                 account=self.project,
-                region=l,
-                zone=d,
+                region=hcl,
+                zone=hcd,
             )
-            self.graph.add_resource(l, s)
-            self.graph.add_edge(d, s)
+            self.graph.add_resource(hcl, s)
+            self.graph.add_edge(hcd, s)
+            if st:
+                self.graph.add_edge(st, s)
             for volume in server.volumes:
                 v = self.graph.search_first_all({"kind": "hcloud_volume", "id": volume.name})
                 if not v:
@@ -308,7 +324,7 @@ class HcloudCollector:
         log.info(f"Collecting floating IPs in {self.project.kdname}")
         client = get_client(self.api_token)
         for floating_ip in client.floating_ips.get_all():
-            l = self.graph.search_first_all({"kind": "hcloud_location", "id": floating_ip.home_location.name})
+            hcl = self.graph.search_first_all({"kind": "hcloud_location", "id": floating_ip.home_location.name})
             fi = HcloudFloatingIP(
                 hcloud_id=floating_ip.id,
                 id=floating_ip.ip,
@@ -317,7 +333,7 @@ class HcloudCollector:
                 ctime=floating_ip.created,
                 cloud=self.cloud,
                 account=self.project,
-                region=l,
+                region=hcl,
                 description=floating_ip.description,
                 ip_address=floating_ip.ip,
                 ip_address_family=floating_ip.type,
@@ -325,7 +341,7 @@ class HcloudCollector:
                 dns_ptr=floating_ip.dns_ptr,
                 protection=floating_ip.protection,
             )
-            self.graph.add_resource(l, fi)
+            self.graph.add_resource(hcl, fi)
             if floating_ip.server:
                 s = self.graph.search_first_all({"kind": "hcloud_server", "id": floating_ip.server.name})
                 if s:
@@ -357,3 +373,38 @@ class HcloudCollector:
                 protection=primary_ip.protection,
             )
             self.graph.add_resource(r, p)
+
+    def add_firewalls(self):
+        log.info(f"Collecting firewalls in {self.project.kdname}")
+        client = get_client(self.api_token)
+        for firewall in client.firewalls.get_all():
+            rules = None
+            if firewall.rules:
+                firewall_rules = [
+                    HcloudFirewallRule(
+                        direction=r.direction,
+                        port=r.port,
+                        protocol=r.protocol,
+                        source_ips=r.source_ips,
+                        destination_ips=r.destination_ips,
+                        description=r.description,
+                    )
+                    for r in firewall.rules
+                ]
+            f = HcloudFirewall(
+                hcloud_id=firewall.id,
+                id=firewall.name,
+                name=firewall.name,
+                tags=firewall.labels,
+                ctime=firewall.created,
+                cloud=self.cloud,
+                account=self.project,
+                firewall_rules=firewall_rules,
+            )
+            self.graph.add_resource(self.project, f)
+            if firewall.applied_to:
+                for firewall_resource in firewall.applied_to:
+                    if firewall_resource.type == "server":
+                        s = self.graph.search_first_all({"kind": "hcloud_server", "id": firewall_resource.server.name})
+                        if s:
+                            self.graph.add_edge(f, s)

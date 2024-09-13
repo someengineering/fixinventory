@@ -12,6 +12,8 @@ from fixlib.baseresources import (
     BaseVolume,
     BaseInstanceType,
     BaseIPAddress,
+    BaseFirewall,
+    BaseLoadBalancer,
 )
 
 
@@ -80,8 +82,22 @@ class HcloudFloatingIP(BaseIPAddress, HcloudResource):
 
 
 @define(eq=False, slots=False)
-class HcloudFirewall(HcloudResource):
+class HcloudFirewallRule:
+    kind: ClassVar[str] = "hcloud_firewall_rule"
+
+    direction: Optional[str] = None
+    port: Optional[str] = None
+    protocol: Optional[str] = None
+    source_ips: Optional[list[str]] = None
+    destination_ips: Optional[list[str]] = None
+    description: Optional[str] = None
+
+
+@define(eq=False, slots=False)
+class HcloudFirewall(BaseFirewall, HcloudResource):
     kind: ClassVar[str] = "hcloud_firewall"
+
+    firewall_rules: Optional[list[HcloudFirewallRule]] = None
 
 
 @define(eq=False, slots=False)
@@ -220,3 +236,19 @@ class HcloudImage(HcloudResource):
     rapid_deploy: Optional[bool] = None
     protection: Optional[dict[str, bool]] = None
     deprecated_at: Optional[datetime] = None
+
+
+@define(eq=False, slots=False)
+class HcloudLoadBalancer(BaseLoadBalancer, HcloudResource):
+    kind: ClassVar[str] = "hcloud_load_balancer"
+
+    protection: Optional[dict[str, bool]] = None
+    public_net: Optional[HcloudPublicNetwork] = None
+    private_net: Optional[list[HcloudPrivateNetwork]] = None
+    algorithm: Optional[str] = None
+    services: Optional[list[dict[str, Union[str, int, list[str]]]]] = None
+    targets: Optional[list[dict[str, Union[str, int, list[str]]]]] = None
+    load_balancer_type: Optional[str] = None
+    outgoing_traffic: Optional[int] = None
+    ingoing_traffic: Optional[int] = None
+    included_traffic: Optional[int] = None
