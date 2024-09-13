@@ -1,6 +1,12 @@
 # fix-plugin-hetzner
 
-Hetzner Collector Plugin for Fix
+Hetzner Collector Plugin for Fix (alpha)
+
+This collector is in alpha stage and may not work as expected. Use at your own risk.
+
+[x] Resource collection
+[ ] Resource deletion
+[ ] Tag update
 
 ## Configuration
 
