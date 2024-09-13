@@ -249,7 +249,7 @@ def dataclasses_to_fixcore_model(
             metadata = m.copy()
         if (s := clazz.__dict__.get("kind_display", None)) and isinstance(s, str):
             metadata["name"] = s
-        if (s := clazz.__dict__.get("kind_service", None)) and isinstance(s, str):
+        if (s := getattr(clazz, "kind_service", None)) and isinstance(s, str):
             metadata["service"] = s
         if with_description and (s := clazz.__dict__.get("kind_description", None)) and isinstance(s, str):
             metadata["description"] = s
