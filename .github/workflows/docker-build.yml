@@ -15,6 +15,10 @@ on:
       - "requirements-all.txt"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   split-build:
     name: "Build split Docker images" # Do not rename without updating workflow defined in publish.yml
