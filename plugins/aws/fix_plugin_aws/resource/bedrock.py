@@ -409,7 +409,6 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
             action="delete-guardrail",
             result_name=None,
             guardrailIdentifier=self.id or self.arn,
-            guardrailVersion=self.version,
         )
         return True
 
@@ -1386,7 +1385,6 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
             action="delete-prompt",
             result_name=None,
             promptIdentifier=self.id,
-            promptVersion=self.version,
         )
         return True
 
