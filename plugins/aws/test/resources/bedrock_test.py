@@ -5,11 +5,8 @@ from fix_plugin_aws.resource.bedrock import (
     AwsBedrockModelCustomizationJob,
     AwsBedrockEvaluationJob,
     AwsBedrockAgent,
-    AwsBedrockAgentVersion,
-    AwsBedrockAgentKnowledgeBase,
     AwsBedrockAgentPrompt,
     AwsBedrockAgentFlow,
-    AwsBedrockAgentFlowVersion,
 )
 from test.resources import round_trip_for
 
