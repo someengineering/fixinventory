@@ -334,7 +334,7 @@ class AzureRestriction:
 @define(eq=False, slots=False)
 class AzureStorageSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_sku"
-    kind_display: ClassVar[str] = "Azure Storage Sku"
+    kind_display: ClassVar[str] = "Azure Storage SKU"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(

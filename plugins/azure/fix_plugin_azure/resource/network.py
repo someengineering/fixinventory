@@ -4456,7 +4456,7 @@ class AzureNetworkVirtualApplianceSkuInstances:
 @define(eq=False, slots=False)
 class AzureNetworkVirtualApplianceSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance_sku"
-    kind_display: ClassVar[str] = "Azure Network Virtual Appliance Sku"
+    kind_display: ClassVar[str] = "Azure Network Virtual Appliance SKU"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
