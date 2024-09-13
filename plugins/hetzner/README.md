@@ -20,7 +20,6 @@ hetzner:
   hcloud_project_names:
     - 'dev'
     - 'global'
-  # Hetzner Cloud project API tokens
   hcloud_tokens:
     - '0ytCtPtcyUO1fEwLIYarEQaiY04E9P9tDIowK1JD8mX5K5jsLhPmiwkMLLuDGMxG'
     - 'nt71Kl3pSscVt5Mey1NUfERXeaxHyDru988De7UA4ew48eAvMMsQ8tserBEOwLXq'
