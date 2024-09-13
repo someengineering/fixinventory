@@ -136,6 +136,10 @@ class AwsBedrockCustomModel(BedrockTaggable, AwsResource):
         )
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-custom-model")]
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if job_arn := self.job_arn:
             builder.add_edge(self, clazz=AwsBedrockModelCustomizationJob, id=job_arn)
@@ -222,6 +226,10 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, AwsResource):
             provisionedModelId=self.safe_name,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-provisioned-model-throughput")]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model_arn := self.model_arn:
@@ -404,6 +412,10 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
             guardrailVersion=self.version,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-guardrail")]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -865,6 +877,10 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
         )
         return True
 
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-agent")]
+
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
             builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
@@ -994,6 +1010,10 @@ class AwsBedrockAgentVersion(BedrockTaggable, AwsResource):
             agentVersion=self.version,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-agent-version")]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -1247,6 +1267,10 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
         return True
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-knowledge-base")]
+
+    @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return super().called_collect_apis() + [
             AwsApiSpec("bedrock-agent", "list-knowledge-bases"),
@@ -1365,6 +1389,10 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
             promptVersion=self.version,
         )
         return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-prompt")]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -1704,6 +1732,10 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
         return "bedrock-agent"
 
     @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-flow")]
+
+    @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return super().called_collect_apis() + [cls.api_spec, AwsApiSpec("bedrock-agent", "get-flow")]
 
@@ -1788,6 +1820,10 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, AwsResource):
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return super().called_collect_apis() + [AwsApiSpec("bedrock-agent", "get-flow-version")]
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-flow-version")]
 
     @classmethod
     def service_name(cls) -> str:
