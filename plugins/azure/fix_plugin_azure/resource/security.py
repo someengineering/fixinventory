@@ -37,8 +37,8 @@ class AzureSecurityExtension:
 @define(eq=False, slots=False)
 class AzureSecurityPricing(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_pricing"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Security Pricing"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -91,8 +91,8 @@ class AzureAssessmentStatus:
 @define(eq=False, slots=False)
 class AzureSecurityAssessment(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_assessment"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Security Assessment"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -133,8 +133,8 @@ class AzureSecurityAssessment(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSecurityServerVulnerabilityAssessmentsSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_server_vulnerability_assessments_setting"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Security Server Vulnerability Assessments Setting"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -161,8 +161,8 @@ class AzureSecurityServerVulnerabilityAssessmentsSetting(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSecuritySetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_setting"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Security Setting"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -187,8 +187,8 @@ class AzureSecuritySetting(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureSecurityAutoProvisioningSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_auto_provisioning_setting"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Security Auto Provisioning Setting"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,

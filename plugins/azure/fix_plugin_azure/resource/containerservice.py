@@ -65,8 +65,8 @@ class AzureFleetHubProfile:
 @define(eq=False, slots=False)
 class AzureContainerServiceFleet(MicrosoftResource):
     kind: ClassVar[str] = "azure_container_service_fleet"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Container Service Fleet"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
@@ -748,8 +748,8 @@ class AzureServiceMeshProfile:
 @define(eq=False, slots=False)
 class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
     kind: ClassVar[str] = "azure_container_service_managed_cluster"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Container Service Managed Cluster"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
@@ -893,8 +893,8 @@ class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernet
 @define(eq=False, slots=False)
 class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_container_service_managed_cluster_snapshot"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Container Service Managed Cluster Snapshot"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",

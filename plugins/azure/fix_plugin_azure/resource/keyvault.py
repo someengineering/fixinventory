@@ -183,8 +183,8 @@ class AzureKeyReleasePolicy:
 @define(eq=False, slots=False)
 class AzureKeyVaultSecret(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_secret"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Key Vault Secret"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -209,8 +209,8 @@ class AzureKeyVaultSecret(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVaultManagedHsm(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_managed_hsm"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Key Vault Managed Hsm"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
@@ -272,8 +272,8 @@ class AzureKeyVaultManagedHsm(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVaultKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_key"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Key Vault Key"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -306,8 +306,8 @@ class AzureKeyVaultKey(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVault(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Key Vault"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",

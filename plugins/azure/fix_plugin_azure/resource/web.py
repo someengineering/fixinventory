@@ -70,8 +70,8 @@ class AzureKubeEnvironmentProfile:
 @define(eq=False, slots=False)
 class AzureWebAppServicePlan(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_app_service_plan"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web App Service Plan"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -145,8 +145,8 @@ class AzureWebAppServicePlan(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureWebCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_certificate"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web Certificate"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -390,8 +390,8 @@ class AzureTemplate:
 @define(eq=False, slots=False)
 class AzureWebContainerApp(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_container_app"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web Container App"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -501,8 +501,8 @@ class AzureDomainPurchaseConsent:
 @define(eq=False, slots=False)
 class AzureWebDomain(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_domain"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web Domain"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -644,8 +644,8 @@ class AzureNetworkAccessControlEntry:
 @define(eq=False, slots=False)
 class AzureWebHostingEnvironment(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_hosting_environment"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web Hosting Environment"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -788,8 +788,8 @@ class AzureContainerAppsConfiguration:
 @define(eq=False, slots=False)
 class AzureWebKubeEnvironment(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_kube_environment"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web Kube Environment"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -1388,8 +1388,8 @@ class AzureWebAppAuthSettings:
 @define(eq=False, slots=False)
 class AzureWebApp(MicrosoftResource, BaseServerlessFunction):
     kind: ClassVar[str] = "azure_web_app"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web App"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -1647,8 +1647,8 @@ class AzureDatabaseConnectionOverview:
 @define(eq=False, slots=False)
 class AzureWebAppStaticSite(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_app_static_site"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Web App Static Site"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",

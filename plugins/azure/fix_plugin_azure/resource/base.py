@@ -342,7 +342,6 @@ class AzureLocation(MicrosoftResource, BaseRegion):
 @define(eq=False, slots=False)
 class AzureResourceGroup(MicrosoftResource, BaseGroup):
     kind: ClassVar[str] = "azure_resource_group"
-    kind_service: ClassVar[str] = "resources"
     kind_display: ClassVar[str] = "Azure Resource Group"
     kind_service: ClassVar[str] = "resources"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}

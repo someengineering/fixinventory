@@ -63,8 +63,8 @@ class AzurePrincipal:
 @define(eq=False, slots=False)
 class AzureAuthorizationDenyAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_deny_assignment"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Authorization Deny Assignment"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -116,8 +116,8 @@ class AzureAuthorizationDenyAssignment(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureAuthorizationRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_role_assignment"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Authorization Role Assignment"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -223,8 +223,8 @@ class AzurePermission:
 @define(eq=False, slots=False)
 class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
     kind: ClassVar[str] = "azure_authorization_role_definition"
-    kind_service: ClassVar[Optional[str]] = service_name
     kind_display: ClassVar[str] = "Azure Authorization Role Definition"
+    kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -262,8 +262,8 @@ class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
 @define(eq=False, slots=False)
 class AzureAuthorizationManagementLock(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_management_lock"
-    kind_service: ClassVar[Optional[str]] = "resources"
     kind_display: ClassVar[str] = "Azure Authorization Management Lock"
+    kind_service: ClassVar[Optional[str]] = "resources"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "lock", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
