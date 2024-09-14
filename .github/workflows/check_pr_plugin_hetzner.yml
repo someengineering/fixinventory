@@ -1,7 +1,7 @@
 # Note: this workflow is automatically generated via the `create_pr` script in the same folder.
 # Please do not change the file, but the script!
 
-name: Check PR (Plugin dockerhub)
+name: Check PR (Plugin hetzner)
 on:
   push:
     tags:
@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - 'fixlib/**'
-      - 'plugins/dockerhub/**'
+      - 'plugins/hetzner/**'
       - '.github/**'
       - 'requirements-all.txt'
 
@@ -20,8 +20,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  dockerhub:
-    name: "dockerhub"
+  hetzner:
+    name: "hetzner"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,7 +37,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{runner.os}}-pip-${{hashFiles('./plugins/dockerhub/pyproject.toml')}}
+          key: ${{runner.os}}-pip-${{hashFiles('./plugins/hetzner/pyproject.toml')}}
           restore-keys: |
             ${{runner.os}}-pip-
 
@@ -48,17 +48,17 @@ jobs:
           pip install tox wheel flake8 build
 
       - name: Run tests
-        working-directory: ./plugins/dockerhub
+        working-directory: ./plugins/hetzner
         run: tox
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
         with:
-          name: plugin-dockerhub-code-coverage-report
-          path: ./plugins/dockerhub/htmlcov/
+          name: plugin-hetzner-code-coverage-report
+          path: ./plugins/hetzner/htmlcov/
 
       - name: Build a binary wheel and a source tarball
-        working-directory: ./plugins/dockerhub
+        working-directory: ./plugins/hetzner
         run: >-
           python -m
           build
@@ -71,5 +71,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_DOCKERHUB }}
-          packages_dir: ./plugins/dockerhub/dist/
+          password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_HETZNER }}
+          packages_dir: ./plugins/hetzner/dist/

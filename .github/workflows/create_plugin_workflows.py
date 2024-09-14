@@ -21,6 +21,10 @@ on:
       - '.github/**'
       - 'requirements-all.txt'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   @name@:
     name: "@name@"

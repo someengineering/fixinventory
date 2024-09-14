@@ -894,6 +894,8 @@ class BaseZone(PhantomBaseResource):
     kind_description: ClassVar[str] = "A zone."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "control"}
 
+    long_name: Optional[str] = None
+
     def zone(self, graph: Optional[Any] = None) -> BaseZone:
         return self
 
@@ -1191,6 +1193,15 @@ class BaseRoutingTable(BaseResource):
     kind_display: ClassVar[str] = "Routing Table"
     kind_description: ClassVar[str] = "A routing table."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
+
+
+@define(eq=False, slots=False)
+class BaseRoute(BaseResource):
+    kind: ClassVar[str] = "route"
+    kind_display: ClassVar[str] = "Network Route"
+    kind_description: ClassVar[str] = "A network route."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "route", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
 
 
