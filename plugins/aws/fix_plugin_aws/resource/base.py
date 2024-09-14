@@ -388,11 +388,13 @@ class AwsRegion(BaseRegion, AwsResource):
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
     kind_display: ClassVar[str] = "AWS EC2 Volume Type"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EC2 Volume Types are different storage options for Amazon Elastic Block"
         " Store (EBS) volumes, such as General Purpose (SSD) and Magnetic."
     )
+    kind_service = "ec2"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
 
 
 class GraphBuilder:

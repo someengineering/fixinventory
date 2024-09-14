@@ -448,6 +448,7 @@ GcpResourceType = TypeVar("GcpResourceType", bound=GcpResource)
 class GcpProject(GcpResource, BaseAccount):
     kind: ClassVar[str] = "gcp_project"
     kind_display: ClassVar[str] = "GCP Project"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
     kind_description: ClassVar[str] = (
         "A GCP Project is a container for resources in the Google Cloud Platform,"
         " allowing users to organize and manage their cloud resources."
@@ -506,6 +507,7 @@ class GcpRegionQuota(GcpResource):
         " provisioned in a specific region, such as compute instances, storage, or"
         " networking resources."
     )
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "misc"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "name": S("name"),

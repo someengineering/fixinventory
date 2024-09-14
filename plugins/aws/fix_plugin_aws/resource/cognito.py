@@ -19,13 +19,15 @@ service_name = "cognito-idp"
 class AwsCognitoGroup(AwsResource):
     # collection of group resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_group"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{UserPoolId}/groups/details/{name}?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:group/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS Cognito Group"
     kind_description: ClassVar[str] = (
         "Cognito Groups are a way to manage and organize users in AWS Cognito, a"
         " fully managed service for user authentication, registration, and access"
         " control."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{UserPoolId}/groups/details/{name}?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:group/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
     }
@@ -104,6 +106,7 @@ class AwsCognitoUser(AwsResource, BaseUser):
         " provides secure user authentication and authorization for web and mobile"
         " applications."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Username"),
         "name": S("Username"),
@@ -203,12 +206,14 @@ class AwsCognitoLambdaConfigType:
 class AwsCognitoUserPool(AwsResource):
     kind: ClassVar[str] = "aws_cognito_user_pool"
     kind_display: ClassVar[str] = "AWS Cognito User Pool"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{id}/users?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:userpool/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "An AWS Cognito User Pool is a managed user directory that enables user"
         " registration, authentication, and access control for your web and mobile"
         " apps."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{id}/users?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:userpool/{name}"}  # fmt: skip
     # this call requires the MaxResult parameter, 60 is the maximum valid input
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-user-pools", "UserPools", {"MaxResults": 60})
     reference_kinds: ClassVar[ModelReference] = {

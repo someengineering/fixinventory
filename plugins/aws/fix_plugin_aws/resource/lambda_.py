@@ -239,6 +239,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
         " without provisioning or managing servers. Lambda functions are the compute"
         " units that run your code in response to events."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-functions", "Functions")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

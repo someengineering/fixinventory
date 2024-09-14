@@ -605,6 +605,7 @@ class Navigation:
     maybe_edge_types: Optional[List[EdgeType]] = None
     direction: str = Direction.outbound
     maybe_two_directional_outbound_edge_type: Optional[List[EdgeType]] = None
+    edge_filter: Optional[Term] = None
 
     @property
     def edge_types(self) -> List[EdgeType]:
@@ -617,13 +618,17 @@ class Navigation:
         mo = self.maybe_two_directional_outbound_edge_type
         depth = ("" if start == 1 else f"[{start}]") if start == until and not mo else f"[{start}:{until_str}]"
         out_nav = ",".join(mo) if mo else ""
-        nav = f'{",".join(self.edge_types)}{depth}{out_nav}'
+        fltr = f"{{{self.edge_filter}}}" if self.edge_filter else ""
+        nav = f'{",".join(self.edge_types)}{depth}{fltr}{out_nav}'
         if self.direction == Direction.outbound:
             return f"-{nav}->"
         elif self.direction == Direction.inbound:
             return f"<-{nav}-"
         else:
             return f"<-{nav}->"
+
+    def change_variable(self, fn: Callable[[str], str]) -> Navigation:
+        return evolve(self, edge_filter=self.edge_filter.change_variable(fn)) if self.edge_filter else self
 
 
 NavigateUntilRoot = Navigation(
@@ -740,6 +745,7 @@ class Part:
             term=self.term.change_variable(fn),
             with_clause=self.with_clause.change_variable(fn) if self.with_clause else None,
             sort=[sort.change_variable(fn) for sort in self.sort],
+            navigation=self.navigation.change_variable(fn) if self.navigation else None,
         )
 
     # ancestor.some_type.reported.prop -> MergeQuery
@@ -1012,17 +1018,40 @@ class Query:
         first_part = evolve(self.parts[0], with_clause=clause)
         return evolve(self, parts=[first_part, *self.parts[1:]])
 
-    def traverse_out(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
-        return self.traverse(start, until, edge_type, Direction.outbound)
+    def traverse_out(
+        self,
+        start: int = 1,
+        until: int = 1,
+        edge_type: EdgeType = EdgeTypes.default,
+        edge_filter: Optional[Term] = None,
+    ) -> Query:
+        return self.traverse(start, until, edge_type, Direction.outbound, edge_filter)
 
-    def traverse_in(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
-        return self.traverse(start, until, edge_type, Direction.inbound)
+    def traverse_in(
+        self,
+        start: int = 1,
+        until: int = 1,
+        edge_type: EdgeType = EdgeTypes.default,
+        edge_filter: Optional[Term] = None,
+    ) -> Query:
+        return self.traverse(start, until, edge_type, Direction.inbound, edge_filter)
 
-    def traverse_inout(self, start: int = 1, until: int = 1, edge_type: EdgeType = EdgeTypes.default) -> Query:
-        return self.traverse(start, until, edge_type, Direction.any)
+    def traverse_inout(
+        self,
+        start: int = 1,
+        until: int = 1,
+        edge_type: EdgeType = EdgeTypes.default,
+        edge_filter: Optional[Term] = None,
+    ) -> Query:
+        return self.traverse(start, until, edge_type, Direction.any, edge_filter)
 
     def traverse(
-        self, start: int, until: int, edge_type: EdgeType = EdgeTypes.default, direction: str = Direction.outbound
+        self,
+        start: int,
+        until: int,
+        edge_type: EdgeType = EdgeTypes.default,
+        direction: str = Direction.outbound,
+        edge_filter: Optional[Term] = None,
     ) -> Query:
         parts = self.parts.copy()
         p0 = parts[0]
@@ -1034,9 +1063,15 @@ class Query:
                 parts[0] = evolve(p0, navigation=evolve(p0.navigation, start=start_m, until=until_m))
             # this is another traversal: so we need to start a new part
             else:
-                parts.insert(0, Part(AllTerm(), navigation=Navigation(start, until, [edge_type], direction)))
+                parts.insert(
+                    0,
+                    Part(
+                        AllTerm(),
+                        navigation=Navigation(start, until, [edge_type], direction, edge_filter=edge_filter),
+                    ),
+                )
         else:
-            parts[0] = evolve(p0, navigation=Navigation(start, until, [edge_type], direction))
+            parts[0] = evolve(p0, navigation=Navigation(start, until, [edge_type], direction, edge_filter=edge_filter))
         return evolve(self, parts=parts)
 
     def group_by(self, variables: List[AggregateVariable], funcs: List[AggregateFunction]) -> Query:

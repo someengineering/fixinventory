@@ -2,6 +2,7 @@ import asyncio
 import string
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
+from functools import partial
 from random import SystemRandom
 from typing import List, Optional, Any, Dict, cast, AsyncIterator, Tuple, Union, Literal
 
@@ -943,6 +944,22 @@ async def test_update_security_section(filled_graph_db: GraphDB, foo_model: Mode
     assert result == (10, 0)
     # the issue us reopened
     await assert_security("change4", 10, 2, reopen=1, added_vulnerable=2)
+
+
+async def test_graph_edge_filter(filled_graph_db: GraphDB, foo_model: Model) -> None:
+    query_list = partial(query_list_on, filled_graph_db, foo_model)
+    assert len(await query_list("is(foo) and id==9 -{a=1}->")) == 10
+    assert len(await query_list("is(foo) and id==9 -{a=1 and b[*].{c=1 and d=2}}->")) == 10
+    assert len(await query_list("is(foo) and id==9 -{a=1 and b[*].{c=2 and d=2}}->")) == 10
+    assert len(await query_list("is(foo) and id==9 -{a=1 and b[*].{c=3 and d=2}}->")) == 0
+    assert len(await query_list("is(foo) and id==9 -{a=2 and b[*].{c=2 and d=2}}->")) == 0
+    assert len(await query_list("is(foo) and id==9 -{a=1 and b[*].{c=1 and d=2} and b[0].c=1}->")) == 10
+
+
+async def query_list_on(db: GraphDB, model: Model, q: str) -> List[Json]:
+    query = parse_query(q).on_section("reported")
+    async with await db.search_list(QueryModel(query, model)) as cursor:
+        return [entry async for entry in cursor]
 
 
 def to_json(obj: BaseResource) -> Json:
