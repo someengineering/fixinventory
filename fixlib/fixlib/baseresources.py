@@ -1511,6 +1511,15 @@ class BaseManagedKubernetesClusterProvider(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseAiResource(BaseResource):
+    kind: ClassVar[str] = "ai_resource"
+    kind_display: ClassVar[str] = "AI resource"
+    kind_description: ClassVar[str] = "An AI Resource."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    _categories: ClassVar[List[Category]] = [Category.ai, Category.compute]
+
+
+@define(eq=False, slots=False)
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"
     kind_display: ClassVar[str] = "Unknown Cloud"
