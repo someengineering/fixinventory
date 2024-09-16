@@ -224,16 +224,31 @@ def range_parser() -> Parser:
     return start, end
 
 
-edge_type_p = lexeme(regex("[A-Za-z][A-Za-z0-9_]*"))
+edge_type_p = reduce(lambda x, y: x | y, [lexeme(string(a)) for a in EdgeTypes.all])
 
 
 @make_parser
 def edge_type_parser() -> Parser:
     edge_types = yield edge_type_p.sep_by(comma_p).map(set)
-    for et in edge_types:
-        if et not in EdgeTypes.all:
-            raise AttributeError(f"Given EdgeType is not known: {et}")
     return list(edge_types)
+
+
+@make_parser
+def combined_edge_term() -> Parser:
+    left = yield simple_edge_term_p
+    result = left
+    while True:
+        op = yield bool_op_p.optional()
+        if op is None:
+            break
+        right = yield simple_edge_term_p
+        result = CombinedTerm(result, op, right)
+    return result
+
+
+leaf_edge_term_p = predicate_term | context_term | not_term | match_all_term
+simple_edge_term_p = (lparen_p >> combined_edge_term << rparen_p) | leaf_edge_term_p
+edge_term_p = l_curly_p >> combined_edge_term << r_curly_p
 
 
 @make_parser
@@ -241,30 +256,30 @@ def edge_definition_parser() -> Parser:
     edge_types = yield edge_type_parser
     maybe_range = yield range_parser.optional()
     start, until = maybe_range if maybe_range else (1, 1)
+    edge_filter = yield edge_term_p.optional()
     after_bracket_edge_types = yield edge_type_parser
     if edge_types and after_bracket_edge_types:
         raise AttributeError("Edge types can not be defined before and after the [start,until] definition.")
-    return start, until, edge_types or after_bracket_edge_types
+    return Navigation(start, until, maybe_edge_types=edge_types or after_bracket_edge_types, edge_filter=edge_filter)
 
 
 @make_parser
 def two_directional_edge_definition_parser() -> Parser:
     edge_types = yield edge_type_parser
     maybe_range = yield range_parser.optional()
+    edge_filter = yield edge_term_p.optional()
     outbound_edge_types = yield edge_type_parser
     start, until = maybe_range if maybe_range else (1, 1)
-    return start, until, edge_types, outbound_edge_types
+    return Navigation(start, until, edge_types, Direction.any, outbound_edge_types, edge_filter)
 
 
 out_p = lexeme(string("-") >> edge_definition_parser << string("->")).map(
-    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.outbound)
+    lambda nav: evolve(nav, direction=Direction.outbound)
 )
 in_p = lexeme(string("<-") >> edge_definition_parser << string("-")).map(
-    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.inbound)
+    lambda nav: evolve(nav, direction=Direction.inbound)
 )
-in_out_p = lexeme(string("<-") >> two_directional_edge_definition_parser << string("->")).map(
-    lambda nav: Navigation(nav[0], nav[1], nav[2], Direction.any, nav[3])
-)
+in_out_p = lexeme(string("<-") >> two_directional_edge_definition_parser << string("->"))
 navigation_parser = in_out_p | out_p | in_p
 
 tag_parser = lexeme(string("#") >> literal_p).optional()

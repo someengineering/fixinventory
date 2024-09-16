@@ -2781,7 +2781,8 @@ class ListCommand(CLICommand, OutputTransformer):
                         first = False
                 return result
             elif is_edge(elem):
-                return f'{elem.get("from")} -> {elem.get("to")}: {elem.get("edge_type")}'
+                ers = to_str("", er) if isinstance(er := elem.get("reported"), dict) else ""
+                return f'{elem.get("from")} -{elem.get("edge_type")}-> {elem.get("to")}: {ers}'
             else:
                 return elem
 

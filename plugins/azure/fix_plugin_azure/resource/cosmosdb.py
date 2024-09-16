@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -18,9 +18,10 @@ from fix_plugin_azure.resource.base import (
     MicrosoftResource,
     AzurePrivateEndpointConnection,
 )
+from fix_plugin_azure.resource.keyvault import AzureKeyVaultKey
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
 from fix_plugin_azure.resource.mysql import AzureServerDataEncryption
-from fix_plugin_azure.resource.network import AzureSubnet
+from fix_plugin_azure.resource.network import AzureNetworkSubnet
 from fix_plugin_azure.utils import from_str_to_typed
 from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
 from fixlib.graph import BySearchCriteria
@@ -163,6 +164,9 @@ class AzureCosmosDbNodes:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraClusterPublicStatus(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_public_status"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Public Status"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "database"}
     # Collect via AzureCosmosDBCassandraCluster()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -224,6 +228,9 @@ class AzureCassandraKeyspace(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraKeyspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_keyspace"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Keyspace"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -314,6 +321,9 @@ class AzureCassandraTable(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_table"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Table"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBCassandraKeyspace()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -359,6 +369,9 @@ class AzureClientEncryptionKey(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabaseClientEncryptionKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_client_encryption_key"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database Client Encryption Key"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -385,6 +398,9 @@ class AzureManagedCassandraManagedServiceIdentity:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -404,7 +420,7 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
         },
         "predecessors": {
             "default": [
-                "azure_subnet",
+                "azure_network_subnet",
             ]
         },
     }
@@ -467,7 +483,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -478,7 +493,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -490,11 +504,11 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
             resources_to_collect = [
-                ("status", AzureCosmosDBCassandraClusterPublicStatus, None),
-                ("dataCenters", AzureCosmosDBCassandraClusterDataCenter, None),
+                ("status", AzureCosmosDBCassandraClusterPublicStatus),
+                ("dataCenters", AzureCosmosDBCassandraClusterDataCenter),
             ]
 
-            for resource_type, resource_class, expected_errors in resources_to_collect:
+            for resource_type, resource_class in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
                     self._collect_items,
@@ -502,7 +516,6 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
                     account_id,
                     resource_type,
                     resource_class,
-                    expected_errors,
                 )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -518,7 +531,7 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
                 self,
                 edge_type=EdgeType.default,
                 reverse=True,
-                clazz=AzureSubnet,
+                clazz=AzureNetworkSubnet,
                 id=subnet_id,
             )
 
@@ -549,11 +562,14 @@ class AzureAuthenticationMethodLdap:
 @define(eq=False, slots=False)
 class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_data_center"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Data Center"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     # Collect via AzureCosmosDBCassandraCluster()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
-                "azure_subnet",
+                "azure_network_subnet",
             ]
         },
     }
@@ -601,7 +617,7 @@ class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource):
                 self,
                 edge_type=EdgeType.default,
                 reverse=True,
-                clazz=AzureSubnet,
+                clazz=AzureNetworkSubnet,
                 id=subnet_id,
             )
 
@@ -764,9 +780,15 @@ class AzureDatabaseAccountKeysMetadata:
     secondary_readonly_master_key: Optional[datetime] = field(default=None, metadata={'description': 'The metadata related to an access key for a given database account.'})  # fmt: skip
 
 
+mongo_cosmosdb_error_message = "Mongo User and Role Definitions are not enabled in your Azure Cosmos DB MongoDB account and can not be collected. In Cosmos DB MongoDB account under “Settings -> Features”, turn on the “Role-based access control (RBAC)” option."
+
+
 @define(eq=False, slots=False)
 class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_cosmos_db_account"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Account"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -780,7 +802,6 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
         "successors": {
             "default": [
                 "azure_cosmos_db_cassandra_keyspace",
-                "azure_cosmos_db_account_read_only_keys",
                 "azure_cosmos_db_gremlin_database",
                 "azure_cosmos_db_mongo_db_database",
                 "azure_cosmos_db_mongo_db_role_definition",
@@ -796,7 +817,7 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                 MicrosoftGraphUser.kind,
             ]
         },
-        "predecessors": {"default": ["azure_cosmos_db_location", "azure_subnet"]},
+        "predecessors": {"default": ["azure_cosmos_db_location", "azure_network_subnet", AzureKeyVaultKey.kind]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -914,37 +935,23 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
-        if issubclass(AzureCosmosDBAccountReadOnlyKeys, class_instance):  # type: ignore
-            api_spec = AzureResourceSpec(
-                service="cosmos-db",
-                version="2024-05-15",
-                path=path,
-                path_parameters=[],
-                query_parameters=["api-version"],
-                access_path=None,
-                expect_array=False,
-                expected_error_codes=expected_errors or [],
-            )
-        else:
-            api_spec = AzureResourceSpec(
-                service="cosmos-db",
-                version="2024-05-15",
-                path=path,
-                path_parameters=[],
-                query_parameters=["api-version"],
-                access_path="value",
-                expect_array=True,
-                expected_error_codes=expected_errors or [],
-            )
+        api_spec = AzureResourceSpec(
+            service="cosmos-db",
+            version="2024-05-15",
+            path=path,
+            path_parameters=[],
+            query_parameters=["api-version"],
+            access_path="value",
+            expect_array=True,
+            expected_error_codes=expected_errors or {},
+        )
         items = graph_builder.client.list(api_spec)
         if not items:
             return
-        if issubclass(AzureCosmosDBAccountReadOnlyKeys, class_instance):  # type: ignore
-            collected = class_instance.collect_keys(account_id, items, graph_builder)  # type: ignore
-        elif issubclass(AzureCosmosDBAccountUsage, class_instance):  # type: ignore
+        if issubclass(AzureCosmosDBAccountUsage, class_instance):  # type: ignore
             collected = class_instance.collect_usages(account_id, items, graph_builder)  # type: ignore
         else:
             collected = class_instance.collect(items, graph_builder)
@@ -953,11 +960,10 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if account_id := self.id:
-            resources_to_collect = [
-                ("readonlykeys", AzureCosmosDBAccountReadOnlyKeys, None),
+            resources_to_collect: List = [  # type: ignore
                 ("notebookWorkspaces", AzureCosmosDBNotebookWorkspace, None),
                 ("privateLinkResources", AzureCosmosDBPrivateLink, None),
-                ("usages", AzureCosmosDBAccountUsage, ["SubscriptionHasNoUsages"]),
+                ("usages", AzureCosmosDBAccountUsage, {"SubscriptionHasNoUsages": None}),
             ]
             # For fetching SQL resources required filtering by API type
             if database_api_type := self.database_api_type:
@@ -971,31 +977,35 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                         ]
                     )
                 elif api_type == "Cassandra":
-                    resources_to_collect.extend(
-                        [
-                            ("cassandraKeyspaces", AzureCosmosDBCassandraKeyspace, None),
-                        ]
-                    )
+                    resources_to_collect.append(("cassandraKeyspaces", AzureCosmosDBCassandraKeyspace, None))
                 elif api_type == "MongoDB":
                     resources_to_collect.extend(
                         [
                             ("mongodbDatabases", AzureCosmosDBMongoDBDatabase, None),
-                            ("mongodbRoleDefinitions", AzureCosmosDBMongoDBRoleDefinition, None),
-                            ("mongodbUserDefinitions", AzureCosmosDBMongoDBUserDefinition, None),
+                            (
+                                "mongodbRoleDefinitions",
+                                AzureCosmosDBMongoDBRoleDefinition,
+                                {
+                                    "BadRequest": mongo_cosmosdb_error_message.format(
+                                        provider_link=self._metadata.get("provider_link")
+                                    )
+                                },
+                            ),
+                            (
+                                "mongodbUserDefinitions",
+                                AzureCosmosDBMongoDBUserDefinition,
+                                {
+                                    "BadRequest": mongo_cosmosdb_error_message.format(
+                                        provider_link=self._metadata.get("provider_link")
+                                    )
+                                },
+                            ),
                         ]
                     )
                 elif api_type == "Table":
-                    resources_to_collect.extend(
-                        [
-                            ("tables", AzureCosmosDBTable, None),
-                        ]
-                    )
+                    resources_to_collect.append(("tables", AzureCosmosDBTable, None))
                 elif api_type == "Gremlin":
-                    resources_to_collect.extend(
-                        [
-                            ("gremlinDatabases", AzureCosmosDBGremlinDatabase, None),
-                        ]
-                    )
+                    resources_to_collect.append(("gremlinDatabases", AzureCosmosDBGremlinDatabase, None))
             for resource_type, resource_class, expected_errors in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
@@ -1024,9 +1034,17 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                         self,
                         edge_type=EdgeType.default,
                         reverse=True,
-                        clazz=AzureSubnet,
+                        clazz=AzureNetworkSubnet,
                         id=subnet_id,
                     )
+        if key_vault_key_uri := self.key_vault_key_uri:
+            builder.add_edge(
+                self,
+                edge_type=EdgeType.default,
+                reverse=True,
+                clazz=AzureKeyVaultKey,
+                key_uri=key_vault_key_uri,
+            )
 
         # principal: collected via ms graph -> create a deferred edge
         if ai := self.account_identity:
@@ -1044,33 +1062,6 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                                 f'is({MicrosoftGraphUser.kind}) and reported.id=="{identity_info.principal_id}"'
                             ),
                         )
-
-
-@define(eq=False, slots=False)
-class AzureCosmosDBAccountReadOnlyKeys(MicrosoftResource):
-    kind: ClassVar[str] = "azure_cosmos_db_account_read_only_keys"
-    # Collect via AzureCosmosDBAccount()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "primary_readonly_master_key": S("primaryReadonlyMasterKey"),
-        "secondary_readonly_master_key": S("secondaryReadonlyMasterKey"),
-    }
-    primary_readonly_master_key: Optional[str] = field(default=None, metadata={'description': 'Base 64 encoded value of the primary read-only key.'})  # fmt: skip
-    secondary_readonly_master_key: Optional[str] = field(default=None, metadata={'description': 'Base 64 encoded value of the secondary read-only key.'})  # fmt: skip
-
-    @classmethod
-    def collect_keys(
-        cls, account_id: str, raw: List[Json], builder: GraphBuilder
-    ) -> List[AzureCosmosDBAccountReadOnlyKeys]:
-        result = []
-        for js in raw:
-            # map from api
-            if instance := cls.from_api(js, builder):
-                # Set account id to resource name and id
-                instance.name = instance.id = account_id
-                if (added := builder.add_node(instance, js)) is not None:
-                    result.append(added)
-        return result
 
 
 @define(eq=False, slots=False)
@@ -1095,6 +1086,9 @@ class AzureGremlinDatabase(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Gremlin Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1265,6 +1259,9 @@ class AzureGremlinGraph(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBGremlinGraph(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_graph"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Gremlin Graph"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBGremlinDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1325,6 +1322,9 @@ class AzureMongoDBCollection(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_collection"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Collection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBMongoDBDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1353,6 +1353,9 @@ class AzureMongoDBDatabase(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1424,6 +1427,9 @@ class AzureRole:
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_role_definition"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Role Definition"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1443,6 +1449,9 @@ class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_user_definition"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB User Definition"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1466,6 +1475,9 @@ class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBNotebookWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_notebook_workspace"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Notebook Workspace"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1481,6 +1493,9 @@ class AzureCosmosDBNotebookWorkspace(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_private_link"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Private Link"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1513,6 +1528,9 @@ class AzureRestorableLocationResource:
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableAccount(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_account"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Account"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -1563,7 +1581,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -1574,7 +1591,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -1590,21 +1606,21 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
             if api_type := self.api_type:
                 api_type = api_type.split(",")[0]
                 if api_type == "Sql":
-                    resources_to_collect.append(("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase, None))
+                    resources_to_collect.append(("restorableSqlDatabases", AzureCosmosDBRestorableSqlDatabase))
                 elif api_type == "MongoDB":
                     resources_to_collect.append(
-                        ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase, None),  # type: ignore
+                        ("restorableMongodbDatabases", AzureCosmosDBRestorableMongoDBDatabase),  # type: ignore
                     )
                 elif api_type == "Table":
                     resources_to_collect.append(
-                        ("restorableTables", AzureCosmosDBRestorableTable, None),  # type: ignore
+                        ("restorableTables", AzureCosmosDBRestorableTable),  # type: ignore
                     )
                 elif api_type == "Gremlin":
                     resources_to_collect.append(
-                        ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase, None),  # type: ignore
+                        ("restorableGremlinDatabases", AzureCosmosDBRestorableGremlinDatabase),  # type: ignore
                     )
 
-            for resource_type, resource_class, expected_errors in resources_to_collect:
+            for resource_type, resource_class in resources_to_collect:
                 graph_builder.submit_work(
                     service_name,
                     self._collect_items,
@@ -1612,7 +1628,6 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
                     account_id,
                     resource_type,
                     resource_class,
-                    expected_errors,
                 )
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1693,6 +1708,9 @@ class AzureSqlContainer(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_container"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database Container"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1753,6 +1771,9 @@ class AzureCollsUsers(AzureSqlDatabaseResource, AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1779,7 +1800,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
         database_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{database_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -1790,7 +1811,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -1804,7 +1825,7 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
             resources_to_collect = [
                 ("containers", AzureCosmosDBSqlDatabaseContainer, None),
                 ("clientEncryptionKeys", AzureCosmosDBSqlDatabaseClientEncryptionKey, None),
-                ("throughputSettings/default", AzureCosmosDBSqlThroughputSetting, ["BadRequest"]),
+                ("throughputSettings/default", AzureCosmosDBSqlThroughputSetting, {"BadRequest": None}),
             ]
 
             for resource_type, resource_class, expected_errors in resources_to_collect:
@@ -1822,6 +1843,9 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_assignment"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Role Assignment"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1874,6 +1898,9 @@ class AzureRolePermission:
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_definition"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Role Definition"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1904,6 +1931,9 @@ class AzureDbTable(AzureCosmosDBResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_table"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Table"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1919,6 +1949,9 @@ class AzureCosmosDBTable(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBSqlThroughputSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_throughput_setting"
+    kind_display: ClassVar[str] = "Azure Cosmos DB SQL Throughput Setting"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1932,6 +1965,9 @@ class AzureCosmosDBSqlThroughputSetting(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Account Usage"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": K(None),
@@ -1956,6 +1992,9 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
 @define(eq=False, slots=False)
 class AzureCosmosDBLocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_location"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Location"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-05-15",
@@ -2017,6 +2056,9 @@ class AzureNodeGroupSpec:
 @define(eq=False, slots=False)
 class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_cluster"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Cluster"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2024-02-15-preview",
@@ -2077,6 +2119,9 @@ class AzureRestorableDatabase:
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2120,6 +2165,9 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_graph"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Graph"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2133,6 +2181,9 @@ class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_collection"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Collection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2146,6 +2197,9 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2189,6 +2243,9 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableSqlContainer(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_container"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Container"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2233,6 +2290,9 @@ class AzureExtendedPropertiesSqlDatabase(AzureSqlDatabaseResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_database"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2290,6 +2350,9 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBRestorableTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_table"
+    kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Table"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2329,6 +2392,9 @@ class AzureServerNameItem:
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
         version="2022-11-08",
@@ -2425,7 +2491,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
         account_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{account_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -2436,7 +2502,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -2459,7 +2525,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
         if account_id := self.id:
             resources_to_collect = [
                 ("servers", AzureCosmosDBPostgresqlClusterServer, None),
-                ("configurations", AzureCosmosDBPostgresqlClusterConfiguration, ["internal_server_error"]),
+                ("configurations", AzureCosmosDBPostgresqlClusterConfiguration, {"internal_server_error": None}),
                 ("privateEndpointConnections", AzureCosmosDBPostgresqlClusterPrivateEndpointConnection, None),
                 ("privateLinkResources", AzureCosmosDBPostgresqlClusterPrivateLink, None),
                 ("roles", AzureCosmosDBPostgresqlClusterRole, None),
@@ -2480,6 +2546,9 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2555,7 +2624,7 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, Azur
                     query_parameters=["api-version"],
                     access_path="value",
                     expect_array=True,
-                    expected_error_codes=["internal_server_error"],
+                    expected_error_codes={"internal_server_error": None},
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -2572,6 +2641,9 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, Azur
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_configuration"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Configuration"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     config: Json = field(factory=dict)
 
@@ -2607,6 +2679,9 @@ class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyR
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server_configuration"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server Configuration"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlClusterServer()
     config: Json = field(factory=dict)
 
@@ -2641,6 +2716,9 @@ class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, Azure
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_endpoint_connection"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Endpoint Connection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2664,6 +2742,9 @@ class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource)
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_link"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Link"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2685,6 +2766,9 @@ class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureCosmosDBPostgresqlClusterRole(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_role"
+    kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Role"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -2705,7 +2789,6 @@ resources: List[Type[MicrosoftResource]] = [
     AzureCosmosDBCassandraCluster,
     AzureCosmosDBCassandraClusterDataCenter,
     AzureCosmosDBAccount,
-    AzureCosmosDBAccountReadOnlyKeys,
     AzureCosmosDBGremlinDatabase,
     AzureCosmosDBGremlinGraph,
     AzureCosmosDBMongoDBCollection,

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Tuple, Type
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attr import define, field
 
@@ -18,7 +18,7 @@ from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnaps
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
-service = "azure_container_service"
+service_name = "azure_container_service"
 log = logging.getLogger("fix.plugins.azure")
 
 
@@ -63,8 +63,11 @@ class AzureFleetHubProfile:
 
 
 @define(eq=False, slots=False)
-class AzureFleet(MicrosoftResource):
-    kind: ClassVar[str] = "azure_fleet"
+class AzureContainerServiceFleet(MicrosoftResource):
+    kind: ClassVar[str] = "azure_container_service_fleet"
+    kind_display: ClassVar[str] = "Azure Container Service Fleet"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-15-preview",
@@ -75,7 +78,7 @@ class AzureFleet(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_managed_cluster"]},
+        "successors": {"default": ["azure_container_service_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -116,12 +119,14 @@ class AzureFleet(MicrosoftResource):
             except KeyError as e:
                 log.warning(f"An error occured while taking cluster id: {e}")
 
-        graph_builder.submit_work(service, collect_fleets)
+        graph_builder.submit_work(service_name, collect_fleets)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if cluster_ids := self._cluster_resource_ids:
             for cluster_id in cluster_ids:
-                builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureManagedCluster, id=cluster_id)
+                builder.add_edge(
+                    self, edge_type=EdgeType.default, clazz=AzureContainerServiceManagedCluster, id=cluster_id
+                )
 
 
 @define(eq=False, slots=False)
@@ -570,8 +575,8 @@ class AzureManagedClusterSecurityProfileDefender:
 
 
 @define(eq=False, slots=False)
-class AzureAzureKeyVaultKms:
-    kind: ClassVar[str] = "azure_azure_key_vault_kms"
+class AzureKeyVaultKms:
+    kind: ClassVar[str] = "azure_key_vault_kms"
     mapping: ClassVar[Dict[str, Bender]] = {
         "enabled": S("enabled"),
         "key_id": S("keyId"),
@@ -596,12 +601,12 @@ class AzureManagedClusterSecurityProfileImageCleaner:
 class AzureManagedClusterSecurityProfile:
     kind: ClassVar[str] = "azure_managed_cluster_security_profile"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "azure_key_vault_kms": S("azureKeyVaultKms") >> Bend(AzureAzureKeyVaultKms.mapping),
+        "azure_key_vault_kms": S("azureKeyVaultKms") >> Bend(AzureKeyVaultKms.mapping),
         "defender": S("defender") >> Bend(AzureManagedClusterSecurityProfileDefender.mapping),
         "image_cleaner": S("imageCleaner") >> Bend(AzureManagedClusterSecurityProfileImageCleaner.mapping),
         "workload_identity": S("workloadIdentity", "enabled"),
     }
-    azure_key_vault_kms: Optional[AzureAzureKeyVaultKms] = field(default=None, metadata={'description': 'Azure Key Vault key management service settings for the security profile.'})  # fmt: skip
+    azure_key_vault_kms: Optional[AzureKeyVaultKms] = field(default=None, metadata={'description': 'Azure Key Vault key management service settings for the security profile.'})  # fmt: skip
     defender: Optional[AzureManagedClusterSecurityProfileDefender] = field(default=None, metadata={'description': 'Microsoft Defender settings for the security profile.'})  # fmt: skip
     image_cleaner: Optional[AzureManagedClusterSecurityProfileImageCleaner] = field(default=None, metadata={'description': 'Image Cleaner removes unused images from nodes, freeing up disk space and helping to reduce attack surface area. Here are settings for the security profile.'})  # fmt: skip
     workload_identity: Optional[bool] = field(default=None, metadata={'description': 'Workload identity settings for the security profile.'})  # fmt: skip
@@ -617,7 +622,7 @@ class AzureManagedClusterStorageProfile:
         "snapshot_controller": S("snapshotController", "enabled"),
     }
     blob_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureBlob CSI Driver settings for the storage profile.'})  # fmt: skip
-    disk_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureDisk CSI Driver settings for the storage profile.'})  # fmt: skip
+    disk_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureComputeDisk CSI Driver settings for the storage profile.'})  # fmt: skip
     file_csi_driver: Optional[bool] = field(default=None, metadata={'description': 'AzureFile CSI Driver settings for the storage profile.'})  # fmt: skip
     snapshot_controller: Optional[bool] = field(default=None, metadata={'description': 'Snapshot Controller settings for the storage profile.'})  # fmt: skip
 
@@ -741,8 +746,11 @@ class AzureServiceMeshProfile:
 
 
 @define(eq=False, slots=False)
-class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
-    kind: ClassVar[str] = "azure_managed_cluster"
+class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
+    kind: ClassVar[str] = "azure_container_service_managed_cluster"
+    kind_display: ClassVar[str] = "Azure Container Service Managed Cluster"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
@@ -753,7 +761,7 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["azure_disk_encryption_set", "azure_virtual_machine_scale_set"]},
+        "successors": {"default": ["azure_compute_disk_encryption_set", "azure_compute_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -857,10 +865,10 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
     workload_auto_scaler_profile: Optional[AzureManagedClusterWorkloadAutoScalerProfile] = field(default=None, metadata={'description': 'Workload Auto-scaler profile for the managed cluster.'})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        from fix_plugin_azure.resource.compute import AzureDiskEncryptionSet, AzureVirtualMachineScaleSet
+        from fix_plugin_azure.resource.compute import AzureComputeDiskEncryptionSet, AzureComputeVirtualMachineScaleSet
 
         if disk_id := self.disk_encryption_set_id:
-            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureDiskEncryptionSet, id=disk_id)
+            builder.add_edge(self, edge_type=EdgeType.default, clazz=AzureComputeDiskEncryptionSet, id=disk_id)
 
         if agent_pool_profiles := self.agent_pool_profiles:
             vmss_agent_pool_names_and_ids = self._get_poolnames_and_vmss_ids(builder)
@@ -869,22 +877,25 @@ class AzureManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvide
                     pool_name, vmss_id = info
                     if agent_pool_profile_name == pool_name:
                         builder.add_edge(
-                            self, edge_type=EdgeType.default, clazz=AzureVirtualMachineScaleSet, id=vmss_id
+                            self, edge_type=EdgeType.default, clazz=AzureComputeVirtualMachineScaleSet, id=vmss_id
                         )
 
     def _get_poolnames_and_vmss_ids(self, builder: GraphBuilder) -> List[Tuple[str, str]]:
-        from fix_plugin_azure.resource.compute import AzureVirtualMachineScaleSet
+        from fix_plugin_azure.resource.compute import AzureComputeVirtualMachineScaleSet
 
         return [
             (poolname, vmss_id)
-            for vmss in builder.nodes(clazz=AzureVirtualMachineScaleSet)
+            for vmss in builder.nodes(clazz=AzureComputeVirtualMachineScaleSet)
             if (poolname := vmss.tags.get("aks-managed-poolName")) and (vmss_id := vmss.id)
         ]
 
 
 @define(eq=False, slots=False)
-class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
-    kind: ClassVar[str] = "azure_managed_cluster_snapshot"
+class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
+    kind: ClassVar[str] = "azure_container_service_managed_cluster_snapshot"
+    kind_display: ClassVar[str] = "Azure Container Service Managed Cluster Snapshot"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
@@ -895,7 +906,7 @@ class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["azure_managed_cluster"]},
+        "predecessors": {"default": ["azure_container_service_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
         "id": S("id"),
@@ -925,17 +936,23 @@ class AzureManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        from fix_plugin_azure.resource.compute import AzureVirtualMachineSize
+        from fix_plugin_azure.resource.compute import AzureComputeVirtualMachineSize
 
         if (snapshot_vm_size := self.vm_size) and (location := self.location):
-            vm_sizes = builder.nodes(clazz=AzureVirtualMachineSize, name=snapshot_vm_size, location=location)
+            vm_sizes = builder.nodes(clazz=AzureComputeVirtualMachineSize, name=snapshot_vm_size, location=location)
             for vm_size in vm_sizes:
                 if size := vm_size.os_disk_size_in_mb:
                     self.volume_size = size // 1024
 
         if agent_pool_id := self.creation_data_source_id:
             cluster_id = "/".join((agent_pool_id.split("/")[:-2]))
-            builder.add_edge(self, edge_type=EdgeType.default, reverse=True, clazz=AzureManagedCluster, id=cluster_id)
+            builder.add_edge(
+                self, edge_type=EdgeType.default, reverse=True, clazz=AzureContainerServiceManagedCluster, id=cluster_id
+            )
 
 
-resources: List[Type[MicrosoftResource]] = [AzureManagedCluster, AzureFleet, AzureManagedClusterSnapshot]
+resources: List[Type[MicrosoftResource]] = [
+    AzureContainerServiceManagedCluster,
+    AzureContainerServiceFleet,
+    AzureContainerServiceManagedClusterSnapshot,
+]

@@ -1,7 +1,7 @@
 import json
 import threading
 from contextlib import suppress
-from typing import Type, List, Tuple, Set
+from typing import Type, List, Tuple, Set, Any
 
 from networkx import DiGraph, is_directed_acyclic_graph
 
@@ -13,6 +13,7 @@ from fix_plugin_aws.collector import (
 )
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
+from fixlib.baseresources import BaseResource
 from fixlib.core.model_export import dataclasses_to_fixcore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
 
@@ -93,3 +94,25 @@ def test_raise_error_if_configured(builder: GraphBuilder) -> None:
     # ignore any mapping exception
     builder.config.discard_account_on_resource_error = False
     assert AwsEc2Instance.from_api({"is": "wrong"}, builder) is None
+
+
+def test_resource_classes() -> None:
+    def all_base_classes(cls: Type[Any]) -> Set[Type[Any]]:
+        bases = set(cls.__bases__)
+        for base in cls.__bases__:
+            bases.update(all_base_classes(base))
+        return bases
+
+    expected_declared_properties = ["kind", "kind_display"]
+    expected_props_in_hierarchy = ["kind_service", "metadata"]
+    for rc in all_resources:
+        for prop in expected_declared_properties:
+            assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
+        with_bases = (all_base_classes(rc) | {rc}) - {AwsResource, BaseResource}
+        for prop in expected_props_in_hierarchy:
+            assert any(prop in base.__dict__ for base in with_bases), f"{rc.__name__} missing {prop}"
+        for base in with_bases:
+            if "connect_in_graph" in base.__dict__:
+                assert (
+                    "reference_kinds" in base.__dict__
+                ), f"{rc.__name__} should define reference_kinds property, since it defines connect_in_graph"

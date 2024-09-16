@@ -2,7 +2,7 @@ from collections import defaultdict
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from typing import List, Type, Optional, ClassVar, Union, cast
+from typing import List, Type, Optional, ClassVar, Union, cast, Dict, Any
 
 from attrs import define
 
@@ -434,6 +434,8 @@ class AwsOrganizationalRoot(BaseOrganizationalRoot, AwsResource):
     kind: ClassVar[str] = "aws_organizational_root"
     kind_display: ClassVar[str] = "AWS Organizational Root"
     kind_description: ClassVar[str] = "An AWS Organizational Root is the root of an AWS Organization."
+    kind_service = "organizations"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}
 
 
 @define(eq=False, slots=False)
@@ -441,3 +443,5 @@ class AwsOrganizationalUnit(BaseOrganizationalUnit, AwsResource):
     kind: ClassVar[str] = "aws_organizational_unit"
     kind_display: ClassVar[str] = "AWS Organizational Unit"
     kind_description: ClassVar[str] = "An AWS Organizational Unit is a container for AWS Accounts."
+    kind_service = "organizations"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}

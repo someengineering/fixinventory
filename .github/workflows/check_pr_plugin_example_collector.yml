@@ -15,6 +15,10 @@ on:
       - '.github/**'
       - 'requirements-all.txt'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   example_collector:
     name: "example_collector"
@@ -48,7 +52,7 @@ jobs:
         run: tox
 
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: plugin-example_collector-code-coverage-report
           path: ./plugins/example_collector/htmlcov/

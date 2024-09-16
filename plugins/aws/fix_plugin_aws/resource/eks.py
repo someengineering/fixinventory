@@ -189,13 +189,15 @@ class AwsEksLaunchTemplateSpecification:
 class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:eks:{region}:{account}:nodegroup/{id}"}  # fmt: skip
     kind_display: ClassVar[str] = "AWS EKS Nodegroup"
     kind_description: ClassVar[str] = (
         "An EKS Nodegroup is a set of EC2 instances that host containerized"
         " applications and run Kubernetes pods in Amazon Elastic Kubernetes Service"
         " (EKS) cluster."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:eks:{region}:{account}:nodegroup/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_eks_cluster"], "delete": ["aws_eks_cluster", "aws_autoscaling_group"]},
         "successors": {"default": ["aws_autoscaling_group"]},
@@ -403,12 +405,14 @@ class AwsEksConnectorConfig:
 class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     kind_display: ClassVar[str] = "AWS EKS Cluster"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "Amazon Elastic Kubernetes Service (EKS) Cluster is a managed Kubernetes"
         " service provided by AWS for running containerized applications using"
         " Kubernetes."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusters")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

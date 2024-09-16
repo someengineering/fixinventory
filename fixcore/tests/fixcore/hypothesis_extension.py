@@ -14,6 +14,7 @@ from hypothesis.strategies import (
     lists,
     composite,
     sampled_from,
+    DrawFn,
 )
 
 from fixcore.model.resolve_in_graph import NodePath
@@ -21,26 +22,10 @@ from fixcore.types import JsonElement, Json
 from fixcore.util import value_in_path, interleave
 
 T = TypeVar("T")
-UD = Callable[[SearchStrategy[Any]], Any]
 
 
 def optional(st: SearchStrategy[T]) -> SearchStrategy[Optional[T]]:
     return st | just(None)
-
-
-class Drawer:
-    """
-    Only here for getting a drawer for typed drawings.
-    """
-
-    def __init__(self, hypo_drawer: Callable[[SearchStrategy[Any]], Any]):
-        self._drawer = hypo_drawer
-
-    def draw(self, st: SearchStrategy[T]) -> T:
-        return cast(T, self._drawer(st))
-
-    def optional(self, st: SearchStrategy[T]) -> Optional[T]:
-        return self.draw(optional(st))
 
 
 any_ws_digits_string = text(alphabet=string.ascii_letters + " " + string.digits, min_size=0, max_size=10)
@@ -51,8 +36,8 @@ any_datetime = integers(min_value=0, max_value=1688108028).map(lambda x: datetim
 
 
 @composite
-def json_element_gen(ud: UD) -> JsonElement:
-    return cast(JsonElement, ud(json_object_gen | json_simple_element_gen | json_array_gen))
+def json_element_gen(draw: DrawFn) -> JsonElement:
+    return cast(JsonElement, draw(json_object_gen | json_simple_element_gen | json_array_gen))
 
 
 json_simple_element_gen = any_ws_digits_string | booleans() | integers(min_value=0, max_value=100000) | just(None)
@@ -61,14 +46,13 @@ json_array_gen = lists(json_element_gen(), max_size=5)
 
 
 @composite
-def node_gen(ud: UD) -> Json:
-    d = Drawer(ud)
-    uid = d.draw(any_string)
-    name = d.draw(any_string)
-    kind = d.draw(kind_gen)
-    reported = d.draw(json_object_gen)
-    metadata = d.draw(json_object_gen)
-    desired = d.draw(json_object_gen)
+def node_gen(draw: DrawFn) -> Json:
+    uid = draw(any_string)
+    name = draw(any_string)
+    kind = draw(kind_gen)
+    reported = draw(json_object_gen)
+    metadata = draw(json_object_gen)
+    desired = draw(json_object_gen)
     return {
         "id": uid,
         "kinds": [kind],

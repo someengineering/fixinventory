@@ -5,7 +5,7 @@ from fix_plugin_azure.resource.security import (
     AzureSecurityPricing,
     AzureSecurityServerVulnerabilityAssessmentsSetting,
     AzureSecuritySetting,
-    AzureAutoProvisioningSetting,
+    AzureSecurityAutoProvisioningSetting,
 )
 
 
@@ -30,7 +30,7 @@ def test_security_setting(builder: GraphBuilder) -> None:
 
 
 def test_auto_provisioning_setting(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureAutoProvisioningSetting, builder)
+    collected = roundtrip_check(AzureSecurityAutoProvisioningSetting, builder)
     assert len(collected) == 2
     assert collected[0].auto_provision
     assert not collected[1].auto_provision

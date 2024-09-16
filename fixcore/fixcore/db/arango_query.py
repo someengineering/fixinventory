@@ -877,17 +877,19 @@ def query_string(
             )
             return out
 
-        def inout(in_crsr: str, start: int, until: int, edge_type: str, direction: str) -> str:
+        def inout(
+            in_crsr: str, start: int, until: int, edge_type: str, direction: str, edge_filter: Optional[Term]
+        ) -> str:
             nonlocal query_part
             in_c = ctx.next_crs("io_in")
             out = ctx.next_crs("io_out")
             out_crsr = ctx.next_crs("io_crs")
-            link = ctx.next_crs("io_link")
+            e = ctx.next_crs("io_link")
             unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
-            link_str = f", {link}" if with_edges else ""
             dir_bound = "OUTBOUND" if direction == Direction.outbound else "INBOUND"
             inout_result = (
-                f"MERGE({out_crsr}, {{_from:{link}._from, _to:{link}._to, _link_id:{link}._id}})"
+                # merge edge and vertex properties - will be split in the output transformer
+                f"MERGE({out_crsr}, {{_from:{e}._from, _to:{e}._to, _link_id:{e}._id, _link_reported:{e}.reported}})"
                 if with_edges
                 else out_crsr
             )
@@ -898,12 +900,17 @@ def query_string(
                 graph_cursor = in_c
                 outer_for = f"FOR {in_c} in {in_crsr} "
 
+            # optional: add the edge filter to the query
+            pre, fltr, post = term(e, edge_filter) if edge_filter else (None, None, None)
+            pre_string = " " + pre if pre else ""
+            post_string = f" AND ({post})" if post else ""
+            filter_string = "" if not fltr and not post_string else f"{pre_string} FILTER {fltr}{post_string}"
             query_part += (
                 f"LET {out} =({outer_for}"
                 # suggested by jsteemann: use crs._id instead of crs (stored in the view and more efficient)
-                f"FOR {out_crsr}{link_str} IN {start}..{until} {dir_bound} {graph_cursor}._id "
-                f"`{db.edge_collection(edge_type)}` OPTIONS {{ bfs: true, {unique} }} "
-                f"RETURN DISTINCT {inout_result}) "
+                f"FOR {out_crsr}, {e} IN {start}..{until} {dir_bound} {graph_cursor}._id "
+                f"`{db.edge_collection(edge_type)}` OPTIONS {{ bfs: true, {unique} }}{filter_string} "
+                f"RETURN DISTINCT {inout_result})"
             )
             return out
 
@@ -912,12 +919,12 @@ def query_string(
             all_walks = []
             if nav.direction == Direction.any:
                 for et in nav.edge_types:
-                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, Direction.inbound))
+                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, Direction.inbound, nav.edge_filter))
                 for et in nav.maybe_two_directional_outbound_edge_type or nav.edge_types:
-                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, Direction.outbound))
+                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, Direction.outbound, nav.edge_filter))
             else:
                 for et in nav.edge_types:
-                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, nav.direction))
+                    all_walks.append(inout(in_crsr, nav.start, nav.until, et, nav.direction, nav.edge_filter))
 
             if len(all_walks) == 1:
                 return all_walks[0]

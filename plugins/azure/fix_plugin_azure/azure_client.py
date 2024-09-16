@@ -68,7 +68,10 @@ class AzureResourceSpec:
     query_parameters: List[str] = []
     access_path: Optional[str] = None
     expect_array: bool = False
-    expected_error_codes: List[str] = field(factory=list)
+    expected_error_codes: Dict[str, Optional[str]] = field(factory=dict)
+    """
+    A dictionary that maps specific error codes (str) to corresponding hints (Optional[str]) to provide additional context or troubleshooting information when an error occurs.
+    """
 
     def request(self, client: "MicrosoftResourceManagementClient", **kwargs: Any) -> HttpRequest:
         ser = Serializer()
@@ -118,7 +121,10 @@ class RestApiSpec:
     parameters: Optional[Dict[str, str]] = None
     access_path: Optional[str] = None
     expect_array: bool = False
-    expected_error_codes: List[str] = field(factory=list)
+    expected_error_codes: Dict[str, Optional[str]] = field(factory=dict)
+    """
+    A dictionary that maps specific error codes (str) to corresponding hints (Optional[str]) to provide additional context or troubleshooting information when an error occurs.
+    """
 
     def __attrs_post_init__(self) -> None:
         if self.scope == "":
@@ -317,13 +323,15 @@ class MicrosoftResourceManagementClient(MicrosoftClient):
             return None
         except HttpResponseError as e:
             if error := e.error:
+                code = error.code or "Unknown"
                 if error.code == "NoRegisteredProviderFound":
                     return None  # API not available in this region
                 elif error.code in spec.expected_error_codes:
+                    if hint := spec.expected_error_codes.get(code):
+                        self.accumulator.add_error(False, code, spec.service, spec.action, str(hint))
                     return None
                 elif error.code == "BadRequest" and spec.service == "metric":
                     raise MetricRequestError from e
-                code = error.code or "Unknown"
                 self.accumulator.add_error(False, code, spec.service, spec.action, str(e), self.location)
             log.warning(f"[Azure] Client Error: status={e.status_code}, error={e.error}, message={e}, spec={spec}")
             return None

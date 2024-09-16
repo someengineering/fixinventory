@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, cast
+from typing import ClassVar, Dict, Optional, List, Type, cast, Any
 
 from attr import define, field
 
@@ -13,6 +13,8 @@ from fixlib.types import Json
 # https://cloud.google.com/billing/docs
 # API https://googleapis.github.io/google-api-python-client/docs/dyn/cloudbilling_v1.html
 
+service_name = "cloudbilling"
+
 
 @define(eq=False, slots=False)
 class GcpBillingAccount(GcpResource):
@@ -22,11 +24,13 @@ class GcpBillingAccount(GcpResource):
         "GCP Billing Account is a financial account used to manage the payment and"
         " billing information for Google Cloud Platform services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "control"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_project_billing_info"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="cloudbilling",
+        service=service_name,
         version="v1",
         accessors=["billingAccounts"],
         action="list",
@@ -72,8 +76,10 @@ class GcpProjectBillingInfo(GcpResource):
         "GCP Project Billing Info provides information and management capabilities"
         " for the billing aspects of a Google Cloud Platform project."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "control"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="cloudbilling",
+        service=service_name,
         version="v1",
         accessors=["billingAccounts", "projects"],
         action="list",
@@ -113,11 +119,13 @@ class GcpService(GcpResource):
         " Google Cloud Platform, which provide scalable cloud computing solutions for"
         " businesses and developers."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "control"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_sku"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="cloudbilling",
+        service=service_name,
         version="v1",
         accessors=["services"],
         action="list",
@@ -314,8 +322,9 @@ class GcpSku(GcpResource):
         "GCP SKU represents a Stock Keeping Unit in Google Cloud Platform, providing"
         " unique identifiers for different resources and services."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="cloudbilling",
+        service=service_name,
         version="v1",
         accessors=["services", "skus"],
         action="list",

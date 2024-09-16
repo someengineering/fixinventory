@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Optional, Dict, List, Type
+from typing import ClassVar, Optional, Dict, List, Type, Any
 
 from attr import define, field
 
@@ -14,7 +14,9 @@ from fix_plugin_azure.resource.base import (
     GraphBuilder,
     parse_json,
 )
+from fix_plugin_azure.resource.keyvault import AzureKeyVault
 from fix_plugin_azure.utils import NoneIfEmpty
+from fixlib.baseresources import BaseServerlessFunction, ModelReference
 from fixlib.json_bender import Bender, S, ForallBend, Bend, MapDict
 from fixlib.types import Json
 
@@ -66,8 +68,11 @@ class AzureKubeEnvironmentProfile:
 
 
 @define(eq=False, slots=False)
-class AzureAppServicePlan(MicrosoftResource):
-    kind: ClassVar[str] = "azure_app_service_plan"
+class AzureWebAppServicePlan(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_app_service_plan"
+    kind_display: ClassVar[str] = "Azure Web App Service Plan"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -138,8 +143,11 @@ class AzureAppServicePlan(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_certificate"
+class AzureWebCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_certificate"
+    kind_display: ClassVar[str] = "Azure Web Certificate"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -149,6 +157,14 @@ class AzureCertificate(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                "azure_web_app_service_plan",
+                AzureKeyVault.kind,
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -202,6 +218,12 @@ class AzureCertificate(MicrosoftResource):
     subject_name: Optional[str] = field(default=None, metadata={"description": "Subject name of the certificate."})
     thumbprint: Optional[str] = field(default=None, metadata={"description": "Certificate thumbprint."})
     valid: Optional[bool] = field(default=None, metadata={"description": "Is the certificate valid?."})
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if server_farm_id := self.server_farm_id:
+            builder.add_edge(self, clazz=AzureWebAppServicePlan, reverse=True, id=server_farm_id)
+        if key_vault_id := self.key_vault_id:
+            builder.add_edge(self, clazz=AzureKeyVault, reverse=True, id=key_vault_id)
 
 
 @define(eq=False, slots=False)
@@ -366,8 +388,11 @@ class AzureTemplate:
 
 
 @define(eq=False, slots=False)
-class AzureContainerApp(MicrosoftResource):
-    kind: ClassVar[str] = "azure_container_app"
+class AzureWebContainerApp(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_container_app"
+    kind_display: ClassVar[str] = "Azure Web Container App"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2021-03-01",
@@ -474,8 +499,11 @@ class AzureDomainPurchaseConsent:
 
 
 @define(eq=False, slots=False)
-class AzureDomain(MicrosoftResource):
-    kind: ClassVar[str] = "azure_domain"
+class AzureWebDomain(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_domain"
+    kind_display: ClassVar[str] = "Azure Web Domain"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -614,8 +642,11 @@ class AzureNetworkAccessControlEntry:
 
 
 @define(eq=False, slots=False)
-class AzureHostingEnvironment(MicrosoftResource):
-    kind: ClassVar[str] = "azure_hosting_environment"
+class AzureWebHostingEnvironment(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_hosting_environment"
+    kind_display: ClassVar[str] = "Azure Web Hosting Environment"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2015-08-01",
@@ -755,8 +786,11 @@ class AzureContainerAppsConfiguration:
 
 
 @define(eq=False, slots=False)
-class AzureKubeEnvironment(MicrosoftResource):
-    kind: ClassVar[str] = "azure_kube_environment"
+class AzureWebKubeEnvironment(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_kube_environment"
+    kind_display: ClassVar[str] = "Azure Web Kube Environment"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -1000,8 +1034,8 @@ class AzureIpSecurityRestriction:
 
 
 @define(eq=False, slots=False)
-class AzureAzureStorageInfoValue:
-    kind: ClassVar[str] = "azure_azure_storage_info_value"
+class AzureStorageInfoValue:
+    kind: ClassVar[str] = "azure_storage_info_value"
     mapping: ClassVar[Dict[str, Bender]] = {
         "access_key": S("accessKey"),
         "account_name": S("accountName"),
@@ -1106,7 +1140,7 @@ class AzureSiteConfig:
     app_settings: Optional[Json] = field(default=None, metadata={"description": "Application settings."})
     auto_heal_enabled: Optional[bool] = field(default=None, metadata={'description': '<code>true</code> if Auto Heal is enabled; otherwise, <code>false</code>.'})  # fmt: skip
     auto_swap_slot_name: Optional[str] = field(default=None, metadata={"description": "Auto-swap slot name."})
-    azure_storage_accounts: Optional[Dict[str, AzureAzureStorageInfoValue]] = field(default=None, metadata={'description': 'List of Azure Storage Accounts.'})  # fmt: skip
+    azure_storage_accounts: Optional[Dict[str, AzureStorageInfoValue]] = field(default=None, metadata={'description': 'List of Azure Storage Accounts.'})  # fmt: skip
     connection_strings: Optional[List[AzureConnStringInfo]] = field(default=None, metadata={'description': 'Connection strings.'})  # fmt: skip
     cors: Optional[AzureCorsSettings] = field(default=None, metadata={'description': 'Cross-Origin Resource Sharing (CORS) settings for the app.'})  # fmt: skip
     default_documents: Optional[List[str]] = field(default=None, metadata={"description": "Default documents."})
@@ -1352,8 +1386,11 @@ class AzureWebAppAuthSettings:
 
 
 @define(eq=False, slots=False)
-class AzureWebApp(MicrosoftResource):
+class AzureWebApp(MicrosoftResource, BaseServerlessFunction):
     kind: ClassVar[str] = "azure_web_app"
+    kind_display: ClassVar[str] = "Azure Web App"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -1363,6 +1400,13 @@ class AzureWebApp(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "azure_web_app_service_plan",
+            ]
+        },
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1500,6 +1544,10 @@ class AzureWebApp(MicrosoftResource):
 
         graph_builder.submit_work(service_name, auth_settings)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if server_farm_id := self.server_farm_id:
+            builder.add_edge(self, clazz=AzureWebAppServicePlan, id=server_farm_id)
+
 
 @define(eq=False, slots=False)
 class AzureStaticSiteBuildProperties:
@@ -1597,8 +1645,11 @@ class AzureDatabaseConnectionOverview:
 
 
 @define(eq=False, slots=False)
-class AzureAppStaticSite(MicrosoftResource):
-    kind: ClassVar[str] = "azure_app_static_site"
+class AzureWebAppStaticSite(MicrosoftResource):
+    kind: ClassVar[str] = "azure_web_app_static_site"
+    kind_display: ClassVar[str] = "Azure Web App Static Site"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
         version="2023-12-01",
@@ -1662,12 +1713,12 @@ class AzureAppStaticSite(MicrosoftResource):
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureAppServicePlan,
+    AzureWebAppServicePlan,
     AzureWebApp,
-    AzureAppStaticSite,
-    AzureCertificate,
-    AzureContainerApp,
-    AzureDomain,
-    AzureHostingEnvironment,
-    AzureKubeEnvironment,
+    AzureWebAppStaticSite,
+    AzureWebCertificate,
+    AzureWebContainerApp,
+    AzureWebDomain,
+    AzureWebHostingEnvironment,
+    AzureWebKubeEnvironment,
 ]

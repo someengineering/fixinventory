@@ -1,0 +1,45 @@
+[project]
+name = "fixinventory-plugin-hetzner"
+description = "Fix Hetzner Collector Plugin"
+version = "4.1.0"
+authors = [{name="Some Engineering Inc."}]
+license = { text="AGPLv3" }
+requires-python = ">=3.11"
+classifiers = [
+    # Current project status
+    "Development Status :: 4 - Beta",
+    # Audience
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    # License information
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    # Supported python versions
+    "Programming Language :: Python :: 3.11",
+    # Supported OS's
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    # Extra metadata
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Topic :: Security",
+    "Topic :: Utilities",
+]
+readme = {file="README.md", content-type="text/markdown"}
+
+dependencies = [
+    "fixinventorylib==4.1.0",
+    "hcloud==2.2.0",
+]
+
+[project.entry-points."fix.plugins"]
+hetzner_collector = "fix_plugin_hetzner:HetznerCollectorPlugin"
+
+[project.urls]
+Documentation = "https://inventory.fix.security"
+Source = "https://github.com/someengineering/fix/tree/main/plugins/hetzner"
+
+[build-system]
+requires = ["setuptools>=67.8.0", "wheel>=0.40.0", "build>=0.10.0"]
+build-backend = "setuptools.build_meta"
+
+

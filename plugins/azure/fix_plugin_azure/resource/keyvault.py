@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -181,8 +181,11 @@ class AzureKeyReleasePolicy:
 
 
 @define(eq=False, slots=False)
-class AzureSecret(MicrosoftResource):
-    kind: ClassVar[str] = "azure_secret"
+class AzureKeyVaultSecret(MicrosoftResource):
+    kind: ClassVar[str] = "azure_key_vault_secret"
+    kind_display: ClassVar[str] = "Azure Key Vault Secret"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -204,8 +207,11 @@ class AzureSecret(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureManagedHsm(MicrosoftResource):
-    kind: ClassVar[str] = "azure_managed_hsm"
+class AzureKeyVaultManagedHsm(MicrosoftResource):
+    kind: ClassVar[str] = "azure_key_vault_managed_hsm"
+    kind_display: ClassVar[str] = "Azure Key Vault Managed Hsm"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",
@@ -264,8 +270,11 @@ class AzureManagedHsm(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureKey(MicrosoftResource):
-    kind: ClassVar[str] = "azure_key"
+class AzureKeyVaultKey(MicrosoftResource):
+    kind: ClassVar[str] = "azure_key_vault_key"
+    kind_display: ClassVar[str] = "Azure Key Vault Key"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -297,6 +306,9 @@ class AzureKey(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVault(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault"
+    kind_display: ClassVar[str] = "Azure Key Vault"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",
@@ -307,7 +319,9 @@ class AzureKeyVault(MicrosoftResource):
         expect_array=True,
     )
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": [AzureKey.kind, AzureMonitorDiagnosticSettings.kind]},
+        "successors": {
+            "default": [AzureKeyVaultKey.kind, AzureMonitorDiagnosticSettings.kind, AzureKeyVaultManagedHsm.kind]
+        },
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -369,13 +383,18 @@ class AzureKeyVault(MicrosoftResource):
                     graph_builder.add_node(dep)
                     graph_builder.add_edge(self, node=dep)
 
-        graph_builder.submit_work(service_name, collect_dependant, AzureKey, "keys")
-        graph_builder.submit_work(service_name, collect_dependant, AzureSecret, "secrets")
+        graph_builder.submit_work(service_name, collect_dependant, AzureKeyVaultKey, "keys")
+        graph_builder.submit_work(service_name, collect_dependant, AzureKeyVaultSecret, "secrets")
         AzureMonitorDiagnosticSettings.fetch_diagnostics(graph_builder, self)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if hsm_pool_resource_id := self.hsm_pool_resource_id:
+            builder.add_edge(self, clazz=AzureKeyVaultManagedHsm, id=hsm_pool_resource_id)
 
 
 resources: List[Type[MicrosoftResource]] = [
-    AzureManagedHsm,
+    AzureKeyVaultManagedHsm,
     AzureKeyVault,
-    AzureKey,
+    AzureKeyVaultSecret,
+    AzureKeyVaultKey,
 ]

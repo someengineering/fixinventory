@@ -1,24 +1,26 @@
-from attr import frozen
-
-from fixcore.db.model import QueryModel
-from fixcore.message_bus import MessageBus, Action
-import logging
 import asyncio
+import logging
 from asyncio import Task, Future
-from typing import Optional, Tuple, List
+from collections import defaultdict
 from contextlib import suppress
 from datetime import timedelta
-from fixcore.model.graph_access import ByNodeId, NodeSelector
-from fixcore.service import Service
-from fixcore.task.model import Subscriber
-from fixcore.ids import NodeId, SubscriberId
-from fixcore.task.task_handler import TaskHandlerService
-from fixcore.ids import TaskId
-from fixcore.task.subscribers import SubscriptionHandler
+from typing import Optional, Tuple, List, Dict
+
+from attr import frozen
+
 from fixcore.db.db_access import DbAccess
+from fixcore.db.model import QueryModel
+from fixcore.ids import NodeId, SubscriberId
+from fixcore.ids import TaskId
+from fixcore.message_bus import MessageBus, Action
+from fixcore.model.graph_access import ByNodeId, NodeSelector, DeferredEdge
 from fixcore.model.model_handler import ModelHandler
 from fixcore.query.query_parser import parse_query
-
+from fixcore.service import Service
+from fixcore.task.model import Subscriber
+from fixcore.task.subscribers import SubscriptionHandler
+from fixcore.task.task_handler import TaskHandlerService
+from fixcore.types import EdgeType
 
 log = logging.getLogger(__name__)
 
@@ -83,21 +85,21 @@ class MergeDeferredEdgesHandler(Service):
                     log.warning(f"task_id: {task_id}: Error {e} when finding node {selector}")
                     return None
 
-            edges: List[Tuple[NodeId, NodeId, str]] = []
+            edges: Dict[EdgeType, List[Tuple[NodeId, NodeId, DeferredEdge]]] = defaultdict(list)
             for pending_edge in pending_edges:
                 for edge in pending_edge.edges:
                     from_id = await find_node_id(edge.from_node)
                     to_id = await find_node_id(edge.to_node)
                     processed += 1
                     if from_id and to_id:
-                        edges.append((from_id, to_id, edge.edge_type))
+                        edges[edge.edge_type].append((from_id, to_id, edge))
 
             # apply edges in graph
             updated, deleted = await graph_db.update_deferred_edges(edges, first.created_at)
             # delete processed edge definitions
             for task_id in task_ids:
                 await deferred_outer_edge_db.delete_for_task(task_id)
-            log.info(f"DeferredEdges: {len(edges)} edges: {updated} updated, {deleted} deleted. ({task_ids})")
+            log.info(f"DeferredEdges: {processed} edges: {updated} updated, {deleted} deleted. ({task_ids})")
             return DeferredMergeResult(processed, updated, deleted)
         else:
             log.info(f"MergeOuterEdgesHandler: no pending edges found. ({task_ids})")

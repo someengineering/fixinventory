@@ -4,7 +4,11 @@ from attrs import define
 from datetime import datetime
 from enum import Enum
 
+from fixcore.core_config import current_git_hash
 from fixcore.types import Json
+
+MigrateAlways = False
+CurrentDatabaseVersion = 2
 
 
 @define
@@ -13,6 +17,29 @@ class SystemData:
     created_at: datetime
     db_version: int
     version: Optional[str] = None
+
+    def detect_change(self) -> bool:
+        git_hash = current_git_hash()
+        return (
+            MigrateAlways
+            or self.db_version != CurrentDatabaseVersion
+            or self.version is None
+            or git_hash is None
+            or git_hash != self.version
+        )
+
+
+@define
+class DatabaseChange:
+    previous: Optional[SystemData]
+    current: SystemData
+
+    def has_changed(self) -> bool:
+        return (
+            self.previous is None
+            or self.previous.version != self.current.version
+            or self.previous.db_version != self.current.db_version
+        )
 
 
 class EstimatedQueryCostRating(Enum):

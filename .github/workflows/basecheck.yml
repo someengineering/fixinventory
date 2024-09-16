@@ -10,6 +10,10 @@ on:
       - 'fixlib/**'
       - 'plugins/**'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   basecheck:
     name: "basecheck"
@@ -35,7 +39,7 @@ jobs:
           python3 ./tools/basechecker.py html > basecheck.html
 
       - name: Archive base resource coverage results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: basecheck
           path: ./basecheck.html

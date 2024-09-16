@@ -247,6 +247,9 @@ class MicrosoftGraphAssignedPlan:
 @define(eq=False, slots=False)
 class MicrosoftGraphRole(MicrosoftGraphEntity, BaseRole):
     kind: ClassVar[str] = "microsoft_graph_role"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph Role"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/beta/roleManagement/directory/roleDefinitions",
@@ -522,6 +525,9 @@ class MicrosoftGraphVerifiedDomain:
 @define(eq=False, slots=False)
 class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_service_principal"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph Service Principal"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/serviceprincipals",
@@ -628,6 +634,9 @@ class MicrosoftGraphServicePrincipal(MicrosoftGraphEntity):
 @define(eq=False, slots=False)
 class MicrosoftGraphDevice(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_device"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph Device"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "access_control"}
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/devices",
@@ -725,6 +734,9 @@ class MicrosoftGraphDevice(MicrosoftGraphEntity):
 @define(eq=False, slots=False)
 class MicrosoftGraphUser(MicrosoftGraphEntity, BaseUser):
     kind: ClassVar[str] = "microsoft_graph_user"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph User"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/users",
@@ -892,6 +904,9 @@ class MicrosoftGraphUser(MicrosoftGraphEntity, BaseUser):
 @define(eq=False, slots=False)
 class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
     kind: ClassVar[str] = "microsoft_graph_group"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph Group"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/groups",
@@ -1031,6 +1046,7 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
 @define(eq=False, slots=False)
 class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
     kind: ClassVar[str] = "microsoft_graph_organization"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/organization",
@@ -1114,11 +1130,15 @@ class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
 @define(eq=False, slots=False)
 class MicrosoftGraphOrganizationRoot(MicrosoftGraphEntity, BaseRegion):
     kind: ClassVar[str] = "microsoft_graph_organization_root"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
 
 
 @define(eq=False, slots=False)
 class MicrosoftGraphPolicy(MicrosoftGraphEntity):
     kind: ClassVar[str] = "microsoft_graph_policy"
+    kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph Policy"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "access_control"}
 
     policy_kind: Optional[str] = field(default=None, metadata={"description": "The kind of policy."})
     enabled: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the policy is enabled."})

@@ -137,11 +137,13 @@ class AwsGlacierJobOutputLocation:
 class AwsGlacierJob(AwsResource):
     kind: ClassVar[str] = "aws_glacier_job"
     kind_display: ClassVar[str] = "AWS Glacier Job"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:glacier:{region}:{account}:job/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Glacier Jobs are used to manage and execute operations on data stored in"
         " Amazon S3 Glacier, such as data retrieval or inventory retrieval."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:glacier:{region}:{account}:job/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
@@ -210,11 +212,13 @@ class AwsGlacierJob(AwsResource):
 class AwsGlacierVault(AwsResource):
     kind: ClassVar[str] = "aws_glacier_vault"
     kind_display: ClassVar[str] = "AWS Glacier Vault"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/glacier/home?region={region}#/vault/{name}/view/properties", "arn_tpl": "arn:{partition}:glacier:{region}:{account}:vault/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "AWS Glacier Vaults are used for long term data archiving and backup,"
         " providing a secure and durable storage solution with low cost."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/glacier/home?region={region}#/vault/{name}/view/properties", "arn_tpl": "arn:{partition}:glacier:{region}:{account}:vault/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-vaults", "VaultList")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {

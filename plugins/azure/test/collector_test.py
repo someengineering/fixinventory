@@ -1,23 +1,23 @@
 import os
 import json
 from queue import Queue
-from typing import List, Type
+from typing import List, Type, Set, Any
 
 from conftest import connect_resources
 
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphOrganization
 from fix_plugin_azure.azure_client import MicrosoftClient
-from fix_plugin_azure.collector import AzureSubscriptionCollector, MicrosoftGraphOrganizationCollector
+from fix_plugin_azure.collector import AzureSubscriptionCollector, MicrosoftGraphOrganizationCollector, all_resources
 from fix_plugin_azure.config import AzureCredentials, AzureConfig
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSubscription, GraphBuilder
 from fix_plugin_azure.resource.compute import (
-    AzureDiskTypePricing,
-    AzureVirtualMachine,
-    AzureVirtualMachineSize,
-    AzureDisk,
-    AzureDiskType,
+    AzureComputeDiskTypePricing,
+    AzureComputeVirtualMachine,
+    AzureComputeVirtualMachineSize,
+    AzureComputeDisk,
+    AzureComputeDiskType,
 )
-from fixlib.baseresources import Cloud
+from fixlib.baseresources import Cloud, BaseResource
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
 
@@ -48,8 +48,8 @@ def test_collect(
         config, Cloud(id="azure"), azure_subscription, credentials, core_feedback
     )
     subscription_collector.collect()
-    assert len(subscription_collector.graph.nodes) == 646
-    assert len(subscription_collector.graph.edges) == 1038
+    assert len(subscription_collector.graph.nodes) == 645
+    assert len(subscription_collector.graph.edges) == 1034
 
     graph_collector = MicrosoftGraphOrganizationCollector(
         config, Cloud(id="azure"), MicrosoftGraphOrganization(id="test", name="test"), credentials, core_feedback
@@ -62,49 +62,73 @@ def test_collect(
 
 def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
     with open(os.path.dirname(__file__) + "/files/compute/vmSizes.json") as f:
-        AzureVirtualMachineSize.collect(raw=json.load(f)["value"], builder=builder)
+        AzureComputeVirtualMachineSize.collect(raw=json.load(f)["value"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/virtualMachines.json") as f:
-        AzureVirtualMachine.collect(raw=json.load(f)["value"], builder=builder)
+        AzureComputeVirtualMachine.collect(raw=json.load(f)["value"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/calculator.json") as f:
-        AzureDiskTypePricing.collect(raw=json.load(f), builder=builder)
+        AzureComputeDiskTypePricing.collect(raw=json.load(f), builder=builder)
 
     collector = collector_with_graph(builder.graph, credentials)
 
-    num_all_virtual_machine_types = list(collector.graph.search("kind", "azure_virtual_machine_size"))
+    num_all_virtual_machine_types = list(collector.graph.search("kind", "azure_compute_virtual_machine_size"))
 
     collector.remove_unused()
 
-    assert len(list(collector.graph.search("kind", "azure_virtual_machine_size"))) < len(num_all_virtual_machine_types)
+    assert len(list(collector.graph.search("kind", "azure_compute_virtual_machine_size"))) < len(
+        num_all_virtual_machine_types
+    )
 
-    pricing_info = list(collector.graph.search("kind", "azure_disk_type_pricing"))
+    pricing_info = list(collector.graph.search("kind", "azure_compute_disk_type_pricing"))
 
     assert len(pricing_info) > 0
 
     collector.after_collect()
-    assert len(list(collector.graph.search("kind", "azure_disk_type_pricing"))) < len(pricing_info)
+    assert len(list(collector.graph.search("kind", "azure_compute_disk_type_pricing"))) < len(pricing_info)
 
 
 def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> None:
     with open(os.path.dirname(__file__) + "/files/compute/vmSizes.json") as f:
-        AzureVirtualMachineSize.collect(raw=json.load(f)["value"], builder=builder)
+        AzureComputeVirtualMachineSize.collect(raw=json.load(f)["value"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/virtualMachines.json") as f:
-        AzureVirtualMachine.collect(raw=json.load(f)["value"], builder=builder)
+        AzureComputeVirtualMachine.collect(raw=json.load(f)["value"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/prices.json") as f:
-        AzureDiskType.collect(raw=json.load(f)["Items"], builder=builder)
+        AzureComputeDiskType.collect(raw=json.load(f)["Items"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/disks.json") as f:
-        AzureDisk.collect(raw=json.load(f)["value"], builder=builder)
+        AzureComputeDisk.collect(raw=json.load(f)["value"], builder=builder)
 
     collector = collector_with_graph(builder.graph, credentials)
 
     resource_types: List[Type[MicrosoftResource]] = [
-        AzureVirtualMachine,
-        AzureDisk,
+        AzureComputeVirtualMachine,
+        AzureComputeDisk,
     ]
     connect_resources(builder, resource_types)
 
     for node, data in list(collector.graph.nodes(data=True)):
-        if isinstance(node, AzureVirtualMachineSize):
+        if isinstance(node, AzureComputeVirtualMachineSize):
             node.after_collect(builder, data.get("source", {}))
 
-    assert list(collector.graph.search("kind", "azure_virtual_machine_size"))[12].ondemand_cost == 13.14  # type: ignore[attr-defined]
-    assert list(collector.graph.search("kind", "azure_disk_type"))[2].ondemand_cost == 0.3640833333333333  # type: ignore[attr-defined]
+    assert list(collector.graph.search("kind", "azure_compute_virtual_machine_size"))[12].ondemand_cost == 13.14  # type: ignore[attr-defined]
+    assert list(collector.graph.search("kind", "azure_compute_disk_type"))[2].ondemand_cost == 0.3640833333333333  # type: ignore[attr-defined]
+
+
+def test_resource_classes() -> None:
+    def all_base_classes(cls: Type[Any]) -> Set[Type[Any]]:
+        bases = set(cls.__bases__)
+        for base in cls.__bases__:
+            bases.update(all_base_classes(base))
+        return bases
+
+    expected_declared_properties = ["kind", "kind_display"]
+    expected_props_in_hierarchy = ["kind_service", "metadata"]
+    for rc in all_resources:
+        for prop in expected_declared_properties:
+            assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
+        with_bases = (all_base_classes(rc) | {rc}) - {MicrosoftResource, BaseResource}
+        for prop in expected_props_in_hierarchy:
+            assert any(prop in base.__dict__ for base in with_bases), f"{rc.__name__} missing {prop}"
+        for base in with_bases:
+            if "connect_in_graph" in base.__dict__:
+                assert (
+                    "reference_kinds" in base.__dict__
+                ), f"{rc.__name__} should define reference_kinds property, since it defines connect_in_graph"

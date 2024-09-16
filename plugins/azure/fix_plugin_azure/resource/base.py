@@ -306,6 +306,9 @@ class AzureAvailabilityZoneMappings:
 @define(eq=False, slots=False)
 class AzureLocation(MicrosoftResource, BaseRegion):
     kind: ClassVar[str] = "azure_location"
+    kind_display: ClassVar[str] = "Azure Location"
+    kind_service: ClassVar[str] = "resources"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",
@@ -339,6 +342,9 @@ class AzureLocation(MicrosoftResource, BaseRegion):
 @define(eq=False, slots=False)
 class AzureResourceGroup(MicrosoftResource, BaseGroup):
     kind: ClassVar[str] = "azure_resource_group"
+    kind_display: ClassVar[str] = "Azure Resource Group"
+    kind_service: ClassVar[str] = "resources"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-09-01",
@@ -376,7 +382,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
             self._resource_ids_in_group = [r["id"] for r in graph_builder.client.list(resources_api_spec)]
 
         def collect_network_gateways() -> None:
-            from fix_plugin_azure.resource.network import AzureVirtualNetworkGateway
+            from fix_plugin_azure.resource.network import AzureNetworkVirtualNetworkGateway
 
             api_spec = AzureResourceSpec(
                 service="network",
@@ -388,10 +394,10 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
                 expect_array=True,
             )
             items = graph_builder.client.list(api_spec)
-            AzureVirtualNetworkGateway.collect(items, graph_builder)
+            AzureNetworkVirtualNetworkGateway.collect(items, graph_builder)
 
         def collect_local_network_gateway() -> None:
-            from fix_plugin_azure.resource.network import AzureLocalNetworkGateway
+            from fix_plugin_azure.resource.network import AzureNetworkLocalNetworkGateway
 
             api_spec = AzureResourceSpec(
                 service="network",
@@ -403,10 +409,10 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
                 expect_array=True,
             )
             items = graph_builder.client.list(api_spec)
-            AzureLocalNetworkGateway.collect(items, graph_builder)
+            AzureNetworkLocalNetworkGateway.collect(items, graph_builder)
 
         def collect_network_gateway_connections() -> None:
-            from fix_plugin_azure.resource.network import AzureVirtualNetworkGatewayConnection
+            from fix_plugin_azure.resource.network import AzureNetworkVirtualNetworkGatewayConnection
 
             api_spec = AzureResourceSpec(
                 service="network",
@@ -418,7 +424,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
                 expect_array=True,
             )
             items = graph_builder.client.list(api_spec)
-            AzureVirtualNetworkGatewayConnection.collect(items, graph_builder)
+            AzureNetworkVirtualNetworkGatewayConnection.collect(items, graph_builder)
 
         graph_builder.submit_work(service_name, collect_resources_in_group)
         graph_builder.submit_work(service_name, collect_network_gateways)
@@ -453,7 +459,7 @@ class AzureBaseUsage:
     current_value: Optional[int] = field(default=None, metadata={"description": "The current value of the usage."})
     limit: Optional[int] = field(default=None, metadata={"description": "The limit of usage."})
     unit: Optional[str] = field(default=None, metadata={"description": "An enum describing the unit of measurement."})
-    _expected_error_codes: ClassVar[List[str]] = ["SubscriptionHasNoUsages"]
+    _expected_error_codes: ClassVar[Dict[str, Optional[str]]] = {"SubscriptionHasNoUsages": None}
 
 
 @define(eq=False, slots=False)
@@ -539,6 +545,9 @@ class AzureSubscriptionPolicies:
 @define(eq=False, slots=False)
 class AzureSubscription(MicrosoftResource, BaseAccount):
     kind: ClassVar[str] = "azure_subscription"
+    kind_display: ClassVar[str] = "Azure Subscription"
+    kind_service: ClassVar[str] = "resources"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",

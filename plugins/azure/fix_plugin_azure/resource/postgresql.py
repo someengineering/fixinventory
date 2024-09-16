@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field, evolve
 
@@ -37,6 +37,9 @@ log = logging.getLogger("fix.plugins.azure")
 @define(eq=False, slots=False)
 class AzurePostgresqlServerADAdministrator(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_ad_administrator"
+    kind_display: ClassVar[str] = "Azure PostgreSQL Ad Administrator"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
+    kind_service: ClassVar[Optional[str]] = service_name
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -198,6 +201,9 @@ class AzureFastProvisioningEditionCapability:
 @define(eq=False, slots=False)
 class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_postgresql_server_type"
+    kind_display: ClassVar[str] = "Azure PostgreSQL Server Type"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "control"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -313,6 +319,9 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_configuration"
+    kind_display: ClassVar[str] = "Azure PostgreSQL Server Configuration"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzurePostgresqlServer()
     config: Json = field(factory=dict)
 
@@ -347,6 +356,9 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_database"
+    kind_display: ClassVar[str] = "Azure PostgreSQL Server Database"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -364,6 +376,9 @@ class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerFirewallRule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_firewall_rule"
+    kind_display: ClassVar[str] = "Azure PostgreSQL Server Firewall Rule"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -396,6 +411,9 @@ class AzureAuthConfig:
 @define(eq=False, slots=False)
 class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabase):
     kind: ClassVar[str] = "azure_postgresql_server"
+    kind_display: ClassVar[str] = "Azure PostgreSQL Server"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="postgresql",
         version="2023-06-01-preview",
@@ -509,7 +527,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         server_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{server_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -520,7 +538,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -538,10 +556,18 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                 (
                     "administrators",
                     AzurePostgresqlServerADAdministrator,
-                    ["InternalServerError", "DatabaseDoesNotExist"],
+                    {"InternalServerError": None, "DatabaseDoesNotExist": None},
                 ),
-                ("configurations", AzurePostgresqlServerConfiguration, ["ServerStoppedError", "InternalServerError"]),
-                ("databases", AzurePostgresqlServerDatabase, ["ServerStoppedError", "InternalServerError"]),
+                (
+                    "configurations",
+                    AzurePostgresqlServerConfiguration,
+                    {"InternalServerError": None, "DatabaseDoesNotExist": None},
+                ),
+                (
+                    "databases",
+                    AzurePostgresqlServerDatabase,
+                    {"InternalServerError": None, "DatabaseDoesNotExist": None},
+                ),
                 ("firewallRules", AzurePostgresqlServerFirewallRule, None),
                 ("backups", AzurePostgresqlServerBackup, None),
             ]
@@ -574,7 +600,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
                     query_parameters=["api-version"],
                     access_path="value",
                     expect_array=True,
-                    expected_error_codes=["InternalServerError"],
+                    expected_error_codes={"InternalServerError": None},
                 )
                 items = graph_builder.client.list(api_spec)
                 if not items:
@@ -626,6 +652,9 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
 @define(eq=False, slots=False)
 class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_backup"
+    kind_display: ClassVar[str] = "Azure PostgreSQL Server Backup"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),

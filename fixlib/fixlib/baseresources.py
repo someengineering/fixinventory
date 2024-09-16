@@ -267,6 +267,7 @@ class BaseResource(ABC):
     kind: ClassVar[str] = "resource"
     kind_display: ClassVar[str] = "Resource"
     kind_description: ClassVar[str] = "A generic resource."
+    kind_service: ClassVar[Optional[str]] = None
     phantom: ClassVar[bool] = False
     reference_kinds: ClassVar[ModelReference] = {}
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
@@ -893,6 +894,8 @@ class BaseZone(PhantomBaseResource):
     kind_description: ClassVar[str] = "A zone."
     metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "control"}
 
+    long_name: Optional[str] = None
+
     def zone(self, graph: Optional[Any] = None) -> BaseZone:
         return self
 
@@ -1194,6 +1197,15 @@ class BaseRoutingTable(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseRoute(BaseResource):
+    kind: ClassVar[str] = "route"
+    kind_display: ClassVar[str] = "Network Route"
+    kind_description: ClassVar[str] = "A network route."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "route", "group": "networking"}
+    _categories: ClassVar[List[Category]] = [Category.networking]
+
+
+@define(eq=False, slots=False)
 class BaseNetworkAcl(BaseResource):
     kind: ClassVar[str] = "network_acl"
     kind_display: ClassVar[str] = "Network ACL"
@@ -1234,6 +1246,17 @@ class BaseNetworkInterface(BaseResource):
     public_ips: List[str] = field(factory=list)
     v6_ips: Optional[List[str]] = None
     description: Optional[str] = None
+
+
+@define(eq=False, slots=False)
+class BaseIamPrincipal(BaseResource):
+    kind: ClassVar[str] = "iam_principal"
+    kind_display: ClassVar[str] = "IAM Principal"
+    kind_description: ClassVar[str] = (
+        "An IAM principal is an entity that can be authenticated and authorized to access resources."
+    )
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "iam_principal", "group": "access_control"}
+    _categories: ClassVar[List[Category]] = [Category.iam]
 
 
 @define(eq=False, slots=False)

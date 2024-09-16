@@ -18,11 +18,11 @@ from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
     AzurePrivateLinkServiceConnectionState,
 )
-from fix_plugin_azure.resource.compute import AzureVirtualMachineBase
-from fix_plugin_azure.resource.containerservice import AzureManagedCluster
+from fix_plugin_azure.resource.compute import AzureComputeVirtualMachineBase
+from fix_plugin_azure.resource.containerservice import AzureContainerServiceManagedCluster
 from fix_plugin_azure.resource.keyvault import AzureKeyVault
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrincipal, MicrosoftGraphUser
-from fix_plugin_azure.resource.network import AzureSubnet, AzureVirtualNetwork
+from fix_plugin_azure.resource.network import AzureNetworkSubnet, AzureNetworkVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.resource.web import AzureWebApp
 from fixlib.baseresources import BaseInstanceType, ModelReference
@@ -66,6 +66,9 @@ class AzureEndpointAuthKeys:
 @define(eq=False, slots=False)
 class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_batch_endpoint"
+    kind_display: ClassVar[str] = "Azure Machine Learning Batch Endpoint"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
@@ -121,6 +124,9 @@ class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource)
 @define(eq=False, slots=False)
 class AzureMachineLearningCodeContainerBase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_container_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Code Container Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -146,6 +152,7 @@ class AzureMachineLearningCodeContainerBase(MicrosoftResource, AzureProxyResourc
 class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningCodeContainerBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_workspace_code_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Code Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -181,6 +188,7 @@ class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningCodeContain
 class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningCodeContainerBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_registry_code_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Code Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -215,6 +223,9 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningCodeContaine
 @define(eq=False, slots=False)
 class AzureMachineLearningCodeVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_version_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Code Version Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     # Collected via AzureMachineLearningCodeContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -240,17 +251,23 @@ class AzureMachineLearningCodeVersionBase(CheckVersionIsArchived, MicrosoftResou
 class AzureMachineLearningWorkspaceCodeVersion(AzureMachineLearningCodeVersionBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_workspace_code_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Code Version"
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningRegistryCodeVersion(AzureMachineLearningCodeVersionBase):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_registry_code_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Code Version"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningComponentContainerBase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_component_container_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Component Container Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -277,6 +294,7 @@ class AzureMachineLearningWorkspaceComponentContainer(AzureMachineLearningCompon
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_component_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Component Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -313,6 +331,7 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningCompone
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_component_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Component Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -347,6 +366,9 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningCompone
 @define(eq=False, slots=False)
 class AzureMachineLearningComponentVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_component_version_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Component Version Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     # Collected via AzureMachineLearningComponentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -374,6 +396,7 @@ class AzureMachineLearningWorkspaceComponentVersion(AzureMachineLearningComponen
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_component_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Component Version"
 
 
 @define(eq=False, slots=False)
@@ -381,11 +404,16 @@ class AzureMachineLearningRegistryComponentVersion(AzureMachineLearningComponent
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_component_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Component Version"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningComputeNode(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_compute_node"
+    kind_display: ClassVar[str] = "Azure Machine Learning Compute Node"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     # Collected via AzureMachineLearningCompute()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("nodeId"),
@@ -435,6 +463,9 @@ class AzureErrorResponse:
 @define(eq=False, slots=False)
 class AzureMachineLearningCompute(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_compute"
+    kind_display: ClassVar[str] = "Azure Machine Learning Compute"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -443,6 +474,9 @@ class AzureMachineLearningCompute(MicrosoftResource):
                 "azure_machine_learning_compute_node",
                 MicrosoftGraphServicePrincipal.kind,
                 MicrosoftGraphUser.kind,
+                AzureComputeVirtualMachineBase.kind,
+                AzureContainerServiceManagedCluster.kind,
+                AzureWebApp.kind,
             ]
         },
     }
@@ -549,13 +583,18 @@ class AzureMachineLearningCompute(MicrosoftResource):
                         )
         if compute_resource_id := self.resource_id:
             builder.add_edge(
-                self, clazz=(AzureVirtualMachineBase, AzureManagedCluster, AzureWebApp), id=compute_resource_id
+                self,
+                clazz=(AzureComputeVirtualMachineBase, AzureContainerServiceManagedCluster, AzureWebApp),
+                id=compute_resource_id,
             )
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningDataContainerBase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_container_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Data Container Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -582,6 +621,7 @@ class AzureMachineLearningWorkspaceDataContainer(AzureMachineLearningDataContain
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_data_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Data Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -618,6 +658,7 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningDataContaine
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_data_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Data Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -652,6 +693,9 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningDataContaine
 @define(eq=False, slots=False)
 class AzureMachineLearningDataVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_version_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Data Version Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     # Collected via AzureMachineLearningDataContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -681,6 +725,7 @@ class AzureMachineLearningWorkspaceDataVersion(AzureMachineLearningDataVersionBa
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_data_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Data Version"
 
 
 @define(eq=False, slots=False)
@@ -688,11 +733,16 @@ class AzureMachineLearningRegistryDataVersion(AzureMachineLearningDataVersionBas
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_data_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Data Version"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningDatastore(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_datastore"
+    kind_display: ClassVar[str] = "Azure Machine Learning Datastore"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -735,6 +785,9 @@ class AzureEndpointDeploymentResourcePropertiesBasicResource:
 @define(eq=False, slots=False)
 class AzureMachineLearningEndpoint(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_endpoint"
+    kind_display: ClassVar[str] = "Azure Machine Learning Endpoint"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -793,6 +846,9 @@ class AzureInferenceContainerProperties:
 @define(eq=False, slots=False)
 class AzureMachineLearningEnvironmentContainerBase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_container_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Environment Container Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -819,6 +875,7 @@ class AzureMachineLearningWorkspaceEnvironmentContainer(AzureMachineLearningEnvi
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_environment_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Environment Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -855,6 +912,7 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningEnvir
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_environment_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Environment Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -889,6 +947,9 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningEnvir
 @define(eq=False, slots=False)
 class AzureMachineLearningEnvironmentVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_version_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Environment Version Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     # Collected via AzureMachineLearningEnvironmentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -930,6 +991,7 @@ class AzureMachineLearningWorkspaceEnvironmentVersion(AzureMachineLearningEnviro
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_environment_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Environment Version"
 
 
 @define(eq=False, slots=False)
@@ -937,11 +999,16 @@ class AzureMachineLearningRegistryEnvironmentVersion(AzureMachineLearningEnviron
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_environment_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Environment Version"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningFeature(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_feature"
+    kind_display: ClassVar[str] = "Azure Machine Learning Feature"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     # Collected via AzureMachineLearningFeaturesetVersion()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -1042,6 +1109,9 @@ class AzureMaterializationSettings:
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Featureset Container"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1095,6 +1165,9 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featureset_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Featureset Version"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
     # Collected via AzureMachineLearningFeaturesetContainer()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1156,6 +1229,9 @@ class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResourc
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Featurestore Entity Container"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -1217,6 +1293,9 @@ class AzureIndexColumn:
 @define(eq=False, slots=False)
 class AzureMachineLearningFeaturestoreEntityVersion(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Featurestore Entity Version"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
     # Collected via AzureMachineLearningFeaturestoreEntityContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -1265,6 +1344,9 @@ class AzureJobService:
 @define(eq=False, slots=False)
 class AzureMachineLearningJob(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_job"
+    kind_display: ClassVar[str] = "Azure Machine Learning Job"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1431,6 +1513,9 @@ class AzureStatusMessage:
 @define(eq=False, slots=False)
 class AzureMachineLearningLabelingJob(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_labeling_job"
+    kind_display: ClassVar[str] = "Azure Machine Learning Labeling Job"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "generative_ai"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -1469,6 +1554,9 @@ class AzureMachineLearningLabelingJob(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningModelContainerBase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_model_container_base"
+    kind_display: ClassVar[str] = "Azure Machine Learning Model Container Base"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -1495,6 +1583,7 @@ class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningModelConta
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Model Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1531,6 +1620,7 @@ class AzureMachineLearningRegistryModelContainer(AzureMachineLearningModelContai
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_container"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Model Container"
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1572,6 +1662,9 @@ class AzureFlavorData:
 @define(eq=False, slots=False)
 class AzureMachineLearningModelVersionBase(CheckVersionIsArchived, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_model_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Base Model Version"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
     # Collected via AzureMachineLearningModelContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -1607,6 +1700,7 @@ class AzureMachineLearningWorkspaceModelVersion(AzureMachineLearningModelVersion
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Model Version"
 
 
 @define(eq=False, slots=False)
@@ -1614,11 +1708,15 @@ class AzureMachineLearningRegistryModelVersion(AzureMachineLearningModelVersionB
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_version"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry Model Version"
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_online_endpoint"
+    kind_display: ClassVar[str] = "Azure Machine Learning Online Endpoint"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1682,6 +1780,9 @@ class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource
 @define(eq=False, slots=False)
 class AzureMachineLearningPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_endpoint_connection"
+    kind_display: ClassVar[str] = "Azure Machine Learning Private Endpoint Connection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "connection", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
@@ -1730,6 +1831,9 @@ class AzureMachineLearningPrivateEndpointConnection(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_link"
+    kind_display: ClassVar[str] = "Azure Machine Learning Private Link"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": [MicrosoftGraphServicePrincipal.kind, MicrosoftGraphUser.kind]},
@@ -1889,6 +1993,9 @@ class AzureRegistryRegionArmDetails:
 @define(eq=False, slots=False)
 class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_registry"
+    kind_display: ClassVar[str] = "Azure Machine Learning Registry"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
         version="2024-04-01",
@@ -1946,7 +2053,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
         registry_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{registry_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -1957,7 +2064,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -1969,7 +2076,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if registry_id := self.id:
             resources_to_collect = [
-                ("codes", AzureMachineLearningRegistryCodeContainer, ["UserError"]),
+                ("codes", AzureMachineLearningRegistryCodeContainer, {"UserError": None}),
                 ("components", AzureMachineLearningRegistryComponentContainer, None),
                 ("data", AzureMachineLearningRegistryDataContainer, None),
                 ("environments", AzureMachineLearningRegistryEnvironmentContainer, None),
@@ -2009,6 +2116,9 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningQuota(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_quota"
+    kind_display: ClassVar[str] = "Azure Machine Learning Quota"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "generative_ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
         version="2024-04-01",
@@ -2017,7 +2127,7 @@ class AzureMachineLearningQuota(MicrosoftResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=["InternalServerError", "ServiceError"],
+        expected_error_codes={"InternalServerError": None, "ServiceError": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -2034,6 +2144,9 @@ class AzureMachineLearningQuota(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningSchedule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_schedule"
+    kind_display: ClassVar[str] = "Azure Machine Learning Schedule"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -2068,6 +2181,9 @@ class AzureServerlessInferenceEndpoint:
 @define(eq=False, slots=False)
 class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_serverless_endpoint"
+    kind_display: ClassVar[str] = "Azure Machine Learning Serverless Endpoint"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2135,6 +2251,9 @@ class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedReso
 @define(eq=False, slots=False)
 class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_machine_learning_usage"
+    kind_display: ClassVar[str] = "Azure Machine Learning Usage"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "generative_ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
         version="2024-04-01",
@@ -2143,7 +2262,11 @@ class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=AzureBaseUsage._expected_error_codes + ["InternalServerError", "ServiceError"],
+        expected_error_codes={
+            **AzureBaseUsage._expected_error_codes,
+            "InternalServerError": None,
+            "ServiceError": None,
+        },
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("id"),
@@ -2185,6 +2308,9 @@ class AzureEstimatedVMPrices:
 @define(eq=False, slots=False)
 class AzureMachineLearningVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_machine_learning_virtual_machine_size"
+    kind_display: ClassVar[str] = "Azure Machine Learning Virtual Machine Size"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "control"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
         "tags": S("tags", default={}),
@@ -2363,6 +2489,9 @@ class AzureWorkspaceHubConfig:
 @define(eq=False, slots=False)
 class AzureMachineLearningWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_workspace"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
         version="2024-04-01",
@@ -2401,9 +2530,9 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         "predecessors": {
             "default": [
                 AzureKeyVault.kind,
-                AzureVirtualNetwork.kind,
+                AzureNetworkVirtualNetwork.kind,
                 AzureStorageAccount.kind,
-                AzureSubnet.kind,
+                AzureNetworkSubnet.kind,
             ]
         },
     }
@@ -2495,7 +2624,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         workspace_id: str,
         resource_type: str,
         class_instance: MicrosoftResource,
-        expected_errors: Optional[List[str]] = None,
+        expected_errors: Optional[Dict[str, Optional[str]]] = None,
     ) -> None:
         path = f"{workspace_id}/{resource_type}"
         api_spec = AzureResourceSpec(
@@ -2506,7 +2635,7 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
             query_parameters=["api-version"],
             access_path="value",
             expect_array=True,
-            expected_error_codes=expected_errors or [],
+            expected_error_codes=expected_errors or {},
         )
         items = graph_builder.client.list(api_spec)
         if not items:
@@ -2530,12 +2659,12 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
                 ("schedules", AzureMachineLearningSchedule, None),
                 ("serverlessEndpoints", AzureMachineLearningServerlessEndpoint, None),
                 ("connections", AzureMachineLearningWorkspaceConnection, None),
-                ("codes", AzureMachineLearningWorkspaceCodeContainer, ["UserError"]),
+                ("codes", AzureMachineLearningWorkspaceCodeContainer, {"UserError": None}),
                 ("components", AzureMachineLearningWorkspaceComponentContainer, None),
                 ("data", AzureMachineLearningWorkspaceDataContainer, None),
                 ("environments", AzureMachineLearningWorkspaceEnvironmentContainer, None),
-                ("featuresets", AzureMachineLearningFeaturesetContainer, ["UserError"]),
-                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, ["UserError"]),
+                ("featuresets", AzureMachineLearningFeaturesetContainer, {"UserError": None}),
+                ("featurestoreEntities", AzureMachineLearningFeaturestoreEntityContainer, {"UserError": None}),
                 ("models", AzureMachineLearningWorkspaceModelContainer, None),
             ]
 
@@ -2554,13 +2683,13 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
         if key_vault_id := self.key_vault:
             builder.add_edge(self, clazz=AzureKeyVault, reverse=True, id=key_vault_id)
         if (network := self.managed_network) and (network_id := network.network_id):
-            builder.add_edge(self, clazz=AzureVirtualNetwork, reverse=True, id=network_id)
+            builder.add_edge(self, clazz=AzureNetworkVirtualNetwork, reverse=True, id=network_id)
         if storage_id := self.storage_account:
             builder.add_edge(self, clazz=AzureStorageAccount, reverse=True, id=storage_id)
         if (compute_settings := self.serverless_compute_settings) and (
             subnet_id := compute_settings.serverless_compute_custom_subnet
         ):
-            builder.add_edge(self, clazz=AzureSubnet, reverse=True, id=subnet_id)
+            builder.add_edge(self, clazz=AzureNetworkSubnet, reverse=True, id=subnet_id)
 
         # principal: collected via ms graph -> create a deferred edge
         if ai := self.identity:
@@ -2583,6 +2712,9 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_workspace_connection"
+    kind_display: ClassVar[str] = "Azure Machine Learning Workspace Connection"
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),

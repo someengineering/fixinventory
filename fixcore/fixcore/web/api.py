@@ -973,7 +973,7 @@ class Api(Service):
             md = md.filter_complex(lambda x: x.fqn in kinds, with_bases, with_property_kinds)
         if filter_names := request.query.get("filter"):
             parts = filter_names.split(",")
-            md = md.filter_complex(lambda x: any(x.fqn in p for p in parts), with_bases, with_property_kinds)
+            md = md.filter_complex(lambda x: any(p in x.fqn for p in parts), with_bases, with_property_kinds)
         if aggregate_roots_only:
             md = md.filter_complex(lambda x: x.aggregate_root, with_bases, with_property_kinds)
         md = md.flat_kinds(full_model) if request.query.get("flat", "false") == "true" else md

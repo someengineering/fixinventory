@@ -249,13 +249,15 @@ class AwsElastiCacheLogDeliveryConfiguration:
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_cache_cluster"
     kind_display: ClassVar[str] = "AWS ElastiCache Cache Cluster"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticache/home?region={region}#/{Engine}/{name}", "arn_tpl": "arn:{partition}:elasticache:{region}:{account}:cache-cluster/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ElastiCache is a web service that makes it easy to set up, manage, and scale"
         " a distributed in-memory cache environment in the cloud. A cache cluster is a"
         " collection of one or more cache nodes that work together to provide a highly"
         " scalable and available cache solution."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticache/home?region={region}#/{Engine}/{name}", "arn_tpl": "arn:{partition}:elasticache:{region}:{account}:cache-cluster/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_ec2_security_group"],
@@ -499,12 +501,14 @@ class AwsElastiCacheNodeGroup:
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
     kind_display: ClassVar[str] = "AWS ElastiCache Replication Group"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:elasticache:{region}:{account}:replication-group/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "ElastiCache Replication Groups in AWS are used to store and retrieve data in"
         " memory to improve the performance of web applications and reduce the load on"
         " databases."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "database"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:elasticache:{region}:{account}:replication-group/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-replication-groups", "ReplicationGroups")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_elasticache_cache_cluster", "aws_kms_key"]},

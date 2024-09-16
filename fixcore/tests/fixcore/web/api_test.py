@@ -30,8 +30,8 @@ from fixcore.ids import GraphName
 
 def graph_to_json(graph: MultiDiGraph) -> List[rc.JsObject]:
     ga: List[rc.JsValue] = [{**node, "type": "node"} for _, node in graph.nodes(data=True)]
-    for from_node, to_node, data in graph.edges(data=True):
-        ga.append({"type": "edge", "from": from_node, "to": to_node, "edge_type": data["edge_type"]})
+    for from_node, to_node, key in graph.edges(keys=True):
+        ga.append({"type": "edge", "from": from_node, "to": to_node, "edge_type": key.edge_type})
     return ga
 
 

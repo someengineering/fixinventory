@@ -7,7 +7,7 @@ from typing import List, AsyncGenerator, Any
 import pytest
 
 from fixcore.analytics import AnalyticsEventSender
-from fixcore.db.deferredouteredgedb import deferred_outer_edge_db
+from fixcore.db.deferrededgesdb import deferred_outer_edge_db
 from fixcore.db.graphdb import ArangoGraphDB
 from fixcore.db.model import GraphUpdate
 from fixcore.model.graph_access import DeferredEdge, ByNodeId
@@ -46,8 +46,8 @@ async def test_merge_process(
 
         for node in graph.nodes():
             yield to_b(graph.nodes[node])
-        for from_node, to_node, data in graph.edges(data=True):
-            yield to_b({"from": from_node, "to": to_node, "edge_type": data["edge_type"]})
+        for from_node, to_node, key in graph.edges(keys=True):
+            yield to_b({"from": from_node, "to": to_node, "edge_type": key.edge_type})
         yield to_b(
             {"from_selector": {"node_id": "id_123"}, "to_selector": {"node_id": "id_456"}, "edge_type": "delete"}
         )
