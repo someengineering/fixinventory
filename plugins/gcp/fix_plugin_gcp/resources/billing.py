@@ -119,6 +119,8 @@ class GcpService(GcpResource):
         " Google Cloud Platform, which provide scalable cloud computing solutions for"
         " businesses and developers."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "control"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_sku"]},
     }

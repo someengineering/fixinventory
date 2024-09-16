@@ -3409,6 +3409,7 @@ class AwsEc2Image(AwsResource):
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#ImageDetails:imageId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:image/{id}"}  # fmt: skip
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_ec2_snapshot"]}}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-images", "Images", {"Owners": ["self"]})
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ImageId"),
@@ -3486,7 +3487,7 @@ class AwsEc2Image(AwsResource):
             return
         for bdm in self.block_device_mappings:
             if bdm.ebs and bdm.ebs.snapshot_id:
-                builder.add_edge(self, EdgeType.default, reverse=False, clazz=AwsEc2Snapshot, id=bdm.ebs.snapshot_id)
+                builder.add_edge(self, EdgeType.default, clazz=AwsEc2Snapshot, id=bdm.ebs.snapshot_id)
 
 
 @define(eq=False, slots=False)
