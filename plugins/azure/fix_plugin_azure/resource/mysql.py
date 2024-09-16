@@ -108,6 +108,7 @@ class AzureMysqlServerADAdministrator(MicrosoftResource):
     kind_display: ClassVar[str] = "Azure MySQL Server Ad Administrator"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftGraphUser.kind]}}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),

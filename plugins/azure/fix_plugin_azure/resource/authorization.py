@@ -265,6 +265,7 @@ class AzureAuthorizationManagementLock(MicrosoftResource):
     kind_display: ClassVar[str] = "Azure Authorization Management Lock"
     kind_service: ClassVar[Optional[str]] = "resources"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "lock", "group": "access_control"}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2020-05-01",

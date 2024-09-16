@@ -2,17 +2,17 @@ import json
 import os
 from pathlib import Path
 from queue import Queue
-from typing import List
+from typing import List, Type, Any, Set
 
 import yaml
 
 from fix_plugin_gcp import GcpConfig
 from fix_plugin_gcp.collector import GcpProjectCollector, all_resources, called_collect_apis, called_mutator_apis
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpProject, GraphBuilder
+from fix_plugin_gcp.resources.base import GcpProject, GraphBuilder, GcpResource
 from fix_plugin_gcp.resources.billing import GcpSku
 from fix_plugin_gcp.resources.compute import GcpMachineType
-from fixlib.baseresources import Cloud
+from fixlib.baseresources import Cloud, BaseResource
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
@@ -75,3 +75,25 @@ def test_role_creation() -> None:
     m = iam_role_for("fix_mutate", "Permissions required to mutate resources.", called_mutator_apis(), write_files)
     assert c is not None
     assert m is not None
+
+
+def test_resource_classes() -> None:
+    def all_base_classes(cls: Type[Any]) -> Set[Type[Any]]:
+        bases = set(cls.__bases__)
+        for base in cls.__bases__:
+            bases.update(all_base_classes(base))
+        return bases
+
+    expected_declared_properties = ["kind", "kind_display"]
+    expected_props_in_hierarchy = ["kind_service", "metadata"]
+    for rc in all_resources:
+        for prop in expected_declared_properties:
+            assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
+        with_bases = (all_base_classes(rc) | {rc}) - {GcpResource, BaseResource}
+        for prop in expected_props_in_hierarchy:
+            assert any(prop in base.__dict__ for base in with_bases), f"{rc.__name__} missing {prop}"
+        for base in with_bases:
+            if "connect_in_graph" in base.__dict__:
+                assert (
+                    "reference_kinds" in base.__dict__
+                ), f"{rc.__name__} should define reference_kinds property, since it defines connect_in_graph"

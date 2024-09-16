@@ -31,6 +31,7 @@ class AzureSqlServerADAdministrator(MicrosoftResource):
     kind_display: ClassVar[str] = "Azure SQL Server Ad Administrator"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -629,6 +630,7 @@ class AzureSqlServerManagedInstanceADAdministrator(MicrosoftResource):
     kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Ad Administrator"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     # Collect via AzureSqlManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1119,6 +1121,7 @@ class AzureSqlServerDatabaseWorkloadGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_database_workload_group"
     kind_display: ClassVar[str] = "Azure SQL Server Database Workload Group"
     kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     # Collect via AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),

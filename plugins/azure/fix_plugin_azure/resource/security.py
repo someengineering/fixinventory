@@ -5,6 +5,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
+from fixlib.baseresources import ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
@@ -94,6 +95,7 @@ class AzureSecurityAssessment(MicrosoftResource):
     kind_display: ClassVar[str] = "Azure Security Assessment"
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
         version="2021-06-01",

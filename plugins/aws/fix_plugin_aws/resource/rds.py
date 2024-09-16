@@ -1066,6 +1066,7 @@ class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
     kind_display: ClassVar[str] = "AWS RDS Snapshot"
     kind_description: ClassVar[str] = "An AWS RDS Snapshot is a backup tool used for creating a point-in-time copy of an RDS database instance, facilitating data recovery and replication."  # fmt: skip
     kind_service: ClassVar[Optional[str]] = service_name
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": [AwsRdsInstance.kind, AwsEc2Vpc.kind]}}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#db-snapshot:engine={Engine};id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot:{id}/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-snapshots", "DBSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1166,6 +1167,10 @@ class AwsRdsClusterSnapshot(AwsResource):
     kind_display: ClassVar[str] = "AWS RDS Cluster Snapshot"
     kind_description: ClassVar[str] = "An AWS RDS Cluster Snapshot is a point-in-time backup of an Amazon RDS cluster that provides data persistence and recovery for disaster management."  # fmt: skip
     kind_service: ClassVar[Optional[str]] = service_name
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": [AwsRdsCluster.kind, AwsEc2Vpc.kind]},
+        "successors": {"default": [AwsKmsKey.kind]},
+    }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#db-snapshot:engine={Engine};id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-cluster-snapshots", "DBClusterSnapshots")

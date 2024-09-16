@@ -1,13 +1,13 @@
 import os
 import json
 from queue import Queue
-from typing import List, Type
+from typing import List, Type, Set, Any
 
 from conftest import connect_resources
 
 from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphOrganization
 from fix_plugin_azure.azure_client import MicrosoftClient
-from fix_plugin_azure.collector import AzureSubscriptionCollector, MicrosoftGraphOrganizationCollector
+from fix_plugin_azure.collector import AzureSubscriptionCollector, MicrosoftGraphOrganizationCollector, all_resources
 from fix_plugin_azure.config import AzureCredentials, AzureConfig
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSubscription, GraphBuilder
 from fix_plugin_azure.resource.compute import (
@@ -17,7 +17,7 @@ from fix_plugin_azure.resource.compute import (
     AzureComputeDisk,
     AzureComputeDiskType,
 )
-from fixlib.baseresources import Cloud
+from fixlib.baseresources import Cloud, BaseResource
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
 
@@ -110,3 +110,25 @@ def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> N
 
     assert list(collector.graph.search("kind", "azure_compute_virtual_machine_size"))[12].ondemand_cost == 13.14  # type: ignore[attr-defined]
     assert list(collector.graph.search("kind", "azure_compute_disk_type"))[2].ondemand_cost == 0.3640833333333333  # type: ignore[attr-defined]
+
+
+def test_resource_classes() -> None:
+    def all_base_classes(cls: Type[Any]) -> Set[Type[Any]]:
+        bases = set(cls.__bases__)
+        for base in cls.__bases__:
+            bases.update(all_base_classes(base))
+        return bases
+
+    expected_declared_properties = ["kind", "kind_display"]
+    expected_props_in_hierarchy = ["kind_service", "metadata"]
+    for rc in all_resources:
+        for prop in expected_declared_properties:
+            assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
+        with_bases = (all_base_classes(rc) | {rc}) - {MicrosoftResource, BaseResource}
+        for prop in expected_props_in_hierarchy:
+            assert any(prop in base.__dict__ for base in with_bases), f"{rc.__name__} missing {prop}"
+        for base in with_bases:
+            if "connect_in_graph" in base.__dict__:
+                assert (
+                    "reference_kinds" in base.__dict__
+                ), f"{rc.__name__} should define reference_kinds property, since it defines connect_in_graph"

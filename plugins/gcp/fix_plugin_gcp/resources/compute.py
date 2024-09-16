@@ -2907,6 +2907,10 @@ class GcpInstanceGroup(GcpResource):
         " manage and scale multiple instances together as a single unit."
     )
     kind_service: ClassVar[Optional[str]] = service_name
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
+    }
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -7085,6 +7089,7 @@ class GcpServiceAttachment(GcpResource):
         " names management, and protocol support."
     )
     kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "compute"}
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_backend_service", "gcp_subnetwork"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
