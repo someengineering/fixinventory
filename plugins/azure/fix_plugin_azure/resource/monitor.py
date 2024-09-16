@@ -204,7 +204,7 @@ class AzureMonitorActionGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_action_group"
     kind_display: ClassVar[str] = "Azure Monitor Action Group"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -298,7 +298,7 @@ class AzureMonitorActivityLogAlert(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_activity_log_alert"
     kind_display: ClassVar[str] = "Azure Monitor Activity Log Alert"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AzureMonitorActionGroup.kind]},
     }
@@ -366,7 +366,7 @@ class AzureMonitorAlertRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_alert_rule"
     kind_display: ClassVar[str] = "Azure Monitor Alert Rule"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -428,7 +428,7 @@ class AzureMonitorPrivateLinkScope(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_private_link_scope"
     kind_display: ClassVar[str] = "Azure Monitor Private Link Scope"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -710,7 +710,7 @@ class AzureMonitorWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_workspace"
     kind_display: ClassVar[str] = "Azure Monitor Workspace"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -748,7 +748,7 @@ class AzureMonitorDataCollectionRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_data_collection_rule"
     kind_display: ClassVar[str] = "Azure Monitor Data Collection Rule"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -809,7 +809,7 @@ class AzureMonitorLogProfile(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_log_profile"
     kind_display: ClassVar[str] = "Azure Monitor Log Profile"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -853,7 +853,7 @@ class AzureMetricAlert(MicrosoftResource):
     kind: ClassVar[str] = "azure_metric_alert"
     kind_display: ClassVar[str] = "Azure Metric Alert"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -1118,7 +1118,7 @@ class AzureMonitorPipelineGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_pipeline_group"
     kind_display: ClassVar[str] = "Azure Monitor Pipeline Group"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -1231,7 +1231,7 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_scheduled_query_rule"
     kind_display: ClassVar[str] = "Azure Monitor Scheduled Query Rule"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
@@ -1327,7 +1327,7 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_diagnostic_settings"
     kind_display: ClassVar[str] = "Azure Monitor Diagnostic Settings"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _is_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",

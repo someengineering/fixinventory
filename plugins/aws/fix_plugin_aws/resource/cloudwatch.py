@@ -239,7 +239,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
         "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:alarm/{name}", "arn_tpl": "arn:{partition}:cloudwatch:{region}:{account}:alarm/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-alarms", "MetricAlarms")
     reference_kinds: ClassVar[ModelReference] = {
@@ -342,7 +342,7 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
         " AWS resources."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{name}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:log-group/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-log-groups", "logGroups")
     reference_kinds: ClassVar[ModelReference] = {
@@ -413,7 +413,7 @@ class AwsCloudwatchMetricFilter(AwsResource):
         " to create CloudWatch metrics."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{arn}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:metric-filter/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-metric-filters", "metricFilters")
     reference_kinds: ClassVar[ModelReference] = {

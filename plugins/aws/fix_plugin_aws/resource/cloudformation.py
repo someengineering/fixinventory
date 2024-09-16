@@ -260,7 +260,7 @@ class AwsCloudFormationStackSet(AwsResource):
         " with a single CloudFormation template."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacksets/{name}/info?permissions=self", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-set/{name}/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-stack-sets", "Summaries", dict(Status="ACTIVE"))
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -380,7 +380,7 @@ class AwsCloudFormationStackInstanceSummary(AwsResource):
         " deployment. The information includes current status, name, and any associated resources or parameters."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-instance/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": F(_stack_instance_id),

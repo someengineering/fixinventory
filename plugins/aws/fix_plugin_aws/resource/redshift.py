@@ -10,6 +10,7 @@ from fix_plugin_aws.resource.ec2 import AwsEc2Vpc, AwsEc2SecurityGroup, AwsEc2Su
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict
+from fixlib.basecategories import Category
 from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, K
@@ -423,6 +424,7 @@ class AwsRedshiftCluster(AwsResource):
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:redshift:{region}:{account}:cluster/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-clusters", "Clusters")
+    _categories: ClassVar[List[Category]] = [Category.database, Category.analytics, Category.storage]
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],

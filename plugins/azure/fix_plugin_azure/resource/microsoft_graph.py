@@ -20,6 +20,8 @@ log = logging.getLogger("fix.plugins.azure")
 @define(eq=False, slots=False)
 class MicrosoftGraphEntity(MicrosoftResource):
     kind: ClassVar[str] = "microsoft_graph_entity"
+    kind_display: ClassVar[str] = "Microsoft Graph Entity"
+    kind_service: ClassVar[Optional[str]] = "graph"
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "deleted_date_time": S("deletedDateTime"),
@@ -1047,6 +1049,7 @@ class MicrosoftGraphGroup(MicrosoftGraphEntity, BaseGroup):
 class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
     kind: ClassVar[str] = "microsoft_graph_organization"
     kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph Organization"
     api_spec: ClassVar[MicrosoftRestSpec] = RestApiSpec(
         "graph",
         "https://graph.microsoft.com/v1.0/organization",
@@ -1131,6 +1134,7 @@ class MicrosoftGraphOrganization(MicrosoftGraphEntity, BaseAccount):
 class MicrosoftGraphOrganizationRoot(MicrosoftGraphEntity, BaseRegion):
     kind: ClassVar[str] = "microsoft_graph_organization_root"
     kind_service: ClassVar[Optional[str]] = "entra_id"
+    kind_display: ClassVar[str] = "Microsoft Graph Organization Root"
 
 
 @define(eq=False, slots=False)

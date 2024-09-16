@@ -1056,7 +1056,7 @@ class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_storage_account_usage"
     kind_display: ClassVar[str] = "Azure Storage Account Usage"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
