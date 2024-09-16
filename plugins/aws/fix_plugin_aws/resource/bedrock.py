@@ -1494,12 +1494,6 @@ class AwsBedrockFlowConnection:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockCollectorFlowNodeConfiguration:
-    kind: ClassVar[str] = "aws_bedrock_collector_flow_node_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {}
-
-
-@define(eq=False, slots=False)
 class AwsBedrockFlowCondition:
     kind: ClassVar[str] = "aws_bedrock_flow_condition"
     mapping: ClassVar[Dict[str, Bender]] = {"expression": S("expression"), "name": S("name")}
@@ -1517,18 +1511,6 @@ class AwsBedrockConditionFlowNodeConfiguration:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockInputFlowNodeConfiguration:
-    kind: ClassVar[str] = "aws_bedrock_input_flow_node_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {}
-
-
-@define(eq=False, slots=False)
-class AwsBedrockIteratorFlowNodeConfiguration:
-    kind: ClassVar[str] = "aws_bedrock_iterator_flow_node_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {}
-
-
-@define(eq=False, slots=False)
 class AwsBedrockKnowledgeBaseFlowNodeConfiguration:
     kind: ClassVar[str] = "aws_bedrock_knowledge_base_flow_node_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {"knowledge_base_id": S("knowledgeBaseId"), "model_id": S("modelId")}
@@ -1542,12 +1524,6 @@ class AwsBedrockLexFlowNodeConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {"bot_alias_arn": S("botAliasArn"), "locale_id": S("localeId")}
     bot_alias_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the Amazon Lex bot alias to invoke."})  # fmt: skip
     locale_id: Optional[str] = field(default=None, metadata={"description": "The Region to invoke the Amazon Lex bot in."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsBedrockOutputFlowNodeConfiguration:
-    kind: ClassVar[str] = "aws_bedrock_output_flow_node_configuration"
-    mapping: ClassVar[Dict[str, Bender]] = {}
 
 
 @define(eq=False, slots=False)
@@ -1624,27 +1600,19 @@ class AwsBedrockFlowNodeConfiguration:
     kind: ClassVar[str] = "aws_bedrock_flow_node_configuration"
     mapping: ClassVar[Dict[str, Bender]] = {
         "agent": S("agent", "agentAliasArn"),
-        "collector": S("collector") >> Bend(AwsBedrockCollectorFlowNodeConfiguration.mapping),
         "condition": S("condition") >> Bend(AwsBedrockConditionFlowNodeConfiguration.mapping),
-        "input": S("input") >> Bend(AwsBedrockInputFlowNodeConfiguration.mapping),
-        "iterator": S("iterator") >> Bend(AwsBedrockIteratorFlowNodeConfiguration.mapping),
         "knowledge_base": S("knowledgeBase") >> Bend(AwsBedrockKnowledgeBaseFlowNodeConfiguration.mapping),
         "lambda_function": S("lambdaFunction", "lambdaArn"),
         "lex": S("lex") >> Bend(AwsBedrockLexFlowNodeConfiguration.mapping),
-        "output": S("output") >> Bend(AwsBedrockOutputFlowNodeConfiguration.mapping),
         "prompt": S("prompt") >> Bend(AwsBedrockPromptFlowNodeConfiguration.mapping),
         "retrieval": S("retrieval") >> Bend(AwsBedrockRetrievalFlowNodeConfiguration.mapping),
         "storage": S("storage") >> Bend(AwsBedrockStorageFlowNodeConfiguration.mapping),
     }
     agent: Optional[str] = field(default=None, metadata={"description": "Contains configurations for an agent node in your flow. Invokes an alias of an agent and returns the response."})  # fmt: skip
-    collector: Optional[AwsBedrockCollectorFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for a collector node in your flow. Collects an iteration of inputs and consolidates them into an array of outputs."})  # fmt: skip
     condition: Optional[AwsBedrockConditionFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for a Condition node in your flow. Defines conditions that lead to different branches of the flow."})  # fmt: skip
-    input: Optional[AwsBedrockInputFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for an input flow node in your flow. The first node in the flow. inputs can't be specified for this node."})  # fmt: skip
-    iterator: Optional[AwsBedrockIteratorFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for an iterator node in your flow. Takes an input that is an array and iteratively sends each item of the array as an output to the following node. The size of the array is also returned in the output. The output flow node at the end of the flow iteration will return a response for each member of the array. To return only one response, you can include a collector node downstream from the iterator node."})  # fmt: skip
     knowledge_base: Optional[AwsBedrockKnowledgeBaseFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for a knowledge base node in your flow. Queries a knowledge base and returns the retrieved results or generated response."})  # fmt: skip
     lambda_function: Optional[str] = field(default=None, metadata={"description": "Contains configurations for a Lambda function node in your flow. Invokes an Lambda function."})  # fmt: skip
     lex: Optional[AwsBedrockLexFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for a Lex node in your flow. Invokes an Amazon Lex bot to identify the intent of the input and return the intent as the output."})  # fmt: skip
-    output: Optional[AwsBedrockOutputFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for an output flow node in your flow. The last node in the flow. outputs can't be specified for this node."})  # fmt: skip
     prompt: Optional[AwsBedrockPromptFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for a prompt node in your flow. Runs a prompt and generates the model response as the output. You can use a prompt from Prompt management or you can configure one in this node."})  # fmt: skip
     retrieval: Optional[AwsBedrockRetrievalFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for a Retrieval node in your flow. Retrieves data from an Amazon S3 location and returns it as the output."})  # fmt: skip
     storage: Optional[AwsBedrockStorageFlowNodeConfiguration] = field(default=None, metadata={"description": "Contains configurations for a Storage node in your flow. Stores an input in an Amazon S3 location."})  # fmt: skip
