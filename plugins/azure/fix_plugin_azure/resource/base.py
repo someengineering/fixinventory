@@ -82,6 +82,7 @@ def parse_json(
 @define(eq=False, slots=False)
 class MicrosoftResource(BaseResource):
     kind: ClassVar[str] = "microsoft_resource"
+    kind_display: ClassVar[str] = "Microsoft Resource"
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
