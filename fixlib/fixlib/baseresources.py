@@ -1518,7 +1518,7 @@ class BaseAiResource(BaseResource):
     kind: ClassVar[str] = "ai_resource"
     kind_display: ClassVar[str] = "AI resource"
     kind_description: ClassVar[str] = "An AI Resource."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _categories: ClassVar[List[Category]] = [Category.ai, Category.compute]
 
 

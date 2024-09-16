@@ -96,7 +96,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAiResource, AwsResource):
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_bedrock_model_customization_job"]},
     }
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-custom-models", "modelSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("modelArn"),
@@ -193,7 +193,7 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, BaseAiResource, AwsR
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "bedrock", "list-provisioned-model-throughputs", "provisionedModelSummaries"
     )
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/provisioned-throughput/{name}"}  # fmt: skip
     kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -369,7 +369,7 @@ class AwsBedrockGuardrail(BedrockTaggable, BaseAiResource, AwsResource):
         "bedrock", "list-guardrails", "guardrails", expected_errors=["AccessDeniedException"]
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/guardrails/guardrail/{name}/{id}"}  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("guardrailId"),
@@ -485,7 +485,7 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAiResource, AwsResour
     )
     kind_service: ClassVar[Optional[str]] = service_name
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/item/?arn={arn}"}  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
         "name": S("jobName"),
@@ -686,7 +686,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAiResource, AwsResource):
         "bedrock", "list-evaluation-jobs", "jobSummaries", expected_errors=["AccessDeniedException"]
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {}
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
@@ -837,7 +837,7 @@ class AwsBedrockAgent(BedrockTaggable, BaseAiResource, AwsResource):
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}"
     }
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock-agent", "list-agents", "agentSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -980,7 +980,7 @@ class AwsBedrockAgentVersion(BedrockTaggable, BaseAiResource, AwsResource):
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}/versions/{version}"
     }
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
     # Collected via AwsBedrockAgent()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("agentVersion", "agentId"),
@@ -1261,7 +1261,7 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAiResource, AwsResource)
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/knowledge-bases/knowledge-base/{name}/{id}/0"
     }
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AwsBedrockAgent()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("knowledgeBaseId"),
@@ -1391,7 +1391,7 @@ class AwsBedrockAgentPrompt(BedrockTaggable, BaseAiResource, AwsResource):
         "bedrock-agent", "list-prompts", "promptSummaries", expected_errors=["AccessDeniedException"]
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-management/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1695,7 +1695,7 @@ class AwsBedrockAgentFlow(BedrockTaggable, BaseAiResource, AwsResource):
         "bedrock-agent", "list-flows", "flowSummaries", expected_errors=["AccessDeniedException"]
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1791,7 +1791,7 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, BaseAiResource, AwsResource):
         "as workflows evolve and improve over time."
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}/versions/{version}"}  # fmt: skip
     # Collected via AwsBedrockAgentFlow()
     mapping: ClassVar[Dict[str, Bender]] = {
