@@ -3305,7 +3305,7 @@ class AwsEc2FlowLog(EC2Taggable, AwsResource):
         " network connectivity issues."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:flow-log/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-flow-logs", "FlowLogs")
     mapping: ClassVar[Dict[str, Bender]] = {

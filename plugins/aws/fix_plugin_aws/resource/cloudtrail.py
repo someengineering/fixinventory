@@ -141,7 +141,7 @@ class AwsCloudTrail(AwsResource):
         "CloudTrail is a service that enables governance, compliance, operational"
         " auditing, and risk auditing of your AWS account."
     )
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudtrail/home?region={region}#/trails/{arn}:trail/{name}", "arn_tpl": "arn:{partition}:cloudtrail:{region}:{account}:trail/{name}"}  # fmt: skip
     kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-trails", "Trails")

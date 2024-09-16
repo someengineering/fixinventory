@@ -309,7 +309,7 @@ class AzureLocation(MicrosoftResource, BaseRegion):
     kind: ClassVar[str] = "azure_location"
     kind_display: ClassVar[str] = "Azure Location"
     kind_service: ClassVar[str] = "resources"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",
@@ -345,7 +345,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
     kind: ClassVar[str] = "azure_resource_group"
     kind_display: ClassVar[str] = "Azure Resource Group"
     kind_service: ClassVar[str] = "resources"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-09-01",
@@ -548,7 +548,7 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
     kind: ClassVar[str] = "azure_subscription"
     kind_display: ClassVar[str] = "Azure Subscription"
     kind_service: ClassVar[str] = "resources"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",

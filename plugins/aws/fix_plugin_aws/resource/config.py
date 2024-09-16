@@ -70,7 +70,7 @@ class AwsConfigRecorder(AwsResource):
         " account."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:config:{region}:{account}:config-recorder/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-configuration-recorders", "ConfigurationRecorders"

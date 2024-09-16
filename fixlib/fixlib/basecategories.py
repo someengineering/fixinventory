@@ -57,9 +57,9 @@ class Networking(BaseCategory):
 
 
 @dataclass(frozen=True)
-class Iam(BaseCategory):
-    name: str = "iam"
-    description: str = "Identity & Access Management"
+class AccessControl(BaseCategory):
+    name: str = "access_control"
+    description: str = "Access Control"
 
 
 @dataclass(frozen=True)
@@ -98,16 +98,30 @@ class Dns(BaseCategory):
     description: str = "DNS"
 
 
+@dataclass(frozen=True)
+class ManagedKubernetes(BaseCategory):
+    name: str = "managed_kubernetes"
+    description: str = "Managed Kubernetes"
+
+
+@dataclass(frozen=True)
+class Misc(BaseCategory):
+    name: str = "misc"
+    description: str = "Miscellaneous"
+
+
 class Category(Enum):
-    compute = Compute()
-    storage = Storage()
-    database = Database()
-    security = Security()
-    networking = Networking()
-    iam = Iam()
-    management = Management()
-    monitoring = Monitoring()
-    analytics = Analytics()
     ai = Ai()
+    analytics = Analytics()
+    compute = Compute()
+    database = Database()
     devops = DevOps()
     dns = Dns()
+    access_control = AccessControl()
+    managed_kubernetes = ManagedKubernetes()
+    management = Management()
+    misc = Misc()
+    monitoring = Monitoring()
+    networking = Networking()
+    security = Security()
+    storage = Storage()

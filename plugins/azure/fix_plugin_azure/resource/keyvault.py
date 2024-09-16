@@ -185,7 +185,7 @@ class AzureKeyVaultSecret(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_secret"
     kind_display: ClassVar[str] = "Azure Key Vault Secret"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -211,7 +211,7 @@ class AzureKeyVaultManagedHsm(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_managed_hsm"
     kind_display: ClassVar[str] = "Azure Key Vault Managed Hsm"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",
@@ -274,7 +274,7 @@ class AzureKeyVaultKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_key"
     kind_display: ClassVar[str] = "Azure Key Vault Key"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -308,7 +308,7 @@ class AzureKeyVault(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault"
     kind_display: ClassVar[str] = "Azure Key Vault"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",

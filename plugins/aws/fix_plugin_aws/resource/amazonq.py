@@ -53,7 +53,7 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
         " define a set of tasks and configuration for processing data within the QBusiness ecosystem."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{id}",
@@ -319,7 +319,7 @@ class AwsQBusinessConversation(AwsResource):
         " interactions that involve a series of messages or data exchanges."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("conversationId"),
@@ -353,7 +353,7 @@ class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
         " from which data is ingested for processing or analysis within the QBusiness framework."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{app_id}/indices/{indice_id}/datasources/{id}/details?region={region}",  # fmt: skip
@@ -443,7 +443,7 @@ class AwsQBusinessDataSourceSyncJob(AwsResource):
         " ensure that data from data sources is up-to-date and correctly integrated into the system."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("executionId"),
@@ -485,7 +485,7 @@ class AwsQBusinessDocument(AwsResource):
         " of information that can be used for various purposes within the QBusiness ecosystem."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("documentId"),
@@ -525,7 +525,7 @@ class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
         " facilitate efficient searching and retrieval of data within the QBusiness framework."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{id}",
         "extra_args": ["application_id"],
@@ -706,7 +706,7 @@ class AwsQBusinessMessage(AwsResource):
         " or data exchange between various components or users within the QBusiness ecosystem."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("messageId"),
@@ -750,7 +750,7 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
         " the QBusiness framework by adding new features or capabilities."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/plugin/{id}",
         "extra_args": ["application_id"],
@@ -816,7 +816,7 @@ class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
         " process data from various sources within the QBusiness ecosystem."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/retriever/{id}",
         "extra_args": ["application_id"],
@@ -873,7 +873,7 @@ class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
         " interactive web-based applications or interfaces within the QBusiness ecosystem."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/web-experience/{id}",
         "extra_args": ["application_id"],
@@ -941,7 +941,7 @@ class AwsQAppsLibraryItem(AwsResource):
         " such as scripts, templates, or other components that can be used in QApps applications."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_q_apps"]},
@@ -1022,7 +1022,7 @@ class AwsQApps(AwsResource):
         " various components and configurations for developing and deploying apps within the AWS environment."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("appId"),

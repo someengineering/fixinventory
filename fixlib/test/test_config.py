@@ -2,6 +2,8 @@ from functools import lru_cache
 import pytest
 from attrs import define, field
 from typing import ClassVar, Dict, Any
+
+from fixlib.baseresources import BaseResource, BaseSecurityGroup
 from fixlib.config import Config, ConfigNotFoundError
 from fixlib.args import get_arg_parser, ArgumentParser
 from fixlib.core import add_args as core_add_args
@@ -146,3 +148,9 @@ class ConfigTest:
         factory=lambda: NestedConfigTest(),
         metadata={"description": "A test of nested config"},
     )
+
+
+def test_foo():
+    r = BaseSecurityGroup(id="foo")
+    p = getattr(r, "categories", None)
+    print(p)
