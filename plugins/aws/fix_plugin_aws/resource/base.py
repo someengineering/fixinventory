@@ -15,6 +15,7 @@ from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
 
+from fix_plugin_aws.access_edges import AccessPermission
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource.pricing import AwsPricingPrice
@@ -485,11 +486,20 @@ class GraphBuilder:
                     return n  # type: ignore
         return None
 
-    def nodes(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Iterator[AwsResourceType]:
+    def nodes(
+        self,
+        clazz: Optional[Type[AwsResourceType]] = None,
+        filter: Optional[Callable[[AwsResourceType], bool]] = None,
+        **node: Any,
+    ) -> Iterator[AwsResourceType]:
         with self.graph_nodes_access.read_access:
             for n in self.graph:
                 is_clazz = isinstance(n, clazz) if clazz else True
-                if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                if (
+                    is_clazz
+                    and (filter(n) if filter else True)
+                    and all(getattr(n, k, None) == v for k, v in node.items())
+                ):  # noqa
                     yield n
 
     def add_node(
@@ -556,13 +566,18 @@ class GraphBuilder:
         return node
 
     def add_edge(
-        self, from_node: BaseResource, edge_type: EdgeType = EdgeType.default, reverse: bool = False, **to_node: Any
+        self,
+        from_node: BaseResource,
+        edge_type: EdgeType = EdgeType.default,
+        reverse: bool = False,
+        permissions: Optional[List[AccessPermission]] = None,
+        **to_node: Any,
     ) -> None:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             with self.graph_edges_access.write_access:
-                self.graph.add_edge(start, end, edge_type=edge_type)
+                self.graph.add_edge(start, end, edge_type=edge_type, permissions=permissions)
 
     def add_deferred_edge(
         self, from_node: BaseResource, edge_type: EdgeType, to_node: str, reverse: bool = False
