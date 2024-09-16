@@ -251,6 +251,8 @@ def dataclasses_to_fixcore_model(
             metadata["name"] = s
         if (s := getattr(clazz, "kind_service", None)) and isinstance(s, str):
             metadata["service"] = s
+        if (slc := getattr(clazz, "categories", None)) and callable(slc) and (sl := slc()):
+            metadata["categories"] = sl
         if with_description and (s := clazz.__dict__.get("kind_description", None)) and isinstance(s, str):
             metadata["description"] = s
 
@@ -331,7 +333,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
                     "cleaned": node.cleaned,
                     "phantom": node.phantom,
                     "protected": node.protected,
-                    "categories": node.categories,
+                    "categories": node.categories(),
                     **node._metadata,
                 },
                 "usage": node._resource_usage,

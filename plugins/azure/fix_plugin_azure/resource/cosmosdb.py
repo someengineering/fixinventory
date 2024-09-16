@@ -1967,7 +1967,7 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
     kind_display: ClassVar[str] = "Azure Cosmos DB Account Usage"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": K(None),

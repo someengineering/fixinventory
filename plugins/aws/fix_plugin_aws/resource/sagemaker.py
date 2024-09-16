@@ -78,7 +78,7 @@ class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
         " train, and deploy machine learning models."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:notebook/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -764,7 +764,7 @@ class AwsSagemakerAlgorithm(AwsResource):
         " Amazon SageMaker, which can be used to train and deploy predictive models."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:algorithm/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
@@ -906,7 +906,7 @@ class AwsSagemakerModel(SagemakerTaggable, AwsResource):
         " SageMaker, a fully-managed machine learning service by Amazon Web Services."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:model/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1007,7 +1007,7 @@ class AwsSagemakerApp(AwsResource):
         " workspace, complete with monitoring of app health and activity."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:app/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1379,7 +1379,7 @@ class AwsSagemakerDomain(AwsResource):
         " machine learning models."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/studio/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:domain/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1581,7 +1581,7 @@ class AwsSagemakerExperiment(AwsResource):
         " resources."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:experiment/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-experiments", "ExperimentSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1664,7 +1664,7 @@ class AwsSagemakerTrial(AwsResource):
         " and tracking purposes."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:trial/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -1751,7 +1751,7 @@ class AwsSagemakerProject(AwsResource):
         " code."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:project/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-projects", "ProjectSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1801,7 +1801,7 @@ class AwsSagemakerCodeRepository(AwsResource):
         " your machine learning code, making it easy to maintain and share code within your SageMaker projects."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:code-repository/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-code-repositories", "CodeRepositorySummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2267,7 +2267,7 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
         " are hosted and can be accessed for making predictions or inferences."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:endpoint/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2370,7 +2370,7 @@ class AwsSagemakerImage(AwsResource):
         " using Amazon SageMaker."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:image/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2463,7 +2463,7 @@ class AwsSagemakerArtifact(AwsResource):
         " or models within ML workflows, providing a clear history for auditing and reproducibility."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:artifact/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2553,7 +2553,7 @@ class AwsSagemakerUserProfile(AwsResource):
         " Studio environment."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:user-profile/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_sagemaker_domain"]},
@@ -2600,7 +2600,7 @@ class AwsSagemakerPipeline(AwsResource):
         " Amazon SageMaker."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:pipeline/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -2738,7 +2738,7 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
         " models."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:workteam/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2817,7 +2817,7 @@ class AwsSagemakerJob(AwsResource):
         " SageMaker."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "generative_ai"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:job/{id}"}  # fmt: skip
 
 

@@ -3,6 +3,7 @@ from typing import List, Dict, Tuple, Type, Optional, Any, Set
 
 from attrs import define
 
+from fixlib.basecategories import Category
 from fixlib.baseresources import BaseResource
 from fixlib.core.model_export import transitive_classes
 from fixlib.graph import resource_classes_to_fixcore_model
@@ -12,10 +13,7 @@ from fixlib.types import Json
 # fmt: off
 
 # Possible group value: any addition needs to be supported in the frontend
-ResourceGroups: Set[str] = {
-    "access_control", "compute", "control", "database", "generative_ai",
-    "group", "managed_kubernetes", "misc", "networking", "storage"
-}
+ResourceGroups: Set[str] = {c.name for c in Category}
 # Possible icon value: any addition needs to be supported in the frontend
 ResourceIcons: Set[str] = {
     "access_control", "account", "alarm", "application", "autoscaling_group", "backup",

@@ -203,7 +203,7 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_postgresql_server_type"
     kind_display: ClassVar[str] = "Azure PostgreSQL Server Type"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "management"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),

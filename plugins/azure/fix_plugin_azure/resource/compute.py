@@ -1273,7 +1273,7 @@ class AzureComputeDiskEncryptionSet(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_encryption_set"
     kind_display: ClassVar[str] = "Azure Compute Disk Encryption Set"
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-01-02",

@@ -2016,7 +2016,7 @@ class GcpOperation(GcpResource):
         " Platform (GCP), allowing users to create, update, or delete resources"
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             # operation can target multiple resources, unclear which others are possible
@@ -5257,7 +5257,7 @@ class GcpNotificationEndpoint(GcpResource):
         " from Google Cloud Platform services to, such as Pub/Sub or HTTP endpoints."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "management"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -6585,7 +6585,7 @@ class GcpResourcePolicy(GcpResource):
         " resource grouping, which can optimize costs and maintain the necessary resource availability."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "management"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",

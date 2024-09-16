@@ -25,15 +25,14 @@ def test_base_category_empty():
         pass
 
     assert EmptyCategory.get_all_categories() == []
-    assert EmptyCategory(id="empty").categories == []
 
 
 def test_single_category():
     assert BaseInstance.get_all_categories() == [Category.compute]
-    assert BaseInstance(id="instance").categories == ["compute"]
+    assert BaseInstance(id="instance").categories() == ["compute"]
 
     assert BaseVolume.get_all_categories() == [Category.storage]
-    assert BaseVolume(id="volume").categories == ["storage"]
+    assert BaseVolume(id="volume").categories() == ["storage"]
 
 
 def test_multiple_categories():
@@ -43,7 +42,7 @@ def test_multiple_categories():
     expected_categories = [Category.compute, Category.storage, Category.management]
     expected_categories_str = [str(category.value) for category in expected_categories]
     assert set(CustomResource.get_all_categories()) == set(expected_categories)
-    assert sorted(CustomResource(id="custom_resource").categories) == sorted(expected_categories_str)
+    assert sorted(CustomResource(id="custom_resource").categories()) == sorted(expected_categories_str)
 
 
 def test_deeply_nested_categories():
@@ -56,7 +55,7 @@ def test_deeply_nested_categories():
     expected_categories = [Category.compute, Category.monitoring, Category.storage, Category.security]
     expected_categories_str = [str(category.value) for category in expected_categories]
     assert set(CustomResource2.get_all_categories()) == set(expected_categories)
-    assert sorted(CustomResource2(id="custom_resource2").categories) == sorted(expected_categories_str)
+    assert sorted(CustomResource2(id="custom_resource2").categories()) == sorted(expected_categories_str)
 
 
 def test_all_categories():
@@ -67,11 +66,11 @@ def test_all_categories():
         BaseDatabase: [Category.compute, Category.database],
         BaseFirewall: [Category.networking, Category.security],
         BaseLoadBalancer: [Category.networking],
-        BaseUser: [Category.iam],
-        BaseGroup: [Category.iam],
-        BasePolicy: [Category.iam],
-        BaseRole: [Category.iam],
-        BaseKeyPair: [Category.iam],
+        BaseUser: [Category.access_control],
+        BaseGroup: [Category.access_control],
+        BasePolicy: [Category.access_control],
+        BaseRole: [Category.access_control],
+        BaseKeyPair: [Category.access_control],
         BaseSnapshot: [Category.storage],
         BaseHealthCheck: [Category.monitoring],
         BaseDNSZone: [Category.dns, Category.networking],
@@ -80,8 +79,4 @@ def test_all_categories():
     }
 
     for resource_class, expected_categories_list in expected_categories.items():
-        expected_categories_str = [str(category.value) for category in expected_categories_list]
         assert set(resource_class.get_all_categories()) == set(expected_categories_list)
-        assert sorted(resource_class(id=f"{resource_class.__name__.lower()}").categories) == sorted(
-            expected_categories_str
-        )

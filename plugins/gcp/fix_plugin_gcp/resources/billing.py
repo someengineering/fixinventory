@@ -25,7 +25,7 @@ class GcpBillingAccount(GcpResource):
         " billing information for Google Cloud Platform services."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_project_billing_info"]},
     }
@@ -77,7 +77,7 @@ class GcpProjectBillingInfo(GcpResource):
         " for the billing aspects of a Google Cloud Platform project."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -120,7 +120,7 @@ class GcpService(GcpResource):
         " businesses and developers."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "management"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_sku"]},
     }
