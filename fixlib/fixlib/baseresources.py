@@ -1514,7 +1514,7 @@ class BaseManagedKubernetesClusterProvider(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseAiResource(BaseResource):
+class BaseAIResource(BaseResource):
     kind: ClassVar[str] = "ai_resource"
     kind_display: ClassVar[str] = "AI resource"
     kind_description: ClassVar[str] = "An AI Resource."

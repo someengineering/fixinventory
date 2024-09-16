@@ -6,7 +6,7 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from fixlib.baseresources import BaseAiResource, ModelReference
+from fixlib.baseresources import BaseAIResource, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -84,7 +84,7 @@ class AwsBedrockValidationDataConfig:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockCustomModel(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockCustomModel(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_custom_model"
     kind_display: ClassVar[str] = "AWS Bedrock Custom Model"
     kind_description: ClassVar[str] = (
@@ -180,7 +180,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAiResource, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBedrockProvisionedModelThroughput(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockProvisionedModelThroughput(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_provisioned_model_throughput"
     kind_display: ClassVar[str] = "AWS Bedrock Provisioned Model Throughput"
     kind_description: ClassVar[str] = (
@@ -358,7 +358,7 @@ class AwsBedrockGuardrailContextualGroundingPolicy:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockGuardrail(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockGuardrail(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_guardrail"
     kind_display: ClassVar[str] = "AWS Bedrock Guardrail"
     kind_description: ClassVar[str] = (
@@ -470,7 +470,7 @@ class AwsBedrockVpcConfig:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_model_customization_job"
     kind_display: ClassVar[str] = "AWS Bedrock Model Customization Job"
     kind_description: ClassVar[str] = (
@@ -675,7 +675,7 @@ class AwsBedrockEvaluationInferenceConfig:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockEvaluationJob(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_evaluation_job"
     kind_display: ClassVar[str] = "AWS Bedrock Evaluation Job"
     kind_description: ClassVar[str] = (
@@ -822,7 +822,7 @@ class AwsBedrockPromptOverrideConfiguration:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockAgent(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent"
     kind_display: ClassVar[str] = "AWS Bedrock Agent"
     kind_description: ClassVar[str] = (
@@ -969,7 +969,7 @@ class AwsBedrockAgent(BedrockTaggable, BaseAiResource, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBedrockAgentVersion(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockAgentVersion(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_version"
     kind_display: ClassVar[str] = "AWS Bedrock Agent Version"
     kind_description: ClassVar[str] = (
@@ -1250,7 +1250,7 @@ class AwsBedrockStorageConfiguration:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_knowledge_base"
     kind_display: ClassVar[str] = "AWS Bedrock Agent Knowledge Base"
     kind_description: ClassVar[str] = (
@@ -1377,7 +1377,7 @@ class AwsBedrockPromptVariant:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockAgentPrompt(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockAgentPrompt(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_prompt"
     kind_display: ClassVar[str] = "AWS Bedrock Agent Prompt"
     kind_description: ClassVar[str] = (
@@ -1681,7 +1681,7 @@ class AwsBedrockFlowValidation:
 
 
 @define(eq=False, slots=False)
-class AwsBedrockAgentFlow(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockAgentFlow(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_flow"
     kind_display: ClassVar[str] = "AWS Bedrock Agent Flow"
     kind_description: ClassVar[str] = (
@@ -1783,7 +1783,7 @@ class AwsBedrockAgentFlow(BedrockTaggable, BaseAiResource, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBedrockAgentFlowVersion(BedrockTaggable, BaseAiResource, AwsResource):
+class AwsBedrockAgentFlowVersion(BedrockTaggable, BaseAIResource, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_flow_version"
     kind_display: ClassVar[str] = "AWS Bedrock Agent Flow Version"
     kind_description: ClassVar[str] = (
