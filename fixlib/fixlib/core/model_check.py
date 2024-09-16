@@ -9,6 +9,32 @@ from fixlib.graph import resource_classes_to_fixcore_model
 from fixlib.json import from_json
 from fixlib.types import Json
 
+# fmt: off
+
+# Possible group value: any addition needs to be supported in the frontend
+ResourceGroups: Set[str] = {
+    "access_control", "compute", "control", "database", "generative_ai",
+    "group", "managed_kubernetes", "misc", "networking", "storage"
+}
+# Possible icon value: any addition needs to be supported in the frontend
+ResourceIcons: Set[str] = {
+    "access_control", "account", "alarm", "application", "autoscaling_group", "backup",
+    "bucket", "cdn", "certificate", "cloud", "cluster", "config", "connection", "container",
+    "database", "dns", "dns_record", "endpoint", "environment", "firewall", "function",
+    "gateway", "graph_root", "group", "health", "host", "image", "instance", "job", "key",
+    "link", "load_balancer", "lock", "log", "network", "network_address", "network_share",
+    "plan", "policy", "profile", "provider", "proxy", "queue", "quota", "region",
+    "repository", "resource", "role", "routing_table", "security_group", "service",
+    "snapshot", "stack", "subnet", "type", "user", "vault", "version", "volume", "zone",
+}
+# Define classes that should be ignored for the resource check
+IgnoredClasses: Set[str] = {
+    "aws_resource", "aws_account", "aws_region",
+    "microsoft_resource",
+    "gcp_resource", "gcp_region", "gcp_project", "gcp_zone", "gcp_region_quota"
+}
+# fmt: on
+
 
 @define
 class CheckProp:
@@ -111,11 +137,19 @@ def check_overlap_for(models: List[Json]) -> None:
 
 
 def check_model_class(clazz: Type[BaseResource]) -> None:
-    if clazz.__name__.startswith("Aws"):  # Currently only AWS resources provide this information
-        if "kind_display" not in vars(clazz):
-            raise AttributeError(f"Class {clazz.__name__} does not have a kind_display attribute")
-        if "kind_description" not in vars(clazz):
-            raise AttributeError(f"Class {clazz.__name__} does not have a kind_description attribute")
+    name = clazz.__name__
+    kind = clazz.kind
+    if any(kind.startswith(a) for a in ["aws", "gcp", "azure", "microsoft"]):  # only selected providers support this
+        props = vars(clazz)
+        if "kind_display" not in props:
+            raise AttributeError(f"Class {name} does not have a kind_display attribute")
+        assert clazz.kind_service is not None, f"Class {name} does not have a kind_service attribute"
+
+    # make sure metadata is valid
+    if icon := clazz.metadata.get("icon"):
+        assert icon in ResourceIcons, f"{name} has unknown icon {icon}"
+    if group := clazz.metadata.get("group"):
+        assert group in ResourceGroups, f"{name} has unknown group {group}"
 
 
 def load_plugin_classes(*base: Type[BaseResource]) -> Set[Type[BaseResource]]:
@@ -172,7 +206,8 @@ def check_overlap(*base: Type[BaseResource]) -> None:
 
         if issubclass(model, BaseResource) and not getattr(model, "__abstractmethods__"):
             # check that the model class is not abstract and has no abstract methods
-            check_model_class(model)
+            if model.kind not in IgnoredClasses:
+                check_model_class(model)
 
     check_overlap_for(resource_classes_to_fixcore_model(model_classes, aggregate_root=BaseResource))
 

@@ -828,7 +828,7 @@ class BaseInstanceType(BaseType):
     kind: ClassVar[str] = "instance_type"
     kind_display: ClassVar[str] = "Instance Type"
     kind_description: ClassVar[str] = "An instance type."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance_type", "group": "compute"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     instance_type: Optional[str] = None
     instance_cores: float = 0.0
     instance_memory: float = 0.0
@@ -926,7 +926,7 @@ class BaseVolumeType(BaseType):
     kind: ClassVar[str] = "volume_type"
     kind_display: ClassVar[str] = "Volume Type"
     kind_description: ClassVar[str] = "A volume type."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "volume_type", "group": "storage"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
     volume_type: Optional[str] = None
     ondemand_cost: Optional[float] = None
 
@@ -1049,7 +1049,7 @@ class BaseKeyPair(BaseResource):
     kind: ClassVar[str] = "keypair"
     kind_display: ClassVar[str] = "Key Pair"
     kind_description: ClassVar[str] = "A key pair."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "keypair", "group": "access_control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     fingerprint: str = ""
     _categories: ClassVar[List[Category]] = [Category.iam]
 
@@ -1166,7 +1166,7 @@ class BaseTunnel(BaseResource):
     kind: ClassVar[str] = "tunnel"
     kind_display: ClassVar[str] = "Networking Tunnel"
     kind_description: ClassVar[str] = "A networking tunnel."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "tunnel", "group": "networking"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
 
 
@@ -1201,7 +1201,7 @@ class BaseRoute(BaseResource):
     kind: ClassVar[str] = "route"
     kind_display: ClassVar[str] = "Network Route"
     kind_description: ClassVar[str] = "A network route."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "route", "group": "networking"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
 
 
@@ -1210,7 +1210,7 @@ class BaseNetworkAcl(BaseResource):
     kind: ClassVar[str] = "network_acl"
     kind_display: ClassVar[str] = "Network ACL"
     kind_description: ClassVar[str] = "A network access control list."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "acl", "group": "networking"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking, Category.security]
 
 
@@ -1237,7 +1237,7 @@ class BaseNetworkInterface(BaseResource):
     kind: ClassVar[str] = "network_interface"
     kind_display: ClassVar[str] = "Network Interface"
     kind_description: ClassVar[str] = "A network interface."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "network_interface", "group": "networking"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
     network_interface_status: str = ""
     network_interface_type: Optional[str] = None
@@ -1255,7 +1255,7 @@ class BaseIamPrincipal(BaseResource):
     kind_description: ClassVar[str] = (
         "An IAM principal is an entity that can be authenticated and authorized to access resources."
     )
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "iam_principal", "group": "access_control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     _categories: ClassVar[List[Category]] = [Category.iam]
 
 
@@ -1300,7 +1300,7 @@ class BaseInstanceProfile(BaseResource):
     kind: ClassVar[str] = "instance_profile"
     kind_display: ClassVar[str] = "Instance Profile"
     kind_description: ClassVar[str] = "An instance profile."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance_profile", "group": "access_control"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "access_control"}
     _categories: ClassVar[List[Category]] = [Category.iam]
 
 
@@ -1373,7 +1373,7 @@ class BaseHealthCheck(BaseResource):
     kind: ClassVar[str] = "health_check"
     kind_display: ClassVar[str] = "Health Check"
     kind_description: ClassVar[str] = "A health check."
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "health_check", "group": "compute"}
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "health", "group": "compute"}
     _categories: ClassVar[List[Category]] = [Category.monitoring]
     check_interval: Optional[int] = None
     healthy_threshold: Optional[int] = None
