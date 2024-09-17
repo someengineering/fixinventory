@@ -1581,7 +1581,9 @@ class AzureMachineLearningModelContainerBase(AzureProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceModelContainer(BaseAIModel, AzureMachineLearningModelContainerBase, MicrosoftResource):
+class AzureMachineLearningWorkspaceModelContainer(
+    BaseAIModel, AzureMachineLearningModelContainerBase, MicrosoftResource
+):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_container"
@@ -1618,7 +1620,9 @@ class AzureMachineLearningWorkspaceModelContainer(BaseAIModel, AzureMachineLearn
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryModelContainer(BaseAIModel, AzureMachineLearningModelContainerBase, MicrosoftResource):
+class AzureMachineLearningRegistryModelContainer(
+    BaseAIModel, AzureMachineLearningModelContainerBase, MicrosoftResource
+):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_container"
