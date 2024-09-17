@@ -941,7 +941,7 @@ class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
         "agent_name": S("agent", "agentName"),
         "agent_resource_role_arn": S("agent", "agentResourceRoleArn"),
         "agent_status": S("agent", "agentStatus"),
-        "agent_version": S("agent", "agentVersion"),
+        "agent_version": S("agent", "agentVersion").or_else(S("latestAgentVersion")),
         "client_token": S("agent", "clientToken"),
         "created_at": S("agent", "createdAt"),
         "customer_encryption_key_arn": S("agent", "customerEncryptionKeyArn"),
@@ -988,7 +988,7 @@ class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
         if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
             builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
         if foundation_model_name := self.foundation_model:
-            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, name=foundation_model_name)
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, id=foundation_model_name)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -1025,7 +1025,7 @@ class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
                 agent.tags.update(tags[0])
 
         def collect_agent_versions(agent: AwsBedrockAgent) -> None:
-            if not agent.agent_version:
+            if not agent.agent_version or agent.agent_version == "DRAFT":
                 return
             for result in builder.client.list(
                 "bedrock-agent",
@@ -1037,31 +1037,17 @@ class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
                     builder.add_node(instance, js)
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
-        def collect_knowledge_bases(agent: AwsBedrockAgent) -> None:
-            if not agent.agent_version:
-                return
-            for result in builder.client.list(
-                "bedrock-agent",
-                "list-knowledge-bases",
-                "agentKnowledgeBaseSummaries",
-                agentId=agent.id,
-                agentVersion=agent.agent_version,
-            ):
-                if instance := AwsBedrockAgentKnowledgeBase.from_api(result, builder):
-                    builder.add_node(instance, js)
-                    builder.submit_work("bedrock-agent", add_tags, instance)
-
         for js in json:
             for result in builder.client.list(
                 "bedrock-agent",
                 "get-agent",
                 agentId=js["agentId"],
             ):
-                if instance := cls.from_api(result, builder):
+                if instance := AwsBedrockAgent.from_api(result, builder):
+                    instance.agent_version = js["latestAgentVersion"]
                     builder.add_node(instance, js)
                     builder.submit_work("bedrock-agent", add_tags, instance)
                     builder.submit_work("bedrock-agent", collect_agent_versions, instance)
-                    builder.submit_work("bedrock-agent", collect_knowledge_bases, instance)
 
 
 @define(eq=False, slots=False)
@@ -1136,7 +1122,7 @@ class AwsBedrockAgentVersion(BedrockTaggable, BaseAIResource, AwsResource):
         if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
             builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
         if foundation_model_name := self.foundation_model:
-            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, name=foundation_model_name)
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, id=foundation_model_name)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -1381,24 +1367,25 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAIResource, AwsResource)
             ]
         },
     }
-    # Collected via AwsBedrockAgent()
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock-agent", "list-knowledge-bases", "knowledgeBaseSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("knowledgeBaseId"),
-        "name": S("name"),
-        "arn": S("knowledgeBaseArn"),
-        "ctime": S("createdAt"),
-        "mtime": S("updatedAt"),
-        "created_at": S("createdAt"),
-        "description": S("description"),
-        "failure_reasons": S("failureReasons", default=[]),
-        "knowledge_base_arn": S("knowledgeBaseArn"),
-        "knowledge_base_configuration": S("knowledgeBaseConfiguration")
+        "id": S("knowledgeBase", "knowledgeBaseId"),
+        "name": S("knowledgeBase", "name"),
+        "arn": S("knowledgeBase", "knowledgeBaseArn"),
+        "ctime": S("knowledgeBase", "createdAt"),
+        "mtime": S("knowledgeBase", "updatedAt"),
+        "created_at": S("knowledgeBase", "createdAt"),
+        "description": S("knowledgeBase", "description"),
+        "failure_reasons": S("knowledgeBase", "failureReasons", default=[]),
+        "knowledge_base_arn": S("knowledgeBase", "knowledgeBaseArn"),
+        "knowledge_base_configuration": S("knowledgeBase", "knowledgeBaseConfiguration")
         >> Bend(AwsBedrockKnowledgeBaseConfiguration.mapping),
-        "knowledge_base_id": S("knowledgeBaseId"),
-        "role_arn": S("roleArn"),
-        "status": S("status"),
-        "storage_configuration": S("storageConfiguration") >> Bend(AwsBedrockStorageConfiguration.mapping),
-        "updated_at": S("updatedAt"),
+        "knowledge_base_id": S("knowledgeBase", "knowledgeBaseId"),
+        "role_arn": S("knowledgeBase", "roleArn"),
+        "status": S("knowledgeBase", "status"),
+        "storage_configuration": S("knowledgeBase", "storageConfiguration")
+        >> Bend(AwsBedrockStorageConfiguration.mapping),
+        "updated_at": S("knowledgeBase", "updatedAt"),
     }
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the knowledge base was created."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the knowledge base."})  # fmt: skip
@@ -1426,6 +1413,29 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAIResource, AwsResource)
         return True
 
     @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_tags(knowledge_base: AwsResource) -> None:
+            tags = builder.client.list(
+                "bedrock-agent",
+                "list-tags-for-resource",
+                "tags",
+                expected_errors=["ResourceNotFoundException"],
+                resourceArn=knowledge_base.arn,
+            )
+            if tags:
+                knowledge_base.tags.update(tags[0])
+
+        for js in json:
+            for result in builder.client.list(
+                "bedrock-agent",
+                "get-knowledge-base",
+                knowledgeBaseId=js["knowledgeBaseId"],
+            ):
+                if instance := cls.from_api(result, builder):
+                    builder.add_node(instance, js)
+                    builder.submit_work(service_name, add_tags, instance)
+
+    @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-knowledge-base")]
 
@@ -1433,6 +1443,7 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAIResource, AwsResource)
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return super().called_collect_apis() + [
             AwsApiSpec("bedrock-agent", "list-knowledge-bases"),
+            AwsApiSpec("bedrock-agent", "get-knowledge-base"),
         ]
 
     @classmethod
@@ -1932,7 +1943,9 @@ class AwsBedrockAgentFlow(BedrockTaggable, BaseAIResource, AwsResource):
                 "get-flow",
                 flowIdentifier=js["id"],
             ):
-                if instance := cls.from_api(result, builder):
+                if instance := AwsBedrockAgentFlow.from_api(result, builder):
+                    if not instance.version:
+                        instance.version = js["version"]
                     builder.add_node(instance, js)
                     builder.submit_work("bedrock-agent", add_tags, instance)
                     builder.submit_work("bedrock-agent", collect_flow_versions, instance)
