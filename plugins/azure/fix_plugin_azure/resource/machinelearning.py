@@ -25,7 +25,7 @@ from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrinc
 from fix_plugin_azure.resource.network import AzureNetworkSubnet, AzureNetworkVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.resource.web import AzureWebApp
-from fixlib.baseresources import BaseInstanceType, ModelReference
+from fixlib.baseresources import BaseInstanceType, ModelReference, BaseAIJob, BaseAIModel
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend, K
 from fixlib.types import Json
@@ -1344,7 +1344,7 @@ class AzureJobService:
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningJob(MicrosoftResource, AzureProxyResource):
+class AzureMachineLearningJob(BaseAIJob, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_job"
     kind_display: ClassVar[str] = "Azure Machine Learning Job"
     kind_service: ClassVar[Optional[str]] = service_name
@@ -1513,7 +1513,7 @@ class AzureStatusMessage:
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningLabelingJob(MicrosoftResource):
+class AzureMachineLearningLabelingJob(BaseAIJob, MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_labeling_job"
     kind_display: ClassVar[str] = "Azure Machine Learning Labeling Job"
     kind_service: ClassVar[Optional[str]] = service_name
@@ -1581,7 +1581,7 @@ class AzureMachineLearningModelContainerBase(AzureProxyResource):
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningModelContainerBase, MicrosoftResource):
+class AzureMachineLearningWorkspaceModelContainer(BaseAIModel, AzureMachineLearningModelContainerBase, MicrosoftResource):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_container"
@@ -1618,7 +1618,7 @@ class AzureMachineLearningWorkspaceModelContainer(AzureMachineLearningModelConta
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningRegistryModelContainer(AzureMachineLearningModelContainerBase, MicrosoftResource):
+class AzureMachineLearningRegistryModelContainer(BaseAIModel, AzureMachineLearningModelContainerBase, MicrosoftResource):
     # Defined to split registry and workspace resource
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_container"

@@ -1523,6 +1523,22 @@ class BaseAIResource(BaseResource):
 
 
 @define(eq=False, slots=False)
+class BaseAIJob(BaseAIResource):
+    kind: ClassVar[str] = "ai_job"
+    kind_display: ClassVar[str] = "AI Job"
+    kind_description: ClassVar[str] = "An AI Job resource."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+
+
+@define(eq=False, slots=False)
+class BaseAIModel(BaseAIResource):
+    kind: ClassVar[str] = "ai_model"
+    kind_display: ClassVar[str] = "AI Model"
+    kind_description: ClassVar[str] = "An AI Model resource."
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+
+
+@define(eq=False, slots=False)
 class UnknownCloud(BaseCloud):
     kind: ClassVar[str] = "unknown_cloud"
     kind_display: ClassVar[str] = "Unknown Cloud"
