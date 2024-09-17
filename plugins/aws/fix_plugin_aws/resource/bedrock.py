@@ -85,6 +85,14 @@ class BedrockTaggable:
 @define(eq=False, slots=False)
 class AwsBedrockFoundationModel(BaseAIModel, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_foundation_model"
+    kind_display: ClassVar[str] = "AWS Bedrock Foundation Model"
+    kind_description: ClassVar[str] = (
+        "AWS Bedrock Foundation Model represents the base machine learning models provided by AWS Bedrock. "
+        "These models are pre-trained and can be used as a starting point for various machine learning tasks."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/providers?model={id}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-foundation-models", "modelSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("modelId"),
@@ -133,6 +141,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_bedrock_model_customization_job", AwsKmsKey.kind]},
+        "predecessors": {"default": [AwsBedrockFoundationModel.kind]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-custom-models", "modelSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -173,6 +182,8 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if job_arn := self.job_arn:
             builder.add_edge(self, clazz=AwsBedrockModelCustomizationJob, id=job_arn)
+        if base_model_arn := self.base_model_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, arn=base_model_arn)
         if model_kms_key_arn := self.model_kms_key_arn:
             builder.add_edge(self, clazz=AwsKmsKey, arn=model_kms_key_arn)
 
@@ -529,7 +540,9 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/item/?arn={arn}"}  # fmt: skip
     metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": [AwsEc2Subnet.kind, AwsEc2SecurityGroup.kind, AwsIamRole.kind]},
+        "predecessors": {
+            "default": [AwsEc2Subnet.kind, AwsEc2SecurityGroup.kind, AwsIamRole.kind, AwsBedrockFoundationModel.kind]
+        },
         "successors": {"default": [AwsKmsKey.kind, AwsS3Bucket.kind]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -591,6 +604,8 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role_arn := self.role_arn:
             builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if base_model_arn := self.base_model_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, arn=base_model_arn)
         if model_kms_key_arn := self.output_model_kms_key_arn:
             builder.add_edge(self, clazz=AwsKmsKey, arn=model_kms_key_arn)
         if output_data_config := self.output_data_config:

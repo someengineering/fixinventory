@@ -968,12 +968,12 @@ models: Dict[str, List[AwsFixModel]] = {
         # ),
     ],
     "bedrock": [
-        AwsFixModel(
-            api_action="list-foundation-models",
-            result_property="modelSummaries",
-            result_shape="ListFoundationModelsResponse",
-            prefix="Bedrock",
-        )
+        # AwsFixModel(
+        #     api_action="list-foundation-models",
+        #     result_property="modelSummaries",
+        #     result_shape="ListFoundationModelsResponse",
+        #     prefix="Bedrock",
+        # )
     ],
     "bedrock-agent": [
         # AwsFixModel(
@@ -988,7 +988,7 @@ models: Dict[str, List[AwsFixModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("bedrock", "list-foundation-models"), indent=2))
+    print(json.dumps(create_test_response("bedrock-agent", "get-knowledge-base"), indent=2))
 
     """print the class models"""
     # print(default_imports())

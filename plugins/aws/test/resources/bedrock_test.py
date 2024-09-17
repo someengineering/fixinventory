@@ -7,6 +7,7 @@ from fix_plugin_aws.resource.bedrock import (
     AwsBedrockAgent,
     AwsBedrockAgentPrompt,
     AwsBedrockAgentFlow,
+    AwsBedrockFoundationModel,
 )
 from test.resources import round_trip_for
 
@@ -41,3 +42,7 @@ def test_bedrock_agent_prompts() -> None:
 
 def test_bedrock_agent_flows() -> None:
     round_trip_for(AwsBedrockAgentFlow, ignore_checking_props=True)
+
+
+def test_bedrock_foundation_model() -> None:
+    round_trip_for(AwsBedrockFoundationModel, ignore_checking_props=True)
