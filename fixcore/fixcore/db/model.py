@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from abc import ABC
-from typing import Dict, Any, Optional, Tuple, List
+from collections import defaultdict
+from typing import Dict, Any, Optional, Tuple, List, DefaultDict
 
 from attr import define
+from attrs import field
 
-from fixcore.model.graph_access import Section
+from fixcore.model.graph_access import Section, EdgeTypes
 from fixcore.model.model import Model, ResolvedPropertyPath, ComplexKind
 from fixcore.model.resolve_in_graph import GraphResolver
 from fixcore.query.model import Query
+from fixcore.types import Json, EdgeType
 from fixcore.util import first
 
 ancestor_merges = {
@@ -49,7 +51,7 @@ class QueryModel:
 
 
 @define(repr=True, eq=True)
-class GraphUpdate(ABC):
+class GraphUpdate:
     nodes_created: int = 0
     nodes_updated: int = 0
     nodes_deleted: int = 0
@@ -76,3 +78,57 @@ class GraphUpdate(ABC):
             self.edges_updated + other.edges_updated,
             self.edges_deleted + other.edges_deleted,
         )
+
+
+@define
+class GraphChange:
+    node_inserts: List[Json] = field(factory=list)
+    node_updates: List[Json] = field(factory=list)
+    node_deletes: List[Json] = field(factory=list)
+    edge_inserts: DefaultDict[EdgeType, List[Json]] = field(factory=lambda: defaultdict(list))
+    edge_updates: DefaultDict[EdgeType, List[Json]] = field(factory=lambda: defaultdict(list))
+    edge_deletes: DefaultDict[EdgeType, List[Json]] = field(factory=lambda: defaultdict(list))
+
+    def to_update(self) -> GraphUpdate:
+        return GraphUpdate(
+            len(self.node_inserts),
+            len(self.node_updates),
+            len(self.node_deletes),
+            sum(len(edges) for edges in self.edge_inserts.values()),
+            sum(len(edges) for edges in self.edge_updates.values()),
+            sum(len(edges) for edges in self.edge_deletes.values()),
+        )
+
+    def change_count(self) -> int:
+        return self.to_update().all_changes()
+
+    def __add__(self, other: GraphChange) -> GraphChange:
+        update = GraphChange()
+        # insert
+        update.node_inserts.extend(self.node_inserts)
+        update.node_inserts.extend(other.node_inserts)
+        # update
+        update.node_updates.extend(self.node_updates)
+        update.node_updates.extend(other.node_updates)
+        # delete
+        update.node_deletes.extend(self.node_deletes)
+        update.node_deletes.extend(other.node_deletes)
+        for edge_type in EdgeTypes.all:
+            # insert
+            update.edge_inserts[edge_type].extend(self.edge_inserts[edge_type])
+            update.edge_inserts[edge_type].extend(other.edge_inserts[edge_type])
+            # update
+            update.edge_updates[edge_type].extend(self.edge_updates[edge_type])
+            update.edge_updates[edge_type].extend(other.edge_updates[edge_type])
+            # delete
+            update.edge_deletes[edge_type].extend(self.edge_deletes[edge_type])
+            update.edge_deletes[edge_type].extend(other.edge_deletes[edge_type])
+        return update
+
+    def clear(self) -> None:
+        self.node_inserts.clear()
+        self.node_updates.clear()
+        self.node_deletes.clear()
+        self.edge_inserts.clear()
+        self.edge_updates.clear()
+        self.edge_deletes.clear()
