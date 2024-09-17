@@ -432,7 +432,7 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     def name_from_path(path_or_uri: str) -> str:
         # https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-bucket-intro.html
         # Accessing a bucket using S3://
-        if path_or_uri.startswith("s3://") or path_or_uri.startswith("S3://"):
+        if path_or_uri.lower().startswith("s3://"):
             return path_or_uri.split("/")[2]
         # Path-style access
         if path_or_uri.startswith("https://s3"):

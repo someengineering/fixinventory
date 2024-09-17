@@ -6,6 +6,12 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup
+from fix_plugin_aws.resource.iam import AwsIamRole
+from fix_plugin_aws.resource.kms import AwsKmsKey
+from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
+from fix_plugin_aws.resource.s3 import AwsS3Bucket
+from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
 from fixlib.baseresources import BaseAIResource, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, ForallBend, Bend
@@ -77,6 +83,37 @@ class BedrockTaggable:
 
 
 @define(eq=False, slots=False)
+class AwsBedrockFoundationModel(AwsResource):
+    kind: ClassVar[str] = "aws_bedrock_foundation_model"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-foundation-models", "modelSummaries")
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("modelId"),
+        "name": S("modelName"),
+        "arn": S("modelArn"),
+        "model_arn": S("modelArn"),
+        "model_id": S("modelId"),
+        "model_name": S("modelName"),
+        "model_provider_name": S("providerName"),
+        "input_modalities": S("inputModalities", default=[]),
+        "output_modalities": S("outputModalities", default=[]),
+        "response_streaming_supported": S("responseStreamingSupported"),
+        "customizations_supported": S("customizationsSupported", default=[]),
+        "inference_types_supported": S("inferenceTypesSupported", default=[]),
+        "model_lifecycle_status": S("modelLifecycle", "status"),
+    }
+    model_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the foundation model."})  # fmt: skip
+    model_id: Optional[str] = field(default=None, metadata={"description": "The model ID of the foundation model."})  # fmt: skip
+    model_name: Optional[str] = field(default=None, metadata={"description": "The name of the model."})  # fmt: skip
+    model_provider_name: Optional[str] = field(default=None, metadata={"description": "The model's provider name."})  # fmt: skip
+    input_modalities: Optional[List[str]] = field(factory=list, metadata={"description": "The input modalities that the model supports."})  # fmt: skip
+    output_modalities: Optional[List[str]] = field(factory=list, metadata={"description": "The output modalities that the model supports."})  # fmt: skip
+    response_streaming_supported: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the model supports streaming."})  # fmt: skip
+    customizations_supported: Optional[List[str]] = field(factory=list, metadata={"description": "Whether the model supports fine-tuning or continual pre-training."})  # fmt: skip
+    inference_types_supported: Optional[List[str]] = field(factory=list, metadata={"description": "The inference types that the model supports."})  # fmt: skip
+    model_lifecycle_status: Optional[str] = field(default=None, metadata={"description": "Contains details about whether a model version is available or deprecated."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
 class AwsBedrockValidationDataConfig:
     kind: ClassVar[str] = "aws_bedrock_validation_data_config"
     mapping: ClassVar[Dict[str, Bender]] = {"validators": S("validators", default=[]) >> ForallBend(S("s3Uri"))}
@@ -93,10 +130,10 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIResource, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_bedrock_model_customization_job"]},
-    }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_bedrock_model_customization_job", AwsKmsKey.kind]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-custom-models", "modelSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("modelArn"),
@@ -133,6 +170,12 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIResource, AwsResource):
     validation_metrics: Optional[List[float]] = field(factory=list, metadata={"description": "The validation metrics from the job creation."})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "Creation time of the model."})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if job_arn := self.job_arn:
+            builder.add_edge(self, clazz=AwsBedrockModelCustomizationJob, id=job_arn)
+        if model_kms_key_arn := self.model_kms_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=model_kms_key_arn)
+
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
@@ -145,10 +188,6 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-custom-model")]
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if job_arn := self.job_arn:
-            builder.add_edge(self, clazz=AwsBedrockModelCustomizationJob, id=job_arn)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -187,15 +226,15 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, BaseAIResource, AwsR
         "AWS Bedrock Provisioned Model Throughput manages the throughput capacity for machine learning models, "
         "ensuring consistent performance and scalability to handle varying workloads."
     )
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/provisioned-throughput/{name}"}  # fmt: skip
+    kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": [AwsBedrockCustomModel.kind]},
+        "predecessors": {"default": [AwsBedrockCustomModel.kind, AwsBedrockFoundationModel.kind]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "bedrock", "list-provisioned-model-throughputs", "provisionedModelSummaries"
     )
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/provisioned-throughput/{name}"}  # fmt: skip
-    kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("provisionedModelArn"),
         "name": S("provisionedModelName"),
@@ -227,6 +266,12 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, BaseAIResource, AwsR
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "The time that the Provisioned Throughput was created."})  # fmt: skip
     last_modified_time: Optional[datetime] = field(default=None, metadata={"description": "The time that the Provisioned Throughput was last modified."})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if model_arn := self.model_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockCustomModel, id=model_arn)
+        if foundation_model_arn := self.foundation_model_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, arn=foundation_model_arn)
+
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=service_name,
@@ -239,10 +284,6 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, BaseAIResource, AwsR
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-provisioned-model-throughput")]
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if model_arn := self.model_arn:
-            builder.add_edge(self, reverse=True, clazz=AwsBedrockCustomModel, id=model_arn)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -371,6 +412,9 @@ class AwsBedrockGuardrail(BedrockTaggable, BaseAIResource, AwsResource):
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/guardrails/guardrail/{name}/{id}"}  # fmt: skip
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = service_name
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [AwsKmsKey.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("guardrailId"),
         "name": S("name"),
@@ -414,6 +458,10 @@ class AwsBedrockGuardrail(BedrockTaggable, BaseAIResource, AwsResource):
     blocked_input_messaging: Optional[str] = field(default=None, metadata={"description": "The message that the guardrail returns when it blocks a prompt."})  # fmt: skip
     blocked_outputs_messaging: Optional[str] = field(default=None, metadata={"description": "The message that the guardrail returns when it blocks a model response."})  # fmt: skip
     kms_key_arn: Optional[str] = field(default=None, metadata={"description": "The ARN of the KMS key that encrypts the guardrail."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if kms_key_arn := self.kms_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=kms_key_arn)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -477,15 +525,19 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIResource, AwsResour
         "AWS Bedrock Model Customization Job is responsible for executing the processes involved in tailoring a machine learning model "
         "to specific datasets and tasks, optimizing the model for unique use cases."
     )
+    kind_service: ClassVar[Optional[str]] = service_name
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/item/?arn={arn}"}  # fmt: skip
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": [AwsEc2Subnet.kind, AwsEc2SecurityGroup.kind, AwsIamRole.kind]},
+        "successors": {"default": [AwsKmsKey.kind, AwsS3Bucket.kind]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "bedrock",
         "list-model-customization-jobs",
         "modelCustomizationJobSummaries",
         expected_errors=["ValidationException"],
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/item/?arn={arn}"}  # fmt: skip
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
         "name": S("jobName"),
@@ -535,6 +587,25 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIResource, AwsResour
     training_metrics: Optional[float] = field(default=None, metadata={"description": "Contains training metrics from the job creation."})  # fmt: skip
     validation_metrics: Optional[List[float]] = field(factory=list, metadata={"description": "The loss metric for each validator that you provided in the createjob request."})  # fmt: skip
     vpc_config: Optional[AwsBedrockVpcConfig] = field(default=None, metadata={"description": "VPC configuration for the custom model job."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_arn := self.role_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if model_kms_key_arn := self.output_model_kms_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=model_kms_key_arn)
+        if output_data_config := self.output_data_config:
+            bucket_name = AwsS3Bucket.name_from_path(output_data_config)
+            builder.add_edge(self, clazz=AwsS3Bucket, name=bucket_name)
+        if training_data_config := self.training_data_config:
+            bucket_name = AwsS3Bucket.name_from_path(training_data_config)
+            builder.add_edge(self, clazz=AwsS3Bucket, name=bucket_name)
+        if config := self.vpc_config:
+            if subnet_ids := config.subnet_ids:
+                for subnet_id in subnet_ids:
+                    builder.add_edge(self, reverse=True, clazz=AwsEc2Subnet, id=subnet_id)
+            if security_group_ids := config.security_group_ids:
+                for security_group_id in security_group_ids:
+                    builder.add_edge(self, reverse=True, clazz=AwsEc2SecurityGroup, id=security_group_id)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -682,12 +753,16 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIResource, AwsResource):
         "AWS Bedrock Evaluation Job assesses the performance of machine learning models, running test datasets and producing metrics "
         "that indicate the effectiveness of the model's predictions."
     )
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "bedrock", "list-evaluation-jobs", "jobSummaries", expected_errors=["AccessDeniedException"]
-    )
     aws_metadata: ClassVar[Dict[str, Any]] = {}
     metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = service_name
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": [AwsIamRole.kind]},
+        "successors": {"default": [AwsS3Bucket.kind, AwsKmsKey.kind]},
+    }
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "bedrock", "list-evaluation-jobs", "jobSummaries", expected_errors=["AccessDeniedException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
         "name": S("jobName"),
@@ -699,7 +774,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIResource, AwsResource):
         "job_arn": S("jobArn"),
         "job_description": S("jobDescription"),
         "role_arn": S("roleArn"),
-        "customer_encryption_key_id": S("customerEncryptionKeyId"),
+        "customer_encryption_key_arn": S("customerEncryptionKeyId"),
         "job_type": S("jobType"),
         "evaluation_config": S("evaluationConfig") >> Bend(AwsBedrockEvaluationConfig.mapping),
         "job_inference_config": S("inferenceConfig") >> Bend(AwsBedrockEvaluationInferenceConfig.mapping),
@@ -713,7 +788,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIResource, AwsResource):
     job_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the model evaluation job."})  # fmt: skip
     job_description: Optional[str] = field(default=None, metadata={"description": "The description of the model evaluation job."})  # fmt: skip
     role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the IAM service role used in the model evaluation job."})  # fmt: skip
-    customer_encryption_key_id: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the customer managed key specified when the model evaluation job was created."})  # fmt: skip
+    customer_encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the customer managed key specified when the model evaluation job was created."})  # fmt: skip
     job_type: Optional[str] = field(default=None, metadata={"description": "The type of model evaluation job."})  # fmt: skip
     evaluation_config: Optional[AwsBedrockEvaluationConfig] = field(default=None, metadata={"description": "Contains details about the type of model evaluation job, the metrics used, the task type selected, the datasets used, and any custom metrics you defined."})  # fmt: skip
     job_inference_config: Optional[AwsBedrockEvaluationInferenceConfig] = field(default=None, metadata={"description": "Details about the models you specified in your model evaluation job."})  # fmt: skip
@@ -721,6 +796,15 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIResource, AwsResource):
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "When the model evaluation job was created."})  # fmt: skip
     last_modified_time: Optional[datetime] = field(default=None, metadata={"description": "When the model evaluation job was last modified."})  # fmt: skip
     failure_messages: Optional[List[str]] = field(factory=list, metadata={"description": "An array of strings the specify why the model evaluation job has failed."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_arn := self.role_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if encryption_key_arn := self.customer_encryption_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=encryption_key_arn)
+        if output_data_config := self.output_data_config:
+            bucket_name = AwsS3Bucket.name_from_path(output_data_config)
+            builder.add_edge(self, clazz=AwsS3Bucket, name=bucket_name)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -829,16 +913,22 @@ class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
         "AWS Bedrock Agent is an intelligent service designed to facilitate communication with machine learning models, "
         "acting as a mediator between applications and model execution workflows."
     )
-    reference_kinds: ClassVar[ModelReference] = {
-        "successors": {
-            "default": [AwsBedrockGuardrail.kind, "aws_bedrock_agent_version", "aws_bedrock_agent_knowledge_base"]
-        },
-    }
     aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}"
     }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
+    reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                AwsBedrockGuardrail.kind,
+                AwsKmsKey.kind,
+                "aws_bedrock_agent_version",
+                "aws_bedrock_agent_knowledge_base",
+            ]
+        },
+        "predecessors": {"default": [AwsIamRole.kind, AwsBedrockFoundationModel.kind]},
+    }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock-agent", "list-agents", "agentSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("agent", "agentId"),
@@ -890,6 +980,16 @@ class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
     agent_recommended_actions: Optional[List[str]] = field(factory=list, metadata={"description": "Contains recommended actions to take for the agent-related API that you invoked to succeed."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the agent was last updated."})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_arn := self.agent_resource_role_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if encryption_key_arn := self.customer_encryption_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=encryption_key_arn)
+        if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
+            builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
+        if foundation_model_name := self.foundation_model:
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, name=foundation_model_name)
+
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service="bedrock-agent",
@@ -902,10 +1002,6 @@ class AwsBedrockAgent(BedrockTaggable, BaseAIResource, AwsResource):
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
         return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-agent")]
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
-            builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -981,6 +1077,10 @@ class AwsBedrockAgentVersion(BedrockTaggable, BaseAIResource, AwsResource):
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}/versions/{version}"
     }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": [AwsIamRole.kind, AwsBedrockFoundationModel.kind]},
+        "successors": {"default": [AwsBedrockGuardrail.kind, AwsKmsKey.kind]},
+    }
     # Collected via AwsBedrockAgent()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("agentVersion", "agentId"),
@@ -1027,6 +1127,16 @@ class AwsBedrockAgentVersion(BedrockTaggable, BaseAIResource, AwsResource):
     agent_recommended_actions: Optional[List[str]] = field(factory=list, metadata={"description": "A list of recommended actions to take for the failed API operation on the version to succeed."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the version was last updated."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version number."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_arn := self.agent_resource_role_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if encryption_key_arn := self.customer_encryption_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=encryption_key_arn)
+        if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
+            builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
+        if foundation_model_name := self.foundation_model:
+            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, name=foundation_model_name)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -1262,6 +1372,15 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAIResource, AwsResource)
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/knowledge-bases/knowledge-base/{name}/{id}/0"
     }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": [AwsIamRole.kind]},
+        "successors": {
+            "default": [
+                AwsRdsCluster.kind,
+                AwsRdsInstance.kind,
+            ]
+        },
+    }
     # Collected via AwsBedrockAgent()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("knowledgeBaseId"),
@@ -1291,6 +1410,14 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, BaseAIResource, AwsResource)
     status: Optional[str] = field(default=None, metadata={"description": "The status of the knowledge base. The following statuses are possible:   CREATING – The knowledge base is being created.   ACTIVE – The knowledge base is ready to be queried.   DELETING – The knowledge base is being deleted.   UPDATING – The knowledge base is being updated.   FAILED – The knowledge base API operation failed."})  # fmt: skip
     storage_configuration: Optional[AwsBedrockStorageConfiguration] = field(default=None, metadata={"description": "Contains details about the storage configuration of the knowledge base."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the knowledge base was last updated."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_arn := self.role_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if storage_config := self.storage_configuration:
+            if rds_config := storage_config.rds_configuration:
+                builder.add_edge(self, clazz=AwsRdsCluster, rds_database_name=rds_config.database_name)
+                builder.add_edge(self, clazz=AwsRdsInstance, name=rds_config.database_name)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -1384,15 +1511,15 @@ class AwsBedrockAgentPrompt(BedrockTaggable, BaseAIResource, AwsResource):
         "AWS Bedrock Agent Prompt defines the input that the agent uses to generate responses or actions, "
         "guiding the interaction between users and machine learning models through structured prompts."
     )
+    kind_service: ClassVar[Optional[str]] = "bedrock-agent"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-management/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": [AwsBedrockCustomModel.kind]},
+        "successors": {"default": [AwsBedrockCustomModel.kind, AwsKmsKey.kind]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "bedrock-agent", "list-prompts", "promptSummaries", expected_errors=["AccessDeniedException"]
     )
-    kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-management/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -1415,6 +1542,13 @@ class AwsBedrockAgentPrompt(BedrockTaggable, BaseAIResource, AwsResource):
     prompt_variants: Optional[List[AwsBedrockPromptVariant]] = field(factory=list, metadata={"description": "A list of objects, each containing details about a variant of the prompt."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the prompt."})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if variants := self.prompt_variants:
+            for variant in variants:
+                builder.add_edge(self, clazz=AwsBedrockCustomModel, id=variant.model_id)
+        if encryption_key_arn := self.customer_encryption_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=encryption_key_arn)
+
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service="bedrock-agent",
@@ -1435,11 +1569,6 @@ class AwsBedrockAgentPrompt(BedrockTaggable, BaseAIResource, AwsResource):
     @classmethod
     def service_name(cls) -> str:
         return "bedrock-agent"
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if variants := self.prompt_variants:
-            for variant in variants:
-                builder.add_edge(self, clazz=AwsBedrockCustomModel, id=variant.model_id)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -1688,15 +1817,23 @@ class AwsBedrockAgentFlow(BedrockTaggable, BaseAIResource, AwsResource):
         "AWS Bedrock Agent Flow outlines the logical sequence of interactions between the agent and the model, "
         "defining the steps to be followed in executing tasks or answering queries."
     )
+    kind_service: ClassVar[Optional[str]] = "bedrock-agent"
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_bedrock_agent_flow_version"]},
+        "predecessors": {"default": [AwsIamRole.kind]},
+        "successors": {
+            "default": [
+                "aws_bedrock_agent_flow_version",
+                AwsKmsKey.kind,
+                AwsS3Bucket.kind,
+                AwsLambdaFunction.kind,
+            ]
+        },
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "bedrock-agent", "list-flows", "flowSummaries", expected_errors=["AccessDeniedException"]
     )
-    kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "name": S("name"),
@@ -1722,6 +1859,25 @@ class AwsBedrockAgentFlow(BedrockTaggable, BaseAIResource, AwsResource):
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the flow was last updated."})  # fmt: skip
     validations: Optional[List[AwsBedrockFlowValidation]] = field(factory=list, metadata={"description": "A list of validation error messages related to the last failed operation on the flow."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the flow for which information was retrieved."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_arn := self.execution_role_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if encryption_key_arn := self.customer_encryption_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=encryption_key_arn)
+        if (definition := self.definition) and (nodes := definition.nodes):
+            for node in nodes:
+                if node_config := node.configuration:
+                    if lambda_arn := node_config.lambda_function:
+                        builder.add_edge(self, clazz=AwsLambdaFunction, arn=lambda_arn)
+                    if retrieval_config := node_config.retrieval:
+                        if retrieval_s3_config := retrieval_config.service_configuration:
+                            if bucket_name := retrieval_s3_config.s3:
+                                builder.add_edge(self, clazz=AwsS3Bucket, name=bucket_name)
+                    if storage_config := node_config.storage:
+                        if storage_s3_config := storage_config.service_configuration:
+                            if bucket_name := storage_s3_config.s3:
+                                builder.add_edge(self, clazz=AwsS3Bucket, name=bucket_name)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -1793,6 +1949,10 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, BaseAIResource, AwsResource):
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}/versions/{version}"}  # fmt: skip
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": [AwsIamRole.kind]},
+        "successors": {"default": [AwsKmsKey.kind]},
+    }
     # Collected via AwsBedrockAgentFlow()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1814,6 +1974,12 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, BaseAIResource, AwsResource):
     execution_role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the service role with permissions to create a flow. For more information, see Create a service role for flows in Amazon Bedrock in the Amazon Bedrock User Guide."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the flow."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the flow for which information was retrieved."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if role_arn := self.execution_role_arn:
+            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
+        if encryption_key_arn := self.customer_encryption_key_arn:
+            builder.add_edge(self, clazz=AwsKmsKey, arn=encryption_key_arn)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -1839,6 +2005,7 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, BaseAIResource, AwsResource):
 
 
 resources: List[Type[AwsResource]] = [
+    AwsBedrockFoundationModel,
     AwsBedrockCustomModel,
     AwsBedrockProvisionedModelThroughput,
     AwsBedrockGuardrail,
