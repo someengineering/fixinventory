@@ -275,7 +275,7 @@ class DbAccess(Service):
         else:
             if not no_check and not self.database.has_graph(name):
                 raise NoSuchGraph(name)
-            graph_db = ArangoGraphDB(self.db, name, self.adjust_node, self.config.graph)
+            graph_db = ArangoGraphDB(self.db, name, self.adjust_node, self.config.graph, self.lock_db)
             event_db = EventGraphDB(graph_db, self.event_sender)
             self.graph_dbs[name] = event_db
             return event_db
