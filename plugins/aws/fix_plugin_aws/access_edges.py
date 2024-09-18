@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import lru_cache
-from attr import define, evolve, frozen
+from attr import define, frozen
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
 
 from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
@@ -11,6 +11,7 @@ from fix_plugin_aws.access_edges_utils import (
     AccessPermission,
     PolicySourceKind,
     HasResourcePolicy,
+    ResourceConstraint,
 )
 from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser
 from fixlib.baseresources import EdgeType
@@ -28,8 +29,6 @@ import logging
 log = logging.getLogger(__name__)
 
 ALL_ACTIONS = get_all_actions()
-
-ResourceContstaint = str
 
 
 @define
@@ -129,7 +128,7 @@ def check_statement_match(
     action: str,
     resource: AwsResource,
     principal: Optional[AwsResource],
-) -> Tuple[bool, List[ResourceContstaint]]:
+) -> Tuple[bool, List[ResourceConstraint]]:
     """
     check if a statement matches the given effect, action, resource and principal, returns boolean if there is a match and optional resource constraint (if there were any)
     """
@@ -193,7 +192,7 @@ def check_statement_match(
         return False, []
 
     # step 4: check if the resource matches
-    matched_resource_constraints: List[ResourceContstaint] = []
+    matched_resource_constraints: List[ResourceConstraint] = []
     resource_matches = False
     if len(statement.resources) > 0:
         for resource_constraint in statement.resources:
@@ -227,7 +226,7 @@ def policy_matching_statement_exists(
     resource: AwsResource,
     *,
     principal: Optional[AwsResource] = None,
-) -> Optional[Tuple[StatementDetail, List[ResourceContstaint]]]:
+) -> Optional[Tuple[StatementDetail, List[ResourceConstraint]]]:
     """
     only use this when we don't care about the conditions
     """
@@ -270,11 +269,11 @@ def collect_matching_statements(
     action: str,
     resource: AwsResource,
     principal: Optional[AwsResource],
-) -> List[Tuple[StatementDetail, List[ResourceContstaint]]]:
+) -> List[Tuple[StatementDetail, List[ResourceConstraint]]]:
     """
     resoruce based policies contain principal field and need to be handled differently
     """
-    results: List[Tuple[StatementDetail, List[ResourceContstaint]]] = []
+    results: List[Tuple[StatementDetail, List[ResourceConstraint]]] = []
 
     if resource.arn is None:
         raise ValueError("Resource ARN is missing, go and fix the filtering logic")
@@ -404,10 +403,13 @@ def check_resource_based_policies(
 
         for statement, constraints in matching_statements:
             if statement.condition:
-                scopes.append(PermissionScope(source=source, constraints=constraints, conditions=[statement.condition]))
+                scopes.append(
+                    PermissionScope(source=source, constraints=constraints, allow_conditions=[statement.condition])
+                )
             else:
-                scopes.append(PermissionScope(source=source, constraints=constraints, conditions=[]))
+                scopes.append(PermissionScope(source=source, constraints=constraints, allow_conditions=[]))
 
+    # if we found any allow statements, let's check the principal and act accordingly
     if scopes:
         if isinstance(principal, AwsIamUser):
             # in case of IAM users, identity_based_policies and permission boundaries are not relevant
@@ -426,8 +428,9 @@ def check_identity_based_policies(
     scopes: List[PermissionScope] = []
 
     for source, policy in request_context.identity_policies:
-        if exists := policy_matching_statement_exists(policy, "Allow", action, resource):
-            statement, resource_constraints = exists
+        for statement, resource_constraints in collect_matching_statements(
+            policy=policy, effect="Allow", action=action, resource=resource, principal=None
+        ):
             assert isinstance(statement.condition, dict)
             scopes.append(PermissionScope(source, resource_constraints, [statement.condition]))
 
@@ -436,22 +439,27 @@ def check_identity_based_policies(
 
 def check_permission_boundaries(
     request_context: IamRequestContext, resource: AwsResource, action: str
-) -> Union[bool, List[Json]]:
+) -> Union[Literal["Denied", "NextStep"], List[Json]]:
 
     conditions: List[Json] = []
 
-    for source, policy in request_context.permission_boundaries:
-        if exists := policy_matching_statement_exists(policy, "Allow", action, resource):
-            statement, constraint = exists
-            if not statement.condition:
-                return True
-            conditions.append(statement.condition)
+    # ignore policy sources and resource constraints because permission boundaries
+    # can never allow access to a resource, only restrict it
+    for _, policy in request_context.permission_boundaries:
+        for statement, _ in collect_matching_statements(
+            policy=policy, effect="Allow", action=action, resource=resource, principal=None
+        ):
+            if statement.condition:
+                assert isinstance(statement.condition, dict)
+                conditions.append(statement.condition)
+            else:  # if there is an allow statement without a condition, the action is allowed
+                return "NextStep"
 
     if len(conditions) > 0:
         return conditions
 
     # no matching permission boundaries that allow access
-    return False
+    return "Denied"
 
 
 def is_service_linked_role(principal: AwsResource) -> bool:
@@ -510,37 +518,35 @@ def check_policies(
         )
         if isinstance(resource_result, FinalAllow):
             scopes = resource_result.scopes
-            final_scopes: List[PermissionScope] = []
+            final_resource_scopes: List[PermissionScope] = []
             for scope in scopes:
-                final_scopes.append(scope.with_deny_conditions(deny_conditions))
+                final_resource_scopes.append(scope.with_deny_conditions(deny_conditions))
 
-            return AccessPermission(action=action, level=get_action_level(action), scopes=final_scopes)
+            return AccessPermission(action=action, level=get_action_level(action), scopes=final_resource_scopes)
         if isinstance(resource_result, Continue):
             scopes = resource_result.scopes
             allowed_scopes.extend(scopes)
 
-    # 4. check identity based policies
-    identity_based_scopes: List[PermissionScope] = []
+    # 4. to make it a bit simpler, we check the permission boundaries before checking identity based policies
+    if len(request_context.permission_boundaries) > 0:
+        permission_boundary_result = check_permission_boundaries(request_context, resource, action)
+        if permission_boundary_result == "Denied":
+            return None
+        elif permission_boundary_result == "NextStep":
+            pass
+        else:
+            restricting_conditions.extend(permission_boundary_result)
+
+    # 5. check identity based policies
     if len(request_context.identity_policies) == 0:
         if len(allowed_scopes) == 0:
-            # nothing from resource based policies and no identity based policies -> implicit deny
+            # resource policy did no allow any actions and we have zero identity based policies -> implicit deny
             return None
-        # we still have to check permission boundaries if there are any, go to step 5
+        # otherwise continue with the resource based policies
     else:
         identity_based_allowed = check_identity_based_policies(request_context, resource, action)
-        if len(identity_based_allowed):
+        if not identity_based_allowed:
             return None
-
-    # 5. check permission boundaries
-    permission_boundary_conditions: List[Json] = []
-    if len(request_context.permission_boundaries) > 0:
-        permission_boundary_allowed = check_permission_boundaries(request_context, resource, action)
-        if permission_boundary_allowed is False:
-            return None
-        if permission_boundary_allowed is True:
-            pass
-        if isinstance(permission_boundary_allowed, list):
-            permission_boundary_conditions.extend(permission_boundary_allowed)
 
     # 6. check for session policies
     # we don't collect session principals and session policies, so this step is skipped
@@ -550,16 +556,15 @@ def check_policies(
     action_data = get_action_data(service, action_name)
     level = [info["access_level"] for info in action_data[service] if action == info["action"]][0]
 
-    # 8. deduplicate the policies
-
-    # if there were any permission boundary conditions, we should merge them into the collected scopes
-    # todo: merge the boundary conditions into the scopes
+    final_scopes: List[PermissionScope] = []
+    for scope in allowed_scopes:
+        final_scopes.append(scope.with_deny_conditions(deny_conditions))
 
     # return the result
     return AccessPermission(
         action=action,
         level=level,
-        scopes=resource_based_allowed_scopes + identity_based_scopes,  # todo: add scopes
+        scopes=final_scopes,
     )
 
 
