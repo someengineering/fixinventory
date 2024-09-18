@@ -37,7 +37,8 @@ class IamRequestContext:
     principal: AwsResource
     identity_policies: List[Tuple[PolicySource, PolicyDocument]]
     permission_boundaries: List[Tuple[PolicySource, PolicyDocument]]  # todo: use them too
-    service_control_groups: List[List[Tuple[PolicySource, PolicyDocument]]]  # todo: use them too
+    # all service control policies applicable to the principal, starting from the root, then all org units, then the account
+    service_control_policy_levels: List[List[Tuple[PolicySource, PolicyDocument]]]
     # technically we should also add a list of session policies here, but they don't exist in the collector context
 
     def all_policies(
@@ -46,7 +47,7 @@ class IamRequestContext:
         return (
             self.identity_policies
             + self.permission_boundaries
-            + [p for group in self.service_control_groups for p in group]
+            + [p for group in self.service_control_policy_levels for p in group]
             + (resource_based_policies or [])
         )
 
@@ -282,28 +283,29 @@ def check_explicit_deny(
     resource: AwsResource,
     action: str,
     resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
-) -> Union[Literal["Denied", "Allowed"], List[Json]]:
+) -> Union[Literal["Denied", "NextStep"], List[Json]]:
 
-    denied_when_any: List[Json] = []
+    denied_when_any_is_true: List[Json] = []
 
     # we should skip service control policies for service linked roles
-    if not service_linked_role(request_context.principal):
-        for _, policy in request_context.service_control_policies:
-            result = policy_matching_statement_exists(policy, "Deny", action, resource)
-            if result:
-                statement, resource_constraint = result
-                if statement.condition:
-                    denied_when_any.append(statement.condition)
-                else:
-                    return "Denied"
+    if not is_service_linked_role(request_context.principal):
+        for scp_level in request_context.service_control_policy_levels:
+            for _, policy in scp_level:
+                result = policy_matching_statement_exists(policy, "Deny", action, resource)
+                if result:
+                    statement, _ = result
+                    if statement.condition:
+                        denied_when_any_is_true.append(statement.condition)
+                    else:
+                        return "Denied"
 
     # check all the policies except the resource based ones
     for _, policy in request_context.identity_policies + request_context.permission_boundaries:
         result = policy_matching_statement_exists(policy, "Deny", action, resource)
         if result:
-            statement, resource_constraint = result
+            statement, _ = result
             if statement.condition:
-                denied_when_any.append(statement.condition)
+                denied_when_any_is_true.append(statement.condition)
             else:
                 return "Denied"
 
@@ -316,29 +318,29 @@ def check_explicit_deny(
             if not statement.effect_deny:
                 continue
             if statement.condition:
-                denied_when_any.append(statement.condition)
+                denied_when_any_is_true.append(statement.condition)
             else:
                 return "Denied"
 
-    if len(denied_when_any) > 0:
-        return denied_when_any
+    if len(denied_when_any_is_true) > 0:
+        return denied_when_any_is_true
 
-    return "Allowed"
+    return "NextStep"
 
 
 def scp_allowed(request_context: IamRequestContext, action: str, resource: AwsResource) -> bool:
 
-    for group in request_context.service_control_groups:
-        scp_group_allows = False
-        for _, policy in group:
+    # traverse the SCPs:  root -> OU -> account levels
+    for scp_level_policies in request_context.service_control_policy_levels:
+        level_allows = False
+        for _, policy in scp_level_policies:
             if exists := policy_matching_statement_exists(policy, "Allow", action, resource):
-                statement, resource_constraint = exists
-                if not statement.condition:
-                    scp_group_allows = True
-                    break
-                # todo: handle scp conditions
+                # 'Allow' statement in SCP can't have conditions, so we can shortcut here
+                statement, _ = exists
+                level_allows = True
+                break
 
-        if not scp_group_allows:
+        if not level_allows:
             return False
 
     return True
@@ -437,17 +439,7 @@ def check_permission_boundaries(
     return False
 
 
-def negate_condition(condition: Json) -> Json:
-    # todo: implement this
-    return condition
-
-
-def merge_conditions(conditions: List[Json]) -> Json:
-    # todo: implement this
-    return conditions[0]
-
-
-def service_linked_role(principal: AwsResource) -> bool:
+def is_service_linked_role(principal: AwsResource) -> bool:
     # todo: implement this
     return False
 
@@ -467,20 +459,31 @@ def check_policies(
     resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
 ) -> Optional[AccessPermission]:
 
-    deny_conditions: Optional[Json] = None
+    # when any of the conditions evaluate to true, the action is explicitly denied
+    # comes from any explicit deny statements in all policies
+    denying_conditions: List[Json] = []
+
+    # when any of the conditions evaluate to false, the action is implicitly denied
+    # comes from the permission boundaries
+    restricting_conditions: List[Json] = []
+
+    # when any of the conditions evaluate to true, the action is allowed (given it was not denied explicitly/implicitly before)
+    # comes from the resource based policies and identity based policies
+    allowing_conditions: List[Json] = []
+
     # 1. check for explicit deny. If denied, we can abort immediately
     result = check_explicit_deny(request_context, resource, action, resource_based_policies)
     if result == "Denied":
         return None
-    elif result == "Allowed":
+    elif result == "NextStep":
         pass
     else:
-        negated = [negate_condition(c) for c in result]
-        merged = merge_conditions(negated)
-        deny_conditions = merged
+        for c in result:
+            # satisfying any of the conditions above will deny the action
+            denying_conditions.append(c)
 
     # 2. check for organization SCPs
-    if len(request_context.service_control_groups) > 0 and not service_linked_role(request_context.principal):
+    if len(request_context.service_control_policy_levels) > 0 and not is_service_linked_role(request_context.principal):
         org_scp_allowed = scp_allowed(request_context, action, resource)
         if not org_scp_allowed:
             return None
@@ -580,7 +583,7 @@ class AccessEdgeCreator:
 
                 identity_based_policies = self.get_identity_based_policies(node)
                 permission_boundaries: List[Tuple[PolicySource, PolicyDocument]] = []  # todo: add this
-                service_control_policies: List[Tuple[PolicySource, PolicyDocument]] = (
+                service_control_policy_levels: List[List[Tuple[PolicySource, PolicyDocument]]] = (
                     []
                 )  # todo: add this, see https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
 
@@ -588,7 +591,7 @@ class AccessEdgeCreator:
                     principal=node,
                     identity_policies=identity_based_policies,
                     permission_boundaries=permission_boundaries,
-                    service_control_policies=service_control_policies,
+                    service_control_policy_levels=service_control_policy_levels,
                 )
 
                 self.principals.append(request_context)
