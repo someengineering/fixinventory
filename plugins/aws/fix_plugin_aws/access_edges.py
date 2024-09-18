@@ -37,7 +37,7 @@ class IamRequestContext:
     principal: AwsResource
     identity_policies: List[Tuple[PolicySource, PolicyDocument]]
     permission_boundaries: List[Tuple[PolicySource, PolicyDocument]]  # todo: use them too
-    service_control_policies: List[Tuple[PolicySource, PolicyDocument]]  # todo: use them too
+    service_control_groups: List[List[Tuple[PolicySource, PolicyDocument]]]  # todo: use them too
     # technically we should also add a list of session policies here, but they don't exist in the collector context
 
     def all_policies(
@@ -46,7 +46,7 @@ class IamRequestContext:
         return (
             self.identity_policies
             + self.permission_boundaries
-            + self.service_control_policies
+            + [p for group in self.service_control_groups for p in group]
             + (resource_based_policies or [])
         )
 
@@ -326,8 +326,21 @@ def check_explicit_deny(
     return "Allowed"
 
 
-def scp_allowed(request_context: IamRequestContext) -> bool:
-    # todo: collect the necessary resources and implement this
+def scp_allowed(request_context: IamRequestContext, action: str, resource: AwsResource) -> bool:
+
+    for group in request_context.service_control_groups:
+        scp_group_allows = False
+        for _, policy in group:
+            if exists := policy_matching_statement_exists(policy, "Allow", action, resource):
+                statement, resource_constraint = exists
+                if not statement.condition:
+                    scp_group_allows = True
+                    break
+                # todo: handle scp conditions
+
+        if not scp_group_allows:
+            return False
+
     return True
 
 
@@ -467,8 +480,8 @@ def check_policies(
         deny_conditions = merged
 
     # 2. check for organization SCPs
-    if len(request_context.service_control_policies) > 0 and not service_linked_role(request_context.principal):
-        org_scp_allowed = scp_allowed(request_context)
+    if len(request_context.service_control_groups) > 0 and not service_linked_role(request_context.principal):
+        org_scp_allowed = scp_allowed(request_context, action, resource)
         if not org_scp_allowed:
             return None
 
