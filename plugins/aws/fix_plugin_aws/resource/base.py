@@ -15,7 +15,7 @@ from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
 
-from fix_plugin_aws.access_edges import AccessPermission
+from fix_plugin_aws.access_edges_utils import AccessPermission
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource.pricing import AwsPricingPrice

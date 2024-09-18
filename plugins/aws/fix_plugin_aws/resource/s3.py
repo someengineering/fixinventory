@@ -7,7 +7,7 @@ from typing import ClassVar, Dict, List, Tuple, Type, Optional, cast, Any
 from attr import field
 from attrs import define
 
-from fix_plugin_aws.access_edges import HasResourcePolicy, PolicySource
+from fix_plugin_aws.access_edges_utils import HasResourcePolicy, PolicySource, PolicySourceKind
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
@@ -187,7 +187,8 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
     bucket_location: Optional[str] = field(default=None)
 
     def resource_policy(self, builder: GraphBuilder) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        return [(PolicySource.resource, self.bucket_policy)] if self.bucket_policy else []
+        assert self.arn
+        return [(PolicySource(PolicySourceKind.Resource, self.arn), self.bucket_policy)] if self.bucket_policy else []
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
