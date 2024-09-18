@@ -288,7 +288,7 @@ def check_explicit_deny(
 
     # we should skip service control policies for service linked roles
     if not service_linked_role(request_context.principal):
-        for source, policy in request_context.service_control_policies:
+        for _, policy in request_context.service_control_policies:
             result = policy_matching_statement_exists(policy, "Deny", action, resource)
             if result:
                 statement, resource_constraint = result
@@ -298,7 +298,7 @@ def check_explicit_deny(
                     return "Denied"
 
     # check all the policies except the resource based ones
-    for source, policy in request_context.identity_policies + request_context.permission_boundaries:
+    for _, policy in request_context.identity_policies + request_context.permission_boundaries:
         result = policy_matching_statement_exists(policy, "Deny", action, resource)
         if result:
             statement, resource_constraint = result
@@ -307,7 +307,7 @@ def check_explicit_deny(
             else:
                 return "Denied"
 
-    for source, policy in resource_based_policies:
+    for _, policy in resource_based_policies:
         # resource based policies require a different handling
         resource_policy_statements = collect_matching_resource_statements(
             request_context.principal, policy, action, resource
