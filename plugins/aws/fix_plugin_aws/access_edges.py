@@ -1,4 +1,3 @@
-from enum import Enum
 from functools import lru_cache
 from attr import define, frozen
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
@@ -36,7 +35,8 @@ class IamRequestContext:
     principal: AwsResource
     identity_policies: List[Tuple[PolicySource, PolicyDocument]]
     permission_boundaries: List[Tuple[PolicySource, PolicyDocument]]  # todo: use them too
-    # all service control policies applicable to the principal, starting from the root, then all org units, then the account
+    # all service control policies applicable to the principal,
+    # starting from the root, then all org units, then the account
     service_control_policy_levels: List[List[Tuple[PolicySource, PolicyDocument]]]
     # technically we should also add a list of session policies here, but they don't exist in the collector context
 
@@ -49,13 +49,6 @@ class IamRequestContext:
             + [p for group in self.service_control_policy_levels for p in group]
             + (resource_based_policies or [])
         )
-
-
-def find_policy_doc(policy: AwsIamPolicy) -> Optional[Json]:
-    if not policy.policy_document:
-        return None
-
-    return policy.policy_document.document
 
 
 IamAction = str
@@ -108,20 +101,6 @@ def expand_wildcards_and_match(*, identifier: str, wildcard_string: str) -> bool
     return pattern.match(identifier) is not None
 
 
-@frozen
-class Allowed:
-    resource_constraint: str
-    condition: Optional[Json] = None
-
-
-@frozen
-class Denied:
-    pass
-
-
-AccessResult = Union[Allowed, Denied]
-
-
 def check_statement_match(
     statement: StatementDetail,
     effect: Optional[Literal["Allow", "Deny"]],
@@ -130,7 +109,8 @@ def check_statement_match(
     principal: Optional[AwsResource],
 ) -> Tuple[bool, List[ResourceConstraint]]:
     """
-    check if a statement matches the given effect, action, resource and principal, returns boolean if there is a match and optional resource constraint (if there were any)
+    check if a statement matches the given effect, action, resource and principal,
+    returns boolean if there is a match and optional resource constraint (if there were any)
     """
     if resource.arn is None:
         raise ValueError("Resource ARN is missing, go and fix the filtering logic")
@@ -217,30 +197,6 @@ def check_statement_match(
     # step 5: (we're not doing this yet) check if the condition matches
     # here we just return the statement and condition checking is the responsibility of the caller
     return (True, matched_resource_constraints)
-
-
-def policy_matching_statement_exists(
-    policy: PolicyDocument,
-    effect: Literal["Allow", "Deny"],
-    action: str,
-    resource: AwsResource,
-    *,
-    principal: Optional[AwsResource] = None,
-) -> Optional[Tuple[StatementDetail, List[ResourceConstraint]]]:
-    """
-    only use this when we don't care about the conditions
-    """
-    if resource.arn is None:
-        raise ValueError("Resource ARN is missing, go and fix the filtering logic")
-
-    for statement in policy.statements:
-        matches, maybe_resource_constraint = check_statement_match(
-            statement, effect, action, resource, principal=principal
-        )
-        if matches:
-            return (statement, maybe_resource_constraint)
-
-    return None
 
 
 def check_principal_match(principal: AwsResource, aws_principal_list: List[str]) -> bool:
@@ -348,12 +304,6 @@ def scp_allowed(request_context: IamRequestContext, action: str, resource: AwsRe
             return False
 
     return True
-
-
-class ResourcePolicyCheckResult(Enum):
-    NO_MATCH = 0
-    DENY_MATCH = 1
-    ALLOW_MATCH = 2
 
 
 @frozen
@@ -474,7 +424,7 @@ def get_action_level(action: str) -> str:
     return level
 
 
-# logic according to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-denyallow
+# logic according to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
 def check_policies(
     request_context: IamRequestContext,
     resource: AwsResource,
@@ -599,9 +549,8 @@ class AccessEdgeCreator:
 
                 identity_based_policies = self.get_identity_based_policies(node)
                 permission_boundaries: List[Tuple[PolicySource, PolicyDocument]] = []  # todo: add this
-                service_control_policy_levels: List[List[Tuple[PolicySource, PolicyDocument]]] = (
-                    []
-                )  # todo: add this, see https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
+                # todo: https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
+                service_control_policy_levels: List[List[Tuple[PolicySource, PolicyDocument]]] = []
 
                 request_context = IamRequestContext(
                     principal=node,
@@ -626,7 +575,7 @@ class AccessEdgeCreator:
             group_policies = []
             for _, to_node in self.builder.graph.edges(principal):
                 if isinstance(to_node, AwsIamPolicy):
-                    if doc := find_policy_doc(to_node):
+                    if doc := to_node.policy_document_json():
                         attached_policies.append(
                             (
                                 PolicySource(kind=PolicySourceKind.Principal, arn=principal.arn or ""),
@@ -648,7 +597,7 @@ class AccessEdgeCreator:
                     # attached group policies
                     for _, group_successor in self.builder.graph.edges(group):
                         if isinstance(group_successor, AwsIamPolicy):
-                            if doc := find_policy_doc(group_successor):
+                            if doc := group_successor.policy_document_json():
                                 group_policies.append(
                                     (
                                         PolicySource(kind=PolicySourceKind.Group, arn=group.arn or ""),
