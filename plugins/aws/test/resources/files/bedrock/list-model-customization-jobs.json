@@ -1,0 +1,17 @@
+{
+    "nextToken": "foo",
+    "modelCustomizationJobSummaries": [
+      {
+        "jobArn": "foo",
+        "baseModelArn": "foo",
+        "jobName": "foo",
+        "status": "Completed",
+        "lastModifiedTime": "2024-09-13T12:32:05Z",
+        "creationTime": "2024-09-13T12:32:05Z",
+        "endTime": "2024-09-13T12:32:05Z",
+        "customModelArn": "foo",
+        "customModelName": "foo",
+        "customizationType": "CONTINUED_PRE_TRAINING"
+      }
+    ]
+  }

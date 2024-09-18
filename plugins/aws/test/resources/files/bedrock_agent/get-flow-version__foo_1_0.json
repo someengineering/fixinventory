@@ -1,0 +1,27 @@
+{
+    "id": "foo",
+    "name": "foo",
+    "version": "1.0",
+    "status": "ACTIVE",
+    "steps": [
+      {
+        "id": "step1",
+        "name": "Initial Request",
+        "action": "Gather Input"
+      },
+      {
+        "id": "step2",
+        "name": "Process Data",
+        "action": "Run Model"
+      },
+      {
+        "id": "step3",
+        "name": "Return Result",
+        "action": "Respond to User"
+      }
+    ],
+    "createdAt": "2024-09-12T09:00:00Z",
+    "lastModifiedAt": "2024-09-12T10:30:00Z",
+    "description": "Flow version 1.0 for processing user requests."
+  }
+  

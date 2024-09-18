@@ -1,0 +1,12 @@
+{
+    "knowledgeBaseSummaries": [
+      {
+        "description": "foo",
+        "knowledgeBaseId": "foo",
+        "name": "foo",
+        "status": "ACTIVE",
+        "updatedAt": "2024-09-17T12:11:47Z"
+      }
+    ],
+    "nextToken": "foo"
+  }

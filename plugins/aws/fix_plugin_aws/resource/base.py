@@ -520,7 +520,7 @@ class GraphBuilder:
                 }
 
                 # Add any additional dynamic arguments from the metadata (if they exist)
-                if extra_args := meta.get("extra_args"):
+                if extra_args := meta.get("extra_args_for_arn"):
                     for extra_arg in extra_args:
                         args[extra_arg] = getattr(node, extra_arg)
 

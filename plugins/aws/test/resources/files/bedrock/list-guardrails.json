@@ -1,0 +1,15 @@
+{
+    "guardrails": [
+      {
+        "id": "foo",
+        "arn": "foo",
+        "status": "UPDATING",
+        "name": "foo",
+        "description": "foo",
+        "version": "foo",
+        "createdAt": "2024-09-13T12:32:05Z",
+        "updatedAt": "2024-09-13T12:32:05Z"
+      }
+    ],
+    "nextToken": "foo"
+  }
