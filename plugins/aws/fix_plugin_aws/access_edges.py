@@ -129,7 +129,7 @@ def check_statement_match(
     action: str,
     resource: AwsResource,
     principal: Optional[AwsResource],
-) -> Tuple[bool, Optional[ResourceContstaint]]:
+) -> Tuple[bool, List[ResourceContstaint]]:
     """
     check if a statement matches the given effect, action, resource and principal, returns boolean if there is a match and optional resource constraint (if there were any)
     """
@@ -166,13 +166,13 @@ def check_statement_match(
 
         if not principal_match:
             # principal does not match, we can shortcut here
-            return False, None
+            return False, []
 
     # step 2: check if the effect matches
     if effect:
         if statement.effect != effect:
             # wrong effect, skip this statement
-            return False, None
+            return False, []
 
     # step 3: check if the action matches
     action_match = False
@@ -190,15 +190,15 @@ def check_statement_match(
                 break
     if not action_match:
         # action does not match, skip this statement
-        return False, None
+        return False, []
 
     # step 4: check if the resource matches
-    matched_resource_constraint: Optional[ResourceContstaint] = None
+    matched_resource_constraints: List[ResourceContstaint] = []
     resource_matches = False
     if len(statement.resources) > 0:
         for resource_constraint in statement.resources:
             if expand_wildcards_and_match(identifier=resource.arn, wildcard_string=resource_constraint):
-                matched_resource_constraint = resource_constraint
+                matched_resource_constraints.append(resource_constraint)
                 resource_matches = True
                 break
     elif len(statement.not_resource) > 0:
@@ -207,30 +207,37 @@ def check_statement_match(
             if expand_wildcards_and_match(identifier=resource.arn, wildcard_string=not_resource_constraint):
                 resource_matches = False
                 break
-            matched_resource_constraint = "not " + not_resource_constraint
+            matched_resource_constraints.append("not " + not_resource_constraint)
     else:
         # no Resource/NotResource specified, consider allowed
         resource_matches = True
     if not resource_matches:
         # resource does not match, skip this statement
-        return False, None
+        return False, []
 
     # step 5: (we're not doing this yet) check if the condition matches
     # here we just return the statement and condition checking is the responsibility of the caller
-    return (True, matched_resource_constraint)
+    return (True, matched_resource_constraints)
 
 
 def policy_matching_statement_exists(
-    policy: PolicyDocument, effect: Literal["Allow", "Deny"], action: str, resource: AwsResource
-) -> Optional[Tuple[StatementDetail, Optional[ResourceContstaint]]]:
+    policy: PolicyDocument,
+    effect: Literal["Allow", "Deny"],
+    action: str,
+    resource: AwsResource,
+    *,
+    principal: Optional[AwsResource] = None,
+) -> Optional[Tuple[StatementDetail, List[ResourceContstaint]]]:
     """
-    this function is used for policies that do not have principal field, e.g. all non-resource based policies
+    only use this when we don't care about the conditions
     """
     if resource.arn is None:
         raise ValueError("Resource ARN is missing, go and fix the filtering logic")
 
     for statement in policy.statements:
-        matches, maybe_resource_constraint = check_statement_match(statement, effect, action, resource, principal=None)
+        matches, maybe_resource_constraint = check_statement_match(
+            statement, effect, action, resource, principal=principal
+        )
         if matches:
             return (statement, maybe_resource_constraint)
 
@@ -256,21 +263,26 @@ def check_principal_match(principal: AwsResource, aws_principal_list: List[str])
     return False
 
 
-def collect_matching_resource_statements(
-    principal: AwsResource, resoruce_policy: PolicyDocument, action: str, resource: AwsResource
-) -> List[Tuple[StatementDetail, Optional[ResourceContstaint]]]:
+def collect_matching_statements(
+    *,
+    policy: PolicyDocument,
+    effect: Optional[Literal["Allow", "Deny"]],
+    action: str,
+    resource: AwsResource,
+    principal: Optional[AwsResource],
+) -> List[Tuple[StatementDetail, List[ResourceContstaint]]]:
     """
     resoruce based policies contain principal field and need to be handled differently
     """
-    results: List[Tuple[StatementDetail, Optional[ResourceContstaint]]] = []
+    results: List[Tuple[StatementDetail, List[ResourceContstaint]]] = []
 
     if resource.arn is None:
         raise ValueError("Resource ARN is missing, go and fix the filtering logic")
 
-    for statement in resoruce_policy.statements:
+    for statement in policy.statements:
 
         matches, maybe_resource_constraint = check_statement_match(
-            statement, effect=None, action=action, resource=resource, principal=principal
+            statement, effect=effect, action=action, resource=resource, principal=principal
         )
         if matches:
             results.append((statement, maybe_resource_constraint))
@@ -291,38 +303,29 @@ def check_explicit_deny(
     if not is_service_linked_role(request_context.principal):
         for scp_level in request_context.service_control_policy_levels:
             for _, policy in scp_level:
-                result = policy_matching_statement_exists(policy, "Deny", action, resource)
-                if result:
-                    statement, _ = result
+                policy_statements = collect_matching_statements(
+                    policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
+                )
+                for statement, _ in policy_statements:
                     if statement.condition:
                         denied_when_any_is_true.append(statement.condition)
                     else:
                         return "Denied"
 
-    # check all the policies except the resource based ones
-    for _, policy in request_context.identity_policies + request_context.permission_boundaries:
-        result = policy_matching_statement_exists(policy, "Deny", action, resource)
-        if result:
-            statement, _ = result
-            if statement.condition:
-                denied_when_any_is_true.append(statement.condition)
-            else:
-                return "Denied"
-
-    for _, policy in resource_based_policies:
-        # resource based policies require a different handling
-        resource_policy_statements = collect_matching_resource_statements(
-            request_context.principal, policy, action, resource
+    # check the rest of the policies
+    for _, policy in (
+        request_context.identity_policies + request_context.permission_boundaries + resource_based_policies
+    ):
+        policy_statements = collect_matching_statements(
+            policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
         )
-        for statement, _ in resource_policy_statements:
-            if not statement.effect_deny:
-                continue
+        for statement, _ in policy_statements:
             if statement.condition:
                 denied_when_any_is_true.append(statement.condition)
             else:
                 return "Denied"
 
-    if len(denied_when_any_is_true) > 0:
+    if denied_when_any_is_true:
         return denied_when_any_is_true
 
     return "NextStep"
@@ -334,9 +337,11 @@ def scp_allowed(request_context: IamRequestContext, action: str, resource: AwsRe
     for scp_level_policies in request_context.service_control_policy_levels:
         level_allows = False
         for _, policy in scp_level_policies:
-            if exists := policy_matching_statement_exists(policy, "Allow", action, resource):
-                # 'Allow' statement in SCP can't have conditions, so we can shortcut here
-                statement, _ = exists
+            statements = collect_matching_statements(
+                policy=policy, effect="Allow", action=action, resource=resource, principal=None
+            )
+            if statements:
+                # 'Allow' statements in SCP can't have conditions, we do not check them
                 level_allows = True
                 break
 
@@ -374,30 +379,41 @@ def check_resource_based_policies(
     resource: AwsResource,
     resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
 ) -> ResourceBasedPolicyResult:
+    assert resource.arn
 
     scopes: List[PermissionScope] = []
 
-    # todo: add special handling for IAM and KMS resources
+    # todo: support cross-account access evaluation
+
+    arn = ARN(resource.arn)
+    if arn.service == "iam" or arn.service == "kms":  # type: ignore
+        pass
+        # todo: implement implicit deny here
 
     for source, policy in resource_based_policies:
-        matching_statements = collect_matching_resource_statements(principal, policy, action, resource)
+
+        matching_statements = collect_matching_statements(
+            policy=policy,
+            effect="Allow",
+            action=action,
+            resource=resource,
+            principal=principal,
+        )
         if len(matching_statements) == 0:
             continue
 
-        for statement, constraint in matching_statements:
-            if statement.effect_allow:
-                if statement.condition:
-                    scopes.append(
-                        PermissionScope(source=source, restriction=constraint or "*", conditions=[statement.condition])
-                    )
-                else:
-                    scopes.append(PermissionScope(source=source, restriction=constraint or "*", conditions=[]))
+        for statement, constraints in matching_statements:
+            if statement.condition:
+                scopes.append(PermissionScope(source=source, constraints=constraints, conditions=[statement.condition]))
+            else:
+                scopes.append(PermissionScope(source=source, constraints=constraints, conditions=[]))
 
-    if isinstance(principal, AwsIamUser):
-        # in case of IAM user, access is allowed regardless of the rest of the policies
-        return FinalAllow(scopes)
+    if scopes:
+        if isinstance(principal, AwsIamUser):
+            # in case of IAM users, identity_based_policies and permission boundaries are not relevant
+            # and we can return the result immediately
+            return FinalAllow(scopes)
 
-    # todo: deal with session principals somehow
     # in case of other IAM principals, allow on resource based policy is not enough and
     # we need to check the permission boundaries
     return Continue(scopes)
@@ -411,10 +427,9 @@ def check_identity_based_policies(
 
     for source, policy in request_context.identity_policies:
         if exists := policy_matching_statement_exists(policy, "Allow", action, resource):
-            statement, resource_constraint = exists
-            restriction: str = resource_constraint or "*"
+            statement, resource_constraints = exists
             assert isinstance(statement.condition, dict)
-            scopes.append(PermissionScope(source, restriction, [statement.condition]))
+            scopes.append(PermissionScope(source, resource_constraints, [statement.condition]))
 
     return scopes
 
@@ -461,15 +476,15 @@ def check_policies(
 
     # when any of the conditions evaluate to true, the action is explicitly denied
     # comes from any explicit deny statements in all policies
-    denying_conditions: List[Json] = []
+    deny_conditions: List[Json] = []
 
     # when any of the conditions evaluate to false, the action is implicitly denied
     # comes from the permission boundaries
     restricting_conditions: List[Json] = []
 
-    # when any of the conditions evaluate to true, the action is allowed (given it was not denied explicitly/implicitly before)
+    # when any of the scopes evaluate to true, the action is allowed
     # comes from the resource based policies and identity based policies
-    allowing_conditions: List[Json] = []
+    allowed_scopes: List[PermissionScope] = []
 
     # 1. check for explicit deny. If denied, we can abort immediately
     result = check_explicit_deny(request_context, resource, action, resource_based_policies)
@@ -480,7 +495,7 @@ def check_policies(
     else:
         for c in result:
             # satisfying any of the conditions above will deny the action
-            denying_conditions.append(c)
+            deny_conditions.append(c)
 
     # 2. check for organization SCPs
     if len(request_context.service_control_policy_levels) > 0 and not is_service_linked_role(request_context.principal):
@@ -489,29 +504,25 @@ def check_policies(
             return None
 
     # 3. check resource based policies
-    resource_based_allowed_scopes: List[PermissionScope] = []
     if len(resource_based_policies) > 0:
         resource_result = check_resource_based_policies(
             request_context.principal, action, resource, resource_based_policies
         )
         if isinstance(resource_result, FinalAllow):
             scopes = resource_result.scopes
-            allowed_scopes: List[PermissionScope] = []
+            final_scopes: List[PermissionScope] = []
             for scope in scopes:
-                if deny_conditions:
-                    new_conditions = [merge_conditions([deny_conditions, c]) for c in scope.conditions]
-                    scope = evolve(scope, conditions=new_conditions)
-                allowed_scopes.append(scope)
+                final_scopes.append(scope.with_deny_conditions(deny_conditions))
 
-            return AccessPermission(action=action, level=get_action_level(action), scopes=allowed_scopes)
+            return AccessPermission(action=action, level=get_action_level(action), scopes=final_scopes)
         if isinstance(resource_result, Continue):
             scopes = resource_result.scopes
-            resource_based_allowed_scopes.extend(scopes)
+            allowed_scopes.extend(scopes)
 
     # 4. check identity based policies
     identity_based_scopes: List[PermissionScope] = []
     if len(request_context.identity_policies) == 0:
-        if len(resource_based_allowed_scopes) == 0:
+        if len(allowed_scopes) == 0:
             # nothing from resource based policies and no identity based policies -> implicit deny
             return None
         # we still have to check permission boundaries if there are any, go to step 5

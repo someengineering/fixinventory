@@ -26,8 +26,12 @@ class HasResourcePolicy(ABC):
 @frozen
 class PermissionScope:
     source: PolicySource
-    restriction: str
-    conditions: List[Json]
+    constraints: List[str]  # aka resource constraints
+    conditions: List[Json]  # if nonempty and any is true, access is granted
+    deny_conditions: List[Json]  # if nonempty and any is true, access is denied
+
+    def with_deny_conditions(self, deny_conditions: List[Json]) -> "PermissionScope":
+        return PermissionScope(self.source, self.constraints, self.conditions, deny_conditions)
 
 
 @frozen
