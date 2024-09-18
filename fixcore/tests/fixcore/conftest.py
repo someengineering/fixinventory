@@ -198,8 +198,8 @@ def test_db(local_client: ArangoClient, system_db: StandardDatabase) -> Standard
 
 
 @fixture
-async def graph_db(async_db: AsyncArangoDB) -> ArangoGraphDB:
-    graph_db = ArangoGraphDB(async_db, GraphName("ns"), NoAdjust(), GraphConfig(use_view=False))
+async def graph_db(async_db: AsyncArangoDB, lock_db: LockDB) -> ArangoGraphDB:
+    graph_db = ArangoGraphDB(async_db, GraphName("ns"), NoAdjust(), GraphConfig(use_view=False), lock_db)
     await graph_db.create_update_schema()
     await model_db(async_db, "ns_model").create_update_schema()
     await async_db.truncate(graph_db.in_progress)
