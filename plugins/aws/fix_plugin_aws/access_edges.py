@@ -286,8 +286,19 @@ def check_explicit_deny(
 
     denied_when_any: List[Json] = []
 
+    # we should skip service control policies for service linked roles
+    if not service_linked_role(request_context.principal):
+        for source, policy in request_context.service_control_policies:
+            result = policy_matching_statement_exists(policy, "Deny", action, resource)
+            if result:
+                statement, resource_constraint = result
+                if statement.condition:
+                    denied_when_any.append(statement.condition)
+                else:
+                    return "Denied"
+
     # check all the policies except the resource based ones
-    for source, policy in request_context.all_policies():
+    for source, policy in request_context.identity_policies + request_context.permission_boundaries:
         result = policy_matching_statement_exists(policy, "Deny", action, resource)
         if result:
             statement, resource_constraint = result
@@ -423,6 +434,11 @@ def merge_conditions(conditions: List[Json]) -> Json:
     return conditions[0]
 
 
+def service_linked_role(principal: AwsResource) -> bool:
+    # todo: implement this
+    return False
+
+
 def get_action_level(action: str) -> str:
     service, action_name = action.split(":")
     action_data = get_action_data(service, action_name)
@@ -451,7 +467,7 @@ def check_policies(
         deny_conditions = merged
 
     # 2. check for organization SCPs
-    if len(request_context.service_control_policies) > 0:
+    if len(request_context.service_control_policies) > 0 and not service_linked_role(request_context.principal):
         org_scp_allowed = scp_allowed(request_context)
         if not org_scp_allowed:
             return None
