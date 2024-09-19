@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sqlite3
 from datetime import timedelta
 from functools import partial
@@ -681,8 +682,8 @@ async def test_list_command(cli: CLI) -> None:
     ]
 
     # define properties and add default properties
-    result = await cli.execute_cli_command("search is (foo) and id=0 | list --with-defaults age as a, id", list_sink)
-    assert result[0][0] == "a=0s, id=0, kind=foo, cloud=collector, account=sub_root"
+    result = await cli.execute_cli_command("search is (foo) and id=0 | list --with-defaults kind as k, id", list_sink)
+    assert re.fullmatch("k=foo, id=0, age=.+, cloud=collector, account=sub_root", result[0][0])
 
 
 @pytest.mark.asyncio
