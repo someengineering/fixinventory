@@ -1,0 +1,12 @@
+{
+    "id": "foo",
+    "name": "foo",
+    "status": "COMPLETED",
+    "modelId": "foo",
+    "startedAt": "2024-09-12T09:00:00Z",
+    "completedAt": "2024-09-12T12:00:00Z",
+    "customizationData": {
+      "source": "s3://bucket/customization-data"
+    }
+  }
+  

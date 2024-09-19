@@ -1,0 +1,10 @@
+{
+    "agentId": "foo",
+    "agentName": "foo",
+    "version": "1.0",
+    "status": "ACTIVE",
+    "releaseNotes": "Initial release with basic features.",
+    "createdAt": "2024-09-12T08:00:00Z",
+    "lastModifiedAt": "2024-09-12T09:00:00Z"
+  }
+  

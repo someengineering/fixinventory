@@ -1,0 +1,12 @@
+{
+    "agentKnowledgeBaseSummaries": [
+      {
+        "id": "foo",
+        "name": "foo",
+        "description": "A knowledge base for general queries.",
+        "createdAt": "2024-09-12T07:00:00Z",
+        "lastModifiedAt": "2024-09-12T08:00:00Z"
+      }
+    ]
+  }
+  

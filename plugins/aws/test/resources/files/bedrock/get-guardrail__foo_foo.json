@@ -1,0 +1,19 @@
+{
+    "id": "foo",
+    "name": "foo",
+    "status": "ENABLED",
+    "description": "A guardrail to enforce responsible AI usage",
+    "rules": [
+      {
+        "id": "rule1",
+        "name": "Bias Mitigation",
+        "action": "MONITOR"
+      },
+      {
+        "id": "rule2",
+        "name": "Fairness Check",
+        "action": "ALERT"
+      }
+    ]
+  }
+  

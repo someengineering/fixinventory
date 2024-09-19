@@ -48,6 +48,7 @@ from fix_plugin_aws.resource import (
     acm,
     waf,
     backup,
+    bedrock,
 )
 from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
 from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
@@ -107,6 +108,7 @@ regional_resources: List[Type[AwsResource]] = (
     + redshift.resources
     + backup.resources
     + amazonq.resources
+    + bedrock.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
@@ -259,6 +261,8 @@ class AwsAccountCollector:
 
             # wait for all futures to finish
             shared_queue.wait_for_submitted_work()
+            # remove unused nodes
+            self.remove_unused()
             self.core_feedback.progress_done(self.account.dname, 1, 1, context=[self.cloud.id])
             self.error_accumulator.report_all(global_builder.core_feedback)
 
@@ -329,6 +333,32 @@ class AwsAccountCollector:
                     log.warning(f"Error occurred in region {region}: {e}")
 
             builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
+
+    def remove_unused(self) -> None:
+        remove_nodes = []
+
+        def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None, check_pred: bool = True) -> None:  # type: ignore
+            for node in self.graph.nodes:
+                if not isinstance(node, cls):
+                    continue
+                if check_pred:
+                    nodes = list(self.graph.predecessors(node))
+                else:
+                    nodes = list(self.graph.successors(node))
+                if ignore_kinds is not None:
+                    nodes = [n for n in nodes if not isinstance(n, ignore_kinds)]
+                if not nodes:
+                    remove_nodes.append(node)
+            log.debug(f"Removing {len(remove_nodes)} unreferenced nodes of type {cls}")
+            removed = set()
+            for node in remove_nodes:
+                if node in removed:
+                    continue
+                removed.add(node)
+                self.graph.remove_node(node)
+            remove_nodes.clear()
+
+        rm_nodes(bedrock.AwsBedrockFoundationModel, check_pred=False)
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:

@@ -1,0 +1,12 @@
+{
+    "agent": {
+      "id": "foo",
+      "name": "foo",
+      "agentVersion": "1.0",
+      "status": "ACTIVE",
+      "createdAt": "2024-09-12T11:00:00Z",
+      "lastModifiedAt": "2024-09-12T13:00:00Z",
+      "knowledgeBaseId": "foo"
+    }
+  }
+  
