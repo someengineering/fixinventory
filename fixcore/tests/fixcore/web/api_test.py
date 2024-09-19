@@ -8,7 +8,7 @@ import tempfile
 
 import pytest
 from _pytest.fixtures import fixture
-from aiohttp import ClientSession, MultipartReader
+from aiohttp import ClientSession, MultipartReader, BodyPartReader
 from networkx import MultiDiGraph
 from datetime import timedelta
 from fixclient import models as rc
@@ -394,7 +394,7 @@ async def test_cli(core_client: FixInventoryClient) -> None:
     # execute multiple commands
     response = await core_client.cli_execute_raw("echo foo; echo bar; echo bla")
     reader: MultipartReader = MultipartReader.from_response(response.undrelying)  # type: ignore
-    assert [await p.text() async for p in reader] == ['"foo"', '"bar"', '"bla"']
+    assert [await p.text() async for p in reader if isinstance(p, BodyPartReader)] == ['"foo"', '"bar"', '"bla"']
 
     # list all cli commands
     info = AccessJson(await core_client.cli_info())
