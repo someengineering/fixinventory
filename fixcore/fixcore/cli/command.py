@@ -2638,7 +2638,7 @@ class ListCommand(CLICommand, OutputTransformer):
         output_type.add_argument("--csv", dest="csv", action="store_true")
         output_type.add_argument("--markdown", dest="markdown", action="store_true")
         output_type.add_argument("--json-table", dest="json_table", action="store_true")
-        output_type.add_argument("--with-defaults", dest="with_defaults", action="store_true")
+        parser.add_argument("--with-defaults", dest="with_defaults", action="store_true")
         parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
         properties = " ".join(properties_list) if properties_list else None
         is_aggregate: bool = ctx.query is not None and ctx.query.aggregate is not None
