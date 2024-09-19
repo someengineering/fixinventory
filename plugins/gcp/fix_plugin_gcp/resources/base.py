@@ -517,7 +517,7 @@ class GcpRegionQuota(GcpResource):
         "description": S("description"),
         "quotas": S("quotas", default=[]) >> MapDict(S("metric") >> F(lambda x: x.lower()), Bend(GcpLimit.mapping)),
     }
-    quotas: Optional[Dict[str, GcpLimit]] = field(default=None)
+    quotas: Optional[Dict[str, GcpLimit]] = field(default=None, metadata=dict(ignore_history=True))
 
 
 @define(eq=False, slots=False)
