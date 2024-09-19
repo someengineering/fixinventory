@@ -173,7 +173,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
     condition: Optional[str] = field(default=None, metadata={'description': 'The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase foo_storage_container '})  # fmt: skip
     condition_version: Optional[str] = field(default=None, metadata={'description': 'Version of the condition. Currently the only accepted value is 2.0 '})  # fmt: skip
     created_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who created the assignment'})  # fmt: skip
-    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True,"description": "Time it was created"})  # fmt: skip
+    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time it was created"})  # fmt: skip
     delegated_managed_identity_resource_id: Optional[str] = field(default=None, metadata={'description': 'Id of the delegated managed identity resource'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "Description of role assignment"})
     principal_id: Optional[str] = field(default=None, metadata={"description": "The principal ID."})
