@@ -1,8 +1,9 @@
 import logging
 from re import RegexFlag, fullmatch
-from typing import Optional, Callable, Awaitable, Tuple
+from typing import Optional, Tuple
 
 from aiohttp.hdrs import METH_OPTIONS, METH_GET, METH_HEAD, METH_POST, METH_PUT, METH_DELETE, METH_PATCH
+from aiohttp.typedefs import Middleware
 from aiohttp.web import HTTPRedirection, HTTPNotFound, HTTPBadRequest, HTTPException, HTTPNoContent
 from aiohttp.web_exceptions import HTTPServiceUnavailable, HTTPError
 from aiohttp.web_middlewares import middleware
@@ -84,9 +85,7 @@ async def metrics_handler(request: Request, handler: RequestHandler) -> StreamRe
         RequestInProgress.labels(request.path, request.method).dec()
 
 
-def error_handler(
-    config: CoreConfig, event_sender: AnalyticsEventSender
-) -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+def error_handler(config: CoreConfig, event_sender: AnalyticsEventSender) -> Middleware:
     is_debug = (logging.root.level < logging.INFO) or config.runtime.debug
 
     def exc_info(ex: Exception) -> Optional[Exception]:
@@ -129,7 +128,7 @@ def error_handler(
     return error_handler_middleware
 
 
-def default_middleware(api_handler: "api.Api") -> Callable[[Request, RequestHandler], Awaitable[StreamResponse]]:
+def default_middleware(api_handler: "api.Api") -> Middleware:
     @middleware
     async def default_handler(request: Request, handler: RequestHandler) -> StreamResponse:
         if api_handler.in_shutdown:

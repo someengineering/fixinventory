@@ -32,6 +32,7 @@ from typing import (
 )
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 
+import aiofiles
 import aiohttp_jinja2
 import jinja2
 import prometheus_client
@@ -44,6 +45,7 @@ from aiohttp import (
     MultipartReader,
     ClientSession,
     TCPConnector,
+    BodyPartReader,
 )
 from aiohttp.abc import AbstractStreamWriter
 from aiohttp.hdrs import METH_ANY
@@ -1380,6 +1382,23 @@ class Api(Service):
     @timed("api", "execute")
     async def execute(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         temp_dir: Optional[str] = None
+
+        async def write_files(mpr: MultipartReader, tmp_dir: str) -> Dict[str, str]:
+            files: Dict[str, str] = {}
+            async for part in mpr:
+                if isinstance(part, MultipartReader):
+                    files.update(await write_files(part, tmp_dir))
+                elif isinstance(part, BodyPartReader):
+                    name = part.filename
+                    if not name:
+                        raise AttributeError("Multipart request: content disposition name is required!")
+                    path = os.path.join(tmp_dir, rnd_str())  # use random local path to avoid clashes
+                    files[name] = path
+                    async with aiofiles.open(path, "wb") as writer:
+                        while not part.at_eof():
+                            await writer.write(await part.read_chunk())
+            return files
+
         try:
             ctx = self.cli_context_from_request(request)
             if request.content_type.startswith("text"):
@@ -1388,18 +1407,9 @@ class Api(Service):
                 command = request.headers["Fix-Shell-Command"].strip()
                 temp = tempfile.mkdtemp()
                 temp_dir = temp
-                files = {}
                 # for now, we assume that all multi-parts are file uploads
-                async for part in MultipartReader(request.headers, request.content):
-                    name = part.name
-                    if not name:
-                        raise AttributeError("Multipart request: content disposition name is required!")
-                    path = os.path.join(temp, rnd_str())  # use random local path to avoid clashes
-                    files[name] = path
-                    with open(path, "wb") as writer:
-                        while not part.at_eof():
-                            writer.write(await part.read_chunk())
-                ctx = evolve(ctx, uploaded_files=files)
+                uploaded = await write_files(MultipartReader(request.headers, request.content), temp)
+                ctx = evolve(ctx, uploaded_files=uploaded)
             else:
                 raise AttributeError(f"Not able to handle: {request.content_type}")
 
