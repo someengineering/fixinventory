@@ -680,6 +680,10 @@ async def test_list_command(cli: CLI) -> None:
         "Region / Zone",
     ]
 
+    # define properties and add default properties
+    result = await cli.execute_cli_command("search is (foo) and id=0 | list --with-defaults age as a, id", list_sink)
+    assert result[0][0] == "a=0s, id=0, kind=foo, cloud=collector, account=sub_root"
+
 
 @pytest.mark.asyncio
 async def test_jq_command(cli: CLI) -> None:
