@@ -34,20 +34,20 @@ ALL_ACTIONS = get_all_actions()
 class IamRequestContext:
     principal: AwsResource
     identity_policies: List[Tuple[PolicySource, PolicyDocument]]
-    permission_boundaries: List[Tuple[PolicySource, PolicyDocument]]  # todo: use them too
+    permission_boundaries: List[PolicyDocument]  # todo: use them too
     # all service control policies applicable to the principal,
     # starting from the root, then all org units, then the account
-    service_control_policy_levels: List[List[Tuple[PolicySource, PolicyDocument]]]
+    service_control_policy_levels: List[List[PolicyDocument]]
     # technically we should also add a list of session policies here, but they don't exist in the collector context
 
     def all_policies(
         self, resource_based_policies: Optional[List[Tuple[PolicySource, PolicyDocument]]] = None
-    ) -> List[Tuple[PolicySource, PolicyDocument]]:
+    ) -> List[PolicyDocument]:
         return (
-            self.identity_policies
+            [p[1] for p in self.identity_policies]
             + self.permission_boundaries
             + [p for group in self.service_control_policy_levels for p in group]
-            + (resource_based_policies or [])
+            + ([p[1] for p in (resource_based_policies or [])])
         )
 
 
@@ -123,7 +123,8 @@ def check_statement_match(
                 principal_match = True
             elif "AWS" in policy_principal:
                 aws_principal_list = policy_principal["AWS"]
-                assert isinstance(aws_principal_list, list)
+                if isinstance(aws_principal_list, str):
+                    aws_principal_list = [aws_principal_list]
                 if check_principal_match(principal, aws_principal_list):
                     principal_match = True
             else:
@@ -257,7 +258,7 @@ def check_explicit_deny(
     # we should skip service control policies for service linked roles
     if not is_service_linked_role(request_context.principal):
         for scp_level in request_context.service_control_policy_levels:
-            for _, policy in scp_level:
+            for policy in scp_level:
                 policy_statements = collect_matching_statements(
                     policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
                 )
@@ -267,10 +268,19 @@ def check_explicit_deny(
                     else:
                         return "Denied"
 
+    # check permission boundaries
+    for policy in request_context.permission_boundaries:
+        policy_statements = collect_matching_statements(
+            policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
+        )
+        for statement, _ in policy_statements:
+            if statement.condition:
+                denied_when_any_is_true.append(statement.condition)
+            else:
+                return "Denied"
+
     # check the rest of the policies
-    for _, policy in (
-        request_context.identity_policies + request_context.permission_boundaries + resource_based_policies
-    ):
+    for _, policy in request_context.identity_policies + resource_based_policies:
         policy_statements = collect_matching_statements(
             policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
         )
@@ -291,7 +301,7 @@ def scp_allowed(request_context: IamRequestContext, action: str, resource: AwsRe
     # traverse the SCPs:  root -> OU -> account levels
     for scp_level_policies in request_context.service_control_policy_levels:
         level_allows = False
-        for _, policy in scp_level_policies:
+        for policy in scp_level_policies:
             statements = collect_matching_statements(
                 policy=policy, effect="Allow", action=action, resource=resource, principal=None
             )
@@ -395,7 +405,7 @@ def check_permission_boundaries(
 
     # ignore policy sources and resource constraints because permission boundaries
     # can never allow access to a resource, only restrict it
-    for _, policy in request_context.permission_boundaries:
+    for policy in request_context.permission_boundaries:
         for statement, _ in collect_matching_statements(
             policy=policy, effect="Allow", action=action, resource=resource, principal=None
         ):
@@ -525,7 +535,7 @@ def compute_permissions(
 ) -> List[AccessPermission]:
 
     # step 1: find the relevant action to check
-    relevant_actions = find_all_allowed_actions([p for _, p in iam_context.all_policies(resource_based_policies)])
+    relevant_actions = find_all_allowed_actions(iam_context.all_policies(resource_based_policies))
 
     all_permissions: List[AccessPermission] = []
 
@@ -548,9 +558,9 @@ class AccessEdgeCreator:
             if isinstance(node, AwsIamUser):
 
                 identity_based_policies = self.get_identity_based_policies(node)
-                permission_boundaries: List[Tuple[PolicySource, PolicyDocument]] = []  # todo: add this
+                permission_boundaries: List[PolicyDocument] = []  # todo: add this
                 # todo: https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
-                service_control_policy_levels: List[List[Tuple[PolicySource, PolicyDocument]]] = []
+                service_control_policy_levels: List[List[PolicyDocument]] = []
 
                 request_context = IamRequestContext(
                     principal=node,
