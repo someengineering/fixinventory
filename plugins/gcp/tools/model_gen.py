@@ -294,7 +294,7 @@ def clazz_model(
                         is_complex_dict=True,
                     )
                 )
-            elif prop_shape.get("type") == "object" and prop_shape.get("properties"):
+            elif prop_shape.get("type") == "object" and prop_shape.get("properties") or prop_shape.get("additionalProperties"):
                 result.extend(clazz_model(model, prop_shape, visited, name, prefix, api_info=api_info))
                 props.append(
                     GcpProperty(
@@ -305,7 +305,8 @@ def clazz_model(
                         is_complex=True,
                     )
                 )
-
+            elif prop_shape.get("type") == "any":
+                props.append(GcpProperty(prop_prefix + prop, name, "Any", prop_shape.get("description", "")))
             else:
                 raise NotImplementedError(f"Unsupported shape: \n{prop_shape}\nFull Shape: \n{shape}\n")
 
@@ -458,7 +459,7 @@ def generate_class_models() -> Dict[str, List[GcpModel]]:
 def generate_classes() -> None:
     for service, clazz_models in generate_class_models().items():
         print(
-            """from datetime import datetime
+        """from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type
 
 from attr import define, field
@@ -466,8 +467,8 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
 from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
-"""
-        )
+    """
+            )
         for clazz in clazz_models:
             print(clazz.to_class())
         print("resources = [", ", ".join(cm.name for cm in clazz_models if cm.aggregate_root), "]")
@@ -497,6 +498,7 @@ known_api_parameters = {
     "sqladmin": {"project": "{project}", "instance": "{instance}"},
     "cloudbilling": {"project": "{project}", "region": "{region}", "name": "{name}", "parent": "{parent}"},
     "storage": {"project": "{project}", "bucket": "{bucket}"},
+    "aiplatform": {"parent": "projects/{project}/locations/{location}/-", "name": "projects/{project}/locations/{region}/{resource}/{resource_id}"},
 }
 
 # See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
@@ -506,7 +508,8 @@ apis = [
     # ("container", "v1", "Container", ["UsableSubnetwork"]),
     # ("sqladmin", "v1", "Sql", ["Tier"]),
     # ("cloudbilling", "v1", "", []),
-    ("storage", "v1", "", [])
+    # ("storage", "v1", "", [])
+    ("aiplatform", "v1", "", [])
 ]
 
 
