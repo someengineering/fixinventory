@@ -345,7 +345,7 @@ def check_resource_based_policies(
     # todo: support cross-account access evaluation
 
     arn = ARN(resource.arn)
-    if arn.service == "iam" or arn.service == "kms":  # type: ignore
+    if arn.service_prefix == "iam" or arn.service_prefix == "kms":
         pass
         # todo: implement implicit deny here
 
@@ -391,8 +391,10 @@ def check_identity_based_policies(
         for statement, resource_constraints in collect_matching_statements(
             policy=policy, effect="Allow", action=action, resource=resource, principal=None
         ):
-            assert isinstance(statement.condition, dict)
-            scopes.append(PermissionScope(source, resource_constraints, [statement.condition]))
+            conditions = []
+            if statement.condition:
+                conditions.append(statement.condition)
+            scopes.append(PermissionScope(source, resource_constraints, conditions))
 
     return scopes
 
@@ -552,12 +554,13 @@ class AccessEdgeCreator:
     def __init__(self, builder: GraphBuilder):
         self.builder = builder
         self.principals: List[IamRequestContext] = []
+        self._init_principals()
 
-    def init_principals(self) -> None:
+    def _init_principals(self) -> None:
         for node in self.builder.nodes(clazz=AwsResource):
             if isinstance(node, AwsIamUser):
 
-                identity_based_policies = self.get_identity_based_policies(node)
+                identity_based_policies = self._get_identity_based_policies(node)
                 permission_boundaries: List[PolicyDocument] = []  # todo: add this
                 # todo: https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
                 service_control_policy_levels: List[List[PolicyDocument]] = []
@@ -571,7 +574,7 @@ class AccessEdgeCreator:
 
                 self.principals.append(request_context)
 
-    def get_identity_based_policies(self, principal: AwsResource) -> List[Tuple[PolicySource, PolicyDocument]]:
+    def _get_identity_based_policies(self, principal: AwsResource) -> List[Tuple[PolicySource, PolicyDocument]]:
         if isinstance(principal, AwsIamUser):
             inline_policies = [
                 (

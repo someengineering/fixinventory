@@ -35,7 +35,7 @@ from fixlib.baseresources import (
 from fixlib.config import Config, current_config
 from fixlib.core.actions import CoreFeedback, SuppressWithFeedback
 from fixlib.graph import ByNodeId, BySearchCriteria, EdgeKey, Graph, NodeSelector
-from fixlib.json import from_json, value_in_path
+from fixlib.json import from_json, to_json, value_in_path
 from fixlib.json_bender import Bender, bend
 from fixlib.lock import RWLock
 from fixlib.proc import set_thread_name
@@ -577,7 +577,8 @@ class GraphBuilder:
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             with self.graph_edges_access.write_access:
-                self.graph.add_edge(start, end, edge_type=edge_type, permissions=permissions)
+                permissions_json = to_json(permissions) if permissions else None
+                self.graph.add_edge(start, end, edge_type=edge_type, permissions=permissions_json)
 
     def add_deferred_edge(
         self, from_node: BaseResource, edge_type: EdgeType, to_node: str, reverse: bool = False
