@@ -3,6 +3,7 @@ from cloudsplaining.scan.statement_detail import StatementDetail
 
 from fix_plugin_aws.resource.base import AwsResource
 from fix_plugin_aws.resource.iam import AwsIamUser
+from typing import Any, Dict, List
 
 import re
 from fix_plugin_aws.access_edges import (
@@ -32,7 +33,7 @@ def test_find_allowed_action() -> None:
     assert allowed_actions == {"s3:GetObject", "s3:PutObject", "s3:ListBuckets"}
 
 
-def test_make_resoruce_regex():
+def test_make_resoruce_regex() -> None:
     # Test case 1: Wildcard with *
     wildcard = "arn:aws:s3:::my-bucket/*"
     regex = make_resoruce_regex(wildcard)
@@ -62,7 +63,7 @@ def test_make_resoruce_regex():
     assert not regex.match("arn:aws:s3:::my-bucket/abc")
 
 
-def test_check_statement_match1():
+def test_check_statement_match1() -> None:
     allow_statement = {
         "Effect": "Allow",
         "Action": "s3:GetObject",
@@ -146,41 +147,37 @@ def test_check_principal_match() -> None:
     assert check_principal_match(principal, aws_principal_list) is True
 
 
-def test_no_explicit_deny():
+def test_no_explicit_deny() -> None:
     """Test when there is no explicit deny in any policies, expect 'NextStep'."""
     principal = AwsIamUser(id="AID1234567890", arn="arn:aws:iam::123456789012:user/test-user")
-    identity_policies = []
-    permission_boundaries = []
-    service_control_policy_levels = []
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=identity_policies,
-        permission_boundaries=permission_boundaries,
-        service_control_policy_levels=service_control_policy_levels,
+        identity_policies=[],
+        permission_boundaries=[],
+        service_control_policy_levels=[],
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket")
     action = "s3:GetObject"
-    resource_based_policies = []
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     assert result == "NextStep"
 
 
-def test_explicit_deny_in_identity_policy():
+def test_explicit_deny_in_identity_policy() -> None:
     """Test when there is an explicit deny without condition in identity policy, expect 'Denied'."""
     principal = AwsIamUser(id="AID1234567890", arn="arn:aws:iam::123456789012:user/test-user")
     assert principal.arn
 
-    policy_json = {
+    policy_json: Dict[str, Any] = {
         "Version": "2012-10-17",
         "Statement": [{"Effect": "Deny", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::example-bucket/*"}],
     }
     policy_document = PolicyDocument(policy_json)
     identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=principal.arn), policy_document)]
-    permission_boundaries = []
-    service_control_policy_levels = []
+    permission_boundaries: List[PolicyDocument] = []
+    service_control_policy_levels: List[List[PolicyDocument]] = []
 
     request_context = IamRequestContext(
         principal=principal,
@@ -191,18 +188,17 @@ def test_explicit_deny_in_identity_policy():
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
     action = "s3:GetObject"
-    resource_based_policies = []
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     assert result == "Denied"
 
 
-def test_explicit_deny_with_condition_in_identity_policy():
+def test_explicit_deny_with_condition_in_identity_policy() -> None:
     """Test when there is an explicit deny with condition in identity policy, expect list of conditions."""
     principal = AwsIamUser(id="AID1234567890", arn="arn:aws:iam::123456789012:user/test-user")
     assert principal.arn
 
-    policy_json = {
+    policy_json: Dict[str, Any] = {
         "Version": "2012-10-17",
         "Statement": [
             {
@@ -215,32 +211,27 @@ def test_explicit_deny_with_condition_in_identity_policy():
     }
     policy_document = PolicyDocument(policy_json)
     identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=principal.arn), policy_document)]
-    permission_boundaries = []
-    service_control_policy_levels = []
 
     request_context = IamRequestContext(
         principal=principal,
         identity_policies=identity_policies,
-        permission_boundaries=permission_boundaries,
-        service_control_policy_levels=service_control_policy_levels,
+        permission_boundaries=[],
+        service_control_policy_levels=[],
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
     action = "s3:GetObject"
-    resource_based_policies = []
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     expected_conditions = [policy_json["Statement"][0]["Condition"]]
     assert result == expected_conditions
 
 
-def test_explicit_deny_in_scp():
+def test_explicit_deny_in_scp() -> None:
     """Test when there is an explicit deny without condition in SCP, expect 'Denied'."""
     principal = AwsIamUser(id="AID1234567890", arn="arn:aws:iam::123456789012:user/test-user")
-    identity_policies = []
-    permission_boundaries = []
 
-    scp_policy_json = {
+    scp_policy_json: Dict[str, Any] = {
         "Version": "2012-10-17",
         "Statement": [{"Effect": "Deny", "Action": "s3:GetObject", "Resource": "*"}],
     }
@@ -249,26 +240,23 @@ def test_explicit_deny_in_scp():
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=identity_policies,
-        permission_boundaries=permission_boundaries,
+        identity_policies=[],
+        permission_boundaries=[],
         service_control_policy_levels=service_control_policy_levels,
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
     action = "s3:GetObject"
-    resource_based_policies = []
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     assert result == "Denied"
 
 
-def test_explicit_deny_with_condition_in_scp():
+def test_explicit_deny_with_condition_in_scp() -> None:
     """Test when there is an explicit deny with condition in SCP, expect list of conditions."""
     principal = AwsIamUser(id="AID1234567890", arn="arn:aws:iam::123456789012:user/test-user")
-    identity_policies = []
-    permission_boundaries = []
 
-    scp_policy_json = {
+    scp_policy_json: Dict[str, Any] = {
         "Version": "2012-10-17",
         "Statement": [
             {
@@ -288,35 +276,31 @@ def test_explicit_deny_with_condition_in_scp():
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=identity_policies,
-        permission_boundaries=permission_boundaries,
+        identity_policies=[],
+        permission_boundaries=[],
         service_control_policy_levels=service_control_policy_levels,
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
     action = "s3:GetObject"
-    resource_based_policies = []
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     expected_conditions = [scp_policy_json["Statement"][0]["Condition"]]
     assert result == expected_conditions
 
 
-def test_explicit_deny_in_resource_policy():
+def test_explicit_deny_in_resource_policy() -> None:
     """Test when there is an explicit deny without condition in resource-based policy, expect 'Denied'."""
     principal = AwsIamUser(id="AID1234567890", arn="arn:aws:iam::123456789012:user/test-user")
-    identity_policies = []
-    permission_boundaries = []
-    service_control_policy_levels = []
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=identity_policies,
-        permission_boundaries=permission_boundaries,
-        service_control_policy_levels=service_control_policy_levels,
+        identity_policies=[],
+        permission_boundaries=[],
+        service_control_policy_levels=[],
     )
 
-    policy_json = {
+    policy_json: Dict[str, Any] = {
         "Version": "2012-10-17",
         "Statement": [
             {
@@ -339,21 +323,18 @@ def test_explicit_deny_in_resource_policy():
     assert result == "Denied"
 
 
-def test_explicit_deny_with_condition_in_resource_policy():
+def test_explicit_deny_with_condition_in_resource_policy() -> None:
     """Test when there is an explicit deny with condition in resource-based policy, expect list of conditions."""
     principal = AwsIamUser(id="AID1234567890", arn="arn:aws:iam::123456789012:user/test-user")
-    identity_policies = []
-    permission_boundaries = []
-    service_control_policy_levels = []
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=identity_policies,
-        permission_boundaries=permission_boundaries,
-        service_control_policy_levels=service_control_policy_levels,
+        identity_policies=[],
+        permission_boundaries=[],
+        service_control_policy_levels=[],
     )
 
-    policy_json = {
+    policy_json: Dict[str, Any] = {
         "Version": "2012-10-17",
         "Statement": [
             {
