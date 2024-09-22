@@ -431,8 +431,15 @@ def is_service_linked_role(principal: AwsResource) -> bool:
 
 def get_action_level(action: str) -> str:
     service, action_name = action.split(":")
+    level = "Unknown"
     action_data = get_action_data(service, action_name)
-    level: str = [info["access_level"] for info in action_data[service] if action == info["action"]][0]
+    if not action_data:
+        return level
+    if len(action_data[service]) > 0:
+        for info in action_data[service]:
+            if action == info["action"]:
+                level = info["access_level"]
+                break
     return level
 
 
@@ -509,14 +516,13 @@ def check_policies(
         identity_based_allowed = check_identity_based_policies(request_context, resource, action)
         if not identity_based_allowed:
             return None
+        allowed_scopes.extend(identity_based_allowed)
 
     # 6. check for session policies
     # we don't collect session principals and session policies, so this step is skipped
 
     # 7. if we reached here, the action is allowed
-    service, action_name = action.split(":")
-    action_data = get_action_data(service, action_name)
-    level = [info["access_level"] for info in action_data[service] if action == info["action"]][0]
+    level = get_action_level(action)
 
     final_scopes: List[PermissionScope] = []
     for scope in allowed_scopes:

@@ -13,9 +13,10 @@ from fix_plugin_aws.access_edges import (
     check_principal_match,
     IamRequestContext,
     check_explicit_deny,
+    compute_permissions,
 )
 
-from fix_plugin_aws.access_edges_utils import PolicySource, PolicySourceKind
+from fix_plugin_aws.access_edges_utils import PolicySource, PolicySourceKind, PermissionScope
 
 
 def test_find_allowed_action() -> None:
@@ -357,3 +358,543 @@ def test_explicit_deny_with_condition_in_resource_policy() -> None:
     result = check_explicit_deny(request_context, resource, action, resource_based_policies)
     expected_conditions = [policy_json["Statement"][0]["Condition"]]
     assert result == expected_conditions
+
+
+def test_compute_permissions_user_inline_policy_allow():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3GetObject",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    policy_document = PolicyDocument(policy_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), policy_document)]
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+    assert len(permissions) == 1
+    assert permissions[0].action == "s3:ListBucket"
+    assert permissions[0].level == "List"
+    assert len(permissions[0].scopes) == 1
+    assert permissions[0].scopes[0] == PermissionScope(
+        PolicySource(kind=PolicySourceKind.Principal, arn=user.arn),
+        ["arn:aws:s3:::my-test-bucket"],
+        [],
+        [],
+        [],
+    )
+
+
+def test_compute_permissions_user_inline_policy_allow_with_conditions():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    condition = {"IpAddress": {"aws:SourceIp": "1.1.1.1"}}
+
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3GetObject",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+                "Condition": condition,
+            }
+        ],
+    }
+    policy_document = PolicyDocument(policy_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), policy_document)]
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+    assert len(permissions) == 1
+    assert permissions[0].action == "s3:ListBucket"
+    assert permissions[0].level == "List"
+    assert len(permissions[0].scopes) == 1
+    assert permissions[0].scopes[0] == PermissionScope(
+        PolicySource(kind=PolicySourceKind.Principal, arn=user.arn),
+        ["arn:aws:s3:::my-test-bucket"],
+        [condition],
+        [],
+        [],
+    )
+
+
+def test_compute_permissions_user_inline_policy_deny():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "DenyS3PutObject",
+                "Effect": "Deny",
+                "Action": "s3:PutObject",
+                "Resource": "arn:aws:s3:::my-test-bucket/*",
+            }
+        ],
+    }
+    policy_document = PolicyDocument(policy_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), policy_document)]
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 0
+
+
+def test_compute_permissions_user_inline_policy_deny_with_condition():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    condition = {"IpAddress": {"aws:SourceIp": "1.1.1.1"}}
+
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "DenyS3PutObject",
+                "Effect": "Deny",
+                "Action": "s3:PutObject",
+                "Resource": "arn:aws:s3:::my-test-bucket/*",
+                "Condition": condition,
+            }
+        ],
+    }
+    policy_document = PolicyDocument(policy_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), policy_document)]
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    # deny does not grant any permissions by itself, even if the condition is met
+    assert len(permissions) == 0
+
+
+def test_deny_overrides_allow():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    deny_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "DenyS3PutObject",
+                "Effect": "Deny",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    deny_policy_document = PolicyDocument(deny_policy_json)
+
+    allow_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3PutObject",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    allow_policy_document = PolicyDocument(allow_policy_json)
+
+    identity_policies = [
+        (PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), deny_policy_document),
+        (PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), allow_policy_document),
+    ]
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 0
+
+
+def test_deny_different_action_does_not_override_allow():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    deny_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "DenyS3PutObject",
+                "Effect": "Deny",
+                "Action": "s3:PutObject",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    deny_policy_document = PolicyDocument(deny_policy_json)
+
+    allow_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3PutObject",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    allow_policy_document = PolicyDocument(allow_policy_json)
+
+    identity_policies = [
+        (PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), deny_policy_document),
+        (PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), allow_policy_document),
+    ]
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 1
+
+
+def test_deny_overrides_allow_with_condition():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    condition = {"IpAddress": {"aws:SourceIp": "1.1.1.1"}}
+
+    deny_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "DenyS3PutObject",
+                "Effect": "Deny",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+                "Condition": condition,
+            }
+        ],
+    }
+    deny_policy_document = PolicyDocument(deny_policy_json)
+
+    allow_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3PutObject",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    allow_policy_document = PolicyDocument(allow_policy_json)
+
+    identity_policies = [
+        (PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), deny_policy_document),
+        (PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), allow_policy_document),
+    ]
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 1
+    p = permissions[0]
+    assert p.action == "s3:ListBucket"
+    assert p.level == "List"
+    assert len(p.scopes) == 1
+    s = p.scopes[0]
+    assert s.source.kind == PolicySourceKind.Principal
+    assert s.source.arn == user.arn
+    assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
+    assert s.deny_conditions == [condition]
+
+
+def test_compute_permissions_resource_based_policy_allow():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::111122223333:user/test-user")
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    assert bucket.arn
+
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowCrossAccountAccess",
+                "Effect": "Allow",
+                "Principal": {"AWS": "arn:aws:iam::111122223333:user/test-user"},
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    policy_document = PolicyDocument(policy_json)
+
+    identity_policies = []
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = [(PolicySource(kind=PolicySourceKind.Resource, arn=bucket.arn), policy_document)]
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 1
+    p = permissions[0]
+    assert p.action == "s3:ListBucket"
+    assert p.level == "List"
+    assert len(p.scopes) == 1
+    s = p.scopes[0]
+    assert s.source.kind == PolicySourceKind.Resource
+    assert s.source.arn == bucket.arn
+    assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
+
+
+def test_compute_permissions_permission_boundary_restrict():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    identity_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3DeleteObject",
+                "Effect": "Allow",
+                "Action": "s3:DeleteBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            },
+            {
+                "Sid": "AllowS3GetObject",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            },
+        ],
+    }
+    identity_policy_document = PolicyDocument(identity_policy_json)
+
+    permission_boundary_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Sid": "Boundary", "Effect": "Allow", "Action": ["s3:ListBucket", "s3:PutObject"], "Resource": "*"}
+        ],
+    }
+    permission_boundary_document = PolicyDocument(permission_boundary_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), identity_policy_document)]
+
+    permission_boundaries = [permission_boundary_document]
+
+    request_context = IamRequestContext(
+        principal=user,
+        identity_policies=identity_policies,
+        permission_boundaries=permission_boundaries,
+        service_control_policy_levels=[],
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 1
+    p = permissions[0]
+    assert p.action == "s3:ListBucket"
+    assert p.level == "List"
+    assert len(p.scopes) == 1
+    s = p.scopes[0]
+    assert s.source.kind == PolicySourceKind.Principal
+    assert s.source.arn == user.arn
+    assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
+
+
+def test_compute_permissions_scp_deny():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    assert user.arn
+
+    ec2_instance = AwsResource(id="instance123", arn="arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0")
+
+    identity_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowTerminateInstances",
+                "Effect": "Allow",
+                "Action": "ec2:TerminateInstances",
+                "Resource": ec2_instance.arn,
+            }
+        ],
+    }
+    identity_policy_document = PolicyDocument(identity_policy_json)
+
+    scp_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Sid": "DenyTerminateInstances", "Effect": "Deny", "Action": "ec2:TerminateInstances", "Resource": "*"}
+        ],
+    }
+    scp_policy_document = PolicyDocument(scp_policy_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, arn=user.arn), identity_policy_document)]
+
+    service_control_policy_levels = [[scp_policy_document]]
+
+    request_context = IamRequestContext(
+        principal=user,
+        identity_policies=identity_policies,
+        permission_boundaries=[],
+        service_control_policy_levels=service_control_policy_levels,
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=ec2_instance, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 0
+
+
+def test_compute_permissions_user_with_group_policies():
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    group = AwsResource(id="group123", arn="arn:aws:iam::123456789012:group/test-group")
+    assert group.arn
+
+    group_policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Sid": "AllowS3ListBucket", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": bucket.arn}
+        ],
+    }
+    group_policy_document = PolicyDocument(group_policy_json)
+
+    identity_policies = []
+
+    identity_policies.append((PolicySource(kind=PolicySourceKind.Group, arn=group.arn), group_policy_document))
+
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    resource_based_policies = []
+
+    permissions = compute_permissions(
+        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    assert len(permissions) == 1
+    p = permissions[0]
+    assert p.action == "s3:ListBucket"
+    assert p.level == "List"
+    assert len(p.scopes) == 1
+    s = p.scopes[0]
+    assert s.source.kind == PolicySourceKind.Group
+    assert s.source.arn == group.arn
+    assert s.constraints == [bucket.arn]
+
+
+def test_compute_permissions_implicit_deny():
+    # Create a user
+    user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
+
+    # Create a resource (DynamoDB table)
+    table = AwsResource(id="table123", arn="arn:aws:dynamodb:us-east-1:123456789012:table/my-table")
+
+    # No identity policies
+    identity_policies = []
+
+    # Create the request context
+    request_context = IamRequestContext(
+        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    # No resource-based policies
+    resource_based_policies = []
+
+    # Compute permissions
+    permissions = compute_permissions(
+        resource=table, iam_context=request_context, resource_based_policies=resource_based_policies
+    )
+
+    # Assert that permissions do not include any actions (implicit deny)
+    assert len(permissions) == 0
