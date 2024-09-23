@@ -23,7 +23,7 @@ def test_backup_plans() -> None:
 
 
 def test_backup_vaults() -> None:
-    round_trip_for(AwsBackupVault)
+    round_trip_for(AwsBackupVault, "vault_policy")
 
 
 def test_backup_recovery_points() -> None:
