@@ -1,22 +1,16 @@
-from enum import StrEnum
 from abc import ABC
 from attrs import frozen, evolve
-from typing import List, Tuple, Any
+from typing import List, Optional, Tuple, Any
 from fixlib.types import Json
+from fixlib.baseresources import PolicySourceKind
 
 ResourceConstraint = str
-
-
-class PolicySourceKind(StrEnum):
-    Principal = "principal"  # e.g. IAM user, attached policy
-    Group = "group"  # policy comes from an IAM group
-    Resource = "resource"  # e.g. s3 bucket policy
 
 
 @frozen
 class PolicySource:
     kind: PolicySourceKind
-    arn: str
+    uri: str
 
 
 class HasResourcePolicy(ABC):
@@ -26,18 +20,28 @@ class HasResourcePolicy(ABC):
 
 
 @frozen
+class PermissionCondition:
+    # if nonempty and any evals to true, access is granted, otherwise implicitly denied
+    allow: Optional[List[Json]] = None
+    # if nonempty and any is evals to false, access is implicitly denied
+    boundary: Optional[List[Json]] = None
+    # if nonempty and any evals to true, access is explicitly denied
+    deny: Optional[List[Json]] = None
+
+
+@frozen
 class PermissionScope:
     source: PolicySource
     constraints: List[ResourceConstraint]  # aka resource constraints
-    allow_conditions: List[Json]  # if nonempty and any evals to true, access is granted, otherwise implicitly denied
-    boundary_conditions: List[Json] = []  # if nonempty and any is evals to false, access is implicitly denied
-    deny_conditions: List[Json] = []  # if nonempty and any evals to true, access is explicitly denied
+    conditions: Optional[PermissionCondition] = None
 
     def with_deny_conditions(self, deny_conditions: List[Json]) -> "PermissionScope":
-        return evolve(self, deny_conditions=deny_conditions)
+        c = self.conditions or PermissionCondition()
+        return evolve(self, conditions=evolve(c, deny=deny_conditions))
 
     def with_boundary_conditions(self, boundary_conditions: List[Json]) -> "PermissionScope":
-        return evolve(self, boundary_conditions=boundary_conditions)
+        c = self.conditions or PermissionCondition()
+        return evolve(self, conditions=evolve(c, boundary=boundary_conditions))
 
 
 @frozen

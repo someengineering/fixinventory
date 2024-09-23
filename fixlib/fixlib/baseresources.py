@@ -6,7 +6,7 @@ import weakref
 from abc import ABC
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
-from enum import Enum, unique
+from enum import Enum, StrEnum, unique
 from functools import wraps, cached_property
 from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type, Callable, Set, Tuple
 from collections import defaultdict
@@ -1598,5 +1598,10 @@ class UnknownLocation(BaseResource):
     def delete(self, graph: Any) -> bool:
         return False
 
+
+class PolicySourceKind(StrEnum):
+    Principal = "principal"  # e.g. IAM user, attached policy
+    Group = "group"  # policy comes from an IAM group
+    Resource = "resource"  # e.g. s3 bucket policy
 
 resolve_types(BaseResource)  # noqa

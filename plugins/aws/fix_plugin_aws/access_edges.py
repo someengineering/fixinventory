@@ -5,15 +5,15 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
 from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
 
 from fix_plugin_aws.access_edges_utils import (
+    PermissionCondition,
     PolicySource,
     PermissionScope,
     AccessPermission,
-    PolicySourceKind,
     HasResourcePolicy,
     ResourceConstraint,
 )
 from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser
-from fixlib.baseresources import EdgeType
+from fixlib.baseresources import EdgeType, PolicySourceKind
 from fixlib.types import Json
 
 from cloudsplaining.scan.policy_document import PolicyDocument
@@ -364,10 +364,19 @@ def check_resource_based_policies(
         for statement, constraints in matching_statements:
             if statement.condition:
                 scopes.append(
-                    PermissionScope(source=source, constraints=constraints, allow_conditions=[statement.condition])
+                    PermissionScope(
+                        source=source,
+                        constraints=constraints,
+                        conditions=PermissionCondition(allow=[statement.condition]),
+                    )
                 )
             else:
-                scopes.append(PermissionScope(source=source, constraints=constraints, allow_conditions=[]))
+                scopes.append(
+                    PermissionScope(
+                        source=source,
+                        constraints=constraints,
+                    )
+                )
 
     # if we found any allow statements, let's check the principal and act accordingly
     if scopes:
@@ -394,7 +403,9 @@ def check_identity_based_policies(
             conditions = []
             if statement.condition:
                 conditions.append(statement.condition)
-            scopes.append(PermissionScope(source, resource_constraints, conditions))
+            scopes.append(
+                PermissionScope(source, resource_constraints, conditions=PermissionCondition(allow=conditions))
+            )
 
     return scopes
 
@@ -526,7 +537,9 @@ def check_policies(
 
     final_scopes: List[PermissionScope] = []
     for scope in allowed_scopes:
-        final_scopes.append(scope.with_deny_conditions(deny_conditions))
+        if deny_conditions:
+            scope = scope.with_deny_conditions(deny_conditions)
+        final_scopes.append(scope)
 
     # return the result
     return AccessPermission(
@@ -584,7 +597,7 @@ class AccessEdgeCreator:
         if isinstance(principal, AwsIamUser):
             inline_policies = [
                 (
-                    PolicySource(kind=PolicySourceKind.Principal, arn=principal.arn or ""),
+                    PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
                     PolicyDocument(policy.policy_document),
                 )
                 for policy in principal.user_policies
@@ -597,7 +610,7 @@ class AccessEdgeCreator:
                     if doc := to_node.policy_document_json():
                         attached_policies.append(
                             (
-                                PolicySource(kind=PolicySourceKind.Principal, arn=principal.arn or ""),
+                                PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
                                 PolicyDocument(doc),
                             )
                         )
@@ -609,7 +622,7 @@ class AccessEdgeCreator:
                         if policy.policy_document:
                             group_policies.append(
                                 (
-                                    PolicySource(kind=PolicySourceKind.Group, arn=group.arn or ""),
+                                    PolicySource(kind=PolicySourceKind.Group, uri=group.arn or ""),
                                     PolicyDocument(policy.policy_document),
                                 )
                             )
@@ -619,7 +632,7 @@ class AccessEdgeCreator:
                             if doc := group_successor.policy_document_json():
                                 group_policies.append(
                                     (
-                                        PolicySource(kind=PolicySourceKind.Group, arn=group.arn or ""),
+                                        PolicySource(kind=PolicySourceKind.Group, uri=group.arn or ""),
                                         PolicyDocument(doc),
                                     )
                                 )

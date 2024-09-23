@@ -7,12 +7,12 @@ from typing import ClassVar, Dict, List, Tuple, Type, Optional, cast, Any
 from attr import field
 from attrs import define
 
-from fix_plugin_aws.access_edges_utils import HasResourcePolicy, PolicySource, PolicySourceKind
+from fix_plugin_aws.access_edges_utils import HasResourcePolicy, PolicySource
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.utils import tags_as_dict
-from fixlib.baseresources import BaseBucket, MetricName, PhantomBaseResource, ModelReference
+from fixlib.baseresources import BaseBucket, MetricName, PhantomBaseResource, ModelReference, PolicySourceKind
 from fixlib.graph import Graph
 from fixlib.json import is_empty, sort_json
 from fixlib.json_bender import Bender, S, bend, Bend, ForallBend
