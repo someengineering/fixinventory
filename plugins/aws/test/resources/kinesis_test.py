@@ -5,6 +5,7 @@ from test.resources import round_trip_for
 from typing import Any, cast
 from types import SimpleNamespace
 
+
 def test_kinesis_stream() -> None:
     res, builder = round_trip_for(AwsKinesisStream, "kinesis_policy")
     assert len(builder.resources_of(AwsKinesisStream)) == 1
