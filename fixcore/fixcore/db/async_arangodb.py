@@ -53,7 +53,6 @@ class AsyncCursor(AsyncIterator[Any]):
         self.cursor_exhausted = False
         self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else identity  # type: ignore
         self.vt_len: Optional[int] = None
-        self.on_hold: Optional[Json] = None
         self.get_next: Callable[[], Awaitable[Optional[Json]]] = (
             self.next_filtered if flatten_nodes_and_edges else self.next_element
         )
@@ -62,11 +61,7 @@ class AsyncCursor(AsyncIterator[Any]):
         # if there is an on-hold element: unset and return it
         # background: a graph node contains vertex and edge information.
         # since this method can only return one element at a time, the edge is put on-hold for vertex+edge data.
-        if self.on_hold:
-            res = self.on_hold
-            self.on_hold = None
-            return res
-        elif self.cursor_exhausted:
+        if self.cursor_exhausted:
             return await self.next_deferred_edge()
         else:
             try:
@@ -99,20 +94,10 @@ class AsyncCursor(AsyncIterator[Any]):
 
     async def next_filtered(self) -> Optional[Json]:
         element = await self.next_from_db()
-        vertex: Optional[Json] = None
-        edge = None
         try:
-            _key = element["_key"]
-            if _key not in self.visited_node:
-                self.visited_node.add(_key)
-                vertex = self.trafo(element)
-
-            from_id = element.get("_from")
-            to_id = element.get("_to")
-            link_id = element.get("_link_id")
-            if from_id is not None and to_id is not None and link_id is not None:
-                if link_id not in self.visited_edge:
-                    self.visited_edge.add(link_id)
+            if (from_id := element.get("_from")) and (to_id := element.get("_to")) and (node_id := element.get("_id")):
+                if node_id not in self.visited_edge:
+                    self.visited_edge.add(node_id)
                     if not self.vt_len:
                         self.vt_len = len(re.sub("/.*$", "", from_id)) + 1
                     edge = {
@@ -122,21 +107,22 @@ class AsyncCursor(AsyncIterator[Any]):
                         # example: vertex_name/node_id -> node_id
                         "to": to_id[self.vt_len :],  # noqa: E203
                         # example: vertex_name_default/edge_id -> default
-                        "edge_type": re.sub("/.*$", "", link_id[self.vt_len :]),  # noqa: E203
+                        "edge_type": re.sub("/.*$", "", node_id[self.vt_len :]),  # noqa: E203
                     }
-                    if reported := element.get("_link_reported"):
+                    if reported := element.get("reported"):
                         edge["reported"] = reported
                     # make sure that both nodes of the edge have been visited already
                     if from_id not in self.visited_node or to_id not in self.visited_node:
                         self.deferred_edges.append(edge)
-                        edge = None
-            # if the vertex is not returned: return the edge
-            # otherwise return the vertex and remember the edge
-            if vertex:
-                self.on_hold = edge
-                return vertex
+                        return None
+                    else:
+                        return edge
+            elif key := element.get("_key"):
+                if key not in self.visited_node:
+                    self.visited_node.add(key)
+                    return self.trafo(element)
             else:
-                return edge
+                return element
         except Exception as ex:
             log.warning(f"Could not read element {element}: {ex}. Ignore.")
         return None
