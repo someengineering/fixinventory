@@ -360,7 +360,7 @@ def test_explicit_deny_with_condition_in_resource_policy() -> None:
     assert result == expected_conditions
 
 
-def test_compute_permissions_user_inline_policy_allow():
+def test_compute_permissions_user_inline_policy_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -385,11 +385,7 @@ def test_compute_permissions_user_inline_policy_allow():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
     assert permissions[0].level == "List"
@@ -403,7 +399,7 @@ def test_compute_permissions_user_inline_policy_allow():
     )
 
 
-def test_compute_permissions_user_inline_policy_allow_with_conditions():
+def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -431,11 +427,7 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
     assert permissions[0].level == "List"
@@ -449,7 +441,7 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions():
     )
 
 
-def test_compute_permissions_user_inline_policy_deny():
+def test_compute_permissions_user_inline_policy_deny() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -474,16 +466,12 @@ def test_compute_permissions_user_inline_policy_deny():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
 
     assert len(permissions) == 0
 
 
-def test_compute_permissions_user_inline_policy_deny_with_condition():
+def test_compute_permissions_user_inline_policy_deny_with_condition() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -511,17 +499,13 @@ def test_compute_permissions_user_inline_policy_deny_with_condition():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
 
     # deny does not grant any permissions by itself, even if the condition is met
     assert len(permissions) == 0
 
 
-def test_deny_overrides_allow():
+def test_deny_overrides_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -562,16 +546,12 @@ def test_deny_overrides_allow():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
 
     assert len(permissions) == 0
 
 
-def test_deny_different_action_does_not_override_allow():
+def test_deny_different_action_does_not_override_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -612,16 +592,12 @@ def test_deny_different_action_does_not_override_allow():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
 
     assert len(permissions) == 1
 
 
-def test_deny_overrides_allow_with_condition():
+def test_deny_overrides_allow_with_condition() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -665,11 +641,7 @@ def test_deny_overrides_allow_with_condition():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
 
     assert len(permissions) == 1
     p = permissions[0]
@@ -683,7 +655,7 @@ def test_deny_overrides_allow_with_condition():
     assert s.deny_conditions == [condition]
 
 
-def test_compute_permissions_resource_based_policy_allow():
+def test_compute_permissions_resource_based_policy_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::111122223333:user/test-user")
 
     bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
@@ -703,9 +675,8 @@ def test_compute_permissions_resource_based_policy_allow():
     }
     policy_document = PolicyDocument(policy_json)
 
-    identity_policies = []
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=[], permission_boundaries=[], service_control_policy_levels=[]
     )
 
     resource_based_policies = [(PolicySource(kind=PolicySourceKind.Resource, arn=bucket.arn), policy_document)]
@@ -725,7 +696,7 @@ def test_compute_permissions_resource_based_policy_allow():
     assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
 
 
-def test_compute_permissions_permission_boundary_restrict():
+def test_compute_permissions_permission_boundary_restrict() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -769,11 +740,7 @@ def test_compute_permissions_permission_boundary_restrict():
         service_control_policy_levels=[],
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
 
     assert len(permissions) == 1
     p = permissions[0]
@@ -786,7 +753,7 @@ def test_compute_permissions_permission_boundary_restrict():
     assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
 
 
-def test_compute_permissions_scp_deny():
+def test_compute_permissions_scp_deny() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
@@ -824,16 +791,12 @@ def test_compute_permissions_scp_deny():
         service_control_policy_levels=service_control_policy_levels,
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=ec2_instance, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=ec2_instance, iam_context=request_context, resource_based_policies=[])
 
     assert len(permissions) == 0
 
 
-def test_compute_permissions_user_with_group_policies():
+def test_compute_permissions_user_with_group_policies() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
 
@@ -856,11 +819,7 @@ def test_compute_permissions_user_with_group_policies():
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    resource_based_policies = []
-
-    permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
 
     assert len(permissions) == 1
     p = permissions[0]
@@ -873,28 +832,15 @@ def test_compute_permissions_user_with_group_policies():
     assert s.constraints == [bucket.arn]
 
 
-def test_compute_permissions_implicit_deny():
-    # Create a user
+def test_compute_permissions_implicit_deny() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
-
-    # Create a resource (DynamoDB table)
     table = AwsResource(id="table123", arn="arn:aws:dynamodb:us-east-1:123456789012:table/my-table")
 
-    # No identity policies
-    identity_policies = []
-
-    # Create the request context
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=[], permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    # No resource-based policies
-    resource_based_policies = []
-
-    # Compute permissions
-    permissions = compute_permissions(
-        resource=table, iam_context=request_context, resource_based_policies=resource_based_policies
-    )
+    permissions = compute_permissions(resource=table, iam_context=request_context, resource_based_policies=[])
 
     # Assert that permissions do not include any actions (implicit deny)
     assert len(permissions) == 0
