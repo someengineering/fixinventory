@@ -1389,7 +1389,7 @@ class Api(Service):
                 if isinstance(part, MultipartReader):
                     files.update(await write_files(part, tmp_dir))
                 elif isinstance(part, BodyPartReader):
-                    name = part.filename
+                    name = part.name
                     if not name:
                         raise AttributeError("Multipart request: content disposition name is required!")
                     path = os.path.join(tmp_dir, rnd_str())  # use random local path to avoid clashes
