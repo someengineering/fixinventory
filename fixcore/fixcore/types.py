@@ -21,7 +21,7 @@ Json = Dict[str, Any]
 ValidationResult = Optional[Any]
 ValidationFn = Callable[[Any], ValidationResult]
 
-EdgeType = Literal["default", "delete"]
+EdgeType = Literal["default", "delete", "iam"]
 
 
 # make sure jsons does not do something clever, when a json element needs to be parsed

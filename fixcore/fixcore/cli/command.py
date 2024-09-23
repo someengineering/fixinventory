@@ -18,7 +18,7 @@ from asyncio.subprocess import Process
 from collections import defaultdict
 from contextlib import suppress
 from datetime import timedelta, datetime
-from functools import partial, lru_cache
+from functools import partial, lru_cache, cached_property
 from itertools import dropwhile, chain
 from pathlib import Path
 from typing import (
@@ -2444,8 +2444,12 @@ class PropToShow:
     alternative_path: Optional[List[str]] = None
     override_kind: Optional[str] = None
 
+    @cached_property
+    def path_str(self) -> str:
+        return ".".join(self.path)
+
     def full_path(self) -> str:
-        return self.path_access or ".".join(self.path)
+        return self.path_access or self.path_str
 
     def value(self, node: JsonElement) -> Optional[JsonElement]:
         result = js_value_at(node, self.path)
@@ -2502,8 +2506,9 @@ class ListCommand(CLICommand, OutputTransformer):
     ## Options
 
     - `--csv` [optional]: format the output as CSV. Can't be used together with `--markdown`.
-
     - `--markdown` [optional]: format the output as Markdown table. Can't be used together with `--csv`.
+    - `--json-table` [optional]: format the output as JSON table.
+    - `--with-defaults` [optional]: show the default properties in addition to the defined ones.
 
     ## Examples
 
@@ -2619,6 +2624,7 @@ class ListCommand(CLICommand, OutputTransformer):
             ArgInfo("--csv", help_text="format", option_group="format"),
             ArgInfo("--markdown", help_text="format", option_group="format"),
             ArgInfo("--json-table", help_text="format", option_group="format"),
+            ArgInfo("--with-defaults"),
             ArgInfo(
                 expects_value=True,
                 help_text="comma separated list of properties to show",
@@ -2632,6 +2638,7 @@ class ListCommand(CLICommand, OutputTransformer):
         output_type.add_argument("--csv", dest="csv", action="store_true")
         output_type.add_argument("--markdown", dest="markdown", action="store_true")
         output_type.add_argument("--json-table", dest="json_table", action="store_true")
+        parser.add_argument("--with-defaults", dest="with_defaults", action="store_true")
         parsed, properties_list = parser.parse_known_args(arg.split() if arg else [])
         properties = " ".join(properties_list) if properties_list else None
         is_aggregate: bool = ctx.query is not None and ctx.query.aggregate is not None
@@ -2766,7 +2773,15 @@ class ListCommand(CLICommand, OutputTransformer):
         def props_to_show(
             props_setting: Tuple[List[PropToShow], List[PropToShow], List[PropToShow], List[PropToShow]]
         ) -> List[PropToShow]:
-            props = parse_props_to_show(properties) if properties is not None else default_props_to_show(props_setting)
+            if properties:
+                props = parse_props_to_show(properties)
+                if parsed.with_defaults:
+                    paths = {prop.path_str for prop in props}
+                    for prop in default_props_to_show(props_setting):
+                        if prop.path_str not in paths:
+                            props.append(prop)
+            else:
+                props = default_props_to_show(props_setting)
             return create_unique_names(props)
 
         def fmt_json(elem: Json) -> JsonElement:
