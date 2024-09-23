@@ -1604,4 +1604,5 @@ class PolicySourceKind(StrEnum):
     Group = "group"  # policy comes from an IAM group
     Resource = "resource"  # e.g. s3 bucket policy
 
+
 resolve_types(BaseResource)  # noqa
