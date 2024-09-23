@@ -294,7 +294,11 @@ def clazz_model(
                         is_complex_dict=True,
                     )
                 )
-            elif prop_shape.get("type") == "object" and prop_shape.get("properties") or prop_shape.get("additionalProperties"):
+            elif (
+                prop_shape.get("type") == "object"
+                and prop_shape.get("properties")
+                or prop_shape.get("additionalProperties")
+            ):
                 result.extend(clazz_model(model, prop_shape, visited, name, prefix, api_info=api_info))
                 props.append(
                     GcpProperty(
@@ -457,21 +461,26 @@ def generate_class_models() -> Dict[str, List[GcpModel]]:
 
 
 def generate_classes() -> None:
-    for service, clazz_models in generate_class_models().items():
-        print(
-        """from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+    with open("result.txt", "w") as f:
+        for service, clazz_models in generate_class_models().items():
+            f.write(
+                """from datetime import datetime
+    from typing import ClassVar, Dict, Optional, List, Type
 
-from attr import define, field
+    from attr import define, field
 
-from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
-from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
-    """
+    from fix_plugin_gcp.gcp_client import GcpApiSpec
+    from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+    from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
+        """
             )
-        for clazz in clazz_models:
-            print(clazz.to_class())
-        print("resources = [", ", ".join(cm.name for cm in clazz_models if cm.aggregate_root), "]")
+            for clazz in clazz_models:
+                f.write(clazz.to_class())
+            f.write(
+                "resources = [",
+            )
+            f.write(", ".join(cm.name for cm in clazz_models if cm.aggregate_root))
+            f.write("]")
 
 
 def generate_test_classes() -> None:
@@ -498,7 +507,10 @@ known_api_parameters = {
     "sqladmin": {"project": "{project}", "instance": "{instance}"},
     "cloudbilling": {"project": "{project}", "region": "{region}", "name": "{name}", "parent": "{parent}"},
     "storage": {"project": "{project}", "bucket": "{bucket}"},
-    "aiplatform": {"parent": "projects/{project}/locations/{location}/-", "name": "projects/{project}/locations/{region}/{resource}/{resource_id}"},
+    "aiplatform": {
+        "parent": "projects/{project}/locations/{location}/-",
+        "name": "projects/{project}/locations/{region}/{resource}/{resource_id}",
+    },
 }
 
 # See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
