@@ -16,8 +16,9 @@ from fix_plugin_aws.access_edges import (
     compute_permissions,
 )
 
-from fix_plugin_aws.access_edges_utils import PermissionCondition, PolicySource, PermissionScope
+from fix_plugin_aws.access_edges_utils import PolicySource
 from fixlib.baseresources import PolicySourceKind
+from fixlib.json import to_json_str
 
 
 def test_find_allowed_action() -> None:
@@ -26,11 +27,12 @@ def test_find_allowed_action() -> None:
         "Statement": [
             {"Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"], "Resource": ["arn:aws:s3:::bucket/*"]},
             {"Effect": "Allow", "Action": ["s3:ListBuckets"], "Resource": ["*"]},
+            {"Effect": "Allow", "Action": ["ec2:DescribeInstances"], "Resource": ["*"]},
             {"Effect": "Deny", "Action": ["s3:DeleteObject"], "Resource": ["arn:aws:s3:::bucket/*"]},
         ],
     }
 
-    allowed_actions = find_allowed_action(PolicyDocument(policy_document))
+    allowed_actions = find_allowed_action(PolicyDocument(policy_document), "s3")
 
     assert allowed_actions == {"s3:GetObject", "s3:PutObject", "s3:ListBuckets"}
 
@@ -394,7 +396,7 @@ def test_compute_permissions_user_inline_policy_allow() -> None:
     s = permissions[0].scopes[0]
     assert s.source.kind == PolicySourceKind.Principal
     assert s.source.uri == user.arn
-    assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
+    assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
 
 
 def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
@@ -430,11 +432,12 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
     assert permissions[0].action == "s3:ListBucket"
     assert permissions[0].level == "List"
     assert len(permissions[0].scopes) == 1
-    assert permissions[0].scopes[0] == PermissionScope(
-        PolicySource(kind=PolicySourceKind.Principal, uri=user.arn),
-        ["arn:aws:s3:::my-test-bucket"],
-        conditions=PermissionCondition(allow=[condition]),
-    )
+    s = permissions[0].scopes[0]
+    assert s.source.kind == PolicySourceKind.Principal
+    assert s.source.uri == user.arn
+    assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
+    assert s.conditions
+    assert s.conditions.allow == (to_json_str(condition),)
 
 
 def test_compute_permissions_user_inline_policy_deny() -> None:
@@ -647,9 +650,9 @@ def test_deny_overrides_allow_with_condition() -> None:
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Principal
     assert s.source.uri == user.arn
-    assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
+    assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
     assert s.conditions
-    assert s.conditions.deny == [condition]
+    assert s.conditions.deny == (to_json_str(condition),)
 
 
 def test_compute_permissions_resource_based_policy_allow() -> None:
@@ -690,7 +693,7 @@ def test_compute_permissions_resource_based_policy_allow() -> None:
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Resource
     assert s.source.uri == bucket.arn
-    assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
+    assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
 
 
 def test_compute_permissions_permission_boundary_restrict() -> None:
@@ -747,7 +750,7 @@ def test_compute_permissions_permission_boundary_restrict() -> None:
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Principal
     assert s.source.uri == user.arn
-    assert s.constraints == ["arn:aws:s3:::my-test-bucket"]
+    assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
 
 
 def test_compute_permissions_scp_deny() -> None:
@@ -826,7 +829,7 @@ def test_compute_permissions_user_with_group_policies() -> None:
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Group
     assert s.source.uri == group.arn
-    assert s.constraints == [bucket.arn]
+    assert s.constraints == (bucket.arn,)
 
 
 def test_compute_permissions_implicit_deny() -> None:

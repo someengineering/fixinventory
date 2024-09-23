@@ -256,6 +256,7 @@ class AwsAccountCollector:
                     raise Exception("Only AWS resources expected")
 
             # add access edges
+            log.info(f"[Aws:{self.account.id}] Create access edges.")
             access_edge_creator = AccessEdgeCreator(global_builder)
             access_edge_creator.add_access_edges()
 

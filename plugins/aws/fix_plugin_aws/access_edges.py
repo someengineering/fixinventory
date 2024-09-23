@@ -1,5 +1,5 @@
 from functools import lru_cache
-from attr import define, frozen
+from attr import frozen, define
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
 
 from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
@@ -14,23 +14,24 @@ from fix_plugin_aws.access_edges_utils import (
 )
 from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser
 from fixlib.baseresources import EdgeType, PolicySourceKind
+from fixlib.json import to_json, to_json_str
 from fixlib.types import Json
 
 from cloudsplaining.scan.policy_document import PolicyDocument
 from cloudsplaining.scan.statement_detail import StatementDetail
-from policy_sentry.querying.actions import get_action_data
+from policy_sentry.querying.actions import get_action_data, get_actions_matching_arn
 from policy_sentry.querying.all import get_all_actions
-from policy_sentry.util.arns import ARN
+from policy_sentry.util.arns import ARN, get_service_from_arn
 import re
 import logging
 
+log = logging.getLogger("fix.plugins.aws")
 
-log = logging.getLogger(__name__)
 
 ALL_ACTIONS = get_all_actions()
 
 
-@define
+@define(slots=True)
 class IamRequestContext:
     principal: AwsResource
     identity_policies: List[Tuple[PolicySource, PolicyDocument]]
@@ -54,29 +55,39 @@ class IamRequestContext:
 IamAction = str
 
 
-@lru_cache(maxsize=1024)
-def find_allowed_action(policy_document: PolicyDocument) -> Set[IamAction]:
+def find_allowed_action(policy_document: PolicyDocument, service_prefix: str) -> Set[IamAction]:
     allowed_actions: Set[IamAction] = set()
     for statement in policy_document.statements:
         if statement.effect_allow:
-            allowed_actions.update(get_expanded_action(statement))
+            allowed_actions.update(get_expanded_action(statement, service_prefix))
 
     return allowed_actions
 
 
-def find_all_allowed_actions(all_involved_policies: List[PolicyDocument]) -> Set[IamAction]:
-    allowed_actions: Set[IamAction] = set()
+def find_all_allowed_actions(all_involved_policies: List[PolicyDocument], resource_arn: str) -> Set[IamAction]:
+    resource_actions = set()
+    try:
+        resource_actions = set(get_actions_matching_arn(resource_arn))
+    except Exception as e:
+        log.warning(f"Error when trying to get actions matching ARN {resource_arn}: {e}")
+
+    service_prefix = ""
+    try:
+        service_prefix = get_service_from_arn(resource_arn)
+    except Exception as e:
+        log.warning(f"Error when trying to get service prefix from ARN {resource_arn}: {e}")
+    policy_actions: Set[IamAction] = set()
     for p in all_involved_policies:
-        allowed_actions.update(find_allowed_action(p))
-    return allowed_actions
+        policy_actions.update(find_allowed_action(p, service_prefix))
+    return policy_actions.intersection(resource_actions)
 
 
-@lru_cache(maxsize=1024)
-def get_expanded_action(statement: StatementDetail) -> Set[str]:
+def get_expanded_action(statement: StatementDetail, service_prefix: str) -> Set[str]:
     actions = set()
     expanded: List[str] = statement.expanded_actions or []
     for action in expanded:
-        actions.add(action)
+        if action.startswith(f"{service_prefix}:"):
+            actions.add(action)
 
     return actions
 
@@ -366,15 +377,15 @@ def check_resource_based_policies(
                 scopes.append(
                     PermissionScope(
                         source=source,
-                        constraints=constraints,
-                        conditions=PermissionCondition(allow=[statement.condition]),
+                        constraints=tuple(constraints),
+                        conditions=PermissionCondition(allow=(to_json_str(statement.condition),)),
                     )
                 )
             else:
                 scopes.append(
                     PermissionScope(
                         source=source,
-                        constraints=constraints,
+                        constraints=tuple(constraints),
                     )
                 )
 
@@ -400,12 +411,11 @@ def check_identity_based_policies(
         for statement, resource_constraints in collect_matching_statements(
             policy=policy, effect="Allow", action=action, resource=resource, principal=None
         ):
-            conditions = []
+            conditions = None
             if statement.condition:
-                conditions.append(statement.condition)
-            scopes.append(
-                PermissionScope(source, resource_constraints, conditions=PermissionCondition(allow=conditions))
-            )
+                conditions = PermissionCondition(allow=(to_json_str(statement.condition),))
+
+            scopes.append(PermissionScope(source, tuple(resource_constraints), conditions=conditions))
 
     return scopes
 
@@ -498,11 +508,11 @@ def check_policies(
         )
         if isinstance(resource_result, FinalAllow):
             scopes = resource_result.scopes
-            final_resource_scopes: List[PermissionScope] = []
+            final_resource_scopes: Set[PermissionScope] = set()
             for scope in scopes:
-                final_resource_scopes.append(scope.with_deny_conditions(deny_conditions))
+                final_resource_scopes.add(scope.with_deny_conditions(deny_conditions))
 
-            return AccessPermission(action=action, level=get_action_level(action), scopes=final_resource_scopes)
+            return AccessPermission(action=action, level=get_action_level(action), scopes=tuple(final_resource_scopes))
         if isinstance(resource_result, Continue):
             scopes = resource_result.scopes
             allowed_scopes.extend(scopes)
@@ -535,17 +545,23 @@ def check_policies(
     # 7. if we reached here, the action is allowed
     level = get_action_level(action)
 
-    final_scopes: List[PermissionScope] = []
+    final_scopes: Set[PermissionScope] = set()
     for scope in allowed_scopes:
         if deny_conditions:
             scope = scope.with_deny_conditions(deny_conditions)
-        final_scopes.append(scope)
+        final_scopes.add(scope)
+
+    # if there is a scope with no conditions, we can ignore everything else
+    for scope in final_scopes:
+        if scope.has_no_condititons():
+            final_scopes = {scope}
+            break
 
     # return the result
     return AccessPermission(
         action=action,
         level=level,
-        scopes=final_scopes,
+        scopes=tuple(final_scopes),
     )
 
 
@@ -555,8 +571,9 @@ def compute_permissions(
     resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
 ) -> List[AccessPermission]:
 
+    assert resource.arn
     # step 1: find the relevant action to check
-    relevant_actions = find_all_allowed_actions(iam_context.all_policies(resource_based_policies))
+    relevant_actions = find_all_allowed_actions(iam_context.all_policies(resource_based_policies), resource.arn)
 
     all_permissions: List[AccessPermission] = []
 
@@ -610,7 +627,7 @@ class AccessEdgeCreator:
                     if doc := to_node.policy_document_json():
                         attached_policies.append(
                             (
-                                PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
+                                PolicySource(kind=PolicySourceKind.Principal, uri=to_node.arn or ""),
                                 PolicyDocument(doc),
                             )
                         )
@@ -632,7 +649,7 @@ class AccessEdgeCreator:
                             if doc := group_successor.policy_document_json():
                                 group_policies.append(
                                     (
-                                        PolicySource(kind=PolicySourceKind.Group, uri=group.arn or ""),
+                                        PolicySource(kind=PolicySourceKind.Group, uri=group_successor.arn or ""),
                                         PolicyDocument(doc),
                                     )
                                 )
@@ -653,6 +670,12 @@ class AccessEdgeCreator:
 
                 permissions = compute_permissions(node, context, resource_policies)
 
+                if not permissions:
+                    continue
+
+                json_permissions = to_json(permissions)
+                reported = {"permissions": json_permissions}
+
                 self.builder.add_edge(
-                    from_node=context.principal, edge_type=EdgeType.access, permissions=permissions, to_node=node
+                    from_node=context.principal, edge_type=EdgeType.access, reported=reported, to_node=node
                 )

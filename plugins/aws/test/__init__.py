@@ -35,7 +35,7 @@ def builder(aws_client: AwsClient, no_feedback: CoreFeedback) -> Iterator[GraphB
         yield GraphBuilder(
             Graph(),
             Cloud(id="aws"),
-            AwsAccount(id="test"),
+            AwsAccount(id="test", arn="arn:aws:organizations::123456789012:account/o-exampleorgid/123456789012"),
             regions[0],
             {r.id: r for r in regions},
             aws_client,
@@ -51,5 +51,5 @@ def no_feedback() -> CoreFeedback:
 
 @fixture
 def account_collector(aws_config: AwsConfig, no_feedback: CoreFeedback) -> AwsAccountCollector:
-    account = AwsAccount(id="test")
+    account = AwsAccount(id="test", arn="arn:aws:organizations::123456789012:account/o-exampleorgid/123456789012")
     return AwsAccountCollector(aws_config, Cloud(id="aws"), account, ["us-east-1"], no_feedback, {})
