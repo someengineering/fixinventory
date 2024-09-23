@@ -171,6 +171,7 @@ def check_single_node(node: AwsResource) -> None:
 def round_trip_for(
     cls: Type[AwsResourceType],
     *ignore_props: str,
+    ignore_checking_props: bool = False,
     region_name: Optional[str] = None,
     collect_also: Optional[List[Type[AwsResource]]] = None,
 ) -> Tuple[AwsResourceType, GraphBuilder]:
@@ -181,5 +182,6 @@ def round_trip_for(
         node.connect_in_graph(builder, data.get("source", {}))
         check_single_node(node)
     first = next(iter(builder.resources_of(cls)))
-    all_props_set(first, set(ignore_props))
+    if not ignore_checking_props:
+        all_props_set(first, set(ignore_props))
     return first, builder

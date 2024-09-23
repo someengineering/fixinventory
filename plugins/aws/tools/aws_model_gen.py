@@ -944,20 +944,20 @@ models: Dict[str, List[AwsFixModel]] = {
         # AwsFixModel("get-logging-configuration", "LoggingConfigurations", "LoggingConfiguration", prefix="Waf")
     ],
     "qbusiness": [
-        AwsFixModel(
-            api_action="list-applications",
-            result_property="applications",
-            result_shape="Applications",
-            prefix="QBusiness",
-        ),
+        # AwsFixModel(
+        #     api_action="list-applications",
+        #     result_property="applications",
+        #     result_shape="Applications",
+        #     prefix="QBusiness",
+        # ),
     ],
     "qapps": [
-        AwsFixModel(
-            api_action="list-qapps",
-            result_property="apps",
-            result_shape="ListQAppsOutput",
-            prefix="QApps",
-        ),
+        # AwsFixModel(
+        #     api_action="list-qapps",
+        #     result_property="apps",
+        #     result_shape="ListQAppsOutput",
+        #     prefix="QApps",
+        # ),
     ],
     "backup": [
         # AwsFixModel(
@@ -967,12 +967,28 @@ models: Dict[str, List[AwsFixModel]] = {
         #     prefix="Backup",
         # ),
     ],
+    "bedrock": [
+        # AwsFixModel(
+        #     api_action="list-foundation-models",
+        #     result_property="modelSummaries",
+        #     result_shape="ListFoundationModelsResponse",
+        #     prefix="Bedrock",
+        # )
+    ],
+    "bedrock-agent": [
+        # AwsFixModel(
+        #     api_action="get-agent",
+        #     result_property="Agents",
+        #     result_shape=None,
+        #     prefix="Bedrock",
+        # )
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("dynamodb", "describe-continuous-backups"), indent=2))
+    print(json.dumps(create_test_response("bedrock-agent", "get-knowledge-base"), indent=2))
 
     """print the class models"""
     # print(default_imports())

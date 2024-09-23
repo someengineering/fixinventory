@@ -1,0 +1,14 @@
+{
+    "id": "foo",
+    "name": "foo",
+    "status": "IN_PROGRESS",
+    "modelId": "foo",
+    "evaluationMetrics": {
+      "accuracy": 0.95,
+      "precision": 0.92,
+      "recall": 0.90
+    },
+    "startedAt": "2024-09-12T10:30:00Z",
+    "completedAt": null
+  }
+  

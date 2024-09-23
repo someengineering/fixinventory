@@ -1,0 +1,33 @@
+{
+    "nextToken": "foo",
+    "provisionedModelSummaries": [
+      {
+        "provisionedModelName": "foo",
+        "provisionedModelArn": "foo",
+        "modelArn": "foo",
+        "desiredModelArn": "foo",
+        "foundationModelArn": "foo",
+        "modelUnits": 123,
+        "desiredModelUnits": 123,
+        "status": "InService",
+        "commitmentDuration": "SixMonths",
+        "commitmentExpirationTime": "2024-09-13T12:32:05Z",
+        "creationTime": "2024-09-13T12:32:05Z",
+        "lastModifiedTime": "2024-09-13T12:32:05Z"
+      },
+      {
+        "provisionedModelName": "foo",
+        "provisionedModelArn": "foo",
+        "modelArn": "foo",
+        "desiredModelArn": "foo",
+        "foundationModelArn": "foo",
+        "modelUnits": 123,
+        "desiredModelUnits": 123,
+        "status": "InService",
+        "commitmentDuration": "SixMonths",
+        "commitmentExpirationTime": "2024-09-13T12:32:05Z",
+        "creationTime": "2024-09-13T12:32:05Z",
+        "lastModifiedTime": "2024-09-13T12:32:05Z"
+      }
+    ]
+  }

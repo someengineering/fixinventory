@@ -1,0 +1,34 @@
+{
+    "modelSummaries": [
+      {
+        "modelArn": "foo",
+        "modelId": "foo",
+        "modelName": "foo",
+        "providerName": "foo",
+        "inputModalities": [
+          "IMAGE",
+          "IMAGE",
+          "IMAGE"
+        ],
+        "outputModalities": [
+          "IMAGE",
+          "IMAGE",
+          "IMAGE"
+        ],
+        "responseStreamingSupported": true,
+        "customizationsSupported": [
+          "CONTINUED_PRE_TRAINING",
+          "CONTINUED_PRE_TRAINING",
+          "CONTINUED_PRE_TRAINING"
+        ],
+        "inferenceTypesSupported": [
+          "PROVISIONED",
+          "PROVISIONED",
+          "PROVISIONED"
+        ],
+        "modelLifecycle": {
+          "status": "LEGACY"
+        }
+      }
+    ]
+  }

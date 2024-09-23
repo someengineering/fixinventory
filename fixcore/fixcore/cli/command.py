@@ -4240,7 +4240,7 @@ class HttpCommand(CLICommand):
                     headers=template.headers,
                     params=template.params,
                     data=data,
-                    compress=template.compress,
+                    compress="deflate" if template.compress else None,
                     timeout=template.timeout,
                     ssl=False if template.no_ssl_verify else self.dependencies.cert_handler.client_context,
                     auth=BasicAuth(login=authuser, password=(authpass if authpass else "")) if authuser else None,

@@ -1,0 +1,22 @@
+{
+    "nextToken": "foo",
+    "jobSummaries": [
+      {
+        "jobArn": "foo",
+        "jobName": "foo",
+        "status": "Completed",
+        "creationTime": "2024-09-13T12:32:05Z",
+        "jobType": "Automated",
+        "evaluationTaskTypes": [
+          "Classification",
+          "Classification",
+          "Classification"
+        ],
+        "modelIdentifiers": [
+          "foo",
+          "foo",
+          "foo"
+        ]
+      }
+    ]
+  }

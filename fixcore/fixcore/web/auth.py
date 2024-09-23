@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import jwt
 from aiohttp import web
+from aiohttp.typedefs import Middleware
 from aiohttp.web import Request, StreamResponse
 from aiohttp.web import middleware
 from attr import define
@@ -26,7 +27,7 @@ from fixcore.util import uuid_str
 from fixcore.web.certificate_handler import CertificateHandler
 from fixcore.web.permission import PermissionChecker
 from fixlib import jwt as ck_jwt
-from fixlib.asynchronous.web import RequestHandler, Middleware, TenantRequestHandler
+from fixlib.asynchronous.web import RequestHandler, TenantRequestHandler
 from fixlib.jwt import encode_jwt, create_jwk_dict
 from fixlib.types import Json
 from fixlib.utils import utc

@@ -1,0 +1,13 @@
+{
+    "nextToken": "foo",
+    "modelSummaries": [
+      {
+        "modelArn": "foo",
+        "modelName": "foo",
+        "creationTime": "2024-09-13T12:32:05Z",
+        "baseModelArn": "foo",
+        "baseModelName": "foo",
+        "customizationType": "CONTINUED_PRE_TRAINING"
+      }
+    ]
+  }
