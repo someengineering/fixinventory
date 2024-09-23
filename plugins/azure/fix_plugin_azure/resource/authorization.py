@@ -100,7 +100,7 @@ class AzureAuthorizationDenyAssignment(MicrosoftResource):
     condition: Optional[str] = field(default=None, metadata={'description': 'The conditions on the deny assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase foo_storage_container '})  # fmt: skip
     condition_version: Optional[str] = field(default=None, metadata={"description": "Version of the condition."})
     created_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who created the assignment'})  # fmt: skip
-    created_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was created"})
+    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time it was created"})  # fmt: skip
     deny_assignment_name: Optional[str] = field(default=None, metadata={'description': 'The display name of the deny assignment.'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={'description': 'The description of the deny assignment.'})  # fmt: skip
     do_not_apply_to_child_scopes: Optional[bool] = field(default=None, metadata={'description': 'Determines if the deny assignment applies to child scopes. Default value is false.'})  # fmt: skip
@@ -109,8 +109,8 @@ class AzureAuthorizationDenyAssignment(MicrosoftResource):
     permissions: Optional[List[AzureDenyAssignmentPermission]] = field(default=None, metadata={'description': 'An array of permissions that are denied by the deny assignment.'})  # fmt: skip
     principals: Optional[List[AzurePrincipal]] = field(default=None, metadata={'description': 'Array of principals to which the deny assignment applies.'})  # fmt: skip
     scope: Optional[str] = field(default=None, metadata={"description": "The deny assignment scope."})
-    updated_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who updated the assignment'})  # fmt: skip
-    updated_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was updated"})
+    updated_by: Optional[str] = field(default=None, metadata={"ignore_history": True, 'description': 'Id of the user who updated the assignment'})  # fmt: skip
+    updated_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time it was updated"})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -173,15 +173,15 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
     condition: Optional[str] = field(default=None, metadata={'description': 'The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase foo_storage_container '})  # fmt: skip
     condition_version: Optional[str] = field(default=None, metadata={'description': 'Version of the condition. Currently the only accepted value is 2.0 '})  # fmt: skip
     created_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who created the assignment'})  # fmt: skip
-    created_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was created"})
+    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time it was created"})  # fmt: skip
     delegated_managed_identity_resource_id: Optional[str] = field(default=None, metadata={'description': 'Id of the delegated managed identity resource'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "Description of role assignment"})
     principal_id: Optional[str] = field(default=None, metadata={"description": "The principal ID."})
     principal_type: Optional[str] = field(default=None, metadata={'description': 'The principal type of the assigned principal ID.'})  # fmt: skip
     role_definition_id: Optional[str] = field(default=None, metadata={"description": "The role definition ID."})
     scope: Optional[str] = field(default=None, metadata={"description": "The role assignment scope."})
-    updated_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who updated the assignment'})  # fmt: skip
-    updated_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was updated"})
+    updated_by: Optional[str] = field(default=None, metadata={"ignore_history": True, 'description': 'Id of the user who updated the assignment'})  # fmt: skip
+    updated_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time it was updated"})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         # role definition
@@ -251,12 +251,12 @@ class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
     }
     assignable_scopes: Optional[List[str]] = field(default=None, metadata={'description': 'Role definition assignable scopes.'})  # fmt: skip
     created_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who created the assignment'})  # fmt: skip
-    created_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was created"})
+    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time it was created"})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The role definition description."})
     azure_role_permissions: Optional[List[AzurePermission]] = field(default=None, metadata={'description': 'Role definition permissions.'})  # fmt: skip
     role_name: Optional[str] = field(default=None, metadata={"description": "The role name."})
-    updated_by: Optional[str] = field(default=None, metadata={'description': 'Id of the user who updated the assignment'})  # fmt: skip
-    updated_on: Optional[datetime] = field(default=None, metadata={"description": "Time it was updated"})
+    updated_by: Optional[str] = field(default=None, metadata={"ignore_history": True, 'description': 'Id of the user who updated the assignment'})  # fmt: skip
+    updated_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time it was updated"})  # fmt: skip
 
 
 @define(eq=False, slots=False)

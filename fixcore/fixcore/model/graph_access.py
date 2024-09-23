@@ -104,9 +104,14 @@ class EdgeTypes:
     # A resource can be deleted, if all outgoing resources are deleted.
     delete: EdgeType = "delete"
 
+    # This edge type defines the IAM relationship.
+    # It models allowed permissions between principals and resources, as well as the inter-principal relationship.
+    # Example: AWS IAM User (principal) has permission to write to an S3 bucket (resource).
+    iam: EdgeType = "iam"
+
     # The set of all allowed edge types.
     # Note: the database schema has to be adapted to support additional edge types.
-    all: Set[EdgeType] = {default, delete}
+    all: Set[EdgeType] = {default, delete, iam}
 
 
 class Direction:

@@ -881,36 +881,56 @@ def query_string(
             in_crsr: str, start: int, until: int, edge_type: str, direction: str, edge_filter: Optional[Term]
         ) -> str:
             nonlocal query_part
-            in_c = ctx.next_crs("io_in")
+            start_c = ctx.next_crs("graph_start")
+            in_c = ctx.next_crs("gc")
+            in_edge = f"{in_c}_edge"
+            in_path = f"{in_c}_path"
+            in_r = f"{in_c}_result"
             out = ctx.next_crs("io_out")
-            out_crsr = ctx.next_crs("io_crs")
-            e = ctx.next_crs("io_link")
             unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
             dir_bound = "OUTBOUND" if direction == Direction.outbound else "INBOUND"
-            inout_result = (
-                # merge edge and vertex properties - will be split in the output transformer
-                f"MERGE({out_crsr}, {{_from:{e}._from, _to:{e}._to, _link_id:{e}._id, _link_reported:{e}.reported}})"
-                if with_edges
-                else out_crsr
-            )
+
+            # the path array contains the whole path from the start node.
+            # in the case of start > 0, we need to slice the array to get the correct part
+            def slice_or_all(in_p_part: str) -> str:
+                return f"SLICE({in_path}.{in_p_part}, {start})" if start > 0 else f"{in_path}.{in_p_part}"
+
+            # Edge filter: decision to include the source element is not possible while traversing it.
+            #              When the target node is reached and edge properties are available, the decision can be made.
+            #              In case the filter succeeds, we need to select all vertices and edges on the path.
+            # No filter but with_edges: another nested for loop required to return the node and edge
+            # No filter and no with_edges: only the node is returned
+            if edge_filter:
+                # walk the path and return all vertices (and possibly edges)
+                # this means intermediate nodes are returned multiple times and have to be made distinct
+                # since we return nodes first, the edges can always be resolved
+                walk_array = slice_or_all("vertices")
+                walk_array = f'APPEND({walk_array}, {slice_or_all("edges")})' if with_edges else walk_array
+                inout_result = f"FOR {in_r} in {walk_array} RETURN DISTINCT({in_r})"
+            elif with_edges:
+                # return the node and edge via a nested for loop
+                inout_result = f"FOR {in_r} in [{in_c}, {in_edge}] FILTER {in_r}!=null RETURN DISTINCT({in_r})"
+            else:
+                # return only the node
+                inout_result = f"RETURN DISTINCT {in_c}"
+
             if outer_merge and part_idx == 0:
                 graph_cursor = in_crsr
                 outer_for = ""
             else:
-                graph_cursor = in_c
-                outer_for = f"FOR {in_c} in {in_crsr} "
+                graph_cursor = start_c
+                outer_for = f"FOR {start_c} in {in_crsr} "
 
             # optional: add the edge filter to the query
-            pre, fltr, post = term(e, edge_filter) if edge_filter else (None, None, None)
+            pre, fltr, post = term(in_edge, edge_filter) if edge_filter else (None, None, None)
             pre_string = " " + pre if pre else ""
             post_string = f" AND ({post})" if post else ""
             filter_string = "" if not fltr and not post_string else f"{pre_string} FILTER {fltr}{post_string}"
             query_part += (
                 f"LET {out} =({outer_for}"
                 # suggested by jsteemann: use crs._id instead of crs (stored in the view and more efficient)
-                f"FOR {out_crsr}, {e} IN {start}..{until} {dir_bound} {graph_cursor}._id "
-                f"`{db.edge_collection(edge_type)}` OPTIONS {{ bfs: true, {unique} }}{filter_string} "
-                f"RETURN DISTINCT {inout_result})"
+                f"FOR {in_c}, {in_edge}, {in_path} IN {start}..{until} {dir_bound} {graph_cursor}._id "
+                f"`{db.edge_collection(edge_type)}` OPTIONS {{ bfs: true, {unique} }}{filter_string} {inout_result})"
             )
             return out
 
