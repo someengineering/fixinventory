@@ -149,10 +149,11 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
                 if policy := builder.client.get(
                     service_name,
                     "describe-file-system-policy",
+                    "Policy",
                     FileSystemId=fs.id,
-                    expected_errors=["PolicyNotFound"],
+                    expected_errors=["PolicyNotFound", "FileSystemNotFound"],
                 ):
-                    fs.file_system_policy = sort_json(json.loads(policy["Policy"]), sort_list=True)
+                    fs.file_system_policy = sort_json(json.loads(policy), sort_list=True)
 
         for js in js_list:
             if instance := cls.from_api(js, builder):
