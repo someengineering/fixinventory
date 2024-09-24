@@ -301,9 +301,9 @@ def dataclasses_to_fixcore_model(
 # Use this model exporter, if a dynamic object is exported
 # with given name and properties.
 def dynamic_object_to_fixcore_model(
-    name: str, properties: Dict[str, type], aggregate_root: bool = True, traverse_dependant: bool = True
+    name: str, properties: Dict[str, type], aggregate_root: bool = True, traverse_dependant: bool = True, **kwargs
 ) -> List[Json]:
-    dependant = dataclasses_to_fixcore_model(set(properties.values())) if traverse_dependant else []
+    dependant = dataclasses_to_fixcore_model(set(properties.values()), **kwargs) if traverse_dependant else []
     # append definition for top level object
     dependant.append(
         {
