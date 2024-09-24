@@ -26,7 +26,7 @@ class MicrosoftGraphEntity(MicrosoftResource):
         "id": S("id"),
         "deleted_date_time": S("deletedDateTime"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     deleted_date_time: Optional[datetime] = field(default=None, metadata={'description': 'Date and time when this object was deleted. Always null when the object hasn\'t been deleted.'})  # fmt: skip
 
 

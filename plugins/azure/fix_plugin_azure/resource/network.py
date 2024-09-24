@@ -1141,7 +1141,7 @@ class AzureNetworkApplicationGatewayFirewallRuleSet(MicrosoftResource):
         "rule_set_version": S("properties", "ruleSetVersion"),
         "tiers": S("properties", "tiers"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     rule_groups: Optional[List[AzureApplicationGatewayFirewallRuleGroup]] = field(default=None, metadata={'description': 'The rule groups of the web application firewall rule set.'})  # fmt: skip
     rule_set_type: Optional[str] = field(default=None, metadata={'description': 'The type of the web application firewall rule set.'})  # fmt: skip
     rule_set_version: Optional[str] = field(default=None, metadata={'description': 'The version of the web application firewall rule set type.'})  # fmt: skip
@@ -4478,7 +4478,7 @@ class AzureNetworkVirtualApplianceSku(MicrosoftResource):
         "etag": S("etag"),
         "vendor": S("properties", "vendor"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     available_scale_units: Optional[List[AzureNetworkVirtualApplianceSkuInstances]] = field(default=None, metadata={'description': 'The list of scale units available.'})  # fmt: skip
     available_versions: Optional[List[str]] = field(default=None, metadata={'description': 'Available Network Virtual Appliance versions.'})  # fmt: skip
     vendor: Optional[str] = field(default=None, metadata={"description": "Network Virtual Appliance Sku vendor."})

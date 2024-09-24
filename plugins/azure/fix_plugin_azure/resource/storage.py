@@ -357,7 +357,7 @@ class AzureStorageSku(MicrosoftResource):
         "sku_restrictions": S("restrictions") >> ForallBend(AzureRestriction.mapping),
         "tier": S("tier"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     sku_capabilities: Optional[List[AzureStorageSkuCapability]] = field(default=None, metadata={'description': 'The capability information in the specified SKU, including file encryption, network ACLs, change notification, etc.'})  # fmt: skip
     resource_kind: Optional[str] = field(
         default=None, metadata={"description": "Indicates the type of storage account."}
@@ -1070,7 +1070,7 @@ class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("name", "value"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
 
 
 @define(eq=False, slots=False)

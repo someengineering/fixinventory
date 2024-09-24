@@ -2338,7 +2338,7 @@ class AzureMachineLearningVirtualMachineSize(MicrosoftResource, BaseInstanceType
         "instance_cores": S("vCPUs"),
         "instance_memory": S("memoryGB"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     estimated_vm_prices: Optional[AzureEstimatedVMPrices] = field(default=None, metadata={'description': 'The estimated price info for using a VM.'})  # fmt: skip
     family: Optional[str] = field(default=None, metadata={'description': 'The family name of the virtual machine size.'})  # fmt: skip
     gpus: Optional[int] = field(default=None, metadata={'description': 'The number of gPUs supported by the virtual machine size.'})  # fmt: skip

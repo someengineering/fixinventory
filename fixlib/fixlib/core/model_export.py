@@ -333,33 +333,22 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
     if changes_only:
         node_dict.update(node.changes.get())
     else:
-        node_dict.update(
-            {
-                "reported": get_node_attributes(node),
-                "metadata": {
-                    "python_type": type_str(node),
-                    "cleaned": node.cleaned,
-                    "protected": node.protected,
-                    "categories": node.categories(),
-                    **node._metadata,
-                },
-                "usage": node._resource_usage,
-            }
-        )
+        metadata = {"python_type": type_str(node), "categories": node.categories()}
+        if node.cleaned:
+            metadata["cleaned"] = True
+        if node.protected:
+            metadata["protected"] = True
+        if link := node._provider_link:
+            metadata["provider_link"] = link
+
+        node_dict["reported"] = get_node_attributes(node)
+        node_dict["metadata"] = metadata
+        if usage := node._resource_usage:
+            node_dict["usage"] = usage
         if node.clean:
-            node_dict.update(
-                {
-                    "desired": {
-                        "clean": node.clean,
-                    }
-                }
-            )
+            node_dict.update({"desired": {"clean": node.clean}})
     if include_revision and node._fixcore_revision:
-        node_dict.update(
-            {
-                "revision": node._fixcore_revision,
-            }
-        )
+        node_dict["revision"] = node._fixcore_revision
     return node_dict
 
 
