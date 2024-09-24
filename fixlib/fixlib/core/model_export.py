@@ -193,7 +193,9 @@ def dataclasses_to_fixcore_model(
             meta: Optional[Dict[str, str]],
             **kwargs: Any,
         ) -> Json:
-            js = {"name": name, "kind": kind_str, "required": required, "description": description, **kwargs}
+            js = {"name": name, "kind": kind_str, "required": required, **kwargs}
+            if description:
+                js["description"] = description
             if meta:
                 js["metadata"] = meta
             return js

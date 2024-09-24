@@ -345,7 +345,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_is_attachable: Optional[bool] = field(default=None)
     policy_description: Optional[str] = field(default=None)
     policy_document: Optional[AwsIamPolicyVersion] = field(default=None)
-    managed: Optional[bool] = field(default=None, metadata=dict(ignore_history=True, desciption="Indicates if this policy is managed by AWS or custom."))  # fmt: skip
+    managed: Optional[bool] = field(default=None, metadata=dict(ignore_history=True, description="Indicates if this policy is managed by AWS or custom."))  # fmt: skip
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(
