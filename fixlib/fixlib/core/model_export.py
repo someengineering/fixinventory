@@ -331,7 +331,7 @@ def get_node_attributes(node: BaseResource) -> Json:
 
 
 def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Json:
-    node_dict: Json = {"id": node.chksum}
+    node_dict: Json = {"id": node._fixcore_id if node._fixcore_id else node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())
     else:
