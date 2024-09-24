@@ -286,6 +286,8 @@ class BaseResource(ABC):
     _region: Optional[BaseRegion] = field(default=None, repr=False)
     # The related zone of this resource.
     _zone: Optional[BaseZone] = field(default=None, repr=False)
+    # The id provided by fixcore. Only used for resources loaded from fixcore.
+    _fixcore_id: Optional[str] = field(default=None, repr=False)
     # The revision id of this resource as defined by core. Only used for resources loaded from fixcore.
     _fixcore_revision: Optional[str] = field(default=None, repr=False)
     # Indicates if this resource is marked for cleanup.
