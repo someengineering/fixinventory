@@ -68,7 +68,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v2/hostedzones?region={region}#ListRecordSets/{id}", "arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v2/hostedzones?region={region}#ListRecordSets/{id}", "arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-hosted-zones", "HostedZones")
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -246,7 +246,7 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53:::{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53:::{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
@@ -274,7 +274,7 @@ class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53::{account}:recordset/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53::{account}:recordset/{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_route53_resource_record"],

@@ -197,7 +197,7 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:eks:{region}:{account}:nodegroup/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:eks:{region}:{account}:nodegroup/{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_eks_cluster"], "delete": ["aws_eks_cluster", "aws_autoscaling_group"]},
         "successors": {"default": ["aws_autoscaling_group"]},
@@ -412,7 +412,7 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResour
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusters")
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

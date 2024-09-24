@@ -346,7 +346,7 @@ class AwsAlbListener:
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     _kind_display: ClassVar[str] = "AWS ALB"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/app/{name}/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/app/{name}/{id}"}  # fmt: skip
     _kind_description: ClassVar[str] = (
         "AWS ALB is an Application Load Balancer that distributes incoming"
         " application traffic across multiple targets, such as EC2 instances, in"
@@ -606,7 +606,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#TargetGroup:targetGroupArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:targetgroup/{name}/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#TargetGroup:targetGroupArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:targetgroup/{name}/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-target-groups",

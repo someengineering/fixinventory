@@ -233,7 +233,7 @@ class AwsLambdaFunctionUrlConfig:
 class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     kind: ClassVar[str] = "aws_lambda_function"
     _kind_display: ClassVar[str] = "AWS Lambda Function"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/lambda/home?region={region}#/functions/{FunctionName}", "arn_tpl": "arn:{partition}:lambda:{region}:{account}:function/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/lambda/home?region={region}#/functions/{FunctionName}", "arn_tpl": "arn:{partition}:lambda:{region}:{account}:function/{name}"}  # fmt: skip
     _kind_description: ClassVar[str] = (
         "AWS Lambda is a serverless computing service that lets you run your code"
         " without provisioning or managing servers. Lambda functions are the compute"

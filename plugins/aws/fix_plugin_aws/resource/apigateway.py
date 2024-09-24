@@ -190,7 +190,7 @@ class AwsApiGatewayResource(AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/{name}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_apigateway_authorizer"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -255,7 +255,7 @@ class AwsApiGatewayAuthorizer(AwsResource):
         " deployed on AWS API Gateway by authenticating and authorizing client"
         " requests."
     )
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{api_link}/authorizers/{id}?api={api_link}&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:authorizer/{name}/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{api_link}/authorizers/{id}?api={api_link}&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:authorizer/{name}/{id}"}  # fmt: skip
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
@@ -350,7 +350,7 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{api_link}/stages?api={api_link}&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/stages/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{api_link}/stages?api={api_link}&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/stages/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("syntheticId"),  # created by Fix to avoid collision with duplicate stage names
         "name": S("stageName"),
@@ -414,7 +414,7 @@ class AwsApiGatewayDeployment(AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/deployments/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/deployments/{name}"}  # fmt: skip
     # edge to aws_apigateway_stage is established in AwsApiGatewayRestApi.collect()
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_apigateway_stage"]}}
 
@@ -476,7 +476,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{id}/resources?api={id}&experience=rest&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:restapi/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{id}/resources?api={id}&experience=rest&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:restapi/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "get-rest-apis", "items", override_iam_permission="apigateway:GET"
     )
@@ -634,7 +634,7 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/publish/domain-names?api=unselected&domain={name}&&region={region}", "arn_tpl": "arn:aws:apigateway:{region}:{account}:domainname/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/publish/domain-names?api=unselected&domain={name}&&region={region}", "arn_tpl": "arn:aws:apigateway:{region}:{account}:domainname/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "get-domain-names", "items", override_iam_permission="apigateway:GET"
     )

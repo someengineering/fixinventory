@@ -143,7 +143,7 @@ class AwsGlacierJob(AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:glacier:{region}:{account}:job/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:glacier:{region}:{account}:job/{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
@@ -218,7 +218,7 @@ class AwsGlacierVault(AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/glacier/home?region={region}#/vault/{name}/view/properties", "arn_tpl": "arn:{partition}:glacier:{region}:{account}:vault/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/glacier/home?region={region}#/vault/{name}/view/properties", "arn_tpl": "arn:{partition}:glacier:{region}:{account}:vault/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-vaults", "VaultList")
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {

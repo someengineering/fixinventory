@@ -54,7 +54,7 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{id}",
     }
@@ -355,7 +355,7 @@ class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "ai"}
     # Collected via AwsQBusinessApplication()
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{application_id}/indices/{indice_id}/datasources/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{indice_id}/data-source/{id}",
         "extra_args_for_arn": ["application_id", "indice_id"],
@@ -526,7 +526,7 @@ class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{id}",
         "extra_args_for_arn": ["application_id"],
     }
@@ -751,7 +751,7 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/plugin/{id}",
         "extra_args_for_arn": ["application_id"],
     }
@@ -817,7 +817,7 @@ class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/retriever/{id}",
         "extra_args_for_arn": ["application_id"],
     }
@@ -874,7 +874,7 @@ class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/web-experience/{id}",
         "extra_args_for_arn": ["application_id"],
     }

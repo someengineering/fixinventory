@@ -70,7 +70,7 @@ class AwsAcmExtendedKeyUsage:
 class AwsAcmCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_acm_certificate"
     _kind_display: ClassVar[str] = "AWS ACM Certificate"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/acm/home?region={region}#/certificates/{id}", "arn_tpl": "arn:{partition}:acm:{region}:{account}:certificate/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/acm/home?region={region}#/certificates/{id}", "arn_tpl": "arn:{partition}:acm:{region}:{account}:certificate/{id}"}  # fmt: skip
     _kind_description: ClassVar[str] = "An AWS ACM Certificate is used to provision, manage, and deploy Secure Sockets Layer/Transport Layer Security (SSL/TLS) certificates for secure web traffic on AWS services."  # fmt: skip
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("acm", "describe-certificate", "Certificate")

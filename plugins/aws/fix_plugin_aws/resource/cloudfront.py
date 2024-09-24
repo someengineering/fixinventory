@@ -588,7 +588,7 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home#/distributions/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:distribution/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home#/distributions/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:distribution/{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_lambda_function"]},
         "successors": {
@@ -770,7 +770,7 @@ class AwsCloudFrontFunction(CloudFrontTaggable, BaseServerlessFunction, CloudFro
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v3/home?region={region}#/functions/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:function/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v3/home?region={region}#/functions/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:function/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-functions", "FunctionList.Items", parameter={"Stage": "LIVE"}
     )
@@ -823,7 +823,7 @@ class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/publickey/edit/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:public-key/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/publickey/edit/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:public-key/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-public-keys", "PublicKeyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
@@ -887,7 +887,7 @@ class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, Aws
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/logs/realtime/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:real-time-log-config/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/logs/realtime/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:real-time-log-config/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-realtime-log-configs", "RealtimeLogConfigs.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
@@ -1124,7 +1124,7 @@ class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region=global#/policies/responseHeaders/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:response-headers-policy/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region=global#/policies/responseHeaders/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:response-headers-policy/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-response-headers-policies", "ResponseHeadersPolicyList.Items"
     )
@@ -1179,7 +1179,7 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource,
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:streaming-distribution/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:streaming-distribution/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-streaming-distributions", "StreamingDistributionList.Items"
     )
@@ -1218,7 +1218,7 @@ class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "access_control"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:origin-access-identity/cloudfront/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:origin-access-identity/cloudfront/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-origin-access-controls", "OriginAccessControlList.Items"
     )
@@ -1359,7 +1359,7 @@ class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/policies/cache/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:cache-policy/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/policies/cache/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:cache-policy/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-cache-policies", "CachePolicyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("CachePolicy", "Id"),
@@ -1463,7 +1463,7 @@ class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-config/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-config/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-field-level-encryption-configs", "FieldLevelEncryptionList.Items"
     )
@@ -1540,7 +1540,7 @@ class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-profile/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-profile/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList.Items"
     )

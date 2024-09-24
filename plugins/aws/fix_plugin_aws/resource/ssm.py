@@ -38,7 +38,7 @@ class AwsSSMInstance(AwsResource):
     _kind_description: ClassVar[str] = "An AWS SSM Instance refers to an EC2 instance or a managed node that has been configured for management by AWS Systems Manager, enabling centralized and automated management of configuration, security, and software updates."  # fmt: skip
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/fleet-manager/managed-nodes/{id}/general?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:instance/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/fleet-manager/managed-nodes/{id}/general?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:instance/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ssm", "describe-instance-information", "InstanceInformationList")
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"]},
@@ -155,7 +155,7 @@ class AwsSSMDocument(AwsResource):
     _kind_description: ClassVar[str] = "An AWS Systems Manager (SSM) Document defines the actions that Systems Manager performs on your managed instances and other AWS resources."  # fmt: skip
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/documents/{name}/description?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:document/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/documents/{name}/description?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:document/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -355,7 +355,7 @@ class AwsSSMResourceCompliance(AwsResource):
     _kind_description: ClassVar[str] = "AWS SSM Resource Compliance is used to track the compliance status of your resources in relation to your AWS Systems Manager (SSM) configurations and policies."  # fmt: skip
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ssm:{region}:{account}:resource-compliance/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ssm:{region}:{account}:resource-compliance/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "ssm", "list-resource-compliance-summaries", "ResourceComplianceSummaryItems"
     )

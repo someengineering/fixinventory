@@ -259,7 +259,7 @@ class AwsOpenSearchDomain(AwsResource):
         "successors": {"default": [AwsCognitoUserPool.kind]},
     }
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/aos/home?region={region}#opensearch/domains/{name}", "arn_tpl": "arn:{partition}:opensearch:{region}:{account}:domain/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/aos/home?region={region}#opensearch/domains/{name}", "arn_tpl": "arn:{partition}:opensearch:{region}:{account}:domain/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),
         "tags": S("Tags", default=[]) >> ToDict(),

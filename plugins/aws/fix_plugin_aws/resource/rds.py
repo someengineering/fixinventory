@@ -328,7 +328,7 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={id};is-cluster=false", "arn_tpl": "arn:{partition}:rds:{region}:{account}:db:{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={id};is-cluster=false", "arn_tpl": "arn:{partition}:rds:{region}:{account}:db:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-db-instances", "DBInstances")
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -862,7 +862,7 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={id};is-cluster=true", "arn_tpl": "arn:{partition}:rds:{region}:{account}:cluster/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={id};is-cluster=true", "arn_tpl": "arn:{partition}:rds:{region}:{account}:cluster/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-db-clusters", "DBClusters")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBClusterIdentifier"),
@@ -1067,7 +1067,7 @@ class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
     _kind_description: ClassVar[str] = "An AWS RDS Snapshot is a backup tool used for creating a point-in-time copy of an RDS database instance, facilitating data recovery and replication."  # fmt: skip
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": [AwsRdsInstance.kind, AwsEc2Vpc.kind]}}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#db-snapshot:engine={Engine};id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot:{id}/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#db-snapshot:engine={Engine};id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot:{id}/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-snapshots", "DBSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBSnapshotIdentifier"),
@@ -1172,7 +1172,7 @@ class AwsRdsClusterSnapshot(AwsResource):
         "successors": {"default": [AwsKmsKey.kind]},
     }
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#db-snapshot:engine={Engine};id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot/{name}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#db-snapshot:engine={Engine};id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("rds", "describe-db-cluster-snapshots", "DBClusterSnapshots")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DBClusterSnapshotIdentifier"),

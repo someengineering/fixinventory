@@ -115,10 +115,14 @@ class AwsResource(BaseResource, ABC):
     Override kind, mapping and api_spec for every resource that is collected in AWS.
     """
 
-    # The name of the kind of all resources. Needs to be globally unique.
+    # The kind of this resource. Needs to be globally unique.
     kind: ClassVar[str] = "aws_resource"
+    # The display name of the kind.
     _kind_display: ClassVar[str] = "AWS Resource"
+    # The description of the kind.
     _kind_description: ClassVar[str] = "AWS Resource is a generic term used to refer to any type of resource available in Amazon Web Services cloud."  # fmt: skip
+    # AWS specific metadata that hold template strings for ARN and provider link.
+    _aws_metadata: ClassVar[Dict[str, Any]] = {}
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
@@ -274,7 +278,7 @@ class AwsAccount(BaseAccount, AwsResource, BaseIamPrincipal):
         " buckets, and RDS databases. It allows users to access and manage their"
         " resources on the Amazon Web Services platform."
     )
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/billing/home?region={region}#/account"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/billing/home?region={region}#/account"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
 
     account_alias: Optional[str] = ""
@@ -394,7 +398,7 @@ class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     )
     _kind_service = "ec2"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
 
 
 class GraphBuilder:
@@ -507,7 +511,7 @@ class GraphBuilder:
         node._account = self.account
         node._region = region or self.region
 
-        meta = getattr(type(node), "aws_metadata", None) or {}
+        meta = getattr(type(node), "_aws_metadata", None) or {}
         # if there is no arn: try to create one from template
         if node.arn is None and (arn_tpl := meta.get("arn_tpl")):
             try:
