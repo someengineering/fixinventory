@@ -44,7 +44,7 @@ from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
-service_name = "azure_compute"
+service_name = "compute"
 
 
 @define(eq=False, slots=False)

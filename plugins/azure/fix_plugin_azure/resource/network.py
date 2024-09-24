@@ -41,7 +41,7 @@ from fixlib.baseresources import (
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber, Upper, Lower
 from fixlib.types import Json
 
-service_name = "azure_network"
+service_name = "networking"
 log = logging.getLogger("fix.plugins.azure")
 
 
