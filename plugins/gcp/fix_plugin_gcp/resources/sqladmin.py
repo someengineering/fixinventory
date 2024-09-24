@@ -33,14 +33,14 @@ class GcpSqlOperationError:
 class GcpSqlBackupRun(GcpResource):
     # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_backup_run"
-    kind_display: ClassVar[str] = "GCP SQL Backup Run"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP SQL Backup Run"
+    _kind_description: ClassVar[str] = (
         "GCP SQL Backup Run is a feature in Google Cloud Platform that allows users"
         " to schedule and execute automated backups of their SQL databases."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_database_instance"]}}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -115,12 +115,12 @@ class GcpSqlSqlServerDatabaseDetails:
 class GcpSqlDatabase(GcpResource):
     # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_database"
-    kind_display: ClassVar[str] = "GCP SQL Database"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP SQL Database"
+    _kind_description: ClassVar[str] = (
         "GCP SQL Database is a managed relational database service provided by Google Cloud Platform."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -133,7 +133,7 @@ class GcpSqlDatabase(GcpResource):
         required_iam_permissions=["cloudsql.databases.list"],
         mutate_iam_permissions=["cloudsql.databases.update", "cloudsql.databases.delete"],
     )
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
@@ -645,14 +645,14 @@ class GcpSqlSettings:
 @define(eq=False, slots=False)
 class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
     kind: ClassVar[str] = "gcp_sql_database_instance"
-    kind_display: ClassVar[str] = "GCP SQL Database Instance"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP SQL Database Instance"
+    _kind_description: ClassVar[str] = (
         "GCP SQL Database Instance is a resource provided by Google Cloud Platform"
         " that allows users to create and manage relational databases in the cloud."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ssl_certificate"]}}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ssl_certificate"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -942,15 +942,15 @@ class GcpSqlImportContext:
 @define(eq=False, slots=False)
 class GcpSqlOperation(GcpResource):
     kind: ClassVar[str] = "gcp_sql_operation"
-    kind_display: ClassVar[str] = "GCP SQL Operation"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP SQL Operation"
+    _kind_description: ClassVar[str] = (
         "The GCP SQL Operation is a representation of an administrative operation performed on a GCP SQL Database"
         " instance, such as backups, imports, and exports, including details about execution times, status, and any"
         " errors encountered."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "database"}
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "database"}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -1062,13 +1062,13 @@ class GcpSqlSqlServerUserDetails:
 class GcpSqlUser(GcpResource):
     # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_user"
-    kind_display: ClassVar[str] = "GCP SQL User"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP SQL User"
+    _kind_description: ClassVar[str] = (
         "A GCP SQL User refers to a user account that can access and manage databases"
         " in Google Cloud SQL, a fully-managed relational database service."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -1081,7 +1081,7 @@ class GcpSqlUser(GcpResource):
         required_iam_permissions=["cloudsql.users.list"],
         mutate_iam_permissions=["cloudsql.users.update", "cloudsql.users.delete"],
     )
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(K("(anonymous)@") + S("host", default="localhost")),
         "tags": S("labels", default={}),

@@ -19,18 +19,18 @@ service_name = "sns"
 @define(eq=False, slots=False)
 class AwsSnsTopic(AwsResource):
     kind: ClassVar[str] = "aws_sns_topic"
-    kind_display: ClassVar[str] = "AWS SNS Topic"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SNS Topic"
+    _kind_description: ClassVar[str] = (
         "AWS SNS (Simple Notification Service) Topic is a publish-subscribe messaging"
         " service provided by Amazon Web Services. It allows applications, services,"
         " and devices to send and receive notifications via email, SMS, push"
         " notifications, and more."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/topic/{arn}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-topics", "Topics")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
         },
@@ -175,17 +175,17 @@ class AwsSnsTopic(AwsResource):
 @define(eq=False, slots=False)
 class AwsSnsSubscription(AwsResource):
     kind: ClassVar[str] = "aws_sns_subscription"
-    kind_display: ClassVar[str] = "AWS SNS Subscription"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SNS Subscription"
+    _kind_description: ClassVar[str] = (
         "SNS Subscriptions in AWS allow applications to receive messages from topics"
         " of interest using different protocols such as HTTP, email, SMS, or Lambda"
         " function invocation."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/topic/{arn}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-subscriptions", "Subscriptions")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_sns_topic", "aws_iam_role"], "delete": ["aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -264,14 +264,14 @@ class AwsSnsSubscription(AwsResource):
 class AwsSnsEndpoint(AwsResource):
     # collection of endpoint resources happens in AwsSnsPlatformApplication.collect()
     kind: ClassVar[str] = "aws_sns_endpoint"
-    kind_display: ClassVar[str] = "AWS SNS Endpoint"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SNS Endpoint"
+    _kind_description: ClassVar[str] = (
         "An endpoint in the AWS Simple Notification Service (SNS), which is used to"
         " send push notifications or SMS messages to mobile devices or other"
         " applications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sns:{region}:{account}:endpoint/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Arn"),
@@ -298,19 +298,19 @@ class AwsSnsEndpoint(AwsResource):
 @define(eq=False, slots=False)
 class AwsSnsPlatformApplication(AwsResource):
     kind: ClassVar[str] = "aws_sns_platform_application"
-    kind_display: ClassVar[str] = "AWS SNS Platform Application"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SNS Platform Application"
+    _kind_description: ClassVar[str] = (
         "AWS SNS Platform Application is a service that allows you to create a"
         " platform application and register it with Amazon SNS so that your"
         " application can receive push notifications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sns:{region}:{account}:platform-application/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-platform-applications", "PlatformApplications", expected_errors=["InvalidAction"]
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_sns_topic", "aws_sns_endpoint"],
         },

@@ -1087,14 +1087,14 @@ class GcpContainerResourceUsageExportConfig:
 @define(eq=False, slots=False)
 class GcpContainerCluster(BaseManagedKubernetesClusterProvider, GcpResource):
     kind: ClassVar[str] = "gcp_container_cluster"
-    kind_display: ClassVar[str] = "GCP Container Cluster"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Container Cluster"
+    _kind_description: ClassVar[str] = (
         "Container Cluster is a managed Kubernetes cluster service provided by Google"
         " Cloud Platform, which allows users to deploy, manage, and scale"
         " containerized applications using Kubernetes."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -1300,15 +1300,15 @@ class GcpContainerOperationProgress:
 @define(eq=False, slots=False)
 class GcpContainerOperation(GcpResource):
     kind: ClassVar[str] = "gcp_container_operation"
-    kind_display: ClassVar[str] = "GCP Container Operation"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Container Operation"
+    _kind_description: ClassVar[str] = (
         "Container Operations are management tasks performed on containers in Google"
         " Cloud Platform, including creating, starting, stopping, and deleting"
         " containers."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "managed_kubernetes"}
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_container_cluster"]}}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "managed_kubernetes"}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_container_cluster"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",

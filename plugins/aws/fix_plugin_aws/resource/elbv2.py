@@ -345,21 +345,21 @@ class AwsAlbListener:
 @define(eq=False, slots=False)
 class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
-    kind_display: ClassVar[str] = "AWS ALB"
+    _kind_display: ClassVar[str] = "AWS ALB"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/app/{name}/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "AWS ALB is an Application Load Balancer that distributes incoming"
         " application traffic across multiple targets, such as EC2 instances, in"
         " multiple availability zones."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-load-balancers",
         "LoadBalancers",
         override_iam_permission="elasticloadbalancing:DescribeLoadBalancers",
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
             "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -598,14 +598,14 @@ class AwsAlbTargetHealthDescription:
 @define(eq=False, slots=False)
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
-    kind_display: ClassVar[str] = "AWS Alb Target Group"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Alb Target Group"
+    _kind_description: ClassVar[str] = (
         "An ALB Target Group is a group of instances or IP addresses registered with"
         " an Application Load Balancer that receives traffic and distributes it to the"
         " registered targets."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#TargetGroup:targetGroupArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:targetgroup/{name}/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
@@ -613,7 +613,7 @@ class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
         "TargetGroups",
         override_iam_permission="elasticloadbalancing:DescribeTargetGroups",
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc", "aws_alb"], "delete": ["aws_ec2_instance", "aws_vpc"]},
         "successors": {"delete": ["aws_alb"], "default": ["aws_ec2_instance"]},
     }

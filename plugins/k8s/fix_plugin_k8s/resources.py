@@ -387,8 +387,8 @@ instance_status_map: Dict[str, InstanceStatus] = {
 @define(eq=False, slots=False)
 class KubernetesNode(KubernetesResource, BaseInstance):
     kind: ClassVar[str] = "kubernetes_node"
-    kind_display: ClassVar[str] = "Kubernetes Node"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Node"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Node is a worker machine in a Kubernetes cluster that runs"
         " containers. It is responsible for running and managing the containers that"
         " make up the applications within the cluster."
@@ -402,7 +402,7 @@ class KubernetesNode(KubernetesResource, BaseInstance):
         "instance_type": K("kubernetes_node"),
         "instance_status": K(InstanceStatus.RUNNING.value),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_csi_node", "kubernetes_pod"],
             "delete": [],
@@ -953,8 +953,8 @@ class KubernetesPodSpec:
 @define(eq=False, slots=False)
 class KubernetesPod(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod"
-    kind_display: ClassVar[str] = "Kubernetes Pod"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Pod"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Pod is the basic building block of a Kubernetes cluster, it"
         " represents a running process, or a group of running processes, on a node."
     )
@@ -962,7 +962,7 @@ class KubernetesPod(KubernetesResource):
         "pod_status": S("status") >> Bend(KubernetesPodStatus.mapping),
         "pod_spec": S("spec") >> Bend(KubernetesPodSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_secret", "kubernetes_persistent_volume_claim", "kubernetes_config_map"],
             "delete": ["kubernetes_stateful_set", "kubernetes_replica_set", "kubernetes_job", "kubernetes_daemon_set"],
@@ -1109,8 +1109,8 @@ class KubernetesPersistentVolumeClaimSpec:
 @define(eq=False, slots=False)
 class KubernetesPersistentVolumeClaim(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_persistent_volume_claim"
-    kind_display: ClassVar[str] = "Kubernetes Persistent Volume Claim"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Persistent Volume Claim"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Persistent Volume Claim is a request for storage resources in a"
         " Kubernetes cluster. It allows users to request specific storage capacity and"
         " access modes for their applications."
@@ -1119,7 +1119,7 @@ class KubernetesPersistentVolumeClaim(KubernetesResource):
         "persistent_volume_claim_status": S("status") >> Bend(KubernetesPersistentVolumeClaimStatus.mapping),
         "persistent_volume_claim_spec": S("spec") >> Bend(KubernetesPersistentVolumeClaimSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["kubernetes_persistent_volume"], "delete": []}
     }
 
@@ -1302,8 +1302,8 @@ class KubernetesServiceSpec:
 @define(eq=False, slots=False)
 class KubernetesService(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_service"
-    kind_display: ClassVar[str] = "Kubernetes Service"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Service"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Service is an abstraction layer that defines a logical set of"
         " Pods and a policy by which to access them, providing a stable endpoint for"
         " accessing applications deployed on a Kubernetes cluster."
@@ -1313,7 +1313,7 @@ class KubernetesService(KubernetesResource, BaseLoadBalancer):
         "service_spec": S("spec") >> Bend(KubernetesServiceSpec.mapping),
         "public_ip_address": S("spec", "externalIPs", 0),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_pod", "kubernetes_endpoint_slice"],
             "delete": [],
@@ -1353,8 +1353,8 @@ class KubernetesService(KubernetesResource, BaseLoadBalancer):
 @define(eq=False, slots=False)
 class KubernetesPodTemplate(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_template"
-    kind_display: ClassVar[str] = "Kubernetes Pod Template"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Pod Template"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Pod Template is a blueprint for creating and organizing pods,"
         " which are the smallest and simplest building blocks in a Kubernetes cluster."
         " It defines the specifications for containers, volumes, and other resources"
@@ -1380,12 +1380,12 @@ class KubernetesClusterInfo:
 @define(eq=False, slots=False)
 class KubernetesCluster(KubernetesResource, BaseAccount):
     kind: ClassVar[str] = "kubernetes_cluster"
-    kind_display: ClassVar[str] = "Kubernetes Cluster"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Cluster"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes cluster is a group of nodes (physical or virtual machines) that"
         " run containerized applications managed by Kubernetes."
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "kubernetes_volume_attachment",
@@ -1414,13 +1414,13 @@ class KubernetesCluster(KubernetesResource, BaseAccount):
 @define(eq=False, slots=False)
 class KubernetesConfigMap(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_config_map"
-    kind_display: ClassVar[str] = "Kubernetes Config Map"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Config Map"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Config Map is a way to store key-value pairs of configuration"
         " data that can be accessed by containers within a cluster."
     )
     # only use changed data for making a history change (not any base prop(
-    metadata: ClassVar[Dict[str, Any]] = {"ignore_history": True}
+    _metadata: ClassVar[Dict[str, Any]] = {"ignore_history": True}
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {"data": S("data")}
     data: Optional[Dict[str, str]] = field(default=None)
 
@@ -1484,12 +1484,12 @@ class KubernetesEndpointSubset:
 @define(eq=False, slots=False)
 class KubernetesEndpoints(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint"
-    kind_display: ClassVar[str] = "Kubernetes Endpoint"
-    kind_description: ClassVar[str] = "A Kubernetes Endpoint defines a network address where a service can be accessed."
+    _kind_display: ClassVar[str] = "Kubernetes Endpoint"
+    _kind_description: ClassVar[str] = "A Kubernetes Endpoint defines a network address where a service can be accessed."
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "subsets": S("subsets", default=[]) >> ForallBend(KubernetesEndpointSubset.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_pod", "kubernetes_node", "kubernetes_endpoint_slice"],
             "delete": [],
@@ -1509,13 +1509,13 @@ class KubernetesEndpoints(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesEndpointSlice(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint_slice"
-    kind_display: ClassVar[str] = "Kubernetes Endpoint Slice"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Endpoint Slice"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Endpoint Slices are a feature that allows for more efficient and"
         " scalable service discovery in a Kubernetes cluster by splitting endpoints"
         " into smaller slices."
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
             "delete": ["kubernetes_service", "kubernetes_endpoint"],
@@ -1526,8 +1526,8 @@ class KubernetesEndpointSlice(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesLimitRange(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_limit_range"
-    kind_display: ClassVar[str] = "Kubernetes Limit Range"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Limit Range"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Limit Range is a feature that allows you to define resource"
         " constraints (such as CPU and memory limits) for containers and pods running"
         " on a Kubernetes cluster."
@@ -1578,15 +1578,15 @@ class KubernetesNamespaceStatus:
 @define(eq=False, slots=False)
 class KubernetesNamespace(KubernetesResource, BaseRegion):
     kind: ClassVar[str] = "kubernetes_namespace"
-    kind_display: ClassVar[str] = "Kubernetes Namespace"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Namespace"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Namespace is a virtual cluster that allows users to divide"
         " resources and control access within a Kubernetes cluster."
     )
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "namespace_status": S("status") >> Bend(KubernetesNamespaceStatus.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "kubernetes_stateful_set",
@@ -1735,8 +1735,8 @@ VolumeStatusMapping = {
 @define(eq=False, slots=False)
 class KubernetesPersistentVolume(KubernetesResource, BaseVolume):
     kind: ClassVar[str] = "kubernetes_persistent_volume"
-    kind_display: ClassVar[str] = "Kubernetes Persistent Volume"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Persistent Volume"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Persistent Volume is a storage abstraction that provides access"
         " to persisted data for a Kubernetes cluster."
     )
@@ -1811,8 +1811,8 @@ class KubernetesReplicationControllerStatus:
 @define(eq=False, slots=False)
 class KubernetesReplicationController(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_replication_controller"
-    kind_display: ClassVar[str] = "Kubernetes Replication Controller"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Replication Controller"
+    _kind_description: ClassVar[str] = (
         "A Replication Controller is responsible for maintaining a specified number"
         " of pod replicas in a Kubernetes cluster. It ensures that the desired number"
         " of pods are always running in the cluster, even in the event of failures."
@@ -1863,8 +1863,8 @@ class KubernetesResourceQuotaSpec:
 @define(eq=False, slots=False)
 class KubernetesResourceQuota(KubernetesResource, BaseQuota):
     kind: ClassVar[str] = "kubernetes_resource_quota"
-    kind_display: ClassVar[str] = "Kubernetes Resource Quota"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Resource Quota"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Resource Quota is a mechanism in Kubernetes for limiting and"
         " allocating resources to namespaces, ensuring fairness and preventing one"
         " namespace from using excessive resources."
@@ -1882,8 +1882,8 @@ class KubernetesResourceQuota(KubernetesResource, BaseQuota):
 @define(eq=False, slots=False)
 class KubernetesSecret(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_secret"
-    kind_display: ClassVar[str] = "Kubernetes Secret"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Secret"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Secret is an object that contains sensitive data such as"
         " passwords, API keys, and tokens, which can be securely stored and accessed"
         " by containers in a Kubernetes cluster."
@@ -1893,12 +1893,12 @@ class KubernetesSecret(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesServiceAccount(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_service_account"
-    kind_display: ClassVar[str] = "Kubernetes Service Account"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Service Account"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes service account provides an identity and set of permissions for"
         " processes running in a pod within a Kubernetes cluster."
     )
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["kubernetes_secret"], "delete": []}}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["kubernetes_secret"], "delete": []}}
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)
@@ -1910,8 +1910,8 @@ class KubernetesServiceAccount(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesMutatingWebhookConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_mutating_webhook_configuration"
-    kind_display: ClassVar[str] = "Kubernetes Mutating Webhook Configuration"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Mutating Webhook Configuration"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Mutating Webhook Configuration allows you to define and configure"
         " webhooks that modify or mutate incoming requests to the Kubernetes API"
         " server."
@@ -1921,8 +1921,8 @@ class KubernetesMutatingWebhookConfiguration(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesValidatingWebhookConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_validating_webhook_configuration"
-    kind_display: ClassVar[str] = "Kubernetes Validating Webhook Configuration"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Validating Webhook Configuration"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Validating Webhook Configuration is used to intercept and"
         " validate requests made to the Kubernetes API server, ensuring compliance"
         " with user-defined policies and preventing unauthorized access."
@@ -1932,11 +1932,11 @@ class KubernetesValidatingWebhookConfiguration(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesControllerRevision(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_controller_revision"
-    kind_display: ClassVar[str] = "Kubernetes Controller Revision"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Controller Revision"
+    _kind_description: ClassVar[str] = (
         "Controller Revision in Kubernetes represents a specific revision of a controller's configuration and state."
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
             "delete": ["kubernetes_stateful_set", "kubernetes_daemon_set"],
@@ -2040,15 +2040,15 @@ class KubernetesDaemonSetSpec:
 @define(eq=False, slots=False)
 class KubernetesDaemonSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_daemon_set"
-    kind_display: ClassVar[str] = "Kubernetes DaemonSet"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes DaemonSet"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes DaemonSet ensures that all (or some) nodes in a cluster run a copy of a specified pod."
     )
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "daemon_set_status": S("status") >> Bend(KubernetesDaemonSetStatus.mapping),
         "daemon_set_spec": S("spec") >> Bend(KubernetesDaemonSetSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_pod", "kubernetes_controller_revision"],
             "delete": [],
@@ -2180,8 +2180,8 @@ class KubernetesDeploymentSpec:
 @define(eq=False, slots=False)
 class KubernetesDeployment(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_deployment"
-    kind_display: ClassVar[str] = "Kubernetes Deployment"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Deployment"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Deployment is a resource object in Kubernetes that defines how"
         " an application should be deployed and managed within a cluster."
     )
@@ -2189,7 +2189,7 @@ class KubernetesDeployment(KubernetesResource):
         "deployment_status": S("status") >> Bend(KubernetesDeploymentStatus.mapping),
         "deployment_spec": S("spec") >> Bend(KubernetesDeploymentSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_replica_set"],
             "delete": [],
@@ -2276,8 +2276,8 @@ class KubernetesReplicaSetSpec:
 @define(eq=False, slots=False)
 class KubernetesReplicaSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_replica_set"
-    kind_display: ClassVar[str] = "Kubernetes Replica Set"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Replica Set"
+    _kind_description: ClassVar[str] = (
         "A ReplicaSet is a Kubernetes object that ensures a specified number of pod"
         " replicas are running at any given time, and handles scaling and self-healing"
         " of pods."
@@ -2286,7 +2286,7 @@ class KubernetesReplicaSet(KubernetesResource):
         "replica_set_status": S("status") >> Bend(KubernetesReplicaSetStatus.mapping),
         "replica_set_spec": S("spec") >> Bend(KubernetesReplicaSetSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_pod"],
             "delete": ["kubernetes_deployment"],
@@ -2387,8 +2387,8 @@ class KubernetesStatefulSetSpec:
 @define(eq=False, slots=False)
 class KubernetesStatefulSet(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_stateful_set"
-    kind_display: ClassVar[str] = "Kubernetes Stateful Set"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Stateful Set"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Stateful Set is a higher-level resource that allows for the"
         " management of stateful applications in a Kubernetes cluster. It ensures"
         " ordered deployment, scaling, and termination of replicas while maintaining"
@@ -2398,7 +2398,7 @@ class KubernetesStatefulSet(KubernetesResource):
         "stateful_set_status": S("status") >> Bend(KubernetesStatefulSetStatus.mapping),
         "stateful_set_spec": S("spec") >> Bend(KubernetesStatefulSetSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["kubernetes_pod", "kubernetes_controller_revision"],
             "delete": [],
@@ -2473,8 +2473,8 @@ class KubernetesHorizontalPodAutoscalerSpec:
 @define(eq=False, slots=False)
 class KubernetesHorizontalPodAutoscaler(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_horizontal_pod_autoscaler"
-    kind_display: ClassVar[str] = "Kubernetes Horizontal Pod Autoscaler"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Horizontal Pod Autoscaler"
+    _kind_description: ClassVar[str] = (
         "The Kubernetes Horizontal Pod Autoscaler automatically scales the number of"
         " pods in a deployment up or down based on CPU usage or other specified"
         " metrics."
@@ -2609,8 +2609,8 @@ class KubernetesCronJobSpec:
 @define(eq=False, slots=False)
 class KubernetesCronJob(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cron_job"
-    kind_display: ClassVar[str] = "Kubernetes Cron Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Cron Job"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Cron Jobs are used to schedule and run jobs, which are tasks or"
         " scripts, at specified intervals within a Kubernetes cluster."
     )
@@ -2618,7 +2618,7 @@ class KubernetesCronJob(KubernetesResource):
         "cron_job_status": S("status") >> Bend(KubernetesCronJobStatus.mapping),
         "cron_job_spec": S("spec") >> Bend(KubernetesCronJobSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["kubernetes_job"], "delete": []}}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["kubernetes_job"], "delete": []}}
 
     cron_job_status: Optional[KubernetesCronJobStatus] = field(default=None, metadata=dict(ignore_history=True))
     cron_job_spec: Optional[KubernetesCronJobSpec] = field(default=None)
@@ -2680,8 +2680,8 @@ class KubernetesJobStatus:
 @define(eq=False, slots=False)
 class KubernetesJob(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_job"
-    kind_display: ClassVar[str] = "Kubernetes Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Job"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Job is a resource that creates one or more pods and ensures"
         " that a specified number of them successfully terminate."
     )
@@ -2689,7 +2689,7 @@ class KubernetesJob(KubernetesResource):
         "job_status": S("status") >> Bend(KubernetesJobStatus.mapping),
         "job_spec": S("spec") >> Bend(KubernetesJobSpec.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["kubernetes_pod"], "delete": ["kubernetes_cron_job"]}
     }
 
@@ -2737,8 +2737,8 @@ class KubernetesFlowSchemaStatus:
 @define(eq=False, slots=False)
 class KubernetesFlowSchema(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_flow_schema"
-    kind_display: ClassVar[str] = "Kubernetes Flow Schema"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Flow Schema"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Flow Schema configures the prioritization and fairness for requests in the API server, managing"
         " the sequence and concurrency of request processing."
     )
@@ -2789,8 +2789,8 @@ class KubernetesPriorityLevelConfigurationStatus:
 @define(eq=False, slots=False)
 class KubernetesPriorityLevelConfiguration(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_priority_level_configuration"
-    kind_display: ClassVar[str] = "Kubernetes Priority Level Configuration"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Priority Level Configuration"
+    _kind_description: ClassVar[str] = (
         "The Kubernetes Priority Level Configuration represents resource configuration for establishing priority"
         " levels of network traffic in a cluster."
     )
@@ -2945,8 +2945,8 @@ def get_backend_service_names(json: Json) -> List[str]:
 @define(eq=False, slots=False)
 class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
     kind: ClassVar[str] = "kubernetes_ingress"
-    kind_display: ClassVar[str] = "Kubernetes Ingress"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Ingress"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Ingress is an API object that manages external access to services within a Kubernetes cluster."
     )
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
@@ -2996,8 +2996,8 @@ class KubernetesIngress(KubernetesResource, BaseLoadBalancer):
 @define(eq=False, slots=False)
 class KubernetesIngressClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_ingress_class"
-    kind_display: ClassVar[str] = "Kubernetes Ingress Class"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Ingress Class"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Ingress Class is a resource that defines a class of Ingress"
         " controllers in a cluster, providing a way to configure external access to"
         " services within the cluster."
@@ -3048,8 +3048,8 @@ class KubernetesNetworkPolicyStatus:
 @define(eq=False, slots=False)
 class KubernetesNetworkPolicy(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_network_policy"
-    kind_display: ClassVar[str] = "Kubernetes Network Policy"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Network Policy"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Network Policy is used to define and enforce network rules and"
         " policies for communication between pods in a Kubernetes cluster."
     )
@@ -3064,8 +3064,8 @@ class KubernetesNetworkPolicy(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesRuntimeClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_runtime_class"
-    kind_display: ClassVar[str] = "Kubernetes Runtime Class"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Runtime Class"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Runtime Class is a resource in Kubernetes that allows you to"
         " specify different runtime configurations for pods, such as the container"
         " runtime or resource limits."
@@ -3146,8 +3146,8 @@ class KubernetesPodDisruptionBudgetSpec:
 @define(eq=False, slots=False)
 class KubernetesPodDisruptionBudget(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_pod_disruption_budget"
-    kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Pod Disruption Budget"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Pod Disruption Budget (PDB) is used to ensure that a specified number or percentage of"
         " pods within a replicated application remain available during voluntary disruptions."
     )
@@ -3164,8 +3164,8 @@ class KubernetesPodDisruptionBudget(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesClusterRole(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cluster_role"
-    kind_display: ClassVar[str] = "Kubernetes Cluster Role"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Cluster Role"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Cluster Role is a set of permissions that defines what actions"
         " a user or group can perform within a Kubernetes cluster."
     )
@@ -3174,8 +3174,8 @@ class KubernetesClusterRole(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesClusterRoleBinding(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_cluster_role_binding"
-    kind_display: ClassVar[str] = "Kubernetes Cluster Role Binding"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Cluster Role Binding"
+    _kind_description: ClassVar[str] = (
         "Cluster Role Binding is a Kubernetes resource that grants permissions to a"
         " Role or ClusterRole within a specific cluster."
     )
@@ -3184,8 +3184,8 @@ class KubernetesClusterRoleBinding(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesRole(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_role"
-    kind_display: ClassVar[str] = "Kubernetes Role"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Role"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes role is a set of permissions that define what actions a user or"
         " group can perform on resources within a Kubernetes cluster."
     )
@@ -3194,8 +3194,8 @@ class KubernetesRole(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesRoleBinding(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_role_binding"
-    kind_display: ClassVar[str] = "Kubernetes Role Binding"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Role Binding"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Role Binding is used to bind roles with groups or users, granting"
         " them permission to access and manage resources within a Kubernetes cluster."
     )
@@ -3204,8 +3204,8 @@ class KubernetesRoleBinding(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesPriorityClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_priority_class"
-    kind_display: ClassVar[str] = "Kubernetes Priority Class"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Priority Class"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Priority Classes are used to assign priority to Pods in a"
         " Kubernetes cluster, allowing system administrators to control scheduling"
         " preferences and resource allocation for different workloads."
@@ -3215,8 +3215,8 @@ class KubernetesPriorityClass(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesCSIDriver(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_driver"
-    kind_display: ClassVar[str] = "Kubernetes CSI Driver"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes CSI Driver"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes Container Storage Interface (CSI) driver is a plugin that"
         " allows external storage systems to be dynamically provisioned and managed by"
         " Kubernetes."
@@ -3226,8 +3226,8 @@ class KubernetesCSIDriver(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesCSINode(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_node"
-    kind_display: ClassVar[str] = "Kubernetes CSI Node"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes CSI Node"
+    _kind_description: ClassVar[str] = (
         "A Kubernetes CSI (Container Storage Interface) Node is a cluster node where a CSI driver is installed,"
         " enabling it to interact with the storage backends to attach, mount, or unmount volumes as required"
         " by Pods on that node."
@@ -3237,8 +3237,8 @@ class KubernetesCSINode(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesCSIStorageCapacity(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_csi_storage_capacity"
-    kind_display: ClassVar[str] = "Kubernetes CSI Storage Capacity"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes CSI Storage Capacity"
+    _kind_description: ClassVar[str] = (
         "Kubernetes CSI (Container Storage Interface) Storage Capacity refers to the"
         " amount of storage available for use by containers in a Kubernetes cluster"
         " using the CSI storage driver."
@@ -3248,8 +3248,8 @@ class KubernetesCSIStorageCapacity(KubernetesResource):
 @define(eq=False, slots=False)
 class KubernetesStorageClass(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_storage_class"
-    kind_display: ClassVar[str] = "Kubernetes Storage Class"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Storage Class"
+    _kind_description: ClassVar[str] = (
         "A Storage Class in Kubernetes provides a way to define different types of"
         " storage with different performance characteristics for application pods."
     )
@@ -3313,8 +3313,8 @@ class KubernetesVolumeAttachmentSpec:
 @define(eq=False, slots=False)
 class KubernetesVolumeAttachment(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_volume_attachment"
-    kind_display: ClassVar[str] = "Kubernetes Volume Attachment"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "Kubernetes Volume Attachment"
+    _kind_description: ClassVar[str] = (
         "Kubernetes Volume Attachment is a resource that allows persistent volumes to"
         " be attached to a pod in a Kubernetes cluster."
     )

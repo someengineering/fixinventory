@@ -183,9 +183,9 @@ class AzureKeyReleasePolicy:
 @define(eq=False, slots=False)
 class AzureKeyVaultSecret(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_secret"
-    kind_display: ClassVar[str] = "Azure Key Vault Secret"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Key Vault Secret"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -209,9 +209,9 @@ class AzureKeyVaultSecret(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVaultManagedHsm(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_managed_hsm"
-    kind_display: ClassVar[str] = "Azure Key Vault Managed Hsm"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Key Vault Managed Hsm"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",
@@ -272,9 +272,9 @@ class AzureKeyVaultManagedHsm(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVaultKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_key"
-    kind_display: ClassVar[str] = "Azure Key Vault Key"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Key Vault Key"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -306,9 +306,9 @@ class AzureKeyVaultKey(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureKeyVault(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault"
-    kind_display: ClassVar[str] = "Azure Key Vault"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Key Vault"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
         version="2023-07-01",
@@ -318,7 +318,7 @@ class AzureKeyVault(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [AzureKeyVaultKey.kind, AzureMonitorDiagnosticSettings.kind, AzureKeyVaultManagedHsm.kind]
         },

@@ -71,16 +71,16 @@ class SagemakerTaggable:
 @define(eq=False, slots=False)
 class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_notebook"
-    kind_display: ClassVar[str] = "AWS SageMaker Notebook"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Notebook"
+    _kind_description: ClassVar[str] = (
         "SageMaker Notebooks are a fully managed service by AWS that provides a"
         " Jupyter notebook environment for data scientists and developers to build,"
         " train, and deploy machine learning models."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:notebook/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_ec2_subnet", "aws_ec2_security_group", "aws_iam_role", "aws_sagemaker_code_repository"],
             "delete": [
@@ -758,15 +758,15 @@ class AwsSagemakerAlgorithmStatusDetails:
 @define(eq=False, slots=False)
 class AwsSagemakerAlgorithm(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_algorithm"
-    kind_display: ClassVar[str] = "AWS SageMaker Algorithm"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Algorithm"
+    _kind_description: ClassVar[str] = (
         "SageMaker Algorithms are pre-built machine learning algorithms provided by"
         " Amazon SageMaker, which can be used to train and deploy predictive models."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:algorithm/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-algorithms", "AlgorithmSummaryList")
@@ -900,15 +900,15 @@ class AwsSagemakerVpcConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_model"
-    kind_display: ClassVar[str] = "AWS SageMaker Model"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Model"
+    _kind_description: ClassVar[str] = (
         "SageMaker Models are machine learning models built and trained using Amazon"
         " SageMaker, a fully-managed machine learning service by Amazon Web Services."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:model/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
             "delete": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -1000,16 +1000,16 @@ class AwsSagemakerResourceSpec:
 @define(eq=False, slots=False)
 class AwsSagemakerApp(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_app"
-    kind_display: ClassVar[str] = "AWS SageMaker App"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker App"
+    _kind_description: ClassVar[str] = (
         "The AWS SageMaker App facilitates the creation and management of machine learning applications, enabling"
         " users to engage in interactive model building and analysis. It provides a user-centric, customizable"
         " workspace, complete with monitoring of app health and activity."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:app/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_sagemaker_domain", "aws_sagemaker_user_profile"],
         },
@@ -1372,16 +1372,16 @@ class AwsSagemakerDefaultSpaceSettings:
 @define(eq=False, slots=False)
 class AwsSagemakerDomain(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_domain"
-    kind_display: ClassVar[str] = "AWS SageMaker Domain"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Domain"
+    _kind_description: ClassVar[str] = (
         "A SageMaker Domain in AWS is a dedicated, managed environment within Amazon SageMaker that provides"
         " data scientists and developers with the necessary tools and permissions to build, train, and deploy"
         " machine learning models."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/studio/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:domain/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
                 "aws_iam_role",
@@ -1574,14 +1574,14 @@ class AwsSagemakerExperimentSource:
 @define(eq=False, slots=False)
 class AwsSagemakerExperiment(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_experiment"
-    kind_display: ClassVar[str] = "AWS SageMaker Experiment"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Experiment"
+    _kind_description: ClassVar[str] = (
         "SageMaker Experiment is a service in AWS that enables users to organize,"
         " track and compare machine learning experiments and their associated"
         " resources."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:experiment/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-experiments", "ExperimentSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1657,16 +1657,16 @@ class AwsSagemakerMetadataProperties:
 @define(eq=False, slots=False)
 class AwsSagemakerTrial(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_trial"
-    kind_display: ClassVar[str] = "AWS SageMaker Trial"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Trial"
+    _kind_description: ClassVar[str] = (
         "AWS SageMaker Trial represents a series of steps, known as trial components, which lead to the creation of"
         " a machine learning model. It is nested within a single SageMaker experiment for organizational"
         " and tracking purposes."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:trial/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
                 "aws_sagemaker_experiment",
@@ -1744,14 +1744,14 @@ class AwsSagemakerTrial(AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerProject(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_project"
-    kind_display: ClassVar[str] = "AWS SageMaker Project"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Project"
+    _kind_description: ClassVar[str] = (
         "SageMaker Projects in AWS provide a collaborative environment for machine"
         " learning teams to manage and track their ML workflows, datasets, models, and"
         " code."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:project/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-projects", "ProjectSummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1795,13 +1795,13 @@ class AwsSagemakerGitConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerCodeRepository(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_code_repository"
-    kind_display: ClassVar[str] = "AWS SageMaker Code Repository"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Code Repository"
+    _kind_description: ClassVar[str] = (
         "The AWS SageMaker Code Repository is a managed Git-based code repository for storing and versioning"
         " your machine learning code, making it easy to maintain and share code within your SageMaker projects."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:code-repository/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-code-repositories", "CodeRepositorySummaryList")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2261,15 +2261,15 @@ class AwsSagemakerExplainerConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_endpoint"
-    kind_display: ClassVar[str] = "AWS SageMaker Endpoint"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Endpoint"
+    _kind_description: ClassVar[str] = (
         "SageMaker Endpoints are the locations where deployed machine learning models"
         " are hosted and can be accessed for making predictions or inferences."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:endpoint/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
         },
@@ -2363,16 +2363,16 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerImage(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_image"
-    kind_display: ClassVar[str] = "AWS SageMaker Image"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Image"
+    _kind_description: ClassVar[str] = (
         "AWS SageMaker Images are pre-built machine learning environments that"
         " include all necessary frameworks and packages to train and deploy models"
         " using Amazon SageMaker."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:image/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role"],
             "delete": ["aws_iam_role"],
@@ -2457,15 +2457,15 @@ class AwsSagemakerArtifactSource:
 @define(eq=False, slots=False)
 class AwsSagemakerArtifact(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_artifact"
-    kind_display: ClassVar[str] = "AWS SageMaker Artifact"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Artifact"
+    _kind_description: ClassVar[str] = (
         "An Amazon SageMaker artifact is used for tracking the origin and usage of data"
         " or models within ML workflows, providing a clear history for auditing and reproducibility."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:artifact/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
                 "aws_sagemaker_user_profile",
@@ -2546,16 +2546,16 @@ class AwsSagemakerArtifact(AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerUserProfile(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_user_profile"
-    kind_display: ClassVar[str] = "AWS SageMaker User Profile"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker User Profile"
+    _kind_description: ClassVar[str] = (
         "SageMaker User Profiles are user-specific configurations in Amazon SageMaker"
         " that define settings and permissions for users accessing the SageMaker"
         " Studio environment."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:user-profile/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_sagemaker_domain"]},
         "successors": {"delete": ["aws_sagemaker_domain"]},
     }
@@ -2593,16 +2593,16 @@ class AwsSagemakerUserProfile(AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerPipeline(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_pipeline"
-    kind_display: ClassVar[str] = "AWS SageMaker Pipeline"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Pipeline"
+    _kind_description: ClassVar[str] = (
         "SageMaker Pipelines is a fully managed, easy-to-use CI/CD service for"
         " building, automating, and managing end-to-end machine learning workflows on"
         " Amazon SageMaker."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:pipeline/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_sagemaker_user_profile", "aws_sagemaker_domain"],
             "delete": ["aws_iam_role"],
@@ -2731,16 +2731,16 @@ class AwsSagemakerMemberDefinition:
 @define(eq=False, slots=False)
 class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_workteam"
-    kind_display: ClassVar[str] = "AWS SageMaker Workteam"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Workteam"
+    _kind_description: ClassVar[str] = (
         "SageMaker Workteam is a service in Amazon's cloud that allows organizations"
         " to create and manage teams of workers to label data for machine learning"
         " models."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:workteam/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_cognito_user_pool", "aws_cognito_group", "aws_sns_topic"],
         }
@@ -2810,14 +2810,14 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsSagemakerJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker Jobs in AWS are used to train and deploy machine learning models"
         " at scale, with built-in algorithms and frameworks provided by Amazon"
         " SageMaker."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:job/{id}"}  # fmt: skip
 
 
@@ -3139,14 +3139,14 @@ class AwsSagemakerModelDeployConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_auto_ml_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Auto ML Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Auto ML Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker AutoML Jobs in AWS provide automated machine learning"
         " capabilities, allowing users to automatically discover and build optimal"
         " machine learning models without manual intervention."
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:automl-job/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
             "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -3347,15 +3347,15 @@ class AwsSagemakerNeoVpcConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerCompilationJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_compilation_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Compilation Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Compilation Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker Compilation Job is a resource in Amazon SageMaker that allows"
         " users to compile machine learning models for deployment on edge devices or"
         " inference in the cloud."
     )
-    kind_service = service_name
+    _kind_service = service_name
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:compilation-job/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
             "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -3821,15 +3821,15 @@ class AwsSagemakerHyperParameterTuningJobWarmStartConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Hyper Parameter Tuning Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Hyper Parameter Tuning Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker Hyperparameter Tuning Job is an automated process in Amazon"
         " SageMaker that helps optimize the hyperparameters of a machine learning"
         " model to achieve better performance."
     )
-    kind_service = service_name
+    _kind_service = service_name
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:hyperparameter-tuning-job/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
             "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -4288,15 +4288,15 @@ class AwsSagemakerEndpointPerformance:
 @define(eq=False, slots=False)
 class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_inference_recommendations_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Inference Recommendations Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Inference Recommendations Job"
+    _kind_description: ClassVar[str] = (
         "AWS SageMaker Inference Recommendations Job evaluates different configurations for deploying machine"
         " learning models, providing suggestions to optimize performance and efficiency, along with monitoring"
         " job progress and outcomes."
     )
-    kind_service = service_name
+    _kind_service = service_name
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_security_group", "aws_ec2_subnet"],
             "delete": ["aws_kms_key", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -4639,13 +4639,13 @@ class AwsSagemakerLabelingJobOutput:
 @define(eq=False, slots=False)
 class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_labeling_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Labeling Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Labeling Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker Labeling Jobs are used to annotate and label data for training"
         " machine learning models in Amazon SageMaker."
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:labeling-job/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
                 "aws_iam_role",
@@ -5036,14 +5036,14 @@ class AwsSagemakerNetworkConfig:
 @define(eq=False, slots=False)
 class AwsSagemakerProcessingJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_processing_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Processing Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Processing Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker Processing Jobs provide a managed infrastructure for executing"
         " data processing tasks in Amazon SageMaker, enabling users to preprocess and"
         " analyze data efficiently."
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:processing-job/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
                 "aws_iam_role",
@@ -5441,13 +5441,13 @@ class AwsSagemakerWarmPoolStatus:
 @define(eq=False, slots=False)
 class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_training_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Training Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Training Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker Training Job is a service provided by AWS that allows users to"
         " train machine learning models and build high-quality custom models."
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:sagemaker-training-job/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
                 "aws_sagemaker_labeling_job",
@@ -5685,14 +5685,14 @@ class AwsSagemakerDataProcessing:
 @define(eq=False, slots=False)
 class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_transform_job"
-    kind_display: ClassVar[str] = "AWS SageMaker Transform Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SageMaker Transform Job"
+    _kind_description: ClassVar[str] = (
         "SageMaker Transform Jobs are used in Amazon SageMaker to transform input"
         " data using a trained model, generating output results for further analysis"
         " or inference."
     )
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [
                 "aws_sagemaker_labeling_job",

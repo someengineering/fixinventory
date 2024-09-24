@@ -358,17 +358,17 @@ class AwsDynamoDbContinuousBackup:
 @define(eq=False, slots=False)
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_table"
-    kind_display: ClassVar[str] = "AWS DynamoDB Table"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS DynamoDB Table"
+    _kind_description: ClassVar[str] = (
         "An AWS DynamoDB Table is a collection of data items organized by a primary key in Amazon DynamoDB,"
         " a fully managed NoSQL database service that provides fast and predictable performance with seamless"
         " scalability."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/dynamodbv2/home?region={region}#table?name={name}", "arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-tables", "TableNames")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kinesis_stream", "aws_kms_key"]},
         "predecessors": {"delete": ["aws_kinesis_stream", "aws_kms_key"]},
     }
@@ -503,17 +503,17 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_global_table"
-    kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
+    _kind_description: ClassVar[str] = (
         "AWS DynamoDB Global Tables provide fully managed, multi-region, and globally"
         " distributed replicas of DynamoDB tables, enabling low-latency and high-"
         " performance global access to data."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-global-tables", "GlobalTables")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},
         "predecessors": {"delete": ["aws_kms_key"]},
     }

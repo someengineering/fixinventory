@@ -580,16 +580,16 @@ class AwsCloudFrontDistributionConfig:
 class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "get-distribution", "Distribution")
-    kind_display: ClassVar[str] = "AWS CloudFront Distribution"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Distribution"
+    _kind_description: ClassVar[str] = (
         "CloudFront Distributions are a content delivery network (CDN) offered by"
         " Amazon Web Services, which enables users to deliver their content to end-"
         " users with low latency and high transfer speeds."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home#/distributions/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:distribution/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_lambda_function"]},
         "successors": {
             "default": [
@@ -762,14 +762,14 @@ class AwsCloudFrontFunctionConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontFunction(CloudFrontTaggable, BaseServerlessFunction, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
-    kind_display: ClassVar[str] = "AWS CloudFront Function"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Function"
+    _kind_description: ClassVar[str] = (
         "CloudFront Functions are serverless functions that allow developers to"
         " customize and extend the functionality of CloudFront content delivery"
         " network, enabling advanced edge processing of HTTP requests and responses."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v3/home?region={region}#/functions/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:function/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-functions", "FunctionList.Items", parameter={"Stage": "LIVE"}
@@ -816,13 +816,13 @@ class AwsCloudFrontFunction(CloudFrontTaggable, BaseServerlessFunction, CloudFro
 @define(eq=False, slots=False)
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
-    kind_display: ClassVar[str] = "AWS CloudFront Public Key"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Public Key"
+    _kind_description: ClassVar[str] = (
         "AWS CloudFront Public Key is a public key used in conjunction with a private key for managing the"
         " identity of the content distributors and validating access to content served by AWS CloudFront."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/publickey/edit/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:public-key/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-public-keys", "PublicKeyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -879,14 +879,14 @@ class AwsCloudFrontEndPoint:
 @define(eq=False, slots=False)
 class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_realtime_log_config"
-    kind_display: ClassVar[str] = "AWS CloudFront Real-time Log Configuration"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Real-time Log Configuration"
+    _kind_description: ClassVar[str] = (
         "CloudFront Real-time Log Configuration allows you to configure real-time"
         " logging for your CloudFront distribution, enabling you to receive real-time"
         " logs for your web traffic."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/logs/realtime/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:real-time-log-config/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-realtime-log-configs", "RealtimeLogConfigs.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1116,14 +1116,14 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy"
-    kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy"
+    _kind_description: ClassVar[str] = (
         "The AWS CloudFront Response Headers Policy is a configuration that allows"
         " you to manage and control the response headers that are included in the HTTP"
         " responses delivered by CloudFront."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region=global#/policies/responseHeaders/{id}", "arn_tpl": "arn:{partition}:cloudfront::{account}:response-headers-policy/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-response-headers-policies", "ResponseHeadersPolicyList.Items"
@@ -1171,14 +1171,14 @@ class AwsCloudFrontS3Origin:
 @define(eq=False, slots=False)
 class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_streaming_distribution"
-    kind_display: ClassVar[str] = "AWS CloudFront Streaming Distribution"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Streaming Distribution"
+    _kind_description: ClassVar[str] = (
         "CloudFront Streaming Distribution is a content delivery network (CDN)"
         " service provided by AWS that allows for fast and secure streaming of audio"
         " and video content over the internet."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:streaming-distribution/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-streaming-distributions", "StreamingDistributionList.Items"
@@ -1210,14 +1210,14 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource,
 @define(eq=False, slots=False)
 class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
-    kind_display: ClassVar[str] = "AWS CloudFront Origin Access Control"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Origin Access Control"
+    _kind_description: ClassVar[str] = (
         "AWS CloudFront Origin Access Control is a security feature that allows you to control access"
         " to your S3 bucket or custom origin, ensuring that your content can only be accessed via"
         " CloudFront distributions and not directly from the origin itself."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "access_control"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "access_control"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:origin-access-identity/cloudfront/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-origin-access-controls", "OriginAccessControlList.Items"
@@ -1351,14 +1351,14 @@ class AwsCloudFrontCachePolicyConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_cache_policy"
-    kind_display: ClassVar[str] = "AWS CloudFront Cache Policy"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Cache Policy"
+    _kind_description: ClassVar[str] = (
         "CloudFront Cache Policies in AWS specify the caching behavior for CloudFront"
         " distributions, allowing users to control how content is cached and delivered"
         " to end users."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/policies/cache/{id}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:cache-policy/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-cache-policies", "CachePolicyList.Items")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1455,19 +1455,19 @@ class AwsCloudFrontContentTypeProfileConfig:
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
-    kind_display: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration"
+    _kind_description: ClassVar[str] = (
         "AWS CloudFront Field-Level Encryption Configuration is a feature that helps you to protect sensitive data"
         " by encrypting specific HTTP fields at CloudFront edge locations. It allows you to encrypt data within"
         " each individual field of an HTTPS request or response."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-config/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-field-level-encryption-configs", "FieldLevelEncryptionList.Items"
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_cloudfront_field_level_encryption_profile"]}
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1532,19 +1532,19 @@ class AwsCloudFrontEncryptionEntity:
 @define(eq=False, slots=False)
 class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_profile"
-    kind_display: ClassVar[str] = "AWS CloudFront Field Level Encryption Profile"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFront Field Level Encryption Profile"
+    _kind_description: ClassVar[str] = (
         "Field Level Encryption Profiles in AWS CloudFront allow users to encrypt"
         " specific fields in a web form, providing an extra layer of security to"
         " sensitive data."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:field-level-encryption-profile/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-field-level-encryption-profiles", "FieldLevelEncryptionProfileList.Items"
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_cloudfront_public_key"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {

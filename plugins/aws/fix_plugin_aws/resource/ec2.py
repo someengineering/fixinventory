@@ -386,17 +386,17 @@ class AwsEc2InferenceAcceleratorInfo:
 @define(eq=False, slots=False)
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
-    kind_display: ClassVar[str] = "AWS EC2 Instance Type"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Instance Type"
+    _kind_description: ClassVar[str] = (
         "AWS EC2 Instance Type refers to the classification of an EC2 instance based on the resources and"
         " capabilities it offers, such as CPU, memory, storage, and networking capacity, tailored for different"
         " workload requirements and applications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_ec2_instance"],
             "delete": [],
@@ -514,16 +514,16 @@ VolumeStatusMapping = {
 @define(eq=False, slots=False)
 class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
-    kind_display: ClassVar[str] = "AWS EC2 Volume"
+    _kind_display: ClassVar[str] = "AWS EC2 Volume"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#VolumeDetails:volumeId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "EC2 Volumes are block-level storage devices that can be attached to EC2"
         " instances in Amazon's cloud, providing additional storage for applications"
         " and data."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-volumes", "Volumes")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_volume_type", "aws_ec2_instance"], "delete": ["aws_kms_key"]},
         "successors": {"default": ["aws_kms_key"], "delete": ["aws_ec2_instance"]},
     }
@@ -735,18 +735,18 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
 @define(eq=False, slots=False)
 class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
-    kind_display: ClassVar[str] = "AWS EC2 Snapshot"
+    _kind_display: ClassVar[str] = "AWS EC2 Snapshot"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#SnapshotDetails:snapshotId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:snapshot/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "EC2 Snapshots are backups of Amazon Elastic Block Store (EBS)"
         " volumes, allowing users to capture and store point-in-time copies of their"
         " data."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-snapshots", "Snapshots", dict(OwnerIds=["self"])
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_volume"], "delete": ["aws_kms_key"]},
         "successors": {"default": ["aws_kms_key"]},
     }
@@ -806,13 +806,13 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 @define(eq=False, slots=False)
 class AwsEc2KeyPair(EC2Taggable, AwsResource, BaseKeyPair):
     kind: ClassVar[str] = "aws_ec2_keypair"
-    kind_display: ClassVar[str] = "AWS EC2 Keypair"
-    kind_description: ClassVar[str] = "EC2 Keypairs are SSH key pairs used to securely connect to EC2 instances in Amazon's cloud."  # fmt: skip
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
+    _kind_display: ClassVar[str] = "AWS EC2 Keypair"
+    _kind_description: ClassVar[str] = "EC2 Keypairs are SSH key pairs used to securely connect to EC2 instances in Amazon's cloud."  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#KeyPairs:search={name}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:keypair/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-key-pairs", "KeyPairs")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
             "delete": ["aws_ec2_instance"],
@@ -1245,15 +1245,15 @@ InstanceStatusMapping = {
 @define(eq=False, slots=False)
 class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
-    kind_display: ClassVar[str] = "AWS EC2 Instance"
+    _kind_display: ClassVar[str] = "AWS EC2 Instance"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#InstanceDetails:instanceId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "EC2 Instances are virtual servers in Amazon's cloud, allowing users to run"
         " applications on the Amazon Web Services infrastructure."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instances", "Reservations")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_subnet", "aws_ec2_image", "aws_iam_instance_profile"],
             "delete": ["aws_ec2_keypair", "aws_vpc", "aws_subnet"],
@@ -1575,17 +1575,17 @@ class AwsEc2RecurringCharge:
 @define(eq=False, slots=False)
 class AwsEc2ReservedInstances(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
-    kind_display: ClassVar[str] = "AWS EC2 Reserved Instances"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Reserved Instances"
+    _kind_description: ClassVar[str] = (
         "Reserved Instances are a purchasing option to save money on EC2 instance"
         " usage. Users can reserve instances for a one- or three-year term, allowing"
         " them to pay a lower hourly rate compared to on-demand instances."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#ReservedInstances:instanceId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:reserved-instances/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-reserved-instances", "ReservedInstances")
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_instance_type"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_instance_type"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ReservedInstancesId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -1713,16 +1713,16 @@ class AwsEc2NetworkAclEntry:
 @define(eq=False, slots=False)
 class AwsEc2NetworkAcl(EC2Taggable, AwsResource, BaseNetworkAcl):
     kind: ClassVar[str] = "aws_ec2_network_acl"
-    kind_display: ClassVar[str] = "AWS EC2 Network ACL"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Network ACL"
+    _kind_description: ClassVar[str] = (
         "EC2 Network ACLs are virtual stateless firewalls that control inbound and"
         " outbound traffic for EC2 instances in Amazon's cloud."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpc/home?region={region}#NetworkAclDetails:networkAclId={NetworkAclId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:network-acl/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-network-acls", "NetworkAcls")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc", "aws_ec2_subnet"]},
         "successors": {"default": ["aws_ec2_subnet"]},
     }
@@ -1766,16 +1766,16 @@ class AwsEc2NetworkAcl(EC2Taggable, AwsResource, BaseNetworkAcl):
 @define(eq=False, slots=False)
 class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
-    kind_display: ClassVar[str] = "AWS EC2 Elastic IP"
+    _kind_display: ClassVar[str] = "AWS EC2 Elastic IP"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#ElasticIpDetails:AllocationId={AllocationId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:elastic-ip/{name}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "Elastic IP addresses are static, IPv4 addresses designed for dynamic cloud"
         " computing. They allow you to mask the failure or replacement of an instance"
         " by rapidly remapping the address to another instance in your account."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-addresses", "Addresses")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_instance", "aws_ec2_network_interface"]},
         "successors": {"delete": ["aws_ec2_instance", "aws_ec2_network_interface"]},
     }
@@ -1938,17 +1938,17 @@ class AwsEc2Tag:
 @define(eq=False, slots=False)
 class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
-    kind_display: ClassVar[str] = "AWS EC2 Network Interface"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Network Interface"
+    _kind_description: ClassVar[str] = (
         "An EC2 Network Interface is a virtual network interface that can be attached"
         " to EC2 instances in the AWS cloud, allowing for communication between"
         " instances and with external networks."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/v2/home?region={region}#NetworkInterface:networkInterfaceId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:network-interface/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-network-interfaces", "NetworkInterfaces")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_instance", "aws_ec2_security_group"],
             "delete": ["aws_vpc", "aws_ec2_instance"],
@@ -2112,14 +2112,14 @@ class AwsEc2VpcCidrBlockAssociation:
 @define(eq=False, slots=False)
 class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
-    kind_display: ClassVar[str] = "AWS VPC"
+    _kind_display: ClassVar[str] = "AWS VPC"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#VpcDetails:VpcId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:vpc/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "AWS VPC stands for Amazon Virtual Private Cloud. It is a virtual network"
         " dedicated to your AWS account, allowing you to launch AWS resources in a"
         " defined virtual network environment."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("VpcId"),
@@ -2226,18 +2226,18 @@ class AwsEc2VpcPeeringConnectionStateReason:
 @define(eq=False, slots=False)
 class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection):
     kind: ClassVar[str] = "aws_vpc_peering_connection"
-    kind_display: ClassVar[str] = "AWS VPC Peering Connection"
+    _kind_display: ClassVar[str] = "AWS VPC Peering Connection"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#PeeringConnectionDetails:vpcPeeringConnectionId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:vpc-peering-connection/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "VPC Peering Connection is a networking connection between two Amazon Virtual"
         " Private Clouds (VPCs) that enables you to route traffic between them using"
         " private IP addresses."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-vpc-peering-connections", "VpcPeeringConnections"
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2312,16 +2312,16 @@ class AwsEc2LastError:
 @define(eq=False, slots=False)
 class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
-    kind_display: ClassVar[str] = "AWS VPC Endpoint"
+    _kind_display: ClassVar[str] = "AWS VPC Endpoint"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#Endpoints:vpcEndpointId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:vpc-endpoint/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "VPC Endpoints enable secure and private communication between your VPC and"
         " supported AWS services without using public IPs or requiring traffic to"
         " traverse the internet."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpc-endpoints", "VpcEndpoints")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_route_table", "aws_ec2_subnet", "aws_ec2_security_group"],
             "delete": [
@@ -2455,16 +2455,16 @@ class AwsEc2PrivateDnsNameOptionsOnLaunch:
 @define(eq=False, slots=False)
 class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
-    kind_display: ClassVar[str] = "AWS EC2 Subnet"
+    _kind_display: ClassVar[str] = "AWS EC2 Subnet"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#SubnetDetails:subnetId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:subnet/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "An AWS EC2 Subnet is a logical subdivision of a VPC (Virtual Private Cloud)"
         " in Amazon's cloud, allowing users to group resources and control network"
         " access within a specific network segment."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-subnets", "Subnets")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2628,16 +2628,16 @@ class AwsEc2IpPermission:
 @define(eq=False, slots=False)
 class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
-    kind_display: ClassVar[str] = "AWS EC2 Security Group"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Security Group"
+    _kind_description: ClassVar[str] = (
         "An EC2 Security Group acts as a virtual firewall that controls inbound and"
         " outbound traffic for EC2 instances within a VPC."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "security_group", "group": "access_control"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "security_group", "group": "access_control"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/v2/home?region={region}#SecurityGroup:groupId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:security-group/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-security-groups", "SecurityGroups")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2771,17 +2771,17 @@ class AwsEc2ProvisionedBandwidth:
 @define(eq=False, slots=False)
 class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
-    kind_display: ClassVar[str] = "AWS EC2 NAT Gateway"
+    _kind_display: ClassVar[str] = "AWS EC2 NAT Gateway"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#NatGatewayDetails:natGatewayId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:nat-gateway/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "A NAT Gateway is a fully managed network address translation (NAT) service"
         " provided by Amazon Web Services (AWS) that allows instances within a private"
         " subnet to connect outbound to the Internet while also preventing inbound"
         " connections from the outside."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-nat-gateways", "NatGateways")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_ec2_network_interface", "aws_vpc", "aws_ec2_subnet"]},
         "successors": {"default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_network_interface"]},
     }
@@ -2905,17 +2905,17 @@ class AwsEc2InternetGatewayAttachment:
 @define(eq=False, slots=False)
 class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
-    kind_display: ClassVar[str] = "AWS EC2 Internet Gateway"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Internet Gateway"
+    _kind_description: ClassVar[str] = (
         "An Internet Gateway is a horizontally scalable, redundant, and highly"
         " available VPC component that allows communication between instances in your"
         " VPC and the internet."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpc/home?region={region}#InternetGateway:internetGatewayId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:internet-gateway/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-internet-gateways", "InternetGateways")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3055,15 +3055,15 @@ class AwsEc2Route:
 @define(eq=False, slots=False)
 class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
-    kind_display: ClassVar[str] = "AWS EC2 Route Table"
+    _kind_display: ClassVar[str] = "AWS EC2 Route Table"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#RouteTableDetails:RouteTableId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:route-table/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "EC2 Route Tables are used to determine where network traffic is directed"
         " within a Virtual Private Cloud (VPC) in Amazon's cloud infrastructure."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-route-tables", "RouteTables")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_vpc"], "delete": ["aws_vpc"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3200,15 +3200,15 @@ class AwsEc2HostInstance:
 @define(eq=False, slots=False)
 class AwsEc2Host(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_host"
-    kind_display: ClassVar[str] = "AWS EC2 Host"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Host"
+    _kind_description: ClassVar[str] = (
         "EC2 Hosts are physical servers in Amazon's cloud that are used to run EC2 instances."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "host", "group": "compute"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "host", "group": "compute"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#Host:hostId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:host/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-hosts", "Hosts")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]}
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3298,14 +3298,14 @@ class AwsEc2DestinationOption:
 @define(eq=False, slots=False)
 class AwsEc2FlowLog(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_flow_log"
-    kind_display: ClassVar[str] = "AWS EC2 Flow Log"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Flow Log"
+    _kind_description: ClassVar[str] = (
         "EC2 Flow Logs capture information about the IP traffic going to and from"
         " network interfaces in an Amazon EC2 instance, helping to troubleshoot"
         " network connectivity issues."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:flow-log/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-flow-logs", "FlowLogs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3327,7 +3327,7 @@ class AwsEc2FlowLog(EC2Taggable, AwsResource):
         "max_aggregation_interval": S("MaxAggregationInterval"),
         "destination_options": S("DestinationOptions") >> Bend(AwsEc2DestinationOption.mapping),
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_s3_bucket"]},
         "predecessors": {"default": ["aws_vpc"]},
     }
@@ -3401,15 +3401,15 @@ class AwsEc2BlockDeviceMapping:
 @define(eq=False, slots=False)
 class AwsEc2Image(AwsResource):
     kind: ClassVar[str] = "aws_ec2_image"
-    kind_display: ClassVar[str] = "AWS EC2 Image"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Image"
+    _kind_description: ClassVar[str] = (
         "An Amazon Machine Image (AMI) is a supported and maintained image "
         "provided by AWS that provides the information required to launch an instance. "
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#ImageDetails:imageId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:image/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_ec2_snapshot"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_ec2_snapshot"]}}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ec2", "describe-images", "Images", {"Owners": ["self"]})
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ImageId"),
@@ -3973,10 +3973,10 @@ class AwsEc2LaunchTemplateData:
 @define(eq=False, slots=False)
 class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_launch_template"
-    kind_display: ClassVar[str] = "AWS EC2 Launch Template"
-    kind_description: ClassVar[str] = "An AWS EC2 Launch Template provides a configurable blueprint for launching EC2 instances, allowing for the specification of settings like instance type, AMI, security groups, and block device mappings for consistency and automation in instance creation."  # fmt: skip
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
+    _kind_display: ClassVar[str] = "AWS EC2 Launch Template"
+    _kind_description: ClassVar[str] = "An AWS EC2 Launch Template provides a configurable blueprint for launching EC2 instances, allowing for the specification of settings like instance type, AMI, security groups, and block device mappings for consistency and automation in instance creation."  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/v2/home?region={region}#LaunchTemplateDetails:launchTemplateId={LaunchTemplateId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:launch-template/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "ec2", "describe-launch-template-versions", "LaunchTemplateVersions", {"Versions": ["$Default"]}

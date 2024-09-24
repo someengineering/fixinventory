@@ -65,9 +65,9 @@ class AzureFleetHubProfile:
 @define(eq=False, slots=False)
 class AzureContainerServiceFleet(MicrosoftResource):
     kind: ClassVar[str] = "azure_container_service_fleet"
-    kind_display: ClassVar[str] = "Azure Container Service Fleet"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
+    _kind_display: ClassVar[str] = "Azure Container Service Fleet"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-15-preview",
@@ -77,7 +77,7 @@ class AzureContainerServiceFleet(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["azure_container_service_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
@@ -748,9 +748,9 @@ class AzureServiceMeshProfile:
 @define(eq=False, slots=False)
 class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernetesClusterProvider):
     kind: ClassVar[str] = "azure_container_service_managed_cluster"
-    kind_display: ClassVar[str] = "Azure Container Service Managed Cluster"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
+    _kind_display: ClassVar[str] = "Azure Container Service Managed Cluster"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
@@ -760,7 +760,7 @@ class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernet
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["azure_compute_disk_encryption_set", "azure_compute_virtual_machine_scale_set"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {
@@ -893,9 +893,9 @@ class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernet
 @define(eq=False, slots=False)
 class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_container_service_managed_cluster_snapshot"
-    kind_display: ClassVar[str] = "Azure Container Service Managed Cluster Snapshot"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "managed_kubernetes"}
+    _kind_display: ClassVar[str] = "Azure Container Service Managed Cluster Snapshot"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
         version="2023-08-01",
@@ -905,7 +905,7 @@ class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapsho
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_container_service_managed_cluster"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = AzureTrackedResource.mapping | {

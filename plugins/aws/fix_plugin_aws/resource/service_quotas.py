@@ -65,14 +65,14 @@ class AwsQuotaErrorReason:
 @define(eq=False, slots=False)
 class AwsServiceQuota(AwsResource, BaseQuota):
     kind: ClassVar[str] = "aws_service_quota"
-    kind_display: ClassVar[str] = "AWS Service Quota"
+    _kind_display: ClassVar[str] = "AWS Service Quota"
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/servicequotas/home/services/{source.ServiceCode}/quotas/{id}", "arn_tpl": "arn:{partition}:service-quotas:{region}:{account}:quotas/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_description: ClassVar[str] = (
         "AWS Service Quota is a feature that enables you to view and manage your"
         " quotas (also referred to as limits) for AWS services."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "aws_ec2_instance_type",

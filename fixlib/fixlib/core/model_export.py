@@ -227,7 +227,7 @@ def dataclasses_to_fixcore_model(
             if succs := getattr(clazz, "successor_kinds", None):
                 for edge_type, values in succs.items():
                     successors[name][edge_type].extend(values)
-            if refs := getattr(clazz, "reference_kinds", None):
+            if refs := getattr(clazz, "_reference_kinds", None):
                 if succs := refs.get("successors", None):
                     for edge_type, values in succs.items():
                         successors[name][edge_type].extend(values)
@@ -247,11 +247,11 @@ def dataclasses_to_fixcore_model(
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)
         metadata: Json = {}
-        if (m := getattr(clazz, "metadata", None)) and isinstance(m, dict):
+        if (m := getattr(clazz, "_metadata", None)) and isinstance(m, dict):
             metadata = m.copy()
-        if (s := clazz.__dict__.get("kind_display", None)) and isinstance(s, str):
+        if (s := clazz.__dict__.get("_kind_display", None)) and isinstance(s, str):
             metadata["name"] = s
-        if (s := getattr(clazz, "kind_service", None)) and isinstance(s, str):
+        if (s := getattr(clazz, "_kind_service", None)) and isinstance(s, str):
             metadata["service"] = s
         if (slc := getattr(clazz, "categories", None)) and callable(slc) and (sl := slc()):
             metadata["categories"] = sl
@@ -259,7 +259,7 @@ def dataclasses_to_fixcore_model(
             with_kind_description
             and (ar := aggregate_root)
             and issubclass(clazz, ar)
-            and (s := clazz.__dict__.get("kind_description", None))
+            and (s := clazz.__dict__.get("_kind_description", None))
             and isinstance(s, str)
         ):
             metadata["description"] = s
@@ -329,7 +329,7 @@ def get_node_attributes(node: BaseResource) -> Json:
 
 
 def node_to_dict(node: BaseResource, changes_only: bool = False, include_revision: bool = False) -> Json:
-    node_dict: Json = {"id": node._fixcore_id if node._fixcore_id else node.chksum}
+    node_dict: Json = {"id": node.chksum}
     if changes_only:
         node_dict.update(node.changes.get())
     else:

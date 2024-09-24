@@ -30,11 +30,11 @@ class AwsSecretsManagerRotationRulesType:
 class AwsSecretsManagerSecret(AwsResource):
     kind: ClassVar[str] = "aws_secretsmanager_secret"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-secrets", "SecretList")
-    kind_display: ClassVar[str] = "AWS Secrets Manager Secret"
-    kind_description: ClassVar[str] = "An AWS Secrets Manager Secret is used for securely storing and managing sensitive information, such as passwords, API keys, and database credentials, in AWS environments."  # fmt: skip
-    kind_service: ClassVar[Optional[str]] = service_name
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [AwsKmsKey.kind]}}
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
+    _kind_display: ClassVar[str] = "AWS Secrets Manager Secret"
+    _kind_description: ClassVar[str] = "An AWS Secrets Manager Secret is used for securely storing and managing sensitive information, such as passwords, API keys, and database credentials, in AWS environments."  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [AwsKmsKey.kind]}}
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/secretsmanager/home?region={region}#/secret?name={name}", "arn_tpl": "arn:{partition}:secretsmanager:{region}:{account}:secret/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),

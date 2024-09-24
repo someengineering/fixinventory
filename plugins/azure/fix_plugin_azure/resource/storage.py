@@ -133,9 +133,9 @@ class AzureImmutableStorageWithVersioning:
 @define(eq=False, slots=False)
 class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
     kind: ClassVar[str] = "azure_storage_blob_container"
-    kind_display: ClassVar[str] = "Azure Storage Blob Container"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
+    _kind_display: ClassVar[str] = "Azure Storage Blob Container"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -188,9 +188,9 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
 @define(eq=False, slots=False)
 class AzureStorageAccountDeleted(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_account_deleted"
-    kind_display: ClassVar[str] = "Azure Storage Account Deleted"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "storage"}
+    _kind_display: ClassVar[str] = "Azure Storage Account Deleted"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
@@ -246,9 +246,9 @@ class AzureSignedIdentifier:
 @define(eq=False, slots=False)
 class AzureStorageFileShare(MicrosoftResource, BaseNetworkShare):
     kind: ClassVar[str] = "azure_storage_file_share"
-    kind_display: ClassVar[str] = "Azure Storage File Share"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "network_share", "group": "storage"}
+    _kind_display: ClassVar[str] = "Azure Storage File Share"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "network_share", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -300,9 +300,9 @@ class AzureStorageFileShare(MicrosoftResource, BaseNetworkShare):
 @define(eq=False, slots=False)
 class AzureStorageQueue(MicrosoftResource, BaseQueue):
     kind: ClassVar[str] = "azure_storage_queue"
-    kind_display: ClassVar[str] = "Azure Storage Queue"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
+    _kind_display: ClassVar[str] = "Azure Storage Queue"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
@@ -334,9 +334,9 @@ class AzureRestriction:
 @define(eq=False, slots=False)
 class AzureStorageSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_sku"
-    kind_display: ClassVar[str] = "Azure Storage SKU"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
+    _kind_display: ClassVar[str] = "Azure Storage SKU"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
@@ -708,9 +708,9 @@ class AzureStorageAccountSkuConversionStatus:
 @define(eq=False, slots=False)
 class AzureStorageAccount(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_account"
-    kind_display: ClassVar[str] = "Azure Storage Account"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "storage"}
+    _kind_display: ClassVar[str] = "Azure Storage Account"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
@@ -720,7 +720,7 @@ class AzureStorageAccount(MicrosoftResource):
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "azure_storage_sku",
@@ -1054,9 +1054,9 @@ class AzureStorageAccount(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_storage_account_usage"
-    kind_display: ClassVar[str] = "Azure Storage Account Usage"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Storage Account Usage"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
         version="2023-01-01",
@@ -1100,9 +1100,9 @@ class AzureTableSignedIdentifier:
 @define(eq=False, slots=False)
 class AzureStorageTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_table"
-    kind_display: ClassVar[str] = "Azure Storage Table"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "storage"}
+    _kind_display: ClassVar[str] = "Azure Storage Table"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
