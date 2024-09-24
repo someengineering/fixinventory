@@ -30,7 +30,7 @@ from fixcore.model.model import (
 from fixcore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from fixcore.model.typed_model import from_js
 from fixcore.types import Json, EdgeType, JsonElement
-from fixcore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get, path_exists
+from fixcore.util import utc, utc_str, value_in_path, set_value_in_path, path_exists
 
 log = logging.getLogger(__name__)
 
@@ -477,6 +477,7 @@ class GraphAccess:
 
     def __resolve_count_descendants(self) -> None:
         visited: Set[str] = set()
+        empty_set: Set[str] = set()
 
         def count_successors_by(node_id: NodeId, edge_type: EdgeType, path: List[str]) -> Dict[str, int]:
             result: Dict[str, int] = {}
@@ -487,7 +488,7 @@ class GraphAccess:
                     if elem_id not in visited:
                         visited.add(elem_id)
                         elem = self.nodes[elem_id]
-                        if not value_in_path_get(elem, NodePath.is_phantom, False):
+                        if "phantom" not in elem.get("kinds_set", empty_set):
                             extracted = value_in_path(elem, path)
                             if isinstance(extracted, str):
                                 result[extracted] = result.get(extracted, 0) + 1

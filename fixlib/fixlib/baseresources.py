@@ -253,13 +253,9 @@ class BaseResource(ABC):
     the resource within the Graph. The name is used for display purposes. Tags are
     key/value pairs that get exported in the GRAPHML view.
 
-    There's also class variables, kind, phantom and reference_kinds.
+    There's also class variables, kind, and reference_kinds.
     `kind` is a string describing the type of resource, e.g. 'aws_ec2_instance'
        or 'some_cloud_load_balancer'.
-    `phantom` is a bool describing whether the resource actually exists within
-       the cloud or if it's just a phantom resource like pricing information
-       or usage quota. I.e. some information relevant to the cloud account
-       but not actually existing in the form of a usable resource.
     `reference_kinds` is a list of kinds that can be connected to this resource for
        the related edge type as successor or predecessor.
     """
@@ -268,7 +264,6 @@ class BaseResource(ABC):
     kind_display: ClassVar[str] = "Resource"
     kind_description: ClassVar[str] = "A generic resource."
     kind_service: ClassVar[Optional[str]] = None
-    phantom: ClassVar[bool] = False
     reference_kinds: ClassVar[ModelReference] = {}
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
 
@@ -455,7 +450,7 @@ class BaseResource(ABC):
     @clean.setter
     @unless_protected
     def clean(self, value: bool) -> None:
-        if self.phantom and value:
+        if isinstance(self, PhantomBaseResource) and value:
             raise ValueError(f"Can't cleanup phantom resource {self.rtdname}")
 
         clean_str = "" if value else "not "
@@ -491,7 +486,7 @@ class BaseResource(ABC):
     @metrics_resource_cleanup.time()
     @unless_protected
     def cleanup(self, graph: Optional[Any] = None) -> bool:
-        if self.phantom:
+        if isinstance(self, PhantomBaseResource):
             raise RuntimeError(f"Can't cleanup phantom resource {self.rtdname}")
 
         if self.cleaned:
@@ -540,7 +535,7 @@ class BaseResource(ABC):
         if graph is None:
             graph = self._graph
 
-        if self.phantom:
+        if isinstance(self, PhantomBaseResource):
             raise RuntimeError(f"Can't cleanup phantom resource {self.rtdname}")
 
         if self.cleaned:
@@ -759,7 +754,6 @@ class PhantomBaseResource(BaseResource):
     kind: ClassVar[str] = "phantom_resource"
     kind_display: ClassVar[str] = "Phantom Resource"
     kind_description: ClassVar[str] = "A generic phantom resource."
-    phantom: ClassVar[bool] = True
 
     def update_tag(self, key: str, value: str) -> bool:
         log.error(f"Resource {self.rtdname} is a phantom resource and does not maintain tags")
