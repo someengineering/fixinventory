@@ -91,7 +91,6 @@ class AwsBedrockFoundationModel(BaseAIModel, AwsResource):
         "These models are pre-trained and can be used as a starting point for various machine learning tasks."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/providers?model={id}"}  # fmt: skip
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-foundation-models", "modelSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -137,7 +136,6 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
         "tailored to specific needs, providing flexibility in model customization for a variety of applications."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/{name}"}  # fmt: skip
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_bedrock_model_customization_job", AwsKmsKey.kind]},
@@ -238,7 +236,6 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, AwsResource):
         "ensuring consistent performance and scalability to handle varying workloads."
     )
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/provisioned-throughput/{name}"}  # fmt: skip
     kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AwsBedrockCustomModel.kind, AwsBedrockFoundationModel.kind]},
@@ -420,7 +417,6 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "bedrock", "list-guardrails", "guardrails", expected_errors=["AccessDeniedException"]
     )
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/guardrails/guardrail/{name}/{id}"}  # fmt: skip
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {
@@ -537,7 +533,6 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "to specific datasets and tasks, optimizing the model for unique use cases."
     )
     kind_service: ClassVar[Optional[str]] = service_name
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/item/?arn={arn}"}  # fmt: skip
     metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -928,9 +923,6 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
         "AWS Bedrock Agent is an intelligent service designed to facilitate communication with machine learning models, "
         "acting as a mediator between applications and model execution workflows."
     )
-    aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}"
-    }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     reference_kinds: ClassVar[ModelReference] = {
@@ -1074,9 +1066,6 @@ class AwsBedrockAgentVersion(BedrockTaggable, AwsResource):
         "and enhancements across different versions of the agent for improved functionality."
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}/versions/{version}"
-    }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AwsIamRole.kind, AwsBedrockFoundationModel.kind]},
@@ -1369,9 +1358,6 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
         "to provide accurate responses and perform tasks based on learned information."
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/knowledge-bases/knowledge-base/{name}/{id}/0"
-    }
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AwsIamRole.kind]},
@@ -1539,7 +1525,6 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-management/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": [AwsBedrockCustomModel.kind, AwsKmsKey.kind]},
     }
@@ -1845,7 +1830,6 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AwsIamRole.kind]},
         "successors": {
@@ -1976,7 +1960,6 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}/versions/{version}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AwsIamRole.kind]},
         "successors": {"default": [AwsKmsKey.kind]},

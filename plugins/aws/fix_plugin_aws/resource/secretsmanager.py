@@ -35,7 +35,7 @@ class AwsSecretsManagerSecret(AwsResource):
     kind_service: ClassVar[Optional[str]] = service_name
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [AwsKmsKey.kind]}}
     metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/secretsmanager/home?region={region}#/secret?name={name}", "arn_tpl": "arn:{partition}:secretsmanager:{region}:{account}:secret/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:secretsmanager:{region}:{account}:secret/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
         "tags": S("Tags", default=[]) >> ToDict(),

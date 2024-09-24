@@ -99,7 +99,7 @@ class AwsAthenaWorkGroup(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#/workgroups/details/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-work-groups", "WorkGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
@@ -216,7 +216,7 @@ class AwsAthenaDataCatalog(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#datacatalog/detail/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-data-catalogs", "DataCatalogsSummary")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),

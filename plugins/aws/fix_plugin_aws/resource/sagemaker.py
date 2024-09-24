@@ -1380,7 +1380,7 @@ class AwsSagemakerDomain(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/studio/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:domain/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:domain/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [

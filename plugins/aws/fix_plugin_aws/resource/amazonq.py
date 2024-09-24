@@ -55,7 +55,6 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{id}",
     }
     reference_kinds: ClassVar[ModelReference] = {
@@ -356,7 +355,6 @@ class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{application_id}/indices/{indice_id}/datasources/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{indice_id}/data-source/{id}",
         "extra_args_for_arn": ["application_id", "indice_id"],
     }

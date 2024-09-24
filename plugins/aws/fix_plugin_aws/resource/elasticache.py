@@ -257,7 +257,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticache/home?region={region}#/{Engine}/{name}", "arn_tpl": "arn:{partition}:elasticache:{region}:{account}:cache-cluster/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:elasticache:{region}:{account}:cache-cluster/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_ec2_security_group"],

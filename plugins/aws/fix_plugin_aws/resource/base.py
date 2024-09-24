@@ -2,24 +2,22 @@ from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import quote_plus as urlquote
 from abc import ABC
 from concurrent.futures import Future
 from datetime import datetime, timezone, timedelta
 from functools import lru_cache
-from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type, TypeVar, Tuple
-
 from math import ceil
+from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type, TypeVar, Tuple
 
 from attr import evolve, field
 from attrs import define
 from boto3.exceptions import Boto3Error
+from fixinventorydata.cloud import instances as cloud_instance_data, regions as cloud_region_data
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource.pricing import AwsPricingPrice
 from fix_plugin_aws.utils import arn_partition
-from fixlib.utils import utc
 from fixlib.baseresources import (
     BaseAccount,
     BaseIamPrincipal,
@@ -40,7 +38,7 @@ from fixlib.lock import RWLock
 from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
-from fixinventorydata.cloud import instances as cloud_instance_data, regions as cloud_region_data
+from fixlib.utils import utc
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -274,7 +272,6 @@ class AwsAccount(BaseAccount, AwsResource, BaseIamPrincipal):
         " buckets, and RDS databases. It allows users to access and manage their"
         " resources on the Amazon Web Services platform."
     )
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/billing/home?region={region}#/account"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
 
     account_alias: Optional[str] = ""
@@ -394,7 +391,7 @@ class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     )
     kind_service = "ec2"
     metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
 
 
 class GraphBuilder:

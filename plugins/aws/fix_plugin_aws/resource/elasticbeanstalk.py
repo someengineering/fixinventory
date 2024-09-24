@@ -98,7 +98,7 @@ class AwsBeanstalkApplication(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/application/overview?applicationName={name}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:application/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:application/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-applications", "Applications")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ApplicationName"),
@@ -296,7 +296,7 @@ class AwsBeanstalkEnvironment(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/environment/dashboard?environmentId={id}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:environment/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:environment/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-environments", "Environments")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

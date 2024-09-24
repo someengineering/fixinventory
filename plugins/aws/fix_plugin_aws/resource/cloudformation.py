@@ -91,7 +91,7 @@ class AwsCloudFormationStackDriftInformation:
 class AwsCloudFormationStack(AwsResource, BaseStack):
     kind: ClassVar[str] = "aws_cloudformation_stack"
     kind_display: ClassVar[str] = "AWS CloudFormation Stack"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacks/stackinfo?stackId={id}", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack/{name}/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack/{name}/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "CloudFormation Stacks are a collection of AWS resources that are created,"
         " updated, or deleted together as a single unit."
@@ -261,7 +261,7 @@ class AwsCloudFormationStackSet(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacksets/{name}/info?permissions=self", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-set/{name}/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-set/{name}/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-stack-sets", "Summaries", dict(Status="ACTIVE"))
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackSetId"),

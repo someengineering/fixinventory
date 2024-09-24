@@ -68,7 +68,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v2/hostedzones?region={region}#ListRecordSets/{id}", "arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-hosted-zones", "HostedZones")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {

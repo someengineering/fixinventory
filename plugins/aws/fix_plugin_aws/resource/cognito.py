@@ -27,7 +27,7 @@ class AwsCognitoGroup(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{UserPoolId}/groups/details/{name}?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:group/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:group/{id}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]}
     }
@@ -98,7 +98,7 @@ class AwsCognitoMFAOptionType:
 class AwsCognitoUser(AwsResource, BaseUser):
     # collection of user resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_user"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{_pool_id}/users/details/{id}?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:user/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:user/{id}"}  # fmt: skip
 
     kind_display: ClassVar[str] = "AWS Cognito User"
     kind_description: ClassVar[str] = (
@@ -213,7 +213,7 @@ class AwsCognitoUserPool(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{id}/users?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:userpool/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:userpool/{name}"}  # fmt: skip
     # this call requires the MaxResult parameter, 60 is the maximum valid input
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-user-pools", "UserPools", {"MaxResults": 60})
     reference_kinds: ClassVar[ModelReference] = {

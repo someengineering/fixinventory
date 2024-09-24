@@ -166,7 +166,7 @@ class AwsS3Logging:
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
     kind_display: ClassVar[str] = "AWS S3 Bucket"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/buckets/{name}?region={region_id}&bucketType=general&tab=objects", "arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "S3 buckets are simple storage containers in Amazon's cloud, offering a"
         " scalable storage solution for various types of data."
@@ -457,7 +457,7 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/settings?region={region_id}", "arn_tpl": "arn:{partition}:s3control:{region}:{account}:account/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:s3control:{region}:{account}:account/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_account"]},
         "successors": {"default": ["aws_s3_bucket"]},

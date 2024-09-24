@@ -57,7 +57,7 @@ class AwsEfsMountTarget(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("MountTargetId"),
         "owner_id": S("OwnerId"),
@@ -80,7 +80,7 @@ class AwsEfsMountTarget(AwsResource):
 class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
     kind_display: ClassVar[str] = "AWS EFS File System"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/file-systems/{FileSystemId}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
     kind_description: ClassVar[str] = (
         "EFS (Elastic File System) provides a scalable and fully managed file storage"
         " service for Amazon EC2 instances."
@@ -239,7 +239,7 @@ class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-access-points",

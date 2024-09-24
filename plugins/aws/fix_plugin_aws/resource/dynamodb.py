@@ -366,7 +366,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/dynamodbv2/home?region={region}#table?name={name}", "arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-tables", "TableNames")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kinesis_stream", "aws_kms_key"]},

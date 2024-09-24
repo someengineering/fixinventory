@@ -218,7 +218,7 @@ class AwsGlacierVault(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/glacier/home?region={region}#/vault/{name}/view/properties", "arn_tpl": "arn:{partition}:glacier:{region}:{account}:vault/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:glacier:{region}:{account}:vault/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-vaults", "VaultList")
     reference_kinds: ClassVar[ModelReference] = {
         "successors": {

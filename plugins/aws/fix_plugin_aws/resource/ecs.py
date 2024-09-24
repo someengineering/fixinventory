@@ -433,7 +433,7 @@ class AwsEcsTask(EcsTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/tasks/{id}/configuration?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:task/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ecs_task_definition"],
@@ -1082,7 +1082,7 @@ class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/task-definitions/{name}?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task-definition/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:task-definition/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-task-definitions", "taskDefinitionArns", {"sort": "desc"}
     )
@@ -1505,7 +1505,7 @@ class AwsEcsService(EcsTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/services/{name}/health?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:service/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:service/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -1942,7 +1942,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{name}/services?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:cluster/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:cluster/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusterArns")
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},

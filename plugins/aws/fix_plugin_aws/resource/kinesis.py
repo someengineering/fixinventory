@@ -99,7 +99,7 @@ class AwsKinesisStream(AwsResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kinesis/home?region={region}#/streams/details/{name}", "arn_tpl": "arn:{partition}:kinesis:{region}:{account}:stream/{name}"}  # fmt: skip
+    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:kinesis:{region}:{account}:stream/{name}"}  # fmt: skip
     reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
