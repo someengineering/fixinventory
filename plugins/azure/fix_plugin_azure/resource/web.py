@@ -21,7 +21,7 @@ from fixlib.json_bender import Bender, S, ForallBend, Bend, MapDict
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
-service_name = "azure_web"
+service_name = "app-service"
 
 
 @define(eq=False, slots=False)

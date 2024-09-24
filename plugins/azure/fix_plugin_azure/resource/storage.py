@@ -30,7 +30,7 @@ from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
-service_name = "azure_storage"
+service_name = "storage"
 
 
 @define(eq=False, slots=False)

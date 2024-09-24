@@ -31,7 +31,7 @@ from fixlib.json_bender import Bender, S, ForallBend, Bend, K
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
-service_name = "azure_machinelearning"
+service_name = "machine-learning"
 
 
 class CheckVersionIsArchived:
