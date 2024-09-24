@@ -832,7 +832,7 @@ class GcpAIPlatformDataset(AIPlatformRegionFilter, GcpResource):
         result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
         dataset_ids = [dataset.id for dataset in cast(List[GcpAIPlatformDataset], result)]
         for dataset_id in dataset_ids:
-            builder.submit_work(GcpAIPlatformDatasetVersion.collect_resources, builder, dataset_id=dataset_id)
+            builder.submit_work(GcpAIPlatformDatasetVersion.collect_resources, builder, parent=dataset_id)
 
         return result
 
@@ -848,8 +848,8 @@ class GcpAIPlatformDatasetVersion(AIPlatformRegionFilter, GcpResource):
         service_with_region_prefix=True,
         accessors=["projects", "locations", "datasets", "datasetVersions"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/datasets/{dataset_id}"},
-        request_parameter_in={"project", "region", "dataset_id"},
+        request_parameter={"parent": "{parent}"},
+        request_parameter_in={"parent"},
         response_path="datasetVersions",
         response_regional_sub_path=None,
     )
@@ -1061,7 +1061,7 @@ class GcpAIPlatformFeatureGroupBigQuery:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformFeatureGroup(GcpResource):
+class GcpAIPlatformFeatureGroup(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_feature_group"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
@@ -1100,7 +1100,7 @@ class GcpAIPlatformFeatureGroup(GcpResource):
         result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
         group_ids = [group.id for group in cast(List[GcpAIPlatformFeatureGroup], result)]
         for group_id in group_ids:
-            builder.submit_work(GcpAIPlatformFeature.collect_resources, builder, group_id=group_id)
+            builder.submit_work(GcpAIPlatformFeature.collect_resources, builder, parent=group_id)
 
         return result
 
@@ -1148,8 +1148,8 @@ class GcpAIPlatformFeature(AIPlatformRegionFilter, GcpResource):
         service_with_region_prefix=True,
         accessors=["projects", "locations", "featureGroups", "features"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/featureGroups/{group_id}"},
-        request_parameter_in={"project", "region", "group_id"},
+        request_parameter={"parent": "{parent}"},
+        request_parameter_in={"parent"},
         response_path="features",
         response_regional_sub_path=None,
     )
@@ -2246,7 +2246,7 @@ class GcpAIPlatformModel(AIPlatformRegionFilter, GcpResource):
         result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
         model_ids = [model.id for model in cast(List[GcpAIPlatformModel], result)]
         for model_id in model_ids:
-            builder.submit_work(GcpAIPlatformModelEvaluation.collect_resources, builder, model_id=model_id)
+            builder.submit_work(GcpAIPlatformModelEvaluation.collect_resources, builder, parent=model_id)
 
         return result
 
@@ -2303,8 +2303,8 @@ class GcpAIPlatformModelEvaluation(AIPlatformRegionFilter, GcpResource):
         service_with_region_prefix=True,
         accessors=["projects", "locations", "models", "evaluations"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/models/{model_id}"},
-        request_parameter_in={"project", "region", "model_id"},
+        request_parameter={"parent": "{parent}"},
+        request_parameter_in={"parent"},
         response_path="modelEvaluations",
         response_regional_sub_path=None,
     )
