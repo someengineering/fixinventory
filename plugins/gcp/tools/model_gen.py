@@ -508,7 +508,8 @@ known_api_parameters = {
     "cloudbilling": {"project": "{project}", "region": "{region}", "name": "{name}", "parent": "{parent}"},
     "storage": {"project": "{project}", "bucket": "{bucket}"},
     "aiplatform": {
-        "parent": "projects/{project}/locations/{location}/-",
+        "name": "",
+        "parent": "projects/{project}/locations/{region}",
     },
 }
 

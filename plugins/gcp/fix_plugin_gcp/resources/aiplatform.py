@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Any, Type
+from typing import ClassVar, Dict, Optional, List, Any, Type, cast
 
 from attr import define, field
 
@@ -13,6 +13,7 @@ from fix_plugin_gcp.resources.base import (
     GraphBuilder,
 )
 from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
+from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
 
@@ -57,12 +58,11 @@ regions = [
 ]
 
 
-@define(eq=False, slots=False)
 class AIPlatformRegionFilter:
     @classmethod
     def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        if isinstance(cls, GcpResource):
+        if issubclass(cls, GcpResource):
             if kwargs:
                 log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind} with ({kwargs})")
             else:
@@ -752,108 +752,6 @@ class GcpAIPlatformCustomJob(AIPlatformRegionFilter, GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformSampleConfig:
-    kind: ClassVar[str] = "gcp_ai_platform_sample_config"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "following_batch_sample_percentage": S("followingBatchSamplePercentage"),
-        "initial_batch_sample_percentage": S("initialBatchSamplePercentage"),
-        "sample_strategy": S("sampleStrategy"),
-    }
-    following_batch_sample_percentage: Optional[int] = field(default=None)
-    initial_batch_sample_percentage: Optional[int] = field(default=None)
-    sample_strategy: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class GcpAIPlatformActiveLearningConfig:
-    kind: ClassVar[str] = "gcp_ai_platform_active_learning_config"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "max_data_item_count": S("maxDataItemCount"),
-        "max_data_item_percentage": S("maxDataItemPercentage"),
-        "sample_config": S("sampleConfig", default={}) >> Bend(GcpAIPlatformSampleConfig.mapping),
-        "training_config": S("trainingConfig", "timeoutTrainingMilliHours"),
-    }
-    max_data_item_count: Optional[str] = field(default=None)
-    max_data_item_percentage: Optional[int] = field(default=None)
-    sample_config: Optional[GcpAIPlatformSampleConfig] = field(default=None)
-    training_config: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class GcpGoogleTypeMoney:
-    kind: ClassVar[str] = "gcp_google_type_money"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "currency_code": S("currencyCode"),
-        "nanos": S("nanos"),
-        "units": S("units"),
-    }
-    currency_code: Optional[str] = field(default=None)
-    nanos: Optional[int] = field(default=None)
-    units: Optional[str] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class GcpAIPlatformDataLabelingJob(AIPlatformRegionFilter, GcpResource):
-    kind: ClassVar[str] = "gcp_ai_platform_data_labeling_job"
-    kind_display = ""
-    kind_service = ""
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="aiplatform",
-        version="v1",
-        service_with_region_prefix=True,
-        accessors=["projects", "locations", "dataLabelingJobs"],
-        action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}"},
-        request_parameter_in={"project", "region"},
-        response_path="dataLabelingJobs",
-        response_regional_sub_path=None,
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
-        "tags": S("labels", default={}),
-        "name": S("name"),
-        "ctime": S("creationTimestamp"),
-        "description": S("description"),
-        "link": S("selfLink"),
-        "label_fingerprint": S("labelFingerprint"),
-        "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "active_learning_config": S("activeLearningConfig", default={})
-        >> Bend(GcpAIPlatformActiveLearningConfig.mapping),
-        "annotation_labels": S("annotationLabels"),
-        "create_time": S("createTime"),
-        "current_spend": S("currentSpend", default={}) >> Bend(GcpGoogleTypeMoney.mapping),
-        "datasets": S("datasets", default=[]),
-        "display_name": S("displayName"),
-        "encryption_spec": S("encryptionSpec", "kmsKeyName"),
-        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
-        "job_inputs": S("inputs"),
-        "inputs_schema_uri": S("inputsSchemaUri"),
-        "instruction_uri": S("instructionUri"),
-        "labeler_count": S("labelerCount"),
-        "labeling_progress": S("labelingProgress"),
-        "specialist_pools": S("specialistPools", default=[]),
-        "state": S("state"),
-        "update_time": S("updateTime"),
-    }
-    active_learning_config: Optional[GcpAIPlatformActiveLearningConfig] = field(default=None)
-    annotation_labels: Optional[Dict[str, str]] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
-    current_spend: Optional[GcpGoogleTypeMoney] = field(default=None)
-    datasets: Optional[List[str]] = field(default=None)
-    display_name: Optional[str] = field(default=None)
-    encryption_spec: Optional[str] = field(default=None)
-    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
-    job_inputs: Optional[Any] = field(default=None)
-    inputs_schema_uri: Optional[str] = field(default=None)
-    instruction_uri: Optional[str] = field(default=None)
-    labeler_count: Optional[int] = field(default=None)
-    labeling_progress: Optional[int] = field(default=None)
-    specialist_pools: Optional[List[str]] = field(default=None)
-    state: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class GcpAIPlatformSavedQuery:
     kind: ClassVar[str] = "gcp_ai_platform_saved_query"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -927,6 +825,17 @@ class GcpAIPlatformDataset(AIPlatformRegionFilter, GcpResource):
     saved_queries: Optional[List[GcpAIPlatformSavedQuery]] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
 
+    @classmethod
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpAIPlatformDataset and for each:
+        # - collect related GcpAIPlatformDatasetVersion
+        result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
+        dataset_ids = [dataset.id for dataset in cast(List[GcpAIPlatformDataset], result)]
+        for dataset_id in dataset_ids:
+            builder.submit_work(GcpAIPlatformDatasetVersion.collect_resources, builder, dataset_id=dataset_id)
+
+        return result
+
 
 @define(eq=False, slots=False)
 class GcpAIPlatformDatasetVersion(AIPlatformRegionFilter, GcpResource):
@@ -939,8 +848,8 @@ class GcpAIPlatformDatasetVersion(AIPlatformRegionFilter, GcpResource):
         service_with_region_prefix=True,
         accessors=["projects", "locations", "datasets", "datasetVersions"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}"},
-        request_parameter_in={"project", "region"},
+        request_parameter={"parent": "projects/{project}/locations/{region}/datasets/{dataset_id}"},
+        request_parameter_in={"project", "region", "dataset_id"},
         response_path="datasetVersions",
         response_regional_sub_path=None,
     )
@@ -1141,6 +1050,62 @@ class GcpAIPlatformEndpoint(AIPlatformRegionFilter, GcpResource):
 
 
 @define(eq=False, slots=False)
+class GcpAIPlatformFeatureGroupBigQuery:
+    kind: ClassVar[str] = "gcp_google_cloud_aiplatform_v1_feature_group_big_query"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "big_query_source": S("bigQuerySource", "inputUri"),
+        "entity_id_columns": S("entityIdColumns", default=[]),
+    }
+    big_query_source: Optional[str] = field(default=None)
+    entity_id_columns: Optional[List[str]] = field(default=None)
+
+
+@define(eq=False, slots=False)
+class GcpAIPlatformFeatureGroup(GcpResource):
+    kind: ClassVar[str] = "gcp_ai_platform_feature_group"
+    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
+        service="aiplatform",
+        version="v1",
+        accessors=["projects", "locations", "featureGroups"],
+        service_with_region_prefix=True,
+        action="list",
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
+        request_parameter_in={"project", "region"},
+        response_path="featureGroups",
+        response_regional_sub_path=None,
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("name").or_else(S("id")).or_else(S("selfLink")),
+        "tags": S("labels", default={}),
+        "name": S("name"),
+        "ctime": S("creationTimestamp"),
+        "description": S("description"),
+        "link": S("selfLink"),
+        "label_fingerprint": S("labelFingerprint"),
+        "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
+        "big_query": S("bigQuery", default={}) >> Bend(GcpAIPlatformFeatureGroupBigQuery.mapping),
+        "create_time": S("createTime"),
+        "etag": S("etag"),
+        "update_time": S("updateTime"),
+    }
+    big_query: Optional[GcpAIPlatformFeatureGroupBigQuery] = field(default=None)
+    create_time: Optional[datetime] = field(default=None)
+    etag: Optional[str] = field(default=None)
+    update_time: Optional[datetime] = field(default=None)
+
+    @classmethod
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpAIPlatformFeatureGroup and for each:
+        # - collect related GcpAIPlatformFeature
+        result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
+        group_ids = [group.id for group in cast(List[GcpAIPlatformFeatureGroup], result)]
+        for group_id in group_ids:
+            builder.submit_work(GcpAIPlatformFeature.collect_resources, builder, group_id=group_id)
+
+        return result
+
+
+@define(eq=False, slots=False)
 class GcpAIPlatformFeatureStatsAnomaly:
     kind: ClassVar[str] = "gcp_ai_platform_feature_stats_anomaly"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1183,8 +1148,8 @@ class GcpAIPlatformFeature(AIPlatformRegionFilter, GcpResource):
         service_with_region_prefix=True,
         accessors=["projects", "locations", "featureGroups", "features"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}"},
-        request_parameter_in={"project", "region"},
+        request_parameter={"parent": "projects/{project}/locations/{region}/featureGroups/{group_id}"},
+        request_parameter_in={"project", "region", "group_id"},
         response_path="features",
         response_regional_sub_path=None,
     )
@@ -2274,6 +2239,17 @@ class GcpAIPlatformModel(AIPlatformRegionFilter, GcpResource):
     version_id: Optional[str] = field(default=None)
     version_update_time: Optional[datetime] = field(default=None)
 
+    @classmethod
+    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpAIPlatformModel and for each:
+        # - collect related GcpAIPlatformModelEvaluation
+        result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
+        model_ids = [model.id for model in cast(List[GcpAIPlatformModel], result)]
+        for model_id in model_ids:
+            builder.submit_work(GcpAIPlatformModelEvaluation.collect_resources, builder, model_id=model_id)
+
+        return result
+
 
 @define(eq=False, slots=False)
 class GcpAIPlatformModelEvaluationModelEvaluationExplanationSpec:
@@ -2327,8 +2303,8 @@ class GcpAIPlatformModelEvaluation(AIPlatformRegionFilter, GcpResource):
         service_with_region_prefix=True,
         accessors=["projects", "locations", "models", "evaluations"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}"},
-        request_parameter_in={"project", "region"},
+        request_parameter={"parent": "projects/{project}/locations/{region}/models/{model_id}"},
+        request_parameter_in={"project", "region", "model_id"},
         response_path="modelEvaluations",
         response_regional_sub_path=None,
     )
@@ -3196,14 +3172,14 @@ class GcpAIPlatformTuningJob(AIPlatformRegionFilter, GcpResource):
 resources: List[Type[GcpResource]] = [
     GcpAIPlatformModel,
     GcpAIPlatformDataset,
-    GcpAIPlatformDatasetVersion,
+    # GcpAIPlatformDatasetVersion, : collected via GcpAIPlatformFeatureGroup
     GcpAIPlatformEndpoint,
     GcpAIPlatformSchedule,
-    GcpAIPlatformFeature,
-    GcpAIPlatformDataLabelingJob,
+    GcpAIPlatformFeatureGroup,
+    # GcpAIPlatformFeature, : collected via GcpAIPlatformFeatureGroup
     GcpAIPlatformTrainingPipeline,
     GcpAIPlatformBatchPredictionJob,
-    GcpAIPlatformModelEvaluation,
+    # GcpAIPlatformModelEvaluation, : collected via GcpAIPlatformModel
     GcpAIPlatformFeaturestore,
     GcpAIPlatformHyperparameterTuningJob,
     GcpAIPlatformCustomJob,

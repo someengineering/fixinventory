@@ -146,15 +146,10 @@ class GcpClient:
         return result
 
     def list(self, api_spec: GcpApiSpec, **kwargs: Any) -> List[Json]:
-        if not api_spec.service_with_region_prefix:
-            # todo add caching
-            client = _discovery_function(
-                api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
-            )
-        else:
-            client = _discovery_function(
-                f"{self.region}-{api_spec.service}", api_spec.version, credentials=self.credentials, cache=MemoryCache()
-            )
+        # todo add caching
+        client = _discovery_function(
+            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+        )
         executor = client
         for accessor in api_spec.accessors:
             executor = getattr(executor, accessor)()
@@ -184,6 +179,8 @@ class GcpClient:
             ):
                 return next_responses(nxt_req)
 
+        if api_spec.service_with_region_prefix:
+            executor._baseUrl = executor._baseUrl.replace(api_spec.service, f"{self.region}-{api_spec.service}", 1)
         next_responses(getattr(executor, api_spec.action)(**params))
         return result
 
