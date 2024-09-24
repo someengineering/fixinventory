@@ -488,7 +488,7 @@ class GraphAccess:
                     if elem_id not in visited:
                         visited.add(elem_id)
                         elem = self.nodes[elem_id]
-                        if "phantom" not in node.get("kinds_set", empty_set):
+                        if "phantom" not in elem.get("kinds_set", empty_set):
                             extracted = value_in_path(elem, path)
                             if isinstance(extracted, str):
                                 result[extracted] = result.get(extracted, 0) + 1

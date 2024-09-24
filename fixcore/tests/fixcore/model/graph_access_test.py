@@ -201,8 +201,11 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
             "kind": kind,
             "some": {"deep": {"nested": node_id}},
         }
+        kinds = [kind]
+        metadata = {}
         # for sake of testing: declare parent as phantom resource
-        metadata = {"phantom": True} if kind == "parent" else {}
+        if kind == "parent":
+            kinds.append("phantom")
         if node_id.startswith(replace_on):
             metadata["replace"] = True
         g.add_node(
@@ -211,8 +214,8 @@ def multi_cloud_graph(replace_on: str) -> MultiDiGraph:
             reported=reported,
             metadata=metadata,
             kind=kind,
-            kinds=[kind],
-            kinds_set={kind},
+            kinds=kinds,
+            kinds_set=set(kinds),
         )
 
     def add_edge(from_node: str, to_node: str, edge_type: EdgeType = EdgeTypes.default) -> None:
