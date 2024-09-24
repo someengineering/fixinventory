@@ -780,7 +780,6 @@ paths:
                   name: root
                 metadata:
                   cleaned: false
-                  phantom: true
                   protected: false
             application/yaml:
               example: |
@@ -795,7 +794,6 @@ paths:
                 metadata:
                     python_type: fixlib.baseresources.GraphRoot
                     cleaned: false
-                    phantom: true
                     protected: false
                 kinds:
                     - graph_root
@@ -813,7 +811,6 @@ paths:
                 metadata:
                     python_type: fixlib.baseresources.Cloud
                     cleaned: false
-                    phantom: false
                     protected: false
                     descendant_summary:
                         onelogin_account: 1
@@ -983,7 +980,6 @@ paths:
                   name: root
                 metadata:
                   cleaned: false
-                  phantom: true
                   protected: false
             application/yaml:
               example: |
@@ -998,7 +994,6 @@ paths:
                 metadata:
                     python_type: fixlib.baseresources.GraphRoot
                     cleaned: false
-                    phantom: true
                     protected: false
                 kinds:
                     - graph_root
@@ -1016,7 +1011,6 @@ paths:
                 metadata:
                     python_type: fixlib.baseresources.Cloud
                     cleaned: false
-                    phantom: false
                     protected: false
                     descendant_summary:
                         onelogin_account: 1
@@ -1454,7 +1448,6 @@ paths:
                   name: root
                 metadata:
                   cleaned: false
-                  phantom: true
                   protected: false
             application/yaml:
               example: |
@@ -1469,7 +1462,6 @@ paths:
                 metadata:
                     python_type: fixlib.baseresources.GraphRoot
                     cleaned: false
-                    phantom: true
                     protected: false
                 kinds:
                     - graph_root
@@ -1487,7 +1479,6 @@ paths:
                 metadata:
                     python_type: fixlib.baseresources.Cloud
                     cleaned: false
-                    phantom: false
                     protected: false
                     descendant_summary:
                         onelogin_account: 1

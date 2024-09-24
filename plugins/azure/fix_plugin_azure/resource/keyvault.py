@@ -22,7 +22,7 @@ from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
-service_name = "azure_keyvault"
+service_name = "key-vault"
 
 
 @define(eq=False, slots=False)

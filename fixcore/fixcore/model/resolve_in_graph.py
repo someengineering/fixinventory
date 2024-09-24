@@ -20,7 +20,6 @@ class NodePath:
     descendant_summary = ["metadata", "descendant_summary"]
     descendant_count = ["metadata", "descendant_count"]
     python_type = ["metadata", "python_type"]
-    is_phantom = ["metadata", "phantom"]
     from_node = ["from"]
     to_node = ["to"]
     edge_type = ["edge_type"]

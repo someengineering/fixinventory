@@ -28,7 +28,7 @@ from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
 
-service_name = "azure_cosmosdb"
+service_name = "cosmos-db"
 log = logging.getLogger("fix.plugins.azure")
 
 

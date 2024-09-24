@@ -21,7 +21,7 @@ from fixlib.json import value_in_path
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum
 from fixlib.types import Json
 
-service_name = "azure_sql"
+service_name = "azure-sql"
 log = logging.getLogger("fix.plugins.azure")
 
 

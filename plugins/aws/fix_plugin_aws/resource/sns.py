@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
 
-
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory

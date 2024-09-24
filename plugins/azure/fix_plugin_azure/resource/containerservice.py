@@ -18,7 +18,7 @@ from fixlib.baseresources import BaseManagedKubernetesClusterProvider, BaseSnaps
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
-service_name = "azure_container_service"
+service_name = "containers"
 log = logging.getLogger("fix.plugins.azure")
 
 

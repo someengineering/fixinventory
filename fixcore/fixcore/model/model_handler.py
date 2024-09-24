@@ -256,7 +256,7 @@ def code_model() -> Model:
     The model is only loaded on demand and only once.
     """
     load_plugin_classes()
-    return Model.from_kinds([from_js(m, Kind) for m in export_model()])  # type: ignore
+    return Model.from_kinds([from_js(m, Kind) for m in export_model(with_kind_description=True)])  # type: ignore
 
 
 class ModelHandlerFromCodeAndDB(ModelHandlerDB):
