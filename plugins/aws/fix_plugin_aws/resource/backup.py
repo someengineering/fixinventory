@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Any, ClassVar, Dict, Optional, List, Type
+from json import loads as json_loads
 
 from attrs import define, field
 
@@ -18,6 +19,7 @@ from fixlib.baseresources import ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
+from fixlib.json import sort_json
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "backup"
@@ -345,6 +347,7 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource):
     min_retention_days: Optional[int] = field(default=None, metadata={"description": "The Backup Vault Lock setting that specifies the minimum retention period that the vault retains its recovery points. If this parameter is not specified, Vault Lock does not enforce a minimum retention period. If specified, any backup or copy job to the vault must have a lifecycle policy with a retention period equal to or longer than the minimum retention period. If the job's retention period is shorter than that minimum retention period, then the vault fails the backup or copy job, and you should either modify your lifecycle settings or use a different vault. Recovery points already stored in the vault prior to Vault Lock are not affected."})  # fmt: skip
     max_retention_days: Optional[int] = field(default=None, metadata={"description": "The Backup Vault Lock setting that specifies the maximum retention period that the vault retains its recovery points. If this parameter is not specified, Vault Lock does not enforce a maximum retention period on the recovery points in the vault (allowing indefinite storage). If specified, any backup or copy job to the vault must have a lifecycle policy with a retention period equal to or shorter than the maximum retention period. If the job's retention period is longer than that maximum retention period, then the vault fails the backup or copy job, and you should either modify your lifecycle settings or use a different vault. Recovery points already stored in the vault prior to Vault Lock are not affected."})  # fmt: skip
     lock_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time when Backup Vault Lock configuration becomes immutable, meaning it cannot be changed or deleted. If you applied Vault Lock to your vault without specifying a lock date, you can change your Vault Lock settings, or delete Vault Lock from the vault entirely, at any time. This value is in Unix format, Coordinated Universal Time (UTC), and accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    vault_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -352,6 +355,7 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
             AwsApiSpec(service_name, "list-recovery-points-by-backup-vault"),
+            AwsApiSpec(service_name, "get-backup-vault-access-policy"),
         ]
 
     @classmethod
@@ -394,11 +398,23 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource):
                 for tag in tags:
                     backup_plan.tags.update(tag)
 
+        def add_vault_policy(vault: AwsBackupVault) -> None:
+            with builder.suppress(f"{service_name}.get-backup-vault-access-policy"):
+                if raw_policy := builder.client.get(
+                    service_name,
+                    "get-backup-vault-access-policy",
+                    "Policy",
+                    BackupVaultName=vault.name,
+                    expected_errors=["ResourceNotFoundException"],
+                ):
+                    vault.vault_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
+
         for js in json:
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, collect_recovery_points, instance)
                 builder.submit_work(service_name, add_tags, instance)
+                builder.submit_work(service_name, add_vault_policy, instance)
 
 
 @define(eq=False, slots=False)
