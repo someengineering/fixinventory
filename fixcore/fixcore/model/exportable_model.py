@@ -19,7 +19,6 @@ def json_export_simple_schema(
     with_properties: bool = True,
     with_relatives: bool = True,
     with_metadata: bool = True,
-    aggregate_roots_only: bool = False,
 ) -> List[Json]:
     def export_simple(kind: SimpleKind) -> Json:
         result = kind.as_json()
