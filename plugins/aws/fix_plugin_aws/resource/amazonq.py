@@ -47,10 +47,10 @@ class AmazonQTaggable:
 @define(eq=False, slots=False)
 class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_application"
-    _kind_display: ClassVar[str] = "AWS QBusiness Application"
+    _kind_display: ClassVar[str] = "AWS Q Business Application"
     _kind_description: ClassVar[str] = (
-        "Represents a QBusiness application within the AWS QBusiness service. Applications"
-        " define a set of tasks and configuration for processing data within the QBusiness ecosystem."
+        "Represents a Q Business application within the AWS Q Business service. Applications"
+        " define a set of tasks and configuration for processing data within the Q Business ecosystem."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
@@ -313,9 +313,9 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessConversation(AwsResource):
     kind: ClassVar[str] = "aws_q_business_conversation"
-    _kind_display: ClassVar[str] = "AWS QBusiness Conversation"
+    _kind_display: ClassVar[str] = "AWS Q Business Conversation"
     _kind_description: ClassVar[str] = (
-        "Represents a conversation within the AWS QBusiness service. Conversations are"
+        "Represents a conversation within the AWS Q Business service. Conversations are"
         " interactions that involve a series of messages or data exchanges."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -347,10 +347,10 @@ class AwsQBusinessConversation(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_data_source"
-    _kind_display: ClassVar[str] = "AWS QBusiness Data Source"
+    _kind_display: ClassVar[str] = "AWS Q Business Data Source"
     _kind_description: ClassVar[str] = (
-        "Represents a data source in the AWS QBusiness service. Data sources are the origins"
-        " from which data is ingested for processing or analysis within the QBusiness framework."
+        "Represents a data source in the AWS Q Business service. Data sources are the origins"
+        " from which data is ingested for processing or analysis within the Q Business framework."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "ai"}
@@ -437,9 +437,9 @@ class AwsQBusinessDataSourceSyncJobMetrics:
 @define(eq=False, slots=False)
 class AwsQBusinessDataSourceSyncJob(AwsResource):
     kind: ClassVar[str] = "aws_q_business_data_source_sync_job"
-    _kind_display: ClassVar[str] = "AWS QBusiness Data Source Sync Job"
+    _kind_display: ClassVar[str] = "AWS Q Business Data Source Sync Job"
     _kind_description: ClassVar[str] = (
-        "Represents a data source synchronization job in the AWS QBusiness service. Sync jobs"
+        "Represents a data source synchronization job in the AWS Q Business service. Sync jobs"
         " ensure that data from data sources is up-to-date and correctly integrated into the system."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -479,10 +479,10 @@ class AwsQBusinessDataSourceSyncJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessDocument(AwsResource):
     kind: ClassVar[str] = "aws_q_business_document"
-    _kind_display: ClassVar[str] = "AWS QBusiness Document"
+    _kind_display: ClassVar[str] = "AWS Q Business Document"
     _kind_description: ClassVar[str] = (
-        "Represents a document within the AWS QBusiness service. Documents are structured pieces"
-        " of information that can be used for various purposes within the QBusiness ecosystem."
+        "Represents a document within the AWS Q Business service. Documents are structured pieces"
+        " of information that can be used for various purposes within the Q Business ecosystem."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
@@ -519,10 +519,10 @@ class AwsQBusinessDocument(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_indice"
-    _kind_display: ClassVar[str] = "AWS QBusiness Indice"
+    _kind_display: ClassVar[str] = "AWS Q Business Indice"
     _kind_description: ClassVar[str] = (
-        "Represents an index in the AWS QBusiness service. Indices are used to organize and"
-        " facilitate efficient searching and retrieval of data within the QBusiness framework."
+        "Represents an index in the AWS Q Business service. Indices are used to organize and"
+        " facilitate efficient searching and retrieval of data within the Q Business framework."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
@@ -700,10 +700,10 @@ class AwsQBusinessActionExecution:
 @define(eq=False, slots=False)
 class AwsQBusinessMessage(AwsResource):
     kind: ClassVar[str] = "aws_q_business_message"
-    _kind_display: ClassVar[str] = "AWS QBusiness Message"
+    _kind_display: ClassVar[str] = "AWS Q Business Message"
     _kind_description: ClassVar[str] = (
-        "Represents a message within the AWS QBusiness service. Messages are used for communication"
-        " or data exchange between various components or users within the QBusiness ecosystem."
+        "Represents a message within the AWS Q Business service. Messages are used for communication"
+        " or data exchange between various components or users within the Q Business ecosystem."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
@@ -744,10 +744,10 @@ class AwsQBusinessMessage(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_plugin"
-    _kind_display: ClassVar[str] = "AWS QBusiness Plugin"
+    _kind_display: ClassVar[str] = "AWS Q Business Plugin"
     _kind_description: ClassVar[str] = (
-        "Represents a plugin in the AWS QBusiness service. Plugins extend the functionality of"
-        " the QBusiness framework by adding new features or capabilities."
+        "Represents a plugin in the AWS Q Business service. Plugins extend the functionality of"
+        " the Q Business framework by adding new features or capabilities."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -812,8 +812,8 @@ class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_retriever"
     _kind_display: ClassVar[str] = "AWS Q Business Retriever"
     _kind_description: ClassVar[str] = (
-        "Represents a retriever in the AWS QBusiness service. Retrievers are used to fetch and"
-        " process data from various sources within the QBusiness ecosystem."
+        "Represents a retriever in the AWS Q Business service. Retrievers are used to fetch and"
+        " process data from various sources within the Q Business ecosystem."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
@@ -869,8 +869,8 @@ class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_web_experience"
     _kind_display: ClassVar[str] = "AWS Q Business Web Experience"
     _kind_description: ClassVar[str] = (
-        "Represents a web experience in the AWS QBusiness service. Web experiences define"
-        " interactive web-based applications or interfaces within the QBusiness ecosystem."
+        "Represents a web experience in the AWS Q Business service. Web experiences define"
+        " interactive web-based applications or interfaces within the Q Business ecosystem."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
