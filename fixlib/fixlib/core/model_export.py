@@ -333,7 +333,7 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
     if changes_only:
         node_dict.update(node.changes.get())
     else:
-        metadata = {"python_type": type_str(node), "categories": node.categories()}
+        metadata: Json = {"python_type": type_str(node), "categories": node.categories()}
         if node.cleaned:
             metadata["cleaned"] = True
         if node.protected:
