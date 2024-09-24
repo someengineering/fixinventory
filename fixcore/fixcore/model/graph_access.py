@@ -477,6 +477,7 @@ class GraphAccess:
 
     def __resolve_count_descendants(self) -> None:
         visited: Set[str] = set()
+        empty_set = set()
 
         def count_successors_by(node_id: NodeId, edge_type: EdgeType, path: List[str]) -> Dict[str, int]:
             result: Dict[str, int] = {}
@@ -487,7 +488,7 @@ class GraphAccess:
                     if elem_id not in visited:
                         visited.add(elem_id)
                         elem = self.nodes[elem_id]
-                        if not value_in_path_get(elem, NodePath.is_phantom, False):
+                        if "phantom" not in node.get("kinds_set", empty_set):
                             extracted = value_in_path(elem, path)
                             if isinstance(extracted, str):
                                 result[extracted] = result.get(extracted, 0) + 1
