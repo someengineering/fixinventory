@@ -2734,7 +2734,7 @@ class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
         "compute_expiry_time": S("properties", "expiryTime"),
         "compute_connection_group": S("properties", "group"),
         "compute_is_shared_to_all": S("properties", "isSharedToAll"),
-        "workspace_connection_metadata": S("properties", "_metadata"),
+        "workspace_connection_metadata": S("properties", "metadata"),
         "compute_shared_user_list": S("properties", "sharedUserList"),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
         "compute_target": S("properties", "target"),

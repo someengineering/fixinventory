@@ -1968,7 +1968,7 @@ class AzureServiceEndpointPolicy:
     contextual_service_endpoint_policies: Optional[List[str]] = field(default=None, metadata={'description': 'A collection of contextual service endpoint policy.'})  # fmt: skip
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     id: Optional[str] = field(default=None, metadata={"description": "Resource ID."})
-    policy_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of service endpoint policy. This is _metadata used for the Azure portal experience.'})  # fmt: skip
+    policy_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of service endpoint policy. This is metadata used for the Azure portal experience.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
     name: Optional[str] = field(default=None, metadata={"description": "Resource name."})
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
@@ -4959,7 +4959,7 @@ class AzureNetworkVirtualHub(MicrosoftResource):
     express_route_gateway: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     hub_routing_preference: Optional[str] = field(default=None, metadata={'description': 'The hub routing preference gateway types'})  # fmt: skip
     ip_configuration_ids: Optional[List[str]] = field(default=None, metadata={'description': 'List of references to IpConfigurations.'})  # fmt: skip
-    hub_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of service virtual hub. This is _metadata used for the Azure portal experience for Route Server.'})  # fmt: skip
+    hub_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of service virtual hub. This is metadata used for the Azure portal experience for Route Server.'})  # fmt: skip
     p2s_vpn_gateway: Optional[str] = field(default=None, metadata={'description': 'Reference to another subresource.'})  # fmt: skip
     preferred_routing_gateway: Optional[str] = field(default=None, metadata={'description': 'The preferred routing gateway types'})  # fmt: skip
     route_maps: Optional[List[str]] = field(default=None, metadata={"description": "List of references to RouteMaps."})
