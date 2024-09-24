@@ -94,6 +94,10 @@ class MicrosoftResource(BaseResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
 
     @property
+    def provider_link(self) -> str:
+        return f"https://portal.azure.com/#@/resource{self.id}/overview"
+
+    @property
     def resource_subscription_id(self) -> Optional[str]:
         return self.extract_part("subscriptions")
 
@@ -856,10 +860,6 @@ class GraphBuilder:
         elif last_edge_key is None:
             # add edge from subscription to resource
             last_edge_key = self.add_edge(self.account, node=node)
-
-        # create provider link
-        if node._metadata.get("provider_link") is None and node._is_provider_link:
-            node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource{node.id}/overview"
 
         if last_edge_key is not None:
             with self.graph_access_lock.write_access:

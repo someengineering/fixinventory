@@ -287,7 +287,6 @@ class BaseResource(ABC):
     _protected: bool = False
     _deferred_connections: List[Dict[str, Any]] = field(factory=list)
     _resource_usage: Dict[MetricNameWithUnit, Dict[str, float]] = field(factory=lambda: defaultdict(dict))
-    _metadata: Dict[str, Any] = field(factory=dict)  # values will be exported in the metadata section of the node
     _categories: ClassVar[List[Category]] = []
 
     ctime: Optional[datetime] = field(

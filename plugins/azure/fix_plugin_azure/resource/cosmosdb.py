@@ -985,20 +985,12 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                             (
                                 "mongodbRoleDefinitions",
                                 AzureCosmosDBMongoDBRoleDefinition,
-                                {
-                                    "BadRequest": mongo_cosmosdb_error_message.format(
-                                        provider_link=self._metadata.get("provider_link")
-                                    )
-                                },
+                                {"BadRequest": mongo_cosmosdb_error_message.format(provider_link=self.provider_link)},
                             ),
                             (
                                 "mongodbUserDefinitions",
                                 AzureCosmosDBMongoDBUserDefinition,
-                                {
-                                    "BadRequest": mongo_cosmosdb_error_message.format(
-                                        provider_link=self._metadata.get("provider_link")
-                                    )
-                                },
+                                {"BadRequest": mongo_cosmosdb_error_message.format(provider_link=self.provider_link)},
                             ),
                         ]
                     )
