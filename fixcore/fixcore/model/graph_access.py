@@ -30,7 +30,7 @@ from fixcore.model.model import (
 from fixcore.model.resolve_in_graph import GraphResolver, NodePath, ResolveProp
 from fixcore.model.typed_model import from_js
 from fixcore.types import Json, EdgeType, JsonElement
-from fixcore.util import utc, utc_str, value_in_path, set_value_in_path, value_in_path_get, path_exists
+from fixcore.util import utc, utc_str, value_in_path, set_value_in_path, path_exists
 
 log = logging.getLogger(__name__)
 
