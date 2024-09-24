@@ -91,14 +91,14 @@ class AwsBeanstalkApplicationResourceLifecycleConfig:
 @define(eq=False, slots=False)
 class AwsBeanstalkApplication(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_application"
-    kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application"
+    _kind_description: ClassVar[str] = (
         "Elastic Beanstalk is a fully managed service that makes it easy to deploy"
         " and run applications in multiple languages."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/application/overview?applicationName={name}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:application/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/application/overview?applicationName={name}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:application/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-applications", "Applications")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("ApplicationName"),
@@ -288,17 +288,17 @@ class AwsBeanstalkEnvironmentResourcesDescription:
 @define(eq=False, slots=False)
 class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
-    kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment"
+    _kind_description: ClassVar[str] = (
         "An AWS Elastic Beanstalk environment is a collection of AWS resources running an application version."
         " It includes an application server, server instances, load balancers, and optionally, a database."
         " Each environment runs only one application and one version of that application at a time."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/environment/dashboard?environmentId={id}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:environment/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/environment/dashboard?environmentId={id}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:environment/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-environments", "Environments")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_beanstalk_application"],
             "delete": ["aws_autoscaling_group", "aws_ec2_instance", "aws_alb", "aws_sqs_queue"],

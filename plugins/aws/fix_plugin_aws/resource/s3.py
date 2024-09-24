@@ -165,13 +165,13 @@ class AwsS3Logging:
 @define(eq=False, slots=False)
 class AwsS3Bucket(AwsResource, BaseBucket):
     kind: ClassVar[str] = "aws_s3_bucket"
-    kind_display: ClassVar[str] = "AWS S3 Bucket"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/buckets/{name}?region={region_id}&bucketType=general&tab=objects", "arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS S3 Bucket"
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/buckets/{name}?region={region_id}&bucketType=general&tab=objects", "arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
+    _kind_description: ClassVar[str] = (
         "S3 buckets are simple storage containers in Amazon's cloud, offering a"
         " scalable storage solution for various types of data."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-buckets", "Buckets", override_iam_permission="s3:ListAllMyBuckets"
     )
@@ -450,15 +450,15 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
     # This resource is fetched once for every account.
 
     kind: ClassVar[str] = "aws_s3_account_settings"
-    kind_display: ClassVar[str] = "AWS S3 Account Settings"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS S3 Account Settings"
+    _kind_description: ClassVar[str] = (
         "AWS S3 Account Settings refer to the configuration options and preferences"
         " available for an Amazon S3 (Simple Storage Service) account."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/settings?region={region_id}", "arn_tpl": "arn:{partition}:s3control:{region}:{account}:account/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "management"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/settings?region={region_id}", "arn_tpl": "arn:{partition}:s3control:{region}:{account}:account/{name}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_account"]},
         "successors": {"default": ["aws_s3_bucket"]},
     }

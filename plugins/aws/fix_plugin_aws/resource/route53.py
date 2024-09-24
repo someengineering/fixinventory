@@ -61,16 +61,16 @@ class AwsRoute53LoggingConfig:
 @define(eq=False, slots=False)
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
-    kind_display: ClassVar[str] = "AWS Route53 Zone"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Route53 Zone"
+    _kind_description: ClassVar[str] = (
         "AWS Route 53 Zones manage domain DNS settings, enabling users to direct"
         " internet traffic for their domains through various DNS records."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v2/hostedzones?region={region}#ListRecordSets/{id}", "arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "networking"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/route53/v2/hostedzones?region={region}#ListRecordSets/{id}", "arn_tpl": "arn:{partition}:route53:{region}:{account}:zone/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-hosted-zones", "HostedZones")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_route53_resource_record_set"],
             "delete": [],
@@ -239,15 +239,15 @@ class AwsRoute53CidrRoutingConfig:
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
-    kind_display: ClassVar[str] = "AWS Route53 Resource Record"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Route53 Resource Record"
+    _kind_description: ClassVar[str] = (
         "Route 53 Resource Records are domain name system (DNS) records used by AWS"
         " Route 53 to route traffic to AWS resources or to external resources."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53:::{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53:::{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [],
             "delete": [],
@@ -266,16 +266,16 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
 @define(eq=False, slots=False)
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
-    kind_display: ClassVar[str] = "AWS Route53 Resource Record Set"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Route53 Resource Record Set"
+    _kind_description: ClassVar[str] = (
         "Route 53 Resource Record Sets are DNS records that map domain names to IP"
         " addresses or other DNS resources, allowing users to manage domain name"
         " resolution in the Amazon Route 53 service."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53::{account}:recordset/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53::{account}:recordset/{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_route53_resource_record"],
             "delete": ["aws_route53_resource_record"],

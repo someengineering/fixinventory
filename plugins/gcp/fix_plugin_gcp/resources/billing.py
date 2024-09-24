@@ -19,14 +19,14 @@ service_name = "cloudbilling"
 @define(eq=False, slots=False)
 class GcpBillingAccount(GcpResource):
     kind: ClassVar[str] = "gcp_billing_account"
-    kind_display: ClassVar[str] = "GCP Billing Account"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Billing Account"
+    _kind_description: ClassVar[str] = (
         "GCP Billing Account is a financial account used to manage the payment and"
         " billing information for Google Cloud Platform services."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_project_billing_info"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -71,13 +71,13 @@ class GcpBillingAccount(GcpResource):
 @define(eq=False, slots=False)
 class GcpProjectBillingInfo(GcpResource):
     kind: ClassVar[str] = "gcp_project_billing_info"
-    kind_display: ClassVar[str] = "GCP Project Billing Info"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Project Billing Info"
+    _kind_description: ClassVar[str] = (
         "GCP Project Billing Info provides information and management capabilities"
         " for the billing aspects of a Google Cloud Platform project."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -113,15 +113,15 @@ class GcpProjectBillingInfo(GcpResource):
 @define(eq=False, slots=False)
 class GcpService(GcpResource):
     kind: ClassVar[str] = "gcp_service"
-    kind_display: ClassVar[str] = "GCP Service"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Service"
+    _kind_description: ClassVar[str] = (
         "GCP Service refers to any of the various services and products offered by"
         " Google Cloud Platform, which provide scalable cloud computing solutions for"
         " businesses and developers."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "management"}
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "management"}
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["gcp_sku"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -317,12 +317,12 @@ class GcpPricingInfo:
 @define(eq=False, slots=False)
 class GcpSku(GcpResource):
     kind: ClassVar[str] = "gcp_sku"
-    kind_display: ClassVar[str] = "GCP SKU"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP SKU"
+    _kind_description: ClassVar[str] = (
         "GCP SKU represents a Stock Keeping Unit in Google Cloud Platform, providing"
         " unique identifiers for different resources and services."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",

@@ -234,15 +234,15 @@ class AwsCloudwatchMetricDataQuery:
 @define(eq=False, slots=False)
 class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
-    kind_display: ClassVar[str] = "AWS CloudWatch Alarm"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudWatch Alarm"
+    _kind_description: ClassVar[str] = (
         "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:alarm/{name}", "arn_tpl": "arn:{partition}:cloudwatch:{region}:{account}:alarm/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:alarm/{name}", "arn_tpl": "arn:{partition}:cloudwatch:{region}:{account}:alarm/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-alarms", "MetricAlarms")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -335,17 +335,17 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_log_group"
-    kind_display: ClassVar[str] = "AWS CloudWatch Log Group"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudWatch Log Group"
+    _kind_description: ClassVar[str] = (
         "CloudWatch Log Groups are containers for log streams in Amazon's CloudWatch"
         " service, enabling centralized storage and analysis of log data from various"
         " AWS resources."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{name}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:log-group/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{name}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:log-group/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-log-groups", "logGroups")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},
         "predecessors": {"delete": ["aws_kms_key"]},
     }
@@ -406,17 +406,17 @@ class AwsCloudwatchMetricTransformation:
 @define(eq=False, slots=False)
 class AwsCloudwatchMetricFilter(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_metric_filter"
-    kind_display: ClassVar[str] = "AWS CloudWatch Metric Filter"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudWatch Metric Filter"
+    _kind_description: ClassVar[str] = (
         "CloudWatch Metric Filter is a feature in Amazon CloudWatch that allows you"
         " to define a pattern to extract information from your log events and use it"
         " to create CloudWatch metrics."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{arn}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:metric-filter/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{arn}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:metric-filter/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("logs", "describe-metric-filters", "metricFilters")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_cloudwatch_log_group"]},
         "successors": {"default": ["aws_cloudwatch_alarm"], "delete": ["aws_cloudwatch_log_group"]},
     }

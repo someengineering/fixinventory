@@ -47,7 +47,7 @@ class DataClassExample(DataClassBase):
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["example"],
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["base"]},
         "predecessors": {"delete": ["other"]},
     }
