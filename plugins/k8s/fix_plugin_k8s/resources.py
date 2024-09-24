@@ -1485,7 +1485,9 @@ class KubernetesEndpointSubset:
 class KubernetesEndpoints(KubernetesResource):
     kind: ClassVar[str] = "kubernetes_endpoint"
     _kind_display: ClassVar[str] = "Kubernetes Endpoint"
-    _kind_description: ClassVar[str] = "A Kubernetes Endpoint defines a network address where a service can be accessed."
+    _kind_description: ClassVar[str] = (
+        "A Kubernetes Endpoint defines a network address where a service can be accessed."
+    )
     mapping: ClassVar[Dict[str, Bender]] = KubernetesResource.mapping | {
         "subsets": S("subsets", default=[]) >> ForallBend(KubernetesEndpointSubset.mapping),
     }

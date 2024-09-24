@@ -124,9 +124,9 @@ class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource)
 @define(eq=False, slots=False)
 class AzureMachineLearningCodeContainerBase(AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_container_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Code Container Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Code Container Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -223,9 +223,9 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningCodeContaine
 @define(eq=False, slots=False)
 class AzureMachineLearningCodeVersionBase(CheckVersionIsArchived, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_code_version_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Code Version Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Code Version Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AzureMachineLearningCodeContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -265,9 +265,9 @@ class AzureMachineLearningRegistryCodeVersion(AzureMachineLearningCodeVersionBas
 @define(eq=False, slots=False)
 class AzureMachineLearningComponentContainerBase(AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_component_container_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Component Container Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Component Container Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -366,9 +366,9 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningCompone
 @define(eq=False, slots=False)
 class AzureMachineLearningComponentVersionBase(CheckVersionIsArchived, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_component_version_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Component Version Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Component Version Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AzureMachineLearningComponentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -592,9 +592,9 @@ class AzureMachineLearningCompute(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningDataContainerBase(AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_container_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Data Container Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Data Container Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -693,9 +693,9 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningDataContaine
 @define(eq=False, slots=False)
 class AzureMachineLearningDataVersionBase(CheckVersionIsArchived, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_data_version_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Data Version Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Data Version Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AzureMachineLearningDataContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -846,9 +846,9 @@ class AzureInferenceContainerProperties:
 @define(eq=False, slots=False)
 class AzureMachineLearningEnvironmentContainerBase(AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_container_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Environment Container Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Environment Container Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -949,9 +949,9 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningEnvir
 @define(eq=False, slots=False)
 class AzureMachineLearningEnvironmentVersionBase(CheckVersionIsArchived, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_version_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Environment Version Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Environment Version Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AzureMachineLearningEnvironmentContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -1556,9 +1556,9 @@ class AzureMachineLearningLabelingJob(BaseAIJob, MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMachineLearningModelContainerBase(AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_model_container_base"
-    kind_display: ClassVar[str] = "Azure Machine Learning Model Container Base"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Model Container Base"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -1668,9 +1668,9 @@ class AzureFlavorData:
 @define(eq=False, slots=False)
 class AzureMachineLearningModelVersionBase(CheckVersionIsArchived, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_base_model_version"
-    kind_display: ClassVar[str] = "Azure Machine Learning Base Model Version"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
+    _kind_display: ClassVar[str] = "Azure Machine Learning Base Model Version"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
     # Collected via AzureMachineLearningModelContainerBase()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),

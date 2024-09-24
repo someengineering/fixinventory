@@ -301,7 +301,6 @@ class BaseResource(ABC):
     # Deep link into the cloud provider's console
     _provider_link: Optional[str] = None
 
-
     ctime: Optional[datetime] = field(
         default=None,
         metadata={"synthetic": {"age": "trafo.duration_to_datetime"}},
