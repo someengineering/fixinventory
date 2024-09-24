@@ -9,6 +9,7 @@ ResourceConstraint = str
 
 ConditionString = str
 
+
 @frozen
 class PolicySource:
     kind: PolicySourceKind

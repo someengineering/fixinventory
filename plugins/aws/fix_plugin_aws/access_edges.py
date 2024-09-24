@@ -342,7 +342,6 @@ ResourceBasedPolicyResult = Union[FinalAllow, Continue]
 
 # check if the resource based policies allow the action
 # as a shortcut we return the first allow statement we find, or a first seen condition.
-# todo: collect all allow statements and conditions
 def check_resource_based_policies(
     principal: AwsResource,
     action: str,
