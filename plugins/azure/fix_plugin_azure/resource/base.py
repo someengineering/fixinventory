@@ -326,7 +326,7 @@ class AzureLocation(MicrosoftResource, BaseRegion):
         "availability_zone_mappings": S("availabilityZoneMappings")
         >> ForallBend(AzureAvailabilityZoneMappings.mapping),
         "display_name": S("displayName"),
-        "location_metadata": S("_metadata") >> Bend(AzureLocationMetadata.mapping),
+        "location_metadata": S("metadata") >> Bend(AzureLocationMetadata.mapping),
         "regional_display_name": S("regionalDisplayName"),
         "subscription_id": S("subscriptionId"),
         "long_name": S("displayName"),
