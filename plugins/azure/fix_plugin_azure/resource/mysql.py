@@ -236,7 +236,7 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "_supported_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapability.mapping),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})

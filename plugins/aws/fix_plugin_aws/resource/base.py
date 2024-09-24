@@ -531,7 +531,7 @@ class GraphBuilder:
 
         # If there is no provider_link: try to create one from template.
         # The template can use the complete src json, plus some base attributes.
-        if node._metadata.get("provider_link") is None and (link_tpl := meta.get("provider_link_tpl")):
+        if node._provider_link is None and (link_tpl := meta.get("provider_link_tpl")):
             try:
                 all_params = True
                 link = link_tpl
@@ -547,7 +547,7 @@ class GraphBuilder:
                     else:
                         link = link.replace("{" + placeholder + "}", urlquote(str(value)))
                 if all_params:
-                    node._metadata["provider_link"] = link
+                    node._provider_link = link
             except Exception as e:
                 log.warning(f"Can not compute provider_link for {node} with template: {link_tpl}: {e}")
 

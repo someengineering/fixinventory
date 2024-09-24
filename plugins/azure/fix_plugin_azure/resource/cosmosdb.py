@@ -985,20 +985,12 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
                             (
                                 "mongodbRoleDefinitions",
                                 AzureCosmosDBMongoDBRoleDefinition,
-                                {
-                                    "BadRequest": mongo_cosmosdb_error_message.format(
-                                        provider_link=self._metadata.get("provider_link")
-                                    )
-                                },
+                                {"BadRequest": mongo_cosmosdb_error_message.format(provider_link=self._provider_link)},
                             ),
                             (
                                 "mongodbUserDefinitions",
                                 AzureCosmosDBMongoDBUserDefinition,
-                                {
-                                    "BadRequest": mongo_cosmosdb_error_message.format(
-                                        provider_link=self._metadata.get("provider_link")
-                                    )
-                                },
+                                {"BadRequest": mongo_cosmosdb_error_message.format(provider_link=self._provider_link)},
                             ),
                         ]
                     )
@@ -1973,7 +1965,7 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
         "id": K(None),
         "usage_quota_period": S("quotaPeriod"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     usage_quota_period: Optional[str] = field(default=None, metadata={'description': 'The quota period used to summarize the usage values.'})  # fmt: skip
 
     @classmethod

@@ -88,7 +88,7 @@ class MicrosoftResource(BaseResource):
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[MicrosoftRestSpec]] = None
     # Check if we want to create provider link. Default is True
-    _is_provider_link: ClassVar[bool] = True
+    _create_provider_link: ClassVar[bool] = True
     # Azure common properties
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
@@ -858,8 +858,8 @@ class GraphBuilder:
             last_edge_key = self.add_edge(self.account, node=node)
 
         # create provider link
-        if node._metadata.get("provider_link") is None and node._is_provider_link:
-            node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource{node.id}/overview"
+        if node._provider_link is None and node._create_provider_link:
+            node._provider_link = f"https://portal.azure.com/#@/resource{node.id}/overview"
 
         if last_edge_key is not None:
             with self.graph_access_lock.write_access:

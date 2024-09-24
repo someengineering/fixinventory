@@ -228,7 +228,7 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "_supported_hyperscale_node_editions": S("supportedHyperscaleNodeEditions")
         >> ForallBend(AzureHyperscaleNodeEditionCapability.mapping),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     fast_provisioning_supported: Optional[bool] = field(
         default=None,
         metadata={"description": "A value indicating whether fast provisioning is supported in this region."},

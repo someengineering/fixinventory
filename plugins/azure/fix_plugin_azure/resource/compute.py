@@ -770,7 +770,7 @@ class AzureComputeDiskType(MicrosoftResource, BaseVolumeType):
         "volume_throughput": S("maxThroughput").or_else(S("volume_throughput")),
         "location": S("armRegionName"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     full_name: Optional[str] = None
     product_name: Optional[str] = None
     tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
@@ -3693,7 +3693,7 @@ class AzureComputeVirtualMachineSize(MicrosoftResource, BaseInstanceType):
         "instance_memory": S("memoryInMB") >> F(lambda x: int(x) / 1024),
         "location": S("location"),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     max_data_disk_count: Optional[int] = field(default=None, metadata={'description': 'The maximum number of data disks that can be attached to the virtual machine size.'})  # fmt: skip
     memory_in_mb: Optional[int] = field(default=None, metadata={'description': 'The amount of memory, in mb, supported by the virtual machine size.'})  # fmt: skip
     number_of_cores: Optional[int] = field(default=None, metadata={'description': 'The number of cores supported by the virtual machine size. For constrained vcpu capable vm sizes, this number represents the total vcpus of quota that the vm uses. For accurate vcpu count, please refer to https://docs. Microsoft. Com/azure/virtual-machines/constrained-vcpu or https://docs. Microsoft. Com/rest/api/compute/resourceskus/list.'})  # fmt: skip
