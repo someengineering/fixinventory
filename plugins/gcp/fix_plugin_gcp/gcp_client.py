@@ -30,6 +30,7 @@ class GcpApiSpec:
     response_path: str
     response_regional_sub_path: Optional[str] = None
     set_label_identifier: str = "resource"
+    service_with_region_prefix: bool = False
     get_identifier: Optional[str] = None
     delete_identifier: Optional[str] = None
     required_iam_permissions: Optional[List[str]] = None
@@ -145,10 +146,15 @@ class GcpClient:
         return result
 
     def list(self, api_spec: GcpApiSpec, **kwargs: Any) -> List[Json]:
-        # todo add caching
-        client = _discovery_function(
-            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
-        )
+        if not api_spec.service_with_region_prefix:
+            # todo add caching
+            client = _discovery_function(
+                api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+            )
+        else:
+            client = _discovery_function(
+                f"{self.region}-{api_spec.service}", api_spec.version, credentials=self.credentials, cache=MemoryCache()
+            )
         executor = client
         for accessor in api_spec.accessors:
             executor = getattr(executor, accessor)()

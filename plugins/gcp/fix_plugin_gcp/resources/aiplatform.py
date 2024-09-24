@@ -1,40 +1,83 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Any
+import logging
+from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from fix_plugin_gcp.resources.base import (
+    GcpErrorHandler,
+    GcpExpectedErrorCodes,
+    GcpResource,
+    GcpDeprecationStatus,
+    GraphBuilder,
+)
 from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
 
+log = logging.getLogger("fix.plugins.gcp")
 
-# @define(eq=False, slots=False)
-# class GcpAIPlatformLocation(GcpResource):
-#     kind: ClassVar[str] = "gcp_ai_platform_location"
-#     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-#         service="aiplatform",
-#         version="v1",
-#         accessors=["projects", "locations"],
-#         action="list",
-#         request_parameter={"name": "projects/{project}/locations/{region}/{resource}/{resource_id}"},
-#         request_parameter_in={"project", "resource_id", "region", "resource"},
-#         response_path="locations",
-#         response_regional_sub_path=None,
-#     )
-#     mapping: ClassVar[Dict[str, Bender]] = {
-#         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
-#         "tags": S("labels", default={}),
-#         "name": S("name"),
-#         "ctime": S("creationTimestamp"),
-#         "description": S("description"),
-#         "link": S("selfLink"),
-#         "label_fingerprint": S("labelFingerprint"),
-#         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-#         "display_name": S("displayName"),
-#         "location_id": S("locationId"),
-#     }
-#     display_name: Optional[str] = field(default=None)
-#     location_id: Optional[str] = field(default=None)
+# The following list of regions is sourced from the official Google Cloud Vertex AI service endpoints documentation:
+# https://cloud.google.com/vertex-ai/docs/reference/rest#service-endpoint
+# AI Platform (Vertex AI) resources can only be deployed and managed within these specific regions.
+
+regions = [
+    "asia-east1",
+    "asia-east2",
+    "asia-northeast1",
+    "asia-northeast2",
+    "asia-northeast3",
+    "asia-south1",
+    "asia-southeast1",
+    "asia-southeast2",
+    "australia-southeast1",
+    "australia-southeast2",
+    "europe-central2",
+    "europe-north1",
+    "europe-southwest1",
+    "europe-west1",
+    "europe-west2",
+    "europe-west3",
+    "europe-west4",
+    "europe-west6",
+    "europe-west8",
+    "europe-west9",
+    "me-west1",
+    "northamerica-northeast1",
+    "northamerica-northeast2",
+    "southamerica-east1",
+    "southamerica-west1",
+    "us-central1",
+    "us-east1",
+    "us-east4",
+    "us-south1",
+    "us-west1",
+    "us-west2",
+    "us-west3",
+    "us-west4",
+]
+
+
+@define(eq=False, slots=False)
+class AIPlatformRegionFilter:
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        if isinstance(cls, GcpResource):
+            if kwargs:
+                log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind} with ({kwargs})")
+            else:
+                log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind}")
+            if spec := cls.api_spec:
+                expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set())
+                with GcpErrorHandler(
+                    builder.core_feedback, expected_errors, f" in {builder.project.id} kind {cls.kind}"
+                ):
+                    if builder.region and builder.region.id in regions:
+                        items = builder.client.list(spec, **kwargs)
+                        collected_resources = cls.collect(items, builder)
+                        log.info(f"[GCP:{builder.project.id}] finished collecting: {cls.kind}")
+                        return collected_resources
+        return []
 
 
 @define(eq=False, slots=False)
@@ -461,14 +504,17 @@ class GcpAIPlatformUnmanagedContainerModel:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformBatchPredictionJob(GcpResource):
+class GcpAIPlatformBatchPredictionJob(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_batch_prediction_job"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "batchPredictionJobs"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="batchPredictionJobs",
         response_regional_sub_path=None,
@@ -490,7 +536,7 @@ class GcpAIPlatformBatchPredictionJob(GcpResource):
         "display_name": S("displayName"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "explanation_spec": S("explanationSpec", default={}) >> Bend(GcpAIPlatformExplanationSpec.mapping),
         "generate_explanation": S("generateExplanation"),
         "input_config": S("inputConfig", default={}) >> Bend(GcpAIPlatformBatchPredictionJobInputConfig.mapping),
@@ -518,7 +564,7 @@ class GcpAIPlatformBatchPredictionJob(GcpResource):
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     explanation_spec: Optional[GcpAIPlatformExplanationSpec] = field(default=None)
     generate_explanation: Optional[bool] = field(default=None)
     input_config: Optional[GcpAIPlatformBatchPredictionJobInputConfig] = field(default=None)
@@ -658,14 +704,17 @@ class GcpAIPlatformCustomJobSpec:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformCustomJob(GcpResource):
+class GcpAIPlatformCustomJob(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_custom_job"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "customJobs"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="customJobs",
         response_regional_sub_path=None,
@@ -683,8 +732,8 @@ class GcpAIPlatformCustomJob(GcpResource):
         "display_name": S("displayName"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
-        "job_spec": S("jobSpec", default={}) >> Bend(GcpAIPlatformCustomJobSpec.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "custom_job_spec": S("jobSpec", default={}) >> Bend(GcpAIPlatformCustomJobSpec.mapping),
         "start_time": S("startTime"),
         "state": S("state"),
         "update_time": S("updateTime"),
@@ -694,8 +743,8 @@ class GcpAIPlatformCustomJob(GcpResource):
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
-    job_spec: Optional[GcpAIPlatformCustomJobSpec] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    custom_job_spec: Optional[GcpAIPlatformCustomJobSpec] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
     state: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
@@ -744,14 +793,17 @@ class GcpGoogleTypeMoney:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformDataLabelingJob(GcpResource):
+class GcpAIPlatformDataLabelingJob(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_data_labeling_job"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "dataLabelingJobs"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="dataLabelingJobs",
         response_regional_sub_path=None,
@@ -773,8 +825,8 @@ class GcpAIPlatformDataLabelingJob(GcpResource):
         "datasets": S("datasets", default=[]),
         "display_name": S("displayName"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
-        "inputs": S("inputs"),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "job_inputs": S("inputs"),
         "inputs_schema_uri": S("inputsSchemaUri"),
         "instruction_uri": S("instructionUri"),
         "labeler_count": S("labelerCount"),
@@ -790,8 +842,8 @@ class GcpAIPlatformDataLabelingJob(GcpResource):
     datasets: Optional[List[str]] = field(default=None)
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
-    inputs: Optional[Any] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    job_inputs: Optional[Any] = field(default=None)
     inputs_schema_uri: Optional[str] = field(default=None)
     instruction_uri: Optional[str] = field(default=None)
     labeler_count: Optional[int] = field(default=None)
@@ -828,14 +880,17 @@ class GcpAIPlatformSavedQuery:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformDataset(GcpResource):
+class GcpAIPlatformDataset(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_dataset"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "datasets"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="datasets",
         response_regional_sub_path=None,
@@ -874,14 +929,17 @@ class GcpAIPlatformDataset(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformDatasetVersion(GcpResource):
+class GcpAIPlatformDatasetVersion(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_dataset_version"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "datasets", "datasetVersions"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="datasetVersions",
         response_regional_sub_path=None,
@@ -1027,14 +1085,17 @@ class GcpTrafficsplit:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformEndpoint(GcpResource):
+class GcpAIPlatformEndpoint(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_endpoint"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "endpoints"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="endpoints",
         response_regional_sub_path=None,
@@ -1049,7 +1110,7 @@ class GcpAIPlatformEndpoint(GcpResource):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "create_time": S("createTime"),
-        "deployed_models": S("deployedModels", default=[]) >> ForallBend(GcpAIPlatformDeployedModel.mapping),
+        "endpoint_deployed_models": S("deployedModels", default=[]) >> ForallBend(GcpAIPlatformDeployedModel.mapping),
         "display_name": S("displayName"),
         "enable_private_service_connect": S("enablePrivateServiceConnect"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
@@ -1064,7 +1125,7 @@ class GcpAIPlatformEndpoint(GcpResource):
         "update_time": S("updateTime"),
     }
     create_time: Optional[datetime] = field(default=None)
-    deployed_models: Optional[List[GcpAIPlatformDeployedModel]] = field(default=None)
+    endpoint_deployed_models: Optional[List[GcpAIPlatformDeployedModel]] = field(default=None)
     display_name: Optional[str] = field(default=None)
     enable_private_service_connect: Optional[bool] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
@@ -1112,14 +1173,17 @@ class GcpAIPlatformFeatureMonitoringStatsAnomaly:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformFeature(GcpResource):
+class GcpAIPlatformFeature(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_feature"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "featureGroups", "features"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="features",
         response_regional_sub_path=None,
@@ -1178,14 +1242,17 @@ class GcpAIPlatformFeaturestoreOnlineServingConfig:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformFeaturestore(GcpResource):
+class GcpAIPlatformFeaturestore(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_featurestore"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "featurestores"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="featurestores",
         response_regional_sub_path=None,
@@ -1497,14 +1564,17 @@ class GcpAIPlatformTrial:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformHyperparameterTuningJob(GcpResource):
+class GcpAIPlatformHyperparameterTuningJob(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_hyperparameter_tuning_job"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "hyperparameterTuningJobs"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="hyperparameterTuningJobs",
         response_regional_sub_path=None,
@@ -1522,7 +1592,7 @@ class GcpAIPlatformHyperparameterTuningJob(GcpResource):
         "display_name": S("displayName"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "max_failed_trial_count": S("maxFailedTrialCount"),
         "max_trial_count": S("maxTrialCount"),
         "parallel_trial_count": S("parallelTrialCount"),
@@ -1537,7 +1607,7 @@ class GcpAIPlatformHyperparameterTuningJob(GcpResource):
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     max_failed_trial_count: Optional[int] = field(default=None)
     max_trial_count: Optional[int] = field(default=None)
     parallel_trial_count: Optional[int] = field(default=None)
@@ -1629,14 +1699,17 @@ class GcpAIPlatformDeployedIndex:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformIndexEndpoint(GcpResource):
+class GcpAIPlatformIndexEndpoint(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_index_endpoint"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "indexEndpoints"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="indexEndpoints",
         response_regional_sub_path=None,
@@ -1651,7 +1724,7 @@ class GcpAIPlatformIndexEndpoint(GcpResource):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "create_time": S("createTime"),
-        "deployed_indexes": S("deployedIndexes", default=[]) >> ForallBend(GcpAIPlatformDeployedIndex.mapping),
+        "endpoint_deployed_indexes": S("deployedIndexes", default=[]) >> ForallBend(GcpAIPlatformDeployedIndex.mapping),
         "display_name": S("displayName"),
         "enable_private_service_connect": S("enablePrivateServiceConnect"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
@@ -1664,7 +1737,7 @@ class GcpAIPlatformIndexEndpoint(GcpResource):
         "update_time": S("updateTime"),
     }
     create_time: Optional[datetime] = field(default=None)
-    deployed_indexes: Optional[List[GcpAIPlatformDeployedIndex]] = field(default=None)
+    endpoint_deployed_indexes: Optional[List[GcpAIPlatformDeployedIndex]] = field(default=None)
     display_name: Optional[str] = field(default=None)
     enable_private_service_connect: Optional[bool] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
@@ -1703,14 +1776,17 @@ class GcpAIPlatformIndexStats:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformIndex(GcpResource):
+class GcpAIPlatformIndex(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_index"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "indexes"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="indexes",
         response_regional_sub_path=None,
@@ -1749,12 +1825,15 @@ class GcpAIPlatformIndex(GcpResource):
 @define(eq=False, slots=False)
 class GcpAIPlatformArtifact:
     kind: ClassVar[str] = "gcp_ai_platform_artifact"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "metadataStores", "artifacts"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="artifacts",
         response_regional_sub_path=None,
@@ -1972,14 +2051,17 @@ class GcpAIPlatformModelMonitoringAlertConfig:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformModelDeploymentMonitoringJob(GcpResource):
+class GcpAIPlatformModelDeploymentMonitoringJob(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_model_deployment_monitoring_job"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "modelDeploymentMonitoringJobs"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="modelDeploymentMonitoringJobs",
         response_regional_sub_path=None,
@@ -2001,7 +2083,7 @@ class GcpAIPlatformModelDeploymentMonitoringJob(GcpResource):
         "enable_monitoring_pipeline_logs": S("enableMonitoringPipelineLogs"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "endpoint": S("endpoint"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "latest_monitoring_pipeline_metadata": S("latestMonitoringPipelineMetadata", default={})
         >> Bend(GcpAIPlatformModelDeploymentMonitoringJobLatestMonitoringPipelineMetadata.mapping),
         "log_ttl": S("logTtl"),
@@ -2028,7 +2110,7 @@ class GcpAIPlatformModelDeploymentMonitoringJob(GcpResource):
     enable_monitoring_pipeline_logs: Optional[bool] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     endpoint: Optional[str] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     latest_monitoring_pipeline_metadata: Optional[
         GcpAIPlatformModelDeploymentMonitoringJobLatestMonitoringPipelineMetadata
     ] = field(default=None)
@@ -2105,14 +2187,17 @@ class GcpAIPlatformModelExportFormat:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformModel(GcpResource):
+class GcpAIPlatformModel(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_model"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "models"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="models",
         response_regional_sub_path=None,
@@ -2131,7 +2216,8 @@ class GcpAIPlatformModel(GcpResource):
         "container_spec": S("containerSpec", default={}) >> Bend(GcpAIPlatformModelContainerSpec.mapping),
         "create_time": S("createTime"),
         "data_stats": S("dataStats", default={}) >> Bend(GcpAIPlatformModelDataStats.mapping),
-        "deployed_models": S("deployedModels", default=[]) >> ForallBend(GcpAIPlatformDeployedModelRef.mapping),
+        "endpoint_deployed_model_refs": S("deployedModels", default=[])
+        >> ForallBend(GcpAIPlatformDeployedModelRef.mapping),
         "display_name": S("displayName"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "etag": S("etag"),
@@ -2163,7 +2249,7 @@ class GcpAIPlatformModel(GcpResource):
     container_spec: Optional[GcpAIPlatformModelContainerSpec] = field(default=None)
     create_time: Optional[datetime] = field(default=None)
     data_stats: Optional[GcpAIPlatformModelDataStats] = field(default=None)
-    deployed_models: Optional[List[GcpAIPlatformDeployedModelRef]] = field(default=None)
+    endpoint_deployed_model_refs: Optional[List[GcpAIPlatformDeployedModelRef]] = field(default=None)
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
@@ -2231,14 +2317,17 @@ class GcpAIPlatformModelExplanation:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformModelEvaluation(GcpResource):
+class GcpAIPlatformModelEvaluation(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_model_evaluation"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "models", "evaluations"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="modelEvaluations",
         response_regional_sub_path=None,
@@ -2324,11 +2413,11 @@ class GcpAIPlatformPipelineTaskDetailArtifactList:
 class GcpAIPlatformPipelineTaskDetailPipelineTaskStatus:
     kind: ClassVar[str] = "gcp_ai_platform_pipeline_task_detail_pipeline_task_status"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "state": S("state"),
         "update_time": S("updateTime"),
     }
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     state: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
 
@@ -2336,12 +2425,15 @@ class GcpAIPlatformPipelineTaskDetailPipelineTaskStatus:
 @define(eq=False, slots=False)
 class GcpAIPlatformExecution:
     kind: ClassVar[str] = "gcp_ai_platform_execution"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "metadataStores", "executions"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "location"},
         response_path="executions",
         response_regional_sub_path=None,
@@ -2378,7 +2470,7 @@ class GcpAIPlatformPipelineTaskDetail:
     mapping: ClassVar[Dict[str, Bender]] = {
         "create_time": S("createTime"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "execution": S("execution", default={}) >> Bend(GcpAIPlatformExecution.mapping),
         "executor_detail": S("executorDetail", default={}) >> Bend(GcpAIPlatformPipelineTaskExecutorDetail.mapping),
         "inputs": S("inputs", default={})
@@ -2395,7 +2487,7 @@ class GcpAIPlatformPipelineTaskDetail:
     }
     create_time: Optional[datetime] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     execution: Optional[GcpAIPlatformExecution] = field(default=None)
     executor_detail: Optional[GcpAIPlatformPipelineTaskExecutorDetail] = field(default=None)
     inputs: Optional[Dict[str, GcpAIPlatformPipelineTaskDetailArtifactList]] = field(default=None)
@@ -2411,12 +2503,15 @@ class GcpAIPlatformPipelineTaskDetail:
 @define(eq=False, slots=False)
 class GcpAIPlatformContext:
     kind: ClassVar[str] = "gcp_ai_platform_context"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "metadataStores", "contexts"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "location"},
         response_path="contexts",
         response_regional_sub_path=None,
@@ -2511,14 +2606,17 @@ class GcpAIPlatformPipelineJobRuntimeConfig:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformPipelineJob(GcpResource):
+class GcpAIPlatformPipelineJob(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_pipeline_job"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "pipelineJobs"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="pipelineJobs",
         response_regional_sub_path=None,
@@ -2536,7 +2634,7 @@ class GcpAIPlatformPipelineJob(GcpResource):
         "display_name": S("displayName"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "job_detail": S("jobDetail", default={}) >> Bend(GcpAIPlatformPipelineJobDetail.mapping),
         "network": S("network"),
         "pipeline_spec": S("pipelineSpec", default={}) >> Bend(GcpPipelinespec.mapping),
@@ -2555,7 +2653,7 @@ class GcpAIPlatformPipelineJob(GcpResource):
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     job_detail: Optional[GcpAIPlatformPipelineJobDetail] = field(default=None)
     network: Optional[str] = field(default=None)
     pipeline_spec: Optional[GcpPipelinespec] = field(default=None)
@@ -2596,14 +2694,17 @@ class GcpAIPlatformScheduleRunResponse:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformSchedule(GcpResource):
+class GcpAIPlatformSchedule(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_schedule"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "schedules"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="schedules",
         response_regional_sub_path=None,
@@ -2657,14 +2758,17 @@ class GcpAIPlatformSchedule(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformTensorboard(GcpResource):
+class GcpAIPlatformTensorboard(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_tensorboard"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "tensorboards"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="tensorboards",
         response_regional_sub_path=None,
@@ -2791,14 +2895,17 @@ class GcpAIPlatformInputDataConfig:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformTrainingPipeline(GcpResource):
+class GcpAIPlatformTrainingPipeline(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_training_pipeline"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "trainingPipelines"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="trainingPipelines",
         response_regional_sub_path=None,
@@ -2816,7 +2923,7 @@ class GcpAIPlatformTrainingPipeline(GcpResource):
         "display_name": S("displayName"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "input_data_config": S("inputDataConfig", default={}) >> Bend(GcpAIPlatformInputDataConfig.mapping),
         "model_id": S("modelId"),
         "model_to_upload": S("modelToUpload", default={}) >> Bend(GcpAIPlatformModel.mapping),
@@ -2832,7 +2939,7 @@ class GcpAIPlatformTrainingPipeline(GcpResource):
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     input_data_config: Optional[GcpAIPlatformInputDataConfig] = field(default=None)
     model_id: Optional[str] = field(default=None)
     model_to_upload: Optional[GcpAIPlatformModel] = field(default=None)
@@ -3032,14 +3139,17 @@ class GcpAIPlatformTuningDataStats:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformTuningJob(GcpResource):
+class GcpAIPlatformTuningJob(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_tuning_job"
+    kind_display = ""
+    kind_service = ""
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
+        service_with_region_prefix=True,
         accessors=["projects", "locations", "tuningJobs"],
         action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}/-"},
+        request_parameter={"parent": "projects/{project}/locations/{region}"},
         request_parameter_in={"project", "region"},
         response_path="tuningJobs",
         response_regional_sub_path=None,
@@ -3057,7 +3167,7 @@ class GcpAIPlatformTuningJob(GcpResource):
         "create_time": S("createTime"),
         "encryption_spec": S("encryptionSpec", "kmsKeyName"),
         "end_time": S("endTime"),
-        "error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
+        "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "experiment": S("experiment"),
         "start_time": S("startTime"),
         "state": S("state"),
@@ -3072,7 +3182,7 @@ class GcpAIPlatformTuningJob(GcpResource):
     create_time: Optional[datetime] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    error: Optional[GcpGoogleRpcStatus] = field(default=None)
+    rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     experiment: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
     state: Optional[str] = field(default=None)
@@ -3083,7 +3193,7 @@ class GcpAIPlatformTuningJob(GcpResource):
     update_time: Optional[datetime] = field(default=None)
 
 
-resources = [
+resources: List[Type[GcpResource]] = [
     GcpAIPlatformModel,
     GcpAIPlatformDataset,
     GcpAIPlatformDatasetVersion,
@@ -3099,7 +3209,6 @@ resources = [
     GcpAIPlatformCustomJob,
     GcpAIPlatformPipelineJob,
     GcpAIPlatformTensorboard,
-    # GcpAIPlatformLocation,
     GcpAIPlatformIndex,
     GcpAIPlatformIndexEndpoint,
     GcpAIPlatformModelDeploymentMonitoringJob,

@@ -509,7 +509,6 @@ known_api_parameters = {
     "storage": {"project": "{project}", "bucket": "{bucket}"},
     "aiplatform": {
         "parent": "projects/{project}/locations/{location}/-",
-        "name": "projects/{project}/locations/{region}/{resource}/{resource_id}",
     },
 }
 
