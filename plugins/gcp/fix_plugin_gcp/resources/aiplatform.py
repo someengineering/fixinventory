@@ -872,7 +872,9 @@ class GcpVertexAIDatasetVersion(AIPlatformRegionFilter, GcpResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_vertex_ai_model"]}}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_vertex_ai_model", GcpVertexAIDataset.kind]}
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -911,6 +913,9 @@ class GcpVertexAIDatasetVersion(AIPlatformRegionFilter, GcpResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model := self.model_reference:
             builder.add_edge(self, reverse=True, clazz=GcpVertexAIModel, name=model)
+        if name := self.name:
+            dataset_name = "/".join(name.split("/")[:-1])
+            builder.add_edge(self, reverse=True, clazz=GcpVertexAIDataset, name=dataset_name)
 
 
 @define(eq=False, slots=False)
@@ -1203,6 +1208,7 @@ class GcpVertexAIFeature(AIPlatformRegionFilter, GcpResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": [GcpVertexAIFeatureGroup.kind]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1241,6 +1247,11 @@ class GcpVertexAIFeature(AIPlatformRegionFilter, GcpResource):
     update_time: Optional[datetime] = field(default=None)
     value_type: Optional[str] = field(default=None)
     version_column_name: Optional[str] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if name := self.name:
+            group_name = "/".join(name.split("/")[:-1])
+            builder.add_edge(self, reverse=True, clazz=GcpVertexAIFeatureGroup, name=group_name)
 
 
 @define(eq=False, slots=False)
@@ -1377,9 +1388,7 @@ class GcpVertexAIStudySpecParameterSpecConditionalParameterSpecCategoricalValueC
 
 @define(eq=False, slots=False)
 class GcpVertexAIStudySpecParameterSpecConditionalParameterSpecDiscreteValueCondition:
-    kind: ClassVar[str] = (
-        "gcp_vertex_ai_study_spec_parameter_spec_conditional_parameter_spec_discrete_value_condition"
-    )
+    kind: ClassVar[str] = "gcp_vertex_ai_study_spec_parameter_spec_conditional_parameter_spec_discrete_value_condition"
     mapping: ClassVar[Dict[str, Bender]] = {"values": S("values", default=[])}
     values: Optional[List[float]] = field(default=None)
 
@@ -2398,6 +2407,7 @@ class GcpVertexAIModelEvaluation(AIPlatformRegionFilter, GcpResource):
     )
     kind_service: ClassVar[Optional[str]] = service_name
     metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_vertex_ai_model"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2439,6 +2449,11 @@ class GcpVertexAIModelEvaluation(AIPlatformRegionFilter, GcpResource):
     metrics_schema_uri: Optional[str] = field(default=None)
     model_explanation: Optional[GcpVertexAIModelExplanation] = field(default=None)
     slice_dimensions: Optional[List[str]] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if name := self.name:
+            model_name = "/".join(name.split("/")[:-1])
+            builder.add_edge(self, reverse=True, clazz=GcpVertexAIModel, name=model_name)
 
 
 @define(eq=False, slots=False)
