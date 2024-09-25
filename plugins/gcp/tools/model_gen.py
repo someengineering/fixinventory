@@ -461,26 +461,25 @@ def generate_class_models() -> Dict[str, List[GcpModel]]:
 
 
 def generate_classes() -> None:
-    with open("result.txt", "w") as f:
-        for service, clazz_models in generate_class_models().items():
-            f.write(
-                """from datetime import datetime
-    from typing import ClassVar, Dict, Optional, List, Type
+    for service, clazz_models in generate_class_models().items():
+        print(
+            """from datetime import datetime
+from typing import ClassVar, Dict, Optional, List, Type
 
-    from attr import define, field
+from attr import define, field
 
-    from fix_plugin_gcp.gcp_client import GcpApiSpec
-    from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
-    from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
-        """
-            )
-            for clazz in clazz_models:
-                f.write(clazz.to_class())
-            f.write(
-                "resources = [",
-            )
-            f.write(", ".join(cm.name for cm in clazz_models if cm.aggregate_root))
-            f.write("]")
+from fix_plugin_gcp.gcp_client import GcpApiSpec
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
+    """
+        )
+        for clazz in clazz_models:
+            print(clazz.to_class())
+        print(
+            "resources = [",
+        )
+        print(", ".join(cm.name for cm in clazz_models if cm.aggregate_root))
+        print("]")
 
 
 def generate_test_classes() -> None:
