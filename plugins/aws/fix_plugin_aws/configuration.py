@@ -268,6 +268,10 @@ class AwsConfig:
         default=True,
         metadata={"description": "Collect resource usage metrics via CloudWatch, enabled by default"},
     )
+    collect_access_edges: Optional[bool] = field(
+        default=True,
+        metadata={"description": "Collect IAM access edges, enabled by default"},
+    )
 
     @staticmethod
     def from_json(json: Json) -> "AwsConfig":

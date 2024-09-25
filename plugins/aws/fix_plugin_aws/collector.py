@@ -255,10 +255,11 @@ class AwsAccountCollector:
                     log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
-            # add access edges
-            log.info(f"[Aws:{self.account.id}] Create access edges.")
-            access_edge_creator = AccessEdgeCreator(global_builder)
-            access_edge_creator.add_access_edges()
+            if global_builder.config.collect_access_edges:
+                # add access edges
+                log.info(f"[Aws:{self.account.id}] Create access edges.")
+                access_edge_creator = AccessEdgeCreator(global_builder)
+                access_edge_creator.add_access_edges()
 
             # final hook when the graph is complete
             for node, data in list(self.graph.nodes(data=True)):
