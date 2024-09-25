@@ -337,7 +337,12 @@ class Continue:
     scopes: List[PermissionScope]
 
 
-ResourceBasedPolicyResult = Union[FinalAllow, Continue]
+@frozen
+class Deny:
+    pass
+
+
+ResourceBasedPolicyResult = Union[FinalAllow, Continue, Deny]
 
 
 # check if the resource based policies allow the action
@@ -352,12 +357,10 @@ def check_resource_based_policies(
 
     scopes: List[PermissionScope] = []
 
-    # todo: support cross-account access evaluation
-
     arn = ARN(resource.arn)
+    explicit_allow_required = False
     if arn.service_prefix == "iam" or arn.service_prefix == "kms":
-        pass
-        # todo: implement implicit deny here
+        explicit_allow_required = True
 
     for source, policy in resource_based_policies:
 
@@ -394,6 +397,11 @@ def check_resource_based_policies(
             # in case of IAM users, identity_based_policies and permission boundaries are not relevant
             # and we can return the result immediately
             return FinalAllow(scopes)
+
+    # if we have KMS or IAM service, we want an explicit allow
+    if explicit_allow_required:
+        if not scopes:
+            return Deny()
 
     # in case of other IAM principals, allow on resource based policy is not enough and
     # we need to check the permission boundaries
@@ -445,7 +453,12 @@ def check_permission_boundaries(
 
 
 def is_service_linked_role(principal: AwsResource) -> bool:
-    # todo: implement this
+    assert principal.arn
+    if ":role/" in principal.arn:
+        arn = ARN(principal.arn)
+        role_name = arn.resource_path
+        return role_name.startswith("AWSServiceRoleFor")
+
     return False
 
 
@@ -515,6 +528,9 @@ def check_policies(
         if isinstance(resource_result, Continue):
             scopes = resource_result.scopes
             allowed_scopes.extend(scopes)
+
+        if isinstance(resource_result, Deny):
+            return None
 
     # 4. to make it a bit simpler, we check the permission boundaries before checking identity based policies
     if len(request_context.permission_boundaries) > 0:
@@ -596,8 +612,10 @@ class AccessEdgeCreator:
             if isinstance(node, AwsIamUser):
 
                 identity_based_policies = self._get_identity_based_policies(node)
-                permission_boundaries: List[PolicyDocument] = []  # todo: add this
-                # todo: https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html
+                # todo: colect these resources
+                permission_boundaries: List[PolicyDocument] = []
+
+                # todo: collect these resources
                 service_control_policy_levels: List[List[PolicyDocument]] = []
 
                 request_context = IamRequestContext(
