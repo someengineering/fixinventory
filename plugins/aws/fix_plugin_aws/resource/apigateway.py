@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Union, Any
+from json import loads as json_loads
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
@@ -11,8 +12,9 @@ from fix_plugin_aws.resource.route53 import AwsRoute53Zone
 
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, Bend, bend
+from fixlib.json_bender import Bender, S, Bend, bend, F
 from fixlib.types import Json
+from fixlib.json import sort_json
 
 service_name = "apigateway"
 
@@ -503,7 +505,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         "api_minimum_compression_size": S("minimumCompressionSize"),
         "api_key_source": S("apiKeySource"),
         "api_endpoint_configuration": S("endpointConfiguration") >> Bend(AwsApiGatewayEndpointConfiguration.mapping),
-        "api_policy": S("policy"),
+        "api_policy": S("policy") >> F(lambda x: sort_json(json_loads(x), sort_list=True)),
         "api_disable_execute_api_endpoint": S("disableExecuteApiEndpoint"),
     }
     description: Optional[str] = field(default=None)
@@ -513,7 +515,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     api_minimum_compression_size: Optional[int] = field(default=None)
     api_key_source: Optional[str] = field(default=None)
     api_endpoint_configuration: Optional[AwsApiGatewayEndpointConfiguration] = field(default=None)
-    api_policy: Optional[str] = field(default=None)
+    api_policy: Optional[Json] = field(default=None)
     api_disable_execute_api_endpoint: Optional[bool] = field(default=None)
 
     @classmethod
