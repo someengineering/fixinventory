@@ -16,8 +16,7 @@ from fix_plugin_aws.access_edges import (
     compute_permissions,
 )
 
-from fix_plugin_aws.access_edges_utils import PolicySource
-from fixlib.baseresources import PolicySourceKind
+from fixlib.baseresources import PolicySourceKind, PolicySource
 from fixlib.json import to_json_str
 
 

@@ -4,16 +4,15 @@ from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
 
 from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
 
-from fix_plugin_aws.access_edges_utils import (
+from fixlib.baseresources import (
     PermissionCondition,
     PolicySource,
     PermissionScope,
     AccessPermission,
-    HasResourcePolicy,
     ResourceConstraint,
 )
 from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser
-from fixlib.baseresources import EdgeType, PolicySourceKind
+from fixlib.baseresources import EdgeType, PolicySourceKind, HasResourcePolicy
 from fixlib.json import to_json, to_json_str
 from fixlib.types import Json
 
