@@ -493,9 +493,8 @@ class GraphBuilder:
     ) -> Iterator[AwsResourceType]:
         with self.graph_nodes_access.read_access:
             for n in self.graph:
-                is_clazz = isinstance(n, clazz) if clazz else True
                 if (
-                    is_clazz
+                    (isinstance(n, clazz) if clazz else True)
                     and (filter(n) if filter else True)
                     and all(getattr(n, k, None) == v for k, v in node.items())
                 ):  # noqa
