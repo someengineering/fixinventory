@@ -82,13 +82,13 @@ def parse_json(
 @define(eq=False, slots=False)
 class MicrosoftResource(BaseResource):
     kind: ClassVar[str] = "microsoft_resource"
-    kind_display: ClassVar[str] = "Microsoft Resource"
+    _kind_display: ClassVar[str] = "Microsoft Resource"
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
     api_spec: ClassVar[Optional[MicrosoftRestSpec]] = None
     # Check if we want to create provider link. Default is True
-    _is_provider_link: ClassVar[bool] = True
+    _create_provider_link: ClassVar[bool] = True
     # Azure common properties
     etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
@@ -307,9 +307,9 @@ class AzureAvailabilityZoneMappings:
 @define(eq=False, slots=False)
 class AzureLocation(MicrosoftResource, BaseRegion):
     kind: ClassVar[str] = "azure_location"
-    kind_display: ClassVar[str] = "Azure Location"
-    kind_service: ClassVar[str] = "resources"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Location"
+    _kind_service: ClassVar[str] = "resources"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",
@@ -343,9 +343,9 @@ class AzureLocation(MicrosoftResource, BaseRegion):
 @define(eq=False, slots=False)
 class AzureResourceGroup(MicrosoftResource, BaseGroup):
     kind: ClassVar[str] = "azure_resource_group"
-    kind_display: ClassVar[str] = "Azure Resource Group"
-    kind_service: ClassVar[str] = "resources"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Resource Group"
+    _kind_service: ClassVar[str] = "resources"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-09-01",
@@ -355,7 +355,7 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["microsoft_resource"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -546,9 +546,9 @@ class AzureSubscriptionPolicies:
 @define(eq=False, slots=False)
 class AzureSubscription(MicrosoftResource, BaseAccount):
     kind: ClassVar[str] = "azure_subscription"
-    kind_display: ClassVar[str] = "Azure Subscription"
-    kind_service: ClassVar[str] = "resources"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure Subscription"
+    _kind_service: ClassVar[str] = "resources"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2022-12-01",
@@ -858,8 +858,8 @@ class GraphBuilder:
             last_edge_key = self.add_edge(self.account, node=node)
 
         # create provider link
-        if node._metadata.get("provider_link") is None and node._is_provider_link:
-            node._metadata["provider_link"] = f"https://portal.azure.com/#@/resource{node.id}/overview"
+        if node._provider_link is None and node._create_provider_link:
+            node._provider_link = f"https://portal.azure.com/#@/resource{node.id}/overview"
 
         if last_edge_key is not None:
             with self.graph_access_lock.write_access:

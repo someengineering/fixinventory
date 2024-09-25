@@ -467,16 +467,16 @@ class AwsAccountCollector:
 @define(eq=False, slots=False)
 class AwsOrganizationalRoot(BaseOrganizationalRoot, AwsResource):
     kind: ClassVar[str] = "aws_organizational_root"
-    kind_display: ClassVar[str] = "AWS Organizational Root"
-    kind_description: ClassVar[str] = "An AWS Organizational Root is the root of an AWS Organization."
-    kind_service = "organizations"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
+    _kind_display: ClassVar[str] = "AWS Organizational Root"
+    _kind_description: ClassVar[str] = "An AWS Organizational Root is the root of an AWS Organization."
+    _kind_service = "organizations"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
 
 
 @define(eq=False, slots=False)
 class AwsOrganizationalUnit(BaseOrganizationalUnit, AwsResource):
     kind: ClassVar[str] = "aws_organizational_unit"
-    kind_display: ClassVar[str] = "AWS Organizational Unit"
-    kind_description: ClassVar[str] = "An AWS Organizational Unit is a container for AWS Accounts."
-    kind_service = "organizations"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
+    _kind_display: ClassVar[str] = "AWS Organizational Unit"
+    _kind_description: ClassVar[str] = "An AWS Organizational Unit is a container for AWS Accounts."
+    _kind_service = "organizations"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}

@@ -316,12 +316,12 @@ class GcpObject(GcpResource):
     # GcpObjects are necessary to empty buckets before deletion
     # they are not intended to be collected and stored in the graph
     kind: ClassVar[str] = "gcp_object"
-    kind_display: ClassVar[str] = "GCP Object"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Object"
+    _kind_description: ClassVar[str] = (
         "GCP Object, specifically referring to the Google Cloud Storage, is a basic unit of data that is stored"
         " in Google Cloud Storage, often matching to an individual file."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
@@ -341,12 +341,12 @@ class GcpObject(GcpResource):
 @define(eq=False, slots=False)
 class GcpBucket(GcpResource, BaseBucket):
     kind: ClassVar[str] = "gcp_bucket"
-    kind_display: ClassVar[str] = "GCP Bucket"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Bucket"
+    _kind_description: ClassVar[str] = (
         "A GCP Bucket is a cloud storage container provided by Google Cloud Platform,"
         " allowing users to store and access data in a scalable and durable manner."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",

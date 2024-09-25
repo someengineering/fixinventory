@@ -91,15 +91,15 @@ class AwsAthenaWorkGroupConfiguration:
 @define(eq=False, slots=False)
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
-    kind_display: ClassVar[str] = "AWS Athena Work Group"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Athena Work Group"
+    _kind_description: ClassVar[str] = (
         "Amazon Athena Work Groups are a resource type for isolating query execution and history among different"
         " users, teams, or applications within the same AWS account, with features for access control, cost"
         " management, and integration with AWS CloudWatch for metrics monitoring."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#/workgroups/details/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "database"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#/workgroups/details/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-work-groups", "WorkGroups")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),
@@ -113,7 +113,7 @@ class AwsAthenaWorkGroup(AwsResource):
     workgroup_configuration: Optional[AwsAthenaWorkGroupConfiguration] = None
     description: Optional[str] = None
 
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key"]},
         "successors": {"default": ["aws_kms_key", "aws_s3_bucket"]},
     }
@@ -208,15 +208,15 @@ class AwsAthenaWorkGroup(AwsResource):
 @define(eq=False, slots=False)
 class AwsAthenaDataCatalog(AwsResource):
     kind: ClassVar[str] = "aws_athena_data_catalog"
-    kind_display: ClassVar[str] = "AWS Athena Data Catalog"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Athena Data Catalog"
+    _kind_description: ClassVar[str] = (
         "Athena Data Catalog is a managed metadata repository in AWS that allows you"
         " to store and organize metadata about your data sources, such as databases,"
         " tables, and partitions."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#datacatalog/detail/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#datacatalog/detail/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-data-catalogs", "DataCatalogsSummary")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Name"),

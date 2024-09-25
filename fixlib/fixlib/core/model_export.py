@@ -193,7 +193,9 @@ def dataclasses_to_fixcore_model(
             meta: Optional[Dict[str, str]],
             **kwargs: Any,
         ) -> Json:
-            js = {"name": name, "kind": kind_str, "required": required, "description": description, **kwargs}
+            js = {"name": name, "kind": kind_str, "required": required, **kwargs}
+            if description:
+                js["description"] = description
             if meta:
                 js["metadata"] = meta
             return js
@@ -227,7 +229,7 @@ def dataclasses_to_fixcore_model(
             if succs := getattr(clazz, "successor_kinds", None):
                 for edge_type, values in succs.items():
                     successors[name][edge_type].extend(values)
-            if refs := getattr(clazz, "reference_kinds", None):
+            if refs := getattr(clazz, "_reference_kinds", None):
                 if succs := refs.get("successors", None):
                     for edge_type, values in succs.items():
                         successors[name][edge_type].extend(values)
@@ -247,11 +249,11 @@ def dataclasses_to_fixcore_model(
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)
         metadata: Json = {}
-        if (m := getattr(clazz, "metadata", None)) and isinstance(m, dict):
+        if (m := getattr(clazz, "_metadata", None)) and isinstance(m, dict):
             metadata = m.copy()
-        if (s := clazz.__dict__.get("kind_display", None)) and isinstance(s, str):
+        if (s := clazz.__dict__.get("_kind_display", None)) and isinstance(s, str):
             metadata["name"] = s
-        if (s := getattr(clazz, "kind_service", None)) and isinstance(s, str):
+        if (s := getattr(clazz, "_kind_service", None)) and isinstance(s, str):
             metadata["service"] = s
         if (slc := getattr(clazz, "categories", None)) and callable(slc) and (sl := slc()):
             metadata["categories"] = sl
@@ -259,7 +261,7 @@ def dataclasses_to_fixcore_model(
             with_kind_description
             and (ar := aggregate_root)
             and issubclass(clazz, ar)
-            and (s := clazz.__dict__.get("kind_description", None))
+            and (s := clazz.__dict__.get("_kind_description", None))
             and isinstance(s, str)
         ):
             metadata["description"] = s
@@ -333,33 +335,22 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
     if changes_only:
         node_dict.update(node.changes.get())
     else:
-        node_dict.update(
-            {
-                "reported": get_node_attributes(node),
-                "metadata": {
-                    "python_type": type_str(node),
-                    "cleaned": node.cleaned,
-                    "protected": node.protected,
-                    "categories": node.categories(),
-                    **node._metadata,
-                },
-                "usage": node._resource_usage,
-            }
-        )
+        metadata: Json = {"python_type": type_str(node), "categories": node.categories()}
+        if node.cleaned:
+            metadata["cleaned"] = True
+        if node.protected:
+            metadata["protected"] = True
+        if link := node._provider_link:
+            metadata["provider_link"] = link
+
+        node_dict["reported"] = get_node_attributes(node)
+        node_dict["metadata"] = metadata
+        if usage := node._resource_usage:
+            node_dict["usage"] = usage
         if node.clean:
-            node_dict.update(
-                {
-                    "desired": {
-                        "clean": node.clean,
-                    }
-                }
-            )
+            node_dict.update({"desired": {"clean": node.clean}})
     if include_revision and node._fixcore_revision:
-        node_dict.update(
-            {
-                "revision": node._fixcore_revision,
-            }
-        )
+        node_dict["revision"] = node._fixcore_revision
     return node_dict
 
 

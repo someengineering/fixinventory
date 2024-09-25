@@ -416,16 +416,16 @@ class AwsRedshiftLoggingStatus:
 @define(eq=False, slots=False)
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
-    kind_display: ClassVar[str] = "AWS Redshift Cluster"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Redshift Cluster"
+    _kind_description: ClassVar[str] = (
         "Redshift Cluster is a fully managed, petabyte-scale data warehouse service provided by AWS."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:redshift:{region}:{account}:cluster/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:redshift:{region}:{account}:cluster/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-clusters", "Clusters")
     _categories: ClassVar[List[Category]] = [Category.database, Category.analytics, Category.storage]
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],
             "delete": ["aws_kms_key", "aws_vpc", "aws_ec2_security_group", "aws_iam_role", "aws_ec2_subnet"],

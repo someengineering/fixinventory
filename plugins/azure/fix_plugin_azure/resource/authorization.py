@@ -63,9 +63,9 @@ class AzurePrincipal:
 @define(eq=False, slots=False)
 class AzureAuthorizationDenyAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_deny_assignment"
-    kind_display: ClassVar[str] = "Azure Authorization Deny Assignment"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
+    _kind_display: ClassVar[str] = "Azure Authorization Deny Assignment"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
         version="2022-04-01",
@@ -116,9 +116,9 @@ class AzureAuthorizationDenyAssignment(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureAuthorizationRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_role_assignment"
-    kind_display: ClassVar[str] = "Azure Authorization Role Assignment"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
+    _kind_display: ClassVar[str] = "Azure Authorization Role Assignment"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
         version="2022-04-01",
@@ -137,7 +137,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
         "ResourceGroup": "azure_resource_group",
         "Resource": "azure_resource",
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["azure_authorization_role_definition", *(p.kind for p in MicrosoftGraphPrincipalTypes)]
         },
@@ -223,9 +223,9 @@ class AzurePermission:
 @define(eq=False, slots=False)
 class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
     kind: ClassVar[str] = "azure_authorization_role_definition"
-    kind_display: ClassVar[str] = "Azure Authorization Role Definition"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
+    _kind_display: ClassVar[str] = "Azure Authorization Role Definition"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
         version="2022-04-01",
@@ -262,10 +262,10 @@ class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
 @define(eq=False, slots=False)
 class AzureAuthorizationManagementLock(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_management_lock"
-    kind_display: ClassVar[str] = "Azure Authorization Management Lock"
-    kind_service: ClassVar[Optional[str]] = "resources"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "lock", "group": "access_control"}
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
+    _kind_display: ClassVar[str] = "Azure Authorization Management Lock"
+    _kind_service: ClassVar[Optional[str]] = "resources"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "lock", "group": "access_control"}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
         version="2020-05-01",

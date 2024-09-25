@@ -103,8 +103,8 @@ def test_resource_classes() -> None:
             bases.update(all_base_classes(base))
         return bases
 
-    expected_declared_properties = ["kind", "kind_display"]
-    expected_props_in_hierarchy = ["kind_service", "metadata"]
+    expected_declared_properties = ["kind", "_kind_display"]
+    expected_props_in_hierarchy = ["_kind_service", "_metadata"]
     for rc in all_resources:
         for prop in expected_declared_properties:
             assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
@@ -114,5 +114,5 @@ def test_resource_classes() -> None:
         for base in with_bases:
             if "connect_in_graph" in base.__dict__:
                 assert (
-                    "reference_kinds" in base.__dict__
-                ), f"{rc.__name__} should define reference_kinds property, since it defines connect_in_graph"
+                    "_reference_kinds" in base.__dict__
+                ), f"{rc.__name__} should define _reference_kinds property, since it defines connect_in_graph"

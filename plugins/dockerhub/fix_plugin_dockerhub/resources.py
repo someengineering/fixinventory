@@ -29,8 +29,8 @@ class DockerHubResource:
 @define(eq=False, slots=False)
 class DockerHubNamespace(DockerHubResource, BaseAccount):
     kind: ClassVar[str] = "dockerhub_namespace"
-    kind_display: ClassVar[str] = "DockerHub Namespace"
-    kind_description: ClassVar[str] = "A DockerHub Namespace."
+    _kind_display: ClassVar[str] = "DockerHub Namespace"
+    _kind_description: ClassVar[str] = "A DockerHub Namespace."
 
     count: Optional[int] = None
 
@@ -38,8 +38,8 @@ class DockerHubNamespace(DockerHubResource, BaseAccount):
 @define(eq=False, slots=False)
 class DockerHubRepository(DockerHubResource, BaseResource):
     kind: ClassVar[str] = "dockerhub_repository"
-    kind_display: ClassVar[str] = "DockerHub Repository"
-    kind_description: ClassVar[str] = "A DockerHub Repository."
+    _kind_display: ClassVar[str] = "DockerHub Repository"
+    _kind_description: ClassVar[str] = "A DockerHub Repository."
 
     repository_type: Optional[str] = None
     is_private: Optional[bool] = None

@@ -139,14 +139,14 @@ def check_model_class(clazz: Type[BaseResource]) -> None:
     kind = clazz.kind
     if any(kind.startswith(a) for a in ["aws", "gcp", "azure", "microsoft"]):  # only selected providers support this
         props = vars(clazz)
-        if "kind_display" not in props:
-            raise AttributeError(f"Class {name} does not have a kind_display attribute")
-        assert clazz.kind_service is not None, f"Class {name} does not have a kind_service attribute"
+        if "_kind_display" not in props:
+            raise AttributeError(f"Class {name} does not have a _kind_display attribute")
+        assert clazz._kind_service is not None, f"Class {name} does not have a _kind_service attribute"
 
-    # make sure metadata is valid
-    if icon := clazz.metadata.get("icon"):
+    # make sure _metadata is valid
+    if icon := clazz._metadata.get("icon"):
         assert icon in ResourceIcons, f"{name} has unknown icon {icon}"
-    if group := clazz.metadata.get("group"):
+    if group := clazz._metadata.get("group"):
         assert group in ResourceGroups, f"{name} has unknown group {group}"
 
 

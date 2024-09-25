@@ -37,9 +37,9 @@ log = logging.getLogger("fix.plugins.azure")
 @define(eq=False, slots=False)
 class AzurePostgresqlServerADAdministrator(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_ad_administrator"
-    kind_display: ClassVar[str] = "Azure PostgreSQL Ad Administrator"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_display: ClassVar[str] = "Azure PostgreSQL Ad Administrator"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
+    _kind_service: ClassVar[Optional[str]] = service_name
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -201,9 +201,9 @@ class AzureFastProvisioningEditionCapability:
 @define(eq=False, slots=False)
 class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_postgresql_server_type"
-    kind_display: ClassVar[str] = "Azure PostgreSQL Server Type"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "management"}
+    _kind_display: ClassVar[str] = "Azure PostgreSQL Server Type"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "management"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -228,7 +228,7 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "_supported_hyperscale_node_editions": S("supportedHyperscaleNodeEditions")
         >> ForallBend(AzureHyperscaleNodeEditionCapability.mapping),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     fast_provisioning_supported: Optional[bool] = field(
         default=None,
         metadata={"description": "A value indicating whether fast provisioning is supported in this region."},
@@ -319,9 +319,9 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_configuration"
-    kind_display: ClassVar[str] = "Azure PostgreSQL Server Configuration"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure PostgreSQL Server Configuration"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzurePostgresqlServer()
     config: Json = field(factory=dict)
 
@@ -356,9 +356,9 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_database"
-    kind_display: ClassVar[str] = "Azure PostgreSQL Server Database"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure PostgreSQL Server Database"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -376,9 +376,9 @@ class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
 @define(eq=False, slots=False)
 class AzurePostgresqlServerFirewallRule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_firewall_rule"
-    kind_display: ClassVar[str] = "Azure PostgreSQL Server Firewall Rule"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
+    _kind_display: ClassVar[str] = "Azure PostgreSQL Server Firewall Rule"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -411,9 +411,9 @@ class AzureAuthConfig:
 @define(eq=False, slots=False)
 class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabase):
     kind: ClassVar[str] = "azure_postgresql_server"
-    kind_display: ClassVar[str] = "Azure PostgreSQL Server"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure PostgreSQL Server"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="postgresql",
         version="2023-06-01-preview",
@@ -423,7 +423,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "azure_postgresql_ad_administrator",
@@ -652,9 +652,9 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
 @define(eq=False, slots=False)
 class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_backup"
-    kind_display: ClassVar[str] = "Azure PostgreSQL Server Backup"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure PostgreSQL Server Backup"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),

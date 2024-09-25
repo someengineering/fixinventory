@@ -19,8 +19,8 @@ from fixlib.baseresources import (
 @define(eq=False, slots=False)
 class HcloudResource(BaseResource):
     kind: ClassVar[str] = "hcloud_resource"
-    kind_display: ClassVar[str] = "Hetzner Cloud Resource"
-    kind_description: ClassVar[str] = "A Hetzner Cloud Resource represents a single resource in the Hetzner Cloud"
+    _kind_display: ClassVar[str] = "Hetzner Cloud Resource"
+    _kind_description: ClassVar[str] = "A Hetzner Cloud Resource represents a single resource in the Hetzner Cloud"
 
     hcloud_id: Optional[int] = None
 

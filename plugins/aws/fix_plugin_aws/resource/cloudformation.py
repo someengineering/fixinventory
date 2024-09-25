@@ -90,15 +90,15 @@ class AwsCloudFormationStackDriftInformation:
 @define(eq=False, slots=False)
 class AwsCloudFormationStack(AwsResource, BaseStack):
     kind: ClassVar[str] = "aws_cloudformation_stack"
-    kind_display: ClassVar[str] = "AWS CloudFormation Stack"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacks/stackinfo?stackId={id}", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack/{name}/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFormation Stack"
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacks/stackinfo?stackId={id}", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack/{name}/{id}"}  # fmt: skip
+    _kind_description: ClassVar[str] = (
         "CloudFormation Stacks are a collection of AWS resources that are created,"
         " updated, or deleted together as a single unit."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-stacks", "Stacks")
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_resource"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_resource"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -253,15 +253,15 @@ class AwsCloudFormationAutoDeployment:
 @define(eq=False, slots=False)
 class AwsCloudFormationStackSet(AwsResource):
     kind: ClassVar[str] = "aws_cloudformation_stack_set"
-    kind_display: ClassVar[str] = "AWS CloudFormation Stack Set"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFormation Stack Set"
+    _kind_description: ClassVar[str] = (
         "CloudFormation Stack Set is a feature in AWS CloudFormation that enables you"
         " to create, update, or delete stacks across multiple accounts and regions"
         " with a single CloudFormation template."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacksets/{name}/info?permissions=self", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-set/{name}/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacksets/{name}/info?permissions=self", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-set/{name}/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-stack-sets", "Summaries", dict(Status="ACTIVE"))
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("StackSetId"),
@@ -374,14 +374,14 @@ def _stack_instance_id(stack: Json) -> str:
 class AwsCloudFormationStackInstanceSummary(AwsResource):
     # note: resource is collected via AwsCloudFormationStackSet
     kind: ClassVar[str] = "aws_cloud_formation_stack_instance_summary"
-    kind_display: ClassVar[str] = "AWS CloudFormation Stack Instance Summary"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS CloudFormation Stack Instance Summary"
+    _kind_description: ClassVar[str] = (
         "CloudFormation Stack Instance Summary provides a summary of the overall stacks in a CloudFormation"
         " deployment. The information includes current status, name, and any associated resources or parameters."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-instance/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-instance/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": F(_stack_instance_id),
         "stack_instance_stack_set_id": S("StackSetId"),

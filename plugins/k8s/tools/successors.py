@@ -15,7 +15,7 @@ def get_successors(client: FixInventoryClient) -> None:
                 )
             if any(a for a in succesors.values()):
                 print(name)
-                print("reference_kinds: ClassVar[ModelReference] = " + json.dumps({"successors": succesors}))
+                print("_reference_kinds: ClassVar[ModelReference] = " + json.dumps({"successors": succesors}))
 
 
 if __name__ == "__main__":

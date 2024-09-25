@@ -105,10 +105,10 @@ class AzureServerMaintenanceWindow:
 @define(eq=False, slots=False)
 class AzureMysqlServerADAdministrator(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_ad_administrator"
-    kind_display: ClassVar[str] = "Azure MySQL Server Ad Administrator"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftGraphUser.kind]}}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Ad Administrator"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftGraphUser.kind]}}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -215,9 +215,9 @@ class AzureServerEditionCapability:
 @define(eq=False, slots=False)
 class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_mysql_server_type"
-    kind_display: ClassVar[str] = "Azure MySQL Server Type"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Type"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -236,7 +236,7 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
         "_supported_flexible_server_editions": S("supportedFlexibleServerEditions")
         >> ForallBend(AzureServerEditionCapability.mapping),
     }
-    _is_provider_link: ClassVar[bool] = False
+    _create_provider_link: ClassVar[bool] = False
     supported_geo_backup_regions: Optional[List[str]] = field(default=None, metadata={'description': 'supported geo backup regions'})  # fmt: skip
     supported_ha_mode: Optional[List[str]] = field(default=None, metadata={'description': 'Supported high availability mode'})  # fmt: skip
     capability_zone: Optional[str] = field(default=None, metadata={"description": "zone name"})
@@ -325,9 +325,9 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
 @define(eq=False, slots=False)
 class AzureMysqlServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_configuration"
-    kind_display: ClassVar[str] = "Azure MySQL Server Configuration"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Configuration"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureMysqlServer()
     config: Json = field(factory=dict)
 
@@ -362,9 +362,9 @@ class AzureMysqlServerConfiguration(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_database"
-    kind_display: ClassVar[str] = "Azure MySQL Server Database"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Database"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -386,9 +386,9 @@ class AzureMysqlServerDatabase(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerFirewallRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_firewall_rule"
-    kind_display: ClassVar[str] = "Azure MySQL Server Firewall Rule"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Firewall Rule"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -410,9 +410,9 @@ class AzureMysqlServerFirewallRule(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerLogFile(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_log_file"
-    kind_display: ClassVar[str] = "Azure MySQL Server Log File"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Log File"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -438,9 +438,9 @@ class AzureMysqlServerLogFile(MicrosoftResource):
 @define(eq=False, slots=False)
 class AzureMysqlServerMaintenance(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_maintenance"
-    kind_display: ClassVar[str] = "Azure MySQL Server Maintenance"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Maintenance"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -529,9 +529,9 @@ class AzureImportSourceProperties:
 @define(eq=False, slots=False)
 class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_mysql_server"
-    kind_display: ClassVar[str] = "Azure MySQL Server"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
         version="2023-12-30",
@@ -541,7 +541,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         access_path="value",
         expect_array=True,
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "azure_mysql_server_backup",
@@ -769,9 +769,9 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
 @define(eq=False, slots=False)
 class AzureMysqlServerBackup(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_backup"
-    kind_display: ClassVar[str] = "Azure MySQL Server Backup"
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
+    _kind_display: ClassVar[str] = "Azure MySQL Server Backup"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),

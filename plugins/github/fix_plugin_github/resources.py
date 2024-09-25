@@ -24,8 +24,8 @@ from github.PullRequest import PullRequest
 @define(eq=False, slots=False)
 class GithubAccount(BaseAccount):
     kind: ClassVar[str] = "github_account"
-    kind_display: ClassVar[str] = "Github Account"
-    kind_description: ClassVar[str] = "A Github Account."
+    _kind_display: ClassVar[str] = "Github Account"
+    _kind_description: ClassVar[str] = "A Github Account."
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -34,8 +34,8 @@ class GithubAccount(BaseAccount):
 @define(eq=False, slots=False)
 class GithubRegion(BaseRegion):
     kind: ClassVar[str] = "github_region"
-    kind_display: ClassVar[str] = "Github Region"
-    kind_description: ClassVar[str] = "A Github Region."
+    _kind_display: ClassVar[str] = "Github Region"
+    _kind_description: ClassVar[str] = "A Github Region."
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -60,8 +60,8 @@ class GithubResource:
 @define(eq=False, slots=False)
 class GithubOrg(GithubResource, BaseResource):
     kind: ClassVar[str] = "github_org"
-    kind_display: ClassVar[str] = "Github Organization"
-    kind_description: ClassVar[str] = "A Github Organization."
+    _kind_display: ClassVar[str] = "Github Organization"
+    _kind_description: ClassVar[str] = "A Github Organization."
 
     avatar_url: Optional[str] = None
     billing_email: Optional[str] = None
@@ -146,8 +146,8 @@ class GithubOrg(GithubResource, BaseResource):
 @define(eq=False, slots=False)
 class GithubUser(GithubResource, BaseUser):
     kind: ClassVar[str] = "github_user"
-    kind_display: ClassVar[str] = "Github User"
-    kind_description: ClassVar[str] = "A Github User."
+    _kind_display: ClassVar[str] = "Github User"
+    _kind_description: ClassVar[str] = "A Github User."
 
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
@@ -352,8 +352,8 @@ class GithubRepoTopPath:
 @define(eq=False, slots=False)
 class GithubPullRequest(GithubResource, BaseResource):
     kind: ClassVar[str] = "github_pull_request"
-    kind_display: ClassVar[str] = "Github Pull Request"
-    kind_description: ClassVar[str] = "A Github Pull Request."
+    _kind_display: ClassVar[str] = "Github Pull Request"
+    _kind_description: ClassVar[str] = "A Github Pull Request."
 
     additions: Optional[int] = None
     # assignee: Optional[str] = None
@@ -445,8 +445,8 @@ class GithubPullRequest(GithubResource, BaseResource):
 @define(eq=False, slots=False)
 class GithubRepo(GithubResource, BaseResource):
     kind: ClassVar[str] = "github_repo"
-    kind_display: ClassVar[str] = "Github Repository"
-    kind_description: ClassVar[str] = "A Github Repository."
+    _kind_display: ClassVar[str] = "Github Repository"
+    _kind_description: ClassVar[str] = "A Github Repository."
 
     allow_merge_commit: Optional[bool] = None
     allow_rebase_merge: Optional[bool] = None

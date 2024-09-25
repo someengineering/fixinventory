@@ -249,23 +249,23 @@ class AwsElbLoadBalancerAttributes:
 @define(eq=False, slots=False)
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
-    kind_display: ClassVar[str] = "AWS ELB"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS ELB"
+    _kind_description: ClassVar[str] = (
         "ELB stands for Elastic Load Balancer. It is a service provided by Amazon Web"
         " Services that automatically distributes incoming application traffic across"
         " multiple Amazon EC2 instances, making it easier to achieve fault tolerance"
         " in your applications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={name}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={name}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-load-balancers",
         "LoadBalancerDescriptions",
         override_iam_permission="elasticloadbalancing:DescribeLoadBalancers",
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group"],
             "delete": ["aws_vpc", "aws_ec2_subnet", "aws_ec2_security_group", "aws_ec2_instance"],
