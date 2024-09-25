@@ -12,9 +12,11 @@ from fix_plugin_gcp.resources.base import (
     GcpDeprecationStatus,
     GraphBuilder,
 )
+from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
 from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
 from fixlib.types import Json
 
+service_name = "aiplatform"
 log = logging.getLogger("fix.plugins.gcp")
 
 # The following list of regions is sourced from the official Google Cloud Vertex AI service endpoints documentation:
@@ -504,10 +506,15 @@ class GcpAIPlatformUnmanagedContainerModel:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformBatchPredictionJob(AIPlatformRegionFilter, GcpResource):
+class GcpAIPlatformBatchPredictionJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_batch_prediction_job"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Batch Prediction Job"
+    kind_description: ClassVar[str] = (
+        "A Batch Prediction Job is a job that runs batch inference requests on a trained model in Vertex AI. It processes large volumes of data and returns predictions in bulk."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ai_platform_model"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -582,6 +589,10 @@ class GcpAIPlatformBatchPredictionJob(AIPlatformRegionFilter, GcpResource):
     state: Optional[str] = field(default=None)
     unmanaged_container_model: Optional[GcpAIPlatformUnmanagedContainerModel] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if model := self.model:
+            builder.add_edge(self, reverse=True, clazz=GcpAIPlatformModel, name=model)
 
 
 @define(eq=False, slots=False)
@@ -704,10 +715,15 @@ class GcpAIPlatformCustomJobSpec:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformCustomJob(AIPlatformRegionFilter, GcpResource):
+class GcpAIPlatformCustomJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_custom_job"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Custom Job"
+    kind_description: ClassVar[str] = (
+        "A Custom Job in Vertex AI is a job that allows users to run their own custom machine learning training or inference code on Google Cloud infrastructure."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ai_platform_model"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -750,6 +766,11 @@ class GcpAIPlatformCustomJob(AIPlatformRegionFilter, GcpResource):
     update_time: Optional[datetime] = field(default=None)
     web_access_uris: Optional[Dict[str, str]] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (job_spec := self.custom_job_spec) and (models := job_spec.models):
+            for model in models:
+                builder.add_edge(self, reverse=True, clazz=GcpAIPlatformModel, name=model)
+
 
 @define(eq=False, slots=False)
 class GcpAIPlatformSavedQuery:
@@ -780,8 +801,13 @@ class GcpAIPlatformSavedQuery:
 @define(eq=False, slots=False)
 class GcpAIPlatformDataset(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_dataset"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Dataset"
+    kind_description: ClassVar[str] = (
+        "A Dataset is a container for a collection of data that is used to train and evaluate machine learning models in Vertex AI. Each dataset contains metadata about the data source and structure."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ai_platform_model"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -825,6 +851,10 @@ class GcpAIPlatformDataset(AIPlatformRegionFilter, GcpResource):
     saved_queries: Optional[List[GcpAIPlatformSavedQuery]] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if model := self.model_reference:
+            builder.add_edge(self, reverse=True, clazz=GcpAIPlatformModel, name=model)
+
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
         # Additional behavior: iterate over list of collected GcpAIPlatformDataset and for each:
@@ -840,8 +870,13 @@ class GcpAIPlatformDataset(AIPlatformRegionFilter, GcpResource):
 @define(eq=False, slots=False)
 class GcpAIPlatformDatasetVersion(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_dataset_version"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Dataset Version"
+    kind_description: ClassVar[str] = (
+        "A Dataset Version in Vertex AI represents a specific snapshot of the dataset used during model training or evaluation. It ensures consistency and reproducibility of experiments."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ai_platform_model"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -876,6 +911,10 @@ class GcpAIPlatformDatasetVersion(AIPlatformRegionFilter, GcpResource):
     etag: Optional[str] = field(default=None)
     model_reference: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if model := self.model_reference:
+            builder.add_edge(self, reverse=True, clazz=GcpAIPlatformModel, name=model)
 
 
 @define(eq=False, slots=False)
@@ -996,8 +1035,16 @@ class GcpTrafficsplit:
 @define(eq=False, slots=False)
 class GcpAIPlatformEndpoint(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_endpoint"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Endpoint"
+    kind_description: ClassVar[str] = (
+        "An Endpoint is a deployment resource in Vertex AI that hosts one or more machine learning models, enabling online prediction requests from clients."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {"default": ["gcp_ai_platform_model"]},
+        "successors": {"default": ["gcp_ai_platform_model_deployment_monitoring_job"]},
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1048,6 +1095,16 @@ class GcpAIPlatformEndpoint(AIPlatformRegionFilter, GcpResource):
     traffic_split: Optional[GcpTrafficsplit] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if model_deployment_monitoring_job := self.model_deployment_monitoring_job:
+            builder.add_edge(
+                self, clazz=GcpAIPlatformModelDeploymentMonitoringJob, name=model_deployment_monitoring_job
+            )
+        if deployed_models := self.endpoint_deployed_models:
+            for deployed_model in deployed_models:
+                if model_name := deployed_model.model:
+                    builder.add_edge(self, reverse=True, clazz=GcpAIPlatformModel, name=model_name)
+
 
 @define(eq=False, slots=False)
 class GcpAIPlatformFeatureGroupBigQuery:
@@ -1063,6 +1120,12 @@ class GcpAIPlatformFeatureGroupBigQuery:
 @define(eq=False, slots=False)
 class GcpAIPlatformFeatureGroup(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_feature_group"
+    kind_display: ClassVar[str] = "GCP AI Platform Feature Group"
+    kind_description: ClassVar[str] = (
+        "A Feature Group is a logical grouping of features in Vertex AI Feature Store, used to organize features that share the same lifecycle and access patterns."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1140,8 +1203,12 @@ class GcpAIPlatformFeatureMonitoringStatsAnomaly:
 @define(eq=False, slots=False)
 class GcpAIPlatformFeature(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_feature"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Feature"
+    kind_description: ClassVar[str] = (
+        "A Feature is an individual data attribute stored in Vertex AI Feature Store. Features are grouped into Feature Groups and are used to improve the predictive power of machine learning models."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1209,8 +1276,12 @@ class GcpAIPlatformFeaturestoreOnlineServingConfig:
 @define(eq=False, slots=False)
 class GcpAIPlatformFeaturestore(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_featurestore"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Featurestore"
+    kind_description: ClassVar[str] = (
+        "A Featurestore is a fully managed Vertex AI service used to store, manage, and serve machine learning features at scale. It enables faster, scalable, and consistent access to features during model development and serving."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1529,10 +1600,15 @@ class GcpAIPlatformTrial:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformHyperparameterTuningJob(AIPlatformRegionFilter, GcpResource):
+class GcpAIPlatformHyperparameterTuningJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_hyperparameter_tuning_job"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Hyperparameter Tuning Job"
+    kind_description: ClassVar[str] = (
+        "A Hyperparameter Tuning Job is a job that optimizes the hyperparameters of a machine learning model in Vertex AI, improving the model's performance through efficient search over hyperparameter configurations."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ai_platform_model"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1582,6 +1658,11 @@ class GcpAIPlatformHyperparameterTuningJob(AIPlatformRegionFilter, GcpResource):
     trial_job_spec: Optional[GcpAIPlatformCustomJobSpec] = field(default=None)
     trials: Optional[List[GcpAIPlatformTrial]] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if (job_spec := self.trial_job_spec) and (models := job_spec.models):
+            for model in models:
+                builder.add_edge(self, reverse=True, clazz=GcpAIPlatformModel, name=model)
 
 
 @define(eq=False, slots=False)
@@ -1666,8 +1747,12 @@ class GcpAIPlatformDeployedIndex:
 @define(eq=False, slots=False)
 class GcpAIPlatformIndexEndpoint(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_index_endpoint"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Index Endpoint"
+    kind_description: ClassVar[str] = (
+        "An Index Endpoint is a deployment resource in Vertex AI that serves indexes, allowing real-time similarity search queries."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1743,8 +1828,13 @@ class GcpAIPlatformIndexStats:
 @define(eq=False, slots=False)
 class GcpAIPlatformIndex(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_index"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Index"
+    kind_description: ClassVar[str] = (
+        "An Index is a data structure in Vertex AI that supports fast, approximate nearest neighbor search for high-dimensional vectors, enabling fast similarity-based retrieval."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [GcpAIPlatformIndexEndpoint.kind]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -1785,6 +1875,12 @@ class GcpAIPlatformIndex(AIPlatformRegionFilter, GcpResource):
     index_update_method: Optional[str] = field(default=None)
     metadata_schema_uri: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if deployed_indexes := self.deployed_indexes:
+            for deployed_index in deployed_indexes:
+                if index_endpoint := deployed_index.index_endpoint:
+                    builder.add_edge(self, clazz=GcpAIPlatformIndexEndpoint, name=index_endpoint)
 
 
 @define(eq=False, slots=False)
@@ -2016,10 +2112,14 @@ class GcpAIPlatformModelMonitoringAlertConfig:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformModelDeploymentMonitoringJob(AIPlatformRegionFilter, GcpResource):
+class GcpAIPlatformModelDeploymentMonitoringJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_model_deployment_monitoring_job"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Model Deployment Monitoring Job"
+    kind_description: ClassVar[str] = (
+        "A Model Deployment Monitoring Job is a Vertex AI job that monitors the performance of machine learning models in production to detect data drift, model performance degradation, and other anomalies."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2152,10 +2252,14 @@ class GcpAIPlatformModelExportFormat:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformModel(AIPlatformRegionFilter, GcpResource):
+class GcpAIPlatformModel(AIPlatformRegionFilter, BaseAIModel, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_model"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Model"
+    kind_description: ClassVar[str] = (
+        "A Model represents a trained machine learning model in Vertex AI that can be deployed to an endpoint for online predictions, or used to generate batch predictions."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2295,8 +2399,12 @@ class GcpAIPlatformModelExplanation:
 @define(eq=False, slots=False)
 class GcpAIPlatformModelEvaluation(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_model_evaluation"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Model Evaluation"
+    kind_description: ClassVar[str] = (
+        "A Model Evaluation in Vertex AI contains the performance metrics and results of a machine learning model tested on a specific dataset. These metrics provide insights into the model's predictive accuracy and other important characteristics."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2582,10 +2690,14 @@ class GcpAIPlatformPipelineJobRuntimeConfig:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformPipelineJob(AIPlatformRegionFilter, GcpResource):
+class GcpAIPlatformPipelineJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_pipeline_job"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Pipeline Job"
+    kind_description: ClassVar[str] = (
+        "A Pipeline Job in Vertex AI defines a workflow that orchestrates multiple machine learning steps, such as data preparation, model training, and evaluation, in a cohesive manner."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2650,11 +2762,11 @@ class GcpAIPlatformCreatePipelineJobRequest:
     kind: ClassVar[str] = "gcp_ai_platform_create_pipeline_job_request"
     mapping: ClassVar[Dict[str, Bender]] = {
         "parent": S("parent"),
-        "pipeline_job": S("pipelineJob", default={}) >> Bend(GcpAIPlatformPipelineJob.mapping),
+        "pipeline_job": S("pipelineJob", "name"),
         "pipeline_job_id": S("pipelineJobId"),
     }
     parent: Optional[str] = field(default=None)
-    pipeline_job: Optional[GcpAIPlatformPipelineJob] = field(default=None)
+    pipeline_job: Optional[str] = field(default=None)
     pipeline_job_id: Optional[str] = field(default=None)
 
 
@@ -2672,8 +2784,12 @@ class GcpAIPlatformScheduleRunResponse:
 @define(eq=False, slots=False)
 class GcpAIPlatformSchedule(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_schedule"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Schedule"
+    kind_description: ClassVar[str] = (
+        "A Schedule is a recurring execution of a task in Vertex AI, such as training or batch prediction jobs, which can be triggered based on defined intervals."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2736,8 +2852,12 @@ class GcpAIPlatformSchedule(AIPlatformRegionFilter, GcpResource):
 @define(eq=False, slots=False)
 class GcpAIPlatformTensorboard(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_tensorboard"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Tensorboard"
+    kind_description: ClassVar[str] = (
+        "Tensorboard is a Vertex AI service that provides a tool for visualizing and monitoring machine learning model training progress, including metrics, graphs, and histograms."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2873,8 +2993,13 @@ class GcpAIPlatformInputDataConfig:
 @define(eq=False, slots=False)
 class GcpAIPlatformTrainingPipeline(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_training_pipeline"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Training Pipeline"
+    kind_description: ClassVar[str] = (
+        "A Training Pipeline in Vertex AI defines the steps necessary to train a machine learning model, including data preprocessing, model training, and evaluation."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": [GcpAIPlatformModel.kind]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -2902,7 +3027,7 @@ class GcpAIPlatformTrainingPipeline(AIPlatformRegionFilter, GcpResource):
         "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "input_data_config": S("inputDataConfig", default={}) >> Bend(GcpAIPlatformInputDataConfig.mapping),
         "model_id": S("modelId"),
-        "model_to_upload": S("modelToUpload", default={}) >> Bend(GcpAIPlatformModel.mapping),
+        "model_to_upload": S("modelToUpload", "name"),
         "parent_model": S("parentModel"),
         "start_time": S("startTime"),
         "state": S("state"),
@@ -2918,7 +3043,7 @@ class GcpAIPlatformTrainingPipeline(AIPlatformRegionFilter, GcpResource):
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     input_data_config: Optional[GcpAIPlatformInputDataConfig] = field(default=None)
     model_id: Optional[str] = field(default=None)
-    model_to_upload: Optional[GcpAIPlatformModel] = field(default=None)
+    model_to_upload: Optional[str] = field(default=None)
     parent_model: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
     state: Optional[str] = field(default=None)
@@ -2926,6 +3051,10 @@ class GcpAIPlatformTrainingPipeline(AIPlatformRegionFilter, GcpResource):
     training_task_inputs: Optional[Any] = field(default=None)
     training_task_metadata: Optional[Any] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if model := self.model_to_upload:
+            builder.add_edge(self, reverse=True, clazz=GcpAIPlatformModel, name=model)
 
 
 @define(eq=False, slots=False)
@@ -3115,10 +3244,15 @@ class GcpAIPlatformTuningDataStats:
 
 
 @define(eq=False, slots=False)
-class GcpAIPlatformTuningJob(AIPlatformRegionFilter, GcpResource):
+class GcpAIPlatformTuningJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_ai_platform_tuning_job"
-    kind_display = ""
-    kind_service = ""
+    kind_display: ClassVar[str] = "GCP AI Platform Tuning Job"
+    kind_description: ClassVar[str] = (
+        "A Tuning Job in Vertex AI refers to the hyperparameter tuning process that optimizes machine learning models by efficiently searching through hyperparameter values."
+    )
+    kind_service: ClassVar[Optional[str]] = service_name
+    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": [GcpAIPlatformEndpoint.kind]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="aiplatform",
         version="v1",
@@ -3167,6 +3301,11 @@ class GcpAIPlatformTuningJob(AIPlatformRegionFilter, GcpResource):
     tuned_model_display_name: Optional[str] = field(default=None)
     tuning_data_stats: Optional[GcpAIPlatformTuningDataStats] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if tuned_model := self.tuned_model:
+            if endpoint := tuned_model.endpoint:
+                builder.add_edge(self, reverse=True, clazz=GcpAIPlatformEndpoint, name=endpoint)
 
 
 resources: List[Type[GcpResource]] = [

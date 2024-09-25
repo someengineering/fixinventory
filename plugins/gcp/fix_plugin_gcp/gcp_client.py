@@ -179,7 +179,7 @@ class GcpClient:
             ):
                 return next_responses(nxt_req)
 
-        if api_spec.service_with_region_prefix:
+        if api_spec.service_with_region_prefix and isinstance(executor._baseUrl, str):
             executor._baseUrl = executor._baseUrl.replace(api_spec.service, f"{self.region}-{api_spec.service}", 1)
         next_responses(getattr(executor, api_spec.action)(**params))
         return result
