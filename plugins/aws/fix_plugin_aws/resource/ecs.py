@@ -105,15 +105,15 @@ class AwsEcsAutoScalingGroupProvider:
 class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
     # collection of capacity provider resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_capacity_provider"
-    kind_display: ClassVar[str] = "AWS ECS Capacity Provider"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS ECS Capacity Provider"
+    _kind_description: ClassVar[str] = (
         "ECS Capacity Providers are used in Amazon's Elastic Container Service to"
         " manage the capacity and scaling for containerized applications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "provider", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:capacity-provider/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "provider", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:capacity-provider/{name}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_autoscaling_group"]},
         "successors": {"default": ["aws_autoscaling_group"]},
     }
@@ -426,15 +426,15 @@ class AwsEcsTaskOverride:
 class AwsEcsTask(EcsTaggable, AwsResource):
     # collection of task resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_task"
-    kind_display: ClassVar[str] = "AWS ECS Task"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS ECS Task"
+    _kind_description: ClassVar[str] = (
         "ECS Tasks are containers managed by Amazon Elastic Container Service, which"
         " allow users to run and scale applications easily using Docker containers."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/tasks/{id}/configuration?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/tasks/{id}/configuration?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task/{name}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ecs_task_definition"],
             "delete": ["aws_iam_role"],
@@ -1074,19 +1074,19 @@ class AwsEcsProxyConfiguration:
 @define(eq=False, slots=False)
 class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
-    kind_display: ClassVar[str] = "AWS ECS Task Definition"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS ECS Task Definition"
+    _kind_description: ClassVar[str] = (
         "An ECS Task Definition is a blueprint for running tasks in AWS Elastic"
         " Container Service (ECS), providing information such as the Docker image,"
         " CPU, memory, network configuration, and other parameters."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/task-definitions/{name}?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task-definition/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/task-definitions/{name}?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task-definition/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-task-definitions", "taskDefinitionArns", {"sort": "desc"}
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_role"], "delete": ["aws_iam_role"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1497,16 +1497,16 @@ class AwsEcsPlacementStrategy:
 class AwsEcsService(EcsTaggable, AwsResource):
     # collection of service resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_service"
-    kind_display: ClassVar[str] = "AWS ECS Service"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS ECS Service"
+    _kind_description: ClassVar[str] = (
         "ECS (Elastic Container Service) is a scalable container orchestration"
         " service provided by AWS, allowing users to easily manage, deploy, and scale"
         " containerized applications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/services/{name}/health?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:service/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/services/{name}/health?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:service/{name}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": ["aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
             "delete": ["aws_alb_target_group", "aws_elb", "aws_iam_role", "aws_ec2_subnet", "aws_ec2_security_group"],
@@ -1788,16 +1788,16 @@ class AwsEcsContainerInstanceHealthStatus:
 class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     # collection of container instance resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_container_instance"
-    kind_display: ClassVar[str] = "AWS ECS Container Instance"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS ECS Container Instance"
+    _kind_description: ClassVar[str] = (
         "ECS Container Instances are virtual servers in Amazon's Elastic Container"
         " Service (ECS) that are used to run and manage containers within the ECS"
         " environment."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:container-instance/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:container-instance/{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_ec2_instance"], "delete": ["aws_ec2_instance"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1935,16 +1935,16 @@ class AwsEcsClusterSetting:
 @define(eq=False, slots=False)
 class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
-    kind_display: ClassVar[str] = "AWS ECS Cluster"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS ECS Cluster"
+    _kind_description: ClassVar[str] = (
         "ECS (Elastic Container Service) Cluster is a managed cluster of Amazon EC2"
         " instances used to deploy and manage Docker containers."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{name}/services?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:cluster/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{name}/services?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:cluster/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-clusters", "clusterArns")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"delete": ["aws_kms_key", "aws_s3_bucket"]},
         "successors": {
             "default": [

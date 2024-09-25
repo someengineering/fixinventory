@@ -398,7 +398,7 @@ def export_model(graph: Optional[Graph] = None, **kwargs: Any) -> List[Json]:
         for node in graph.nodes:
             classes.add(type(node))
 
-    model = resource_classes_to_fixcore_model(classes, aggregate_root=BaseResource, with_description=False, **kwargs)
+    model = resource_classes_to_fixcore_model(classes, aggregate_root=BaseResource, **kwargs)
     for resource_model in model:
         if resource_model.get("fqn") == "resource":
             resource_model.get("properties", []).append(

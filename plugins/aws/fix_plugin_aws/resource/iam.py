@@ -108,16 +108,16 @@ class AwsIamRoleLastUsed:
 class AwsIamRole(AwsResource, BaseRole, BaseIamPrincipal):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_role"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/roles/details/{RoleName}", "arn_tpl": "arn:{partition}:iam:{region}:{account}:role/{name}"}  # fmt: skip
-    kind_display: ClassVar[str] = "AWS IAM Role"
-    kind_description: ClassVar[str] = (
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/roles/details/{RoleName}", "arn_tpl": "arn:{partition}:iam:{region}:{account}:role/{name}"}  # fmt: skip
+    _kind_display: ClassVar[str] = "AWS IAM Role"
+    _kind_description: ClassVar[str] = (
         "IAM Roles are a way to delegate permissions to entities that you trust. IAM"
         " roles are similar to users, in that they are both AWS identity types."
         " However, instead of being uniquely associated with one person, IAM roles are"
         " intended to be assumable by anyone who needs it."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_iam_policy", "aws_iam_instance_profile"],
             "delete": ["aws_iam_policy", "aws_iam_instance_profile"],
@@ -221,15 +221,15 @@ class AwsIamRole(AwsResource, BaseRole, BaseIamPrincipal):
 @define(eq=False, slots=False)
 class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
-    kind_display: ClassVar[str] = "AWS IAM Server Certificate"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:server-certificate/{name}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS IAM Server Certificate"
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:server-certificate/{name}"}  # fmt: skip
+    _kind_description: ClassVar[str] = (
         "AWS IAM Server Certificate is a digital certificate that AWS Identity and"
         " Access Management (IAM) uses to verify the identity of a resource like an"
         " HTTPS server. It enables secure communication between the server and AWS"
         " services."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-server-certificates", "ServerCertificateMetadataList"
     )
@@ -315,13 +315,13 @@ def default_policy_document(policy: Json) -> Optional[AwsIamPolicyVersion]:
 class AwsIamPolicy(AwsResource, BasePolicy):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_policy"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iamv2/home?region={region}#/policies/details/{arn}?section=permissions", "arn_tpl": "arn:{partition}:iam::{account}:policy/{name}"}  # fmt: skip
-    kind_display: ClassVar[str] = "AWS IAM Policy"
-    kind_description: ClassVar[str] = (
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iamv2/home?region={region}#/policies/details/{arn}?section=permissions", "arn_tpl": "arn:{partition}:iam::{account}:policy/{name}"}  # fmt: skip
+    _kind_display: ClassVar[str] = "AWS IAM Policy"
+    _kind_description: ClassVar[str] = (
         "IAM Policies in AWS are used to define permissions and access controls for"
         " users, groups, and roles within the AWS ecosystem."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -345,7 +345,7 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     policy_is_attachable: Optional[bool] = field(default=None)
     policy_description: Optional[str] = field(default=None)
     policy_document: Optional[AwsIamPolicyVersion] = field(default=None)
-    managed: Optional[bool] = field(default=None, metadata=dict(ignore_history=True, desciption="Indicates if this policy is managed by AWS or custom."))  # fmt: skip
+    managed: Optional[bool] = field(default=None, metadata=dict(ignore_history=True, description="Indicates if this policy is managed by AWS or custom."))  # fmt: skip
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         return iam_update_tag(
@@ -392,15 +392,15 @@ class AwsIamPolicy(AwsResource, BasePolicy):
 class AwsIamGroup(AwsResource, BaseGroup):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_group"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/groups/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:group/{name}"}  # fmt: skip
-    kind_display: ClassVar[str] = "AWS IAM Group"
-    kind_description: ClassVar[str] = (
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/groups/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:group/{name}"}  # fmt: skip
+    _kind_display: ClassVar[str] = "AWS IAM Group"
+    _kind_description: ClassVar[str] = (
         "IAM Groups are collections of IAM users. They allow you to manage"
         " permissions collectively for multiple users, making it easier to manage"
         " access to AWS resources."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -494,12 +494,12 @@ class AwsIamAccessKeyLastUsed:
 class AwsIamAccessKey(AwsResource, BaseAccessKey):
     # Note: this resource is collected via AwsIamUser.collect.
     kind: ClassVar[str] = "aws_iam_access_key"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/{UserName}?section=security_credentials&display=access_key&accessKeyID={AccessKeyId}"}  # fmt: skip
-    kind_display: ClassVar[str] = "AWS IAM Access Key"
-    kind_description: ClassVar[str] = (
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/{UserName}?section=security_credentials&display=access_key&accessKeyID={AccessKeyId}"}  # fmt: skip
+    _kind_display: ClassVar[str] = "AWS IAM Access Key"
+    _kind_description: ClassVar[str] = (
         "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
         "tags": S("Tags", default=[]) >> ToDict(),
@@ -627,14 +627,14 @@ class AwsIamVirtualMfaDevice:
 @define(eq=False, slots=False)
 class AwsRootUser(AwsResource, BaseUser, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_root_user"
-    kind_display: ClassVar[str] = "AWS Root User"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:None:{region}:{account}:resource/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Root User"
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:None:{region}:{account}:resource/{id}"}  # fmt: skip
+    _kind_description: ClassVar[str] = (
         "The AWS Root User is the initial user created when setting up an AWS account"
         " and has unrestricted access to all resources in the account."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_account"]},
     }
     password_enabled: Optional[bool] = field(default=None)
@@ -648,15 +648,15 @@ class AwsRootUser(AwsResource, BaseUser, BaseIamPrincipal):
 @define(eq=False, slots=False)
 class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_iam_user"
-    kind_display: ClassVar[str] = "AWS IAM User"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:user/{name}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS IAM User"
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:user/{name}"}  # fmt: skip
+    _kind_description: ClassVar[str] = (
         "IAM Users are identities created within AWS Identity and Access Management"
         " (IAM) that can be assigned permissions to access and manage AWS resources."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "get-account-authorization-details")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_iam_group"]},
         "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
     }
@@ -814,14 +814,14 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
 @define(eq=False, slots=False)
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
-    kind_display: ClassVar[str] = "AWS IAM Instance Profile"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS IAM Instance Profile"
+    _kind_description: ClassVar[str] = (
         "IAM Instance Profiles are used to associate IAM roles with EC2 instances,"
         " allowing the instances to securely access AWS services and resources."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "access_control"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:instance-profile/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "access_control"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:instance-profile/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-instance-profiles", "InstanceProfiles")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("InstanceProfileId"),

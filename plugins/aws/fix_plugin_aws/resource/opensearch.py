@@ -249,17 +249,17 @@ class AwsOpenSearchOffPeakWindowOptions:
 @define(eq=False, slots=False)
 class AwsOpenSearchDomain(AwsResource):
     kind: ClassVar[str] = "aws_opensearch_domain"
-    kind_display: ClassVar[str] = "AWS OpenSearch Domain"
-    kind_description: ClassVar[str] = "An AWS OpenSearch Domain provides a managed environment in the AWS cloud to easily deploy, operate, and scale OpenSearch, a popular search and analytics engine."  # fmt: skip
-    kind_service: ClassVar[Optional[str]] = service_name
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_display: ClassVar[str] = "AWS OpenSearch Domain"
+    _kind_description: ClassVar[str] = "An AWS OpenSearch Domain provides a managed environment in the AWS cloud to easily deploy, operate, and scale OpenSearch, a popular search and analytics engine."  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "default": [AwsEc2InstanceType.kind, AwsEc2Vpc.kind, AwsEc2SecurityGroup.kind, AwsEc2Subnet.kind]
         },
         "successors": {"default": [AwsCognitoUserPool.kind]},
     }
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/aos/home?region={region}#opensearch/domains/{name}", "arn_tpl": "arn:{partition}:opensearch:{region}:{account}:domain/{name}"}  # fmt: skip
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/aos/home?region={region}#opensearch/domains/{name}", "arn_tpl": "arn:{partition}:opensearch:{region}:{account}:domain/{name}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("DomainId"),
         "tags": S("Tags", default=[]) >> ToDict(),

@@ -150,7 +150,8 @@ def dataclasses_to_fixcore_model(
     aggregate_root: Optional[Type[Any]] = None,
     walk_subclasses: bool = True,
     use_optional_as_required: bool = False,
-    with_description: bool = True,
+    with_kind_description: bool = False,
+    with_prop_description: bool = False,
 ) -> List[Json]:
     """
     Analyze all transitive dataclasses and create the model
@@ -163,7 +164,8 @@ def dataclasses_to_fixcore_model(
     :param aggregate_root: if a type is a subtype of this type, it will be considered an aggregate root.
     :param walk_subclasses: if true, all subclasses of the given classes will be analyzed as well.
     :param use_optional_as_required: if true, all non-optional fields will be considered required.
-    :param with_description: if true, include the description for classes and properties.
+    :param with_kind_description: if true, include the description for classes.
+    :param with_prop_description: if true, include the description for properties.
     :return: the model definition in the fixcore json format.
     """
 
@@ -176,7 +178,7 @@ def dataclasses_to_fixcore_model(
         meta = field.metadata.copy()
         kind = meta.pop("type_hint", model_name(field.type))
         desc = meta.pop("description", None)
-        desc = desc if with_description else None
+        desc = desc if with_prop_description else None
         required = meta.pop("required", use_optional_as_required and not is_optional(field.type))  # type: ignore
         synthetic = meta.pop("synthetic", None)
         synthetic = synthetic if synthetic else {}
@@ -191,7 +193,9 @@ def dataclasses_to_fixcore_model(
             meta: Optional[Dict[str, str]],
             **kwargs: Any,
         ) -> Json:
-            js = {"name": name, "kind": kind_str, "required": required, "description": description, **kwargs}
+            js = {"name": name, "kind": kind_str, "required": required, **kwargs}
+            if description:
+                js["description"] = description
             if meta:
                 js["metadata"] = meta
             return js
@@ -225,7 +229,7 @@ def dataclasses_to_fixcore_model(
             if succs := getattr(clazz, "successor_kinds", None):
                 for edge_type, values in succs.items():
                     successors[name][edge_type].extend(values)
-            if refs := getattr(clazz, "reference_kinds", None):
+            if refs := getattr(clazz, "_reference_kinds", None):
                 if succs := refs.get("successors", None):
                     for edge_type, values in succs.items():
                         successors[name][edge_type].extend(values)
@@ -245,15 +249,21 @@ def dataclasses_to_fixcore_model(
         root = any(sup == aggregate_root for sup in clazz.mro()) if aggregate_root else True
         kind = model_name(clazz)
         metadata: Json = {}
-        if (m := getattr(clazz, "metadata", None)) and isinstance(m, dict):
+        if (m := getattr(clazz, "_metadata", None)) and isinstance(m, dict):
             metadata = m.copy()
-        if (s := clazz.__dict__.get("kind_display", None)) and isinstance(s, str):
+        if (s := clazz.__dict__.get("_kind_display", None)) and isinstance(s, str):
             metadata["name"] = s
-        if (s := getattr(clazz, "kind_service", None)) and isinstance(s, str):
+        if (s := getattr(clazz, "_kind_service", None)) and isinstance(s, str):
             metadata["service"] = s
         if (slc := getattr(clazz, "categories", None)) and callable(slc) and (sl := slc()):
             metadata["categories"] = sl
-        if with_description and (s := clazz.__dict__.get("kind_description", None)) and isinstance(s, str):
+        if (  # only export kind description on aggregate roots
+            with_kind_description
+            and (ar := aggregate_root)
+            and issubclass(clazz, ar)
+            and (s := clazz.__dict__.get("_kind_description", None))
+            and isinstance(s, str)
+        ):
             metadata["description"] = s
 
         model.append(
@@ -293,9 +303,9 @@ def dataclasses_to_fixcore_model(
 # Use this model exporter, if a dynamic object is exported
 # with given name and properties.
 def dynamic_object_to_fixcore_model(
-    name: str, properties: Dict[str, type], aggregate_root: bool = True, traverse_dependant: bool = True
+    name: str, properties: Dict[str, type], aggregate_root: bool = True, traverse_dependant: bool = True, **kwargs: Any
 ) -> List[Json]:
-    dependant = dataclasses_to_fixcore_model(set(properties.values())) if traverse_dependant else []
+    dependant = dataclasses_to_fixcore_model(set(properties.values()), **kwargs) if traverse_dependant else []
     # append definition for top level object
     dependant.append(
         {
@@ -325,34 +335,22 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
     if changes_only:
         node_dict.update(node.changes.get())
     else:
-        node_dict.update(
-            {
-                "reported": get_node_attributes(node),
-                "metadata": {
-                    "python_type": type_str(node),
-                    "cleaned": node.cleaned,
-                    "phantom": node.phantom,
-                    "protected": node.protected,
-                    "categories": node.categories(),
-                    **node._metadata,
-                },
-                "usage": node._resource_usage,
-            }
-        )
+        metadata: Json = {"python_type": type_str(node), "categories": node.categories()}
+        if node.cleaned:
+            metadata["cleaned"] = True
+        if node.protected:
+            metadata["protected"] = True
+        if link := node._provider_link:
+            metadata["provider_link"] = link
+
+        node_dict["reported"] = get_node_attributes(node)
+        node_dict["metadata"] = metadata
+        if usage := node._resource_usage:
+            node_dict["usage"] = usage
         if node.clean:
-            node_dict.update(
-                {
-                    "desired": {
-                        "clean": node.clean,
-                    }
-                }
-            )
+            node_dict.update({"desired": {"clean": node.clean}})
     if include_revision and node._fixcore_revision:
-        node_dict.update(
-            {
-                "revision": node._fixcore_revision,
-            }
-        )
+        node_dict["revision"] = node._fixcore_revision
     return node_dict
 
 

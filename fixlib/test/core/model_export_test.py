@@ -47,7 +47,7 @@ class DataClassExample(DataClassBase):
     successor_kinds: ClassVar[Dict[str, List[str]]] = {
         "default": ["example"],
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["base"]},
         "predecessors": {"delete": ["other"]},
     }
@@ -125,7 +125,7 @@ def test_enum_to_model() -> None:
 
 
 def test_dataclasses_to_fixcore_model() -> None:
-    result = dataclasses_to_fixcore_model({DataClassExample})
+    result = dataclasses_to_fixcore_model({DataClassExample}, with_kind_description=True, with_prop_description=True)
     assert len(result) == 5
     for r in result:
         props = {p["name"]: p for p in r.get("properties", [])}
@@ -187,7 +187,12 @@ class GcpTestConfigConfig:
 def test_config_export():
     # Let's assume a dynamic top level object of name Config
     # The properties are defined by name and related type.
-    result = dynamic_object_to_fixcore_model("config", {"aws": AwsTestConfig, "gcp": GcpTestConfigConfig})
+    result = dynamic_object_to_fixcore_model(
+        "config",
+        {"aws": AwsTestConfig, "gcp": GcpTestConfigConfig},
+        with_kind_description=True,
+        with_prop_description=True,
+    )
     result_dict = {a["fqn"]: a for a in result}
     assert len(result_dict["gcp_config"]["properties"]) == 1
     assert len(result_dict["aws_config"]["properties"]) == 2

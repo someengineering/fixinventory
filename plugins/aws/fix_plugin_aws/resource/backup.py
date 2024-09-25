@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Any, ClassVar, Dict, Optional, List, Type
+from json import loads as json_loads
 
 from attrs import define, field
 
@@ -18,6 +19,7 @@ from fixlib.baseresources import ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
+from fixlib.json import sort_json
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "backup"
@@ -67,15 +69,15 @@ class AwsBackupRecoveryPointCreator:
 @define(eq=False, slots=False)
 class AwsBackupJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_job"
-    kind_display: ClassVar[str] = "AWS Backup Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Job"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Jobs represent the individual backup tasks that are executed based on backup plans. "
         "They encompass the execution details and status of the backup process for a specified resource."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_plan", "aws_backup_vault"]},
         "successors": {"default": ["aws_backup_protected_resource", "aws_backup_recovery_point"]},
     }
@@ -150,15 +152,15 @@ class AwsBackupJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupProtectedResource(AwsResource):
     kind: ClassVar[str] = "aws_backup_protected_resource"
-    kind_display: ClassVar[str] = "AWS Backup Protected Resource"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Protected Resource"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Protected Resources represent the AWS resources that are configured to be backed up according to a backup plan. "
         "They include information about the resource type and identifiers."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/resources/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/resources/{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_vault", "aws_backup_recovery_point"]},
         "successors": {
             "default": [
@@ -228,14 +230,14 @@ class AwsBackupAdvancedBackupSetting:
 @define(eq=False, slots=False)
 class AwsBackupPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_plan"
-    kind_display: ClassVar[str] = "AWS Backup Plan"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Plan"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Plans define the schedule and rules for automatically backing up AWS resources. "
         "They include settings such as backup frequency, retention period, and lifecycle policies."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-plan:{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-plan:{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-plans", "BackupPlansList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupPlanId"),
@@ -310,14 +312,14 @@ class AwsBackupPlan(BackupResourceTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupVault(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_vault"
-    kind_display: ClassVar[str] = "AWS Backup Vault"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Vault"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Vaults are secure storage locations for backup data. "
         "They are used to store and organize backups created by AWS Backup, providing encryption and access control."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-vaults", "BackupVaultList")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("BackupVaultArn"),
@@ -345,6 +347,7 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource):
     min_retention_days: Optional[int] = field(default=None, metadata={"description": "The Backup Vault Lock setting that specifies the minimum retention period that the vault retains its recovery points. If this parameter is not specified, Vault Lock does not enforce a minimum retention period. If specified, any backup or copy job to the vault must have a lifecycle policy with a retention period equal to or longer than the minimum retention period. If the job's retention period is shorter than that minimum retention period, then the vault fails the backup or copy job, and you should either modify your lifecycle settings or use a different vault. Recovery points already stored in the vault prior to Vault Lock are not affected."})  # fmt: skip
     max_retention_days: Optional[int] = field(default=None, metadata={"description": "The Backup Vault Lock setting that specifies the maximum retention period that the vault retains its recovery points. If this parameter is not specified, Vault Lock does not enforce a maximum retention period on the recovery points in the vault (allowing indefinite storage). If specified, any backup or copy job to the vault must have a lifecycle policy with a retention period equal to or shorter than the maximum retention period. If the job's retention period is longer than that maximum retention period, then the vault fails the backup or copy job, and you should either modify your lifecycle settings or use a different vault. Recovery points already stored in the vault prior to Vault Lock are not affected."})  # fmt: skip
     lock_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time when Backup Vault Lock configuration becomes immutable, meaning it cannot be changed or deleted. If you applied Vault Lock to your vault without specifying a lock date, you can change your Vault Lock settings, or delete Vault Lock from the vault entirely, at any time. This value is in Unix format, Coordinated Universal Time (UTC), and accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
+    vault_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -352,6 +355,7 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "list-tags"),
             AwsApiSpec(service_name, "list-recovery-points-by-backup-vault"),
+            AwsApiSpec(service_name, "get-backup-vault-access-policy"),
         ]
 
     @classmethod
@@ -394,11 +398,23 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource):
                 for tag in tags:
                     backup_plan.tags.update(tag)
 
+        def add_vault_policy(vault: AwsBackupVault) -> None:
+            with builder.suppress(f"{service_name}.get-backup-vault-access-policy"):
+                if raw_policy := builder.client.get(
+                    service_name,
+                    "get-backup-vault-access-policy",
+                    "Policy",
+                    BackupVaultName=vault.name,
+                    expected_errors=["ResourceNotFoundException"],
+                ):
+                    vault.vault_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
+
         for js in json:
             if instance := cls.from_api(js, builder):
                 builder.add_node(instance, js)
                 builder.submit_work(service_name, collect_recovery_points, instance)
                 builder.submit_work(service_name, add_tags, instance)
+                builder.submit_work(service_name, add_vault_policy, instance)
 
 
 @define(eq=False, slots=False)
@@ -428,16 +444,16 @@ class AwsBackupLifecycle:
 @define(eq=False, slots=False)
 class AwsBackupRecoveryPoint(AwsResource):
     kind: ClassVar[str] = "aws_backup_recovery_point"
-    kind_display: ClassVar[str] = "AWS Backup Recovery Point"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Recovery Point"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Recovery Points by Vault represent specific instances of backup data stored within a backup vault. "
         "They provide detailed information on the recovery points, including metadata, status, and lifecycle policies. "
         "These recovery points are crucial for restoring data during disaster recovery or operational recovery scenarios."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupvaults/details/{backup_vault_name}/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupvaults/details/{backup_vault_name}/{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_vault", "aws_backup_plan"]},
     }
     # Resource will be collect by AwsBackupVault
@@ -582,15 +598,15 @@ class AwsBackupReportDeliveryChannel:
 @define(eq=False, slots=False)
 class AwsBackupReportPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_report_plan"
-    kind_display: ClassVar[str] = "AWS Backup Report Plan"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Report Plan"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Report Plans generate reports that provide detailed information on backup jobs and resource compliance. "
         "These reports help in monitoring and auditing backup activities and compliance with organizational policies."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/reports/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:report-plan:{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/reports/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:report-plan:{name}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_framework"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -672,14 +688,14 @@ class AwsBackupReportPlan(BackupResourceTaggable, AwsResource):
 
 class AwsBackupRestoreTestingPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_testing_plan"
-    kind_display: ClassVar[str] = "AWS Backup Restore Testing Plan"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Restore Testing Plan"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Restore Testing Plans are configurations designed to test the restore capabilities and processes for backed-up data. "
         "They ensure that recovery procedures are effective and that data can be reliably restored."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-testing-plans", "RestoreTestingPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("RestoreTestingPlanArn"),
@@ -752,14 +768,14 @@ class AwsBackupRestoreTestingPlan(BackupResourceTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupLegalHold(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_legal_hold"
-    kind_display: ClassVar[str] = "AWS Backup Legal Hold"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Legal Hold"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Legal Holds are used to retain backup data for compliance and legal purposes. "
         "They prevent deletion of backups that might be required for legal or regulatory reasons."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/legalholds/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:legal-hold:{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/legalholds/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:legal-hold:{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-legal-holds", "LegalHolds")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("LegalHoldId"),
@@ -819,15 +835,15 @@ class AwsBackupLegalHold(BackupResourceTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupRestoreJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_job"
-    kind_display: ClassVar[str] = "AWS Backup Restore Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Restore Job"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Restore Jobs represent the tasks that restore data from backups. "
         "They include details on the restore process, target resources, and status of the restoration."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_testing_plan", "aws_backup_recovery_point"]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-jobs", "RestoreJobs")
@@ -885,15 +901,15 @@ class AwsBackupRestoreJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupCopyJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_copy_job"
-    kind_display: ClassVar[str] = "AWS Backup Copy Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Copy Job"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Copy Jobs are operations that duplicate backups from one backup vault to another. "
         "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_backup_plan"]},
         "successors": {"default": ["aws_backup_vault", "aws_backup_recovery_point"]},
     }
@@ -960,14 +976,14 @@ class AwsBackupCopyJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsBackupFramework(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_framework"
-    kind_display: ClassVar[str] = "AWS Backup Framework"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Backup Framework"
+    _kind_description: ClassVar[str] = (
         "AWS Backup Frameworks are predefined sets of controls and requirements designed to help organizations align their backup operations with regulatory and compliance standards. "
         "They provide a structured approach to managing backups, ensuring adherence to policies, and facilitating audits."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/frameworks/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:framework:{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/frameworks/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:framework:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "backup", "list-frameworks", "Frameworks", expected_errors=["AccessDeniedException"]
     )

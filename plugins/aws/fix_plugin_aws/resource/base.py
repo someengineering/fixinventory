@@ -115,10 +115,14 @@ class AwsResource(BaseResource, ABC):
     Override kind, mapping and api_spec for every resource that is collected in AWS.
     """
 
-    # The name of the kind of all resources. Needs to be globally unique.
+    # The kind of this resource. Needs to be globally unique.
     kind: ClassVar[str] = "aws_resource"
-    kind_display: ClassVar[str] = "AWS Resource"
-    kind_description: ClassVar[str] = "AWS Resource is a generic term used to refer to any type of resource available in Amazon Web Services cloud."  # fmt: skip
+    # The display name of the kind.
+    _kind_display: ClassVar[str] = "AWS Resource"
+    # The description of the kind.
+    _kind_description: ClassVar[str] = "AWS Resource is a generic term used to refer to any type of resource available in Amazon Web Services cloud."  # fmt: skip
+    # AWS specific metadata that hold template strings for ARN and provider link.
+    _aws_metadata: ClassVar[Dict[str, Any]] = {}
     # The mapping to transform the incoming API json into the internal representation.
     mapping: ClassVar[Dict[str, Bender]] = {}
     # Which API to call and what to expect in the result.
@@ -268,14 +272,14 @@ AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 @define(eq=False)
 class AwsAccount(BaseAccount, AwsResource, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_account"
-    kind_display: ClassVar[str] = "AWS Account"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Account"
+    _kind_description: ClassVar[str] = (
         "An AWS Account is a container for AWS resources, such as EC2 instances, S3"
         " buckets, and RDS databases. It allows users to access and manage their"
         " resources on the Amazon Web Services platform."
     )
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/billing/home?region={region}#/account"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/billing/home?region={region}#/account"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
 
     account_alias: Optional[str] = ""
     role: Optional[str] = None
@@ -314,13 +318,13 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 @define(eq=False)
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
-    kind_display: ClassVar[str] = "AWS Region"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Region"
+    _kind_description: ClassVar[str] = (
         "An AWS Region is a physical location where AWS has multiple data centers,"
         " allowing users to choose the geographic area in which their resources are"
         " located."
     )
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "aws_vpc_peering_connection",
@@ -387,14 +391,14 @@ class AwsRegion(BaseRegion, AwsResource):
 @define(eq=False, slots=False)
 class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     kind: ClassVar[str] = "aws_ec2_volume_type"
-    kind_display: ClassVar[str] = "AWS EC2 Volume Type"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EC2 Volume Type"
+    _kind_description: ClassVar[str] = (
         "EC2 Volume Types are different storage options for Amazon Elastic Block"
         " Store (EBS) volumes, such as General Purpose (SSD) and Magnetic."
     )
-    kind_service = "ec2"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
+    _kind_service = "ec2"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
 
 
 class GraphBuilder:
@@ -507,7 +511,7 @@ class GraphBuilder:
         node._account = self.account
         node._region = region or self.region
 
-        meta = getattr(type(node), "aws_metadata", None) or {}
+        meta = getattr(type(node), "_aws_metadata", None) or {}
         # if there is no arn: try to create one from template
         if node.arn is None and (arn_tpl := meta.get("arn_tpl")):
             try:
@@ -531,7 +535,7 @@ class GraphBuilder:
 
         # If there is no provider_link: try to create one from template.
         # The template can use the complete src json, plus some base attributes.
-        if node._metadata.get("provider_link") is None and (link_tpl := meta.get("provider_link_tpl")):
+        if node._provider_link is None and (link_tpl := meta.get("provider_link_tpl")):
             try:
                 all_params = True
                 link = link_tpl
@@ -547,7 +551,7 @@ class GraphBuilder:
                     else:
                         link = link.replace("{" + placeholder + "}", urlquote(str(value)))
                 if all_params:
-                    node._metadata["provider_link"] = link
+                    node._provider_link = link
             except Exception as e:
                 log.warning(f"Can not compute provider_link for {node} with template: {link_tpl}: {e}")
 

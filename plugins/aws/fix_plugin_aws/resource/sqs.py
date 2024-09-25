@@ -37,17 +37,17 @@ class AwsSqsRedrivePolicy:
 @define(eq=False, slots=False)
 class AwsSqsQueue(AwsResource, BaseQueue):
     kind: ClassVar[str] = "aws_sqs_queue"
-    kind_display: ClassVar[str] = "AWS SQS Queue"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS SQS Queue"
+    _kind_description: ClassVar[str] = (
         "SQS (Simple Queue Service) is a fully managed message queuing service"
         " provided by Amazon Web Services. It enables you to decouple and scale"
         " microservices, distributed systems, and serverless applications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sqs/v3/home?region={region}#/queues/{QueueUrl}", "arn_tpl": "arn:{partition}:sqs:{region}:{account}:{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sqs/v3/home?region={region}#/queues/{QueueUrl}", "arn_tpl": "arn:{partition}:sqs:{region}:{account}:{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-queues", "QueueUrls")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},
         "predecessors": {"delete": ["aws_kms_key"]},
     }

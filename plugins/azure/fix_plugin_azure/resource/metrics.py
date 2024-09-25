@@ -18,7 +18,7 @@ from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
 from fixlib.utils import utc_str
 
 log = logging.getLogger("fix.plugins.azure")
-service_name = "azure_metric"
+service_name = "metric"
 
 
 @define(eq=False, slots=False)

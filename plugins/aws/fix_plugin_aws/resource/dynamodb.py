@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import ClassVar, Dict, List, Optional, Type, Any
 from attrs import define, field
+from json import loads as json_loads
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, parse_json
@@ -11,6 +12,7 @@ from fixlib.baseresources import ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend
 from fixlib.types import Json
+from fixlib.json import sort_json
 
 service_name = "dynamodb"
 
@@ -356,17 +358,17 @@ class AwsDynamoDbContinuousBackup:
 @define(eq=False, slots=False)
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_table"
-    kind_display: ClassVar[str] = "AWS DynamoDB Table"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS DynamoDB Table"
+    _kind_description: ClassVar[str] = (
         "An AWS DynamoDB Table is a collection of data items organized by a primary key in Amazon DynamoDB,"
         " a fully managed NoSQL database service that provides fast and predictable performance with seamless"
         " scalability."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/dynamodbv2/home?region={region}#table?name={name}", "arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/dynamodbv2/home?region={region}#table?name={name}", "arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-tables", "TableNames")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kinesis_stream", "aws_kms_key"]},
         "predecessors": {"delete": ["aws_kinesis_stream", "aws_kms_key"]},
     }
@@ -418,6 +420,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     dynamodb_archival_summary: Optional[AwsDynamoDbArchivalSummary] = field(default=None)
     dynamodb_table_class_summary: Optional[AwsDynamoDbTableClassSummary] = field(default=None)
     dynamodb_continuous_backup: Optional[AwsDynamoDbContinuousBackup] = field(default=None)
+    dynamodb_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -426,10 +429,20 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
             AwsApiSpec(service_name, "describe-table"),
             AwsApiSpec(service_name, "list-tags-of-resource"),
             AwsApiSpec(service_name, "describe-continuous-backups"),
+            AwsApiSpec(service_name, "get-resource-policy"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_dynamodb_policy(table: AwsDynamoDbTable) -> None:
+            with builder.suppress(f"{service_name}.get-bucket-policy"):
+                if raw_policy := builder.client.get(
+                    service_name,
+                    "get-resource-policy",
+                    "Policy",
+                    ResourceArn=table.arn,
+                ):
+                    table.dynamodb_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
 
         def add_backup_description(table: AwsDynamoDbTable) -> None:
             if continuous_backup := builder.client.get(
@@ -446,6 +459,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
                     builder.submit_work(service_name, add_backup_description, instance)
+                    builder.submit_work(service_name, add_dynamodb_policy, instance)
 
         def add_tags(table: AwsDynamoDbTable) -> None:
             tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)
@@ -489,17 +503,17 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_global_table"
-    kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
+    _kind_description: ClassVar[str] = (
         "AWS DynamoDB Global Tables provide fully managed, multi-region, and globally"
         " distributed replicas of DynamoDB tables, enabling low-latency and high-"
         " performance global access to data."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-global-tables", "GlobalTables")
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_kms_key"]},
         "predecessors": {"delete": ["aws_kms_key"]},
     }
@@ -515,6 +529,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     arn: Optional[str] = field(default=None)
     dynamodb_replication_group: List[AwsDynamoDbReplicaDescription] = field(factory=list)
     dynamodb_global_table_status: Optional[str] = field(default=None)
+    dynamodb_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -522,10 +537,22 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "describe-global-table"),
             AwsApiSpec(service_name, "list-tags-of-resource"),
+            AwsApiSpec(service_name, "get-resource-policy"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_dynamodb_policy(table: AwsDynamoDbGlobalTable) -> None:
+            with builder.suppress(f"{service_name}.get-bucket-policy"):
+                if raw_policy := builder.client.get(
+                    service_name,
+                    "get-resource-policy",
+                    "Policy",
+                    ResourceArn=table.arn,
+                    expected_errors=["PolicyNotFoundException"],
+                ):
+                    table.dynamodb_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
+
         def add_instance(table: Dict[str, str]) -> None:
             table_description = builder.client.get(
                 service_name,
@@ -537,6 +564,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
                 if instance := cls.from_api(table_description, builder):
                     builder.add_node(instance, table_description)
                     builder.submit_work(service_name, add_tags, instance)
+                    builder.submit_work(service_name, add_dynamodb_policy, instance)
 
         def add_tags(table: AwsDynamoDbGlobalTable) -> None:
             tags = builder.client.list(service_name, "list-tags-of-resource", "Tags", ResourceArn=table.arn)

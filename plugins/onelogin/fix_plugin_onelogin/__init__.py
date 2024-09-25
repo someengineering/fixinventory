@@ -27,22 +27,22 @@ class OneLoginResource:
 @define(eq=False, slots=False)
 class OneLoginAccount(OneLoginResource, BaseAccount):
     kind: ClassVar[str] = "onelogin_account"
-    kind_display: ClassVar[str] = "OneLogin Account"
-    kind_description: ClassVar[str] = "A OneLogin Account."
+    _kind_display: ClassVar[str] = "OneLogin Account"
+    _kind_description: ClassVar[str] = "A OneLogin Account."
 
 
 @define(eq=False, slots=False)
 class OneLoginRegion(OneLoginResource, BaseRegion):
     kind: ClassVar[str] = "onelogin_region"
-    kind_display: ClassVar[str] = "OneLogin Region"
-    kind_description: ClassVar[str] = "A OneLogin Region."
+    _kind_display: ClassVar[str] = "OneLogin Region"
+    _kind_description: ClassVar[str] = "A OneLogin Region."
 
 
 @define(eq=False, slots=False)
 class OneLoginUser(OneLoginResource, BaseUser):
     kind: ClassVar[str] = "onelogin_user"
-    kind_display: ClassVar[str] = "OneLogin User"
-    kind_description: ClassVar[str] = "A OneLogin User."
+    _kind_display: ClassVar[str] = "OneLogin User"
+    _kind_description: ClassVar[str] = "A OneLogin User."
     user_id: Optional[int] = field(default=None, metadata={"description": "User ID"})
     external_id: Optional[str] = None
     email: Optional[str] = None

@@ -282,8 +282,8 @@ class GraphBuilder:
 @define(eq=False, slots=False)
 class GcpResource(BaseResource):
     kind: ClassVar[str] = "gcp_resource"
-    kind_display: ClassVar[str] = "GCP Resource"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Resource"
+    _kind_description: ClassVar[str] = (
         "GCP Resource refers to any resource or service available on the Google Cloud"
         " Platform, such as virtual machines, databases, storage buckets, and"
         " networking components."
@@ -447,9 +447,9 @@ GcpResourceType = TypeVar("GcpResourceType", bound=GcpResource)
 @define(eq=False, slots=False)
 class GcpProject(GcpResource, BaseAccount):
     kind: ClassVar[str] = "gcp_project"
-    kind_display: ClassVar[str] = "GCP Project"
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Project"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
+    _kind_description: ClassVar[str] = (
         "A GCP Project is a container for resources in the Google Cloud Platform,"
         " allowing users to organize and manage their cloud resources."
     )
@@ -501,13 +501,13 @@ class GcpLimit:
 @define(eq=False, slots=False)
 class GcpRegionQuota(GcpResource):
     kind: ClassVar[str] = "gcp_region_quota"
-    kind_display: ClassVar[str] = "GCP Region Quota"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Region Quota"
+    _kind_description: ClassVar[str] = (
         "Region Quota in GCP refers to the maximum limits of resources that can be"
         " provisioned in a specific region, such as compute instances, storage, or"
         " networking resources."
     )
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "misc"}
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "misc"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "name": S("name"),
@@ -523,8 +523,8 @@ class GcpRegionQuota(GcpResource):
 @define(eq=False, slots=False)
 class GcpRegion(GcpResource, BaseRegion):
     kind: ClassVar[str] = "gcp_region"
-    kind_display: ClassVar[str] = "GCP Region"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Region"
+    _kind_description: ClassVar[str] = (
         "A GCP Region is a specific geographical location where Google Cloud Platform"
         " resources are deployed and run."
     )
@@ -549,7 +549,7 @@ class GcpRegion(GcpResource, BaseRegion):
         "region_deprecated": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "region_supports_pzs": S("supportsPzs"),
     }
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_zone"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_zone"]}}
     description: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
     region_deprecated: Optional[GcpDeprecationStatus] = field(default=None)
@@ -579,8 +579,8 @@ class GcpRegion(GcpResource, BaseRegion):
 @define(eq=False, slots=False)
 class GcpZone(GcpResource, BaseZone):
     kind: ClassVar[str] = "gcp_zone"
-    kind_display: ClassVar[str] = "GCP Zone"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "GCP Zone"
+    _kind_description: ClassVar[str] = (
         "A GCP Zone is a specific geographic location where Google Cloud Platform"
         " resources can be deployed. Zones are isolated from each other within a"
         " region, providing fault tolerance and high availability for applications and"

@@ -25,9 +25,9 @@ class SlackResource:
 @define(eq=False, slots=False)
 class SlackTeam(SlackResource, BaseAccount):
     kind: ClassVar[str] = "slack_team"
-    kind_display: ClassVar[str] = "Slack Team"
-    kind_description: ClassVar[str] = "A Slack Team."
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_display: ClassVar[str] = "Slack Team"
+    _kind_description: ClassVar[str] = "A Slack Team."
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["slack_region"],
             "delete": [],
@@ -52,9 +52,9 @@ class SlackTeam(SlackResource, BaseAccount):
 @define(eq=False, slots=False)
 class SlackRegion(SlackResource, BaseRegion):
     kind = "slack_region"
-    kind_display: ClassVar[str] = "Slack Region"
-    kind_description: ClassVar[str] = "A Slack Region."
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_display: ClassVar[str] = "Slack Region"
+    _kind_description: ClassVar[str] = "A Slack Region."
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["slack_usergroup", "slack_user", "slack_conversation"],
             "delete": [],
@@ -65,8 +65,8 @@ class SlackRegion(SlackResource, BaseRegion):
 @define(eq=False, slots=False)
 class SlackUser(SlackResource, BaseUser):
     kind: ClassVar[str] = "slack_user"
-    kind_display: ClassVar[str] = "Slack User"
-    kind_description: ClassVar[str] = "A Slack User."
+    _kind_display: ClassVar[str] = "Slack User"
+    _kind_description: ClassVar[str] = "A Slack User."
 
     real_name: Optional[str] = None
     team_id: Optional[str] = None
@@ -154,9 +154,9 @@ class SlackUser(SlackResource, BaseUser):
 @define(eq=False, slots=False)
 class SlackUsergroup(SlackResource, BaseGroup):
     kind: ClassVar[str] = "slack_usergroup"
-    kind_display: ClassVar[str] = "Slack Usergroup"
-    kind_description: ClassVar[str] = "A Slack Usergroup."
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_display: ClassVar[str] = "Slack Usergroup"
+    _kind_description: ClassVar[str] = "A Slack Usergroup."
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["slack_user"],
             "delete": [],
@@ -208,9 +208,9 @@ class SlackUsergroup(SlackResource, BaseGroup):
 @define(eq=False, slots=False)
 class SlackConversation(SlackResource, BaseResource):
     kind: ClassVar[str] = "slack_conversation"
-    kind_display: ClassVar[str] = "Slack Conversation"
-    kind_description: ClassVar[str] = "A Slack Conversation."
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_display: ClassVar[str] = "Slack Conversation"
+    _kind_description: ClassVar[str] = "A Slack Conversation."
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["slack_user"],
             "delete": [],

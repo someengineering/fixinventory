@@ -47,18 +47,18 @@ class AmazonQTaggable:
 @define(eq=False, slots=False)
 class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_application"
-    kind_display: ClassVar[str] = "AWS QBusiness Application"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Application"
+    _kind_description: ClassVar[str] = (
         "Represents a QBusiness application within the AWS QBusiness service. Applications"
         " define a set of tasks and configuration for processing data within the QBusiness ecosystem."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{id}",
     }
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
                 "aws_q_business_conversation",
@@ -313,13 +313,13 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessConversation(AwsResource):
     kind: ClassVar[str] = "aws_q_business_conversation"
-    kind_display: ClassVar[str] = "AWS QBusiness Conversation"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Conversation"
+    _kind_description: ClassVar[str] = (
         "Represents a conversation within the AWS QBusiness service. Conversations are"
         " interactions that involve a series of messages or data exchanges."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("conversationId"),
@@ -347,15 +347,15 @@ class AwsQBusinessConversation(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_data_source"
-    kind_display: ClassVar[str] = "AWS QBusiness Data Source"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Data Source"
+    _kind_description: ClassVar[str] = (
         "Represents a data source in the AWS QBusiness service. Data sources are the origins"
         " from which data is ingested for processing or analysis within the QBusiness framework."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "ai"}
     # Collected via AwsQBusinessApplication()
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/amazonq/business/applications/{application_id}/indices/{indice_id}/datasources/{id}/details?region={region}",  # fmt: skip
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{indice_id}/data-source/{id}",
         "extra_args_for_arn": ["application_id", "indice_id"],
@@ -437,13 +437,13 @@ class AwsQBusinessDataSourceSyncJobMetrics:
 @define(eq=False, slots=False)
 class AwsQBusinessDataSourceSyncJob(AwsResource):
     kind: ClassVar[str] = "aws_q_business_data_source_sync_job"
-    kind_display: ClassVar[str] = "AWS QBusiness Data Source Sync Job"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Data Source Sync Job"
+    _kind_description: ClassVar[str] = (
         "Represents a data source synchronization job in the AWS QBusiness service. Sync jobs"
         " ensure that data from data sources is up-to-date and correctly integrated into the system."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("executionId"),
@@ -479,13 +479,13 @@ class AwsQBusinessDataSourceSyncJob(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessDocument(AwsResource):
     kind: ClassVar[str] = "aws_q_business_document"
-    kind_display: ClassVar[str] = "AWS QBusiness Document"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Document"
+    _kind_description: ClassVar[str] = (
         "Represents a document within the AWS QBusiness service. Documents are structured pieces"
         " of information that can be used for various purposes within the QBusiness ecosystem."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("documentId"),
@@ -519,14 +519,14 @@ class AwsQBusinessDocument(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_indice"
-    kind_display: ClassVar[str] = "AWS QBusiness Indice"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Indice"
+    _kind_description: ClassVar[str] = (
         "Represents an index in the AWS QBusiness service. Indices are used to organize and"
         " facilitate efficient searching and retrieval of data within the QBusiness framework."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/index/{id}",
         "extra_args_for_arn": ["application_id"],
     }
@@ -700,13 +700,13 @@ class AwsQBusinessActionExecution:
 @define(eq=False, slots=False)
 class AwsQBusinessMessage(AwsResource):
     kind: ClassVar[str] = "aws_q_business_message"
-    kind_display: ClassVar[str] = "AWS QBusiness Message"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Message"
+    _kind_description: ClassVar[str] = (
         "Represents a message within the AWS QBusiness service. Messages are used for communication"
         " or data exchange between various components or users within the QBusiness ecosystem."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("messageId"),
@@ -744,14 +744,14 @@ class AwsQBusinessMessage(AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_plugin"
-    kind_display: ClassVar[str] = "AWS QBusiness Plugin"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QBusiness Plugin"
+    _kind_description: ClassVar[str] = (
         "Represents a plugin in the AWS QBusiness service. Plugins extend the functionality of"
         " the QBusiness framework by adding new features or capabilities."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/plugin/{id}",
         "extra_args_for_arn": ["application_id"],
     }
@@ -810,14 +810,14 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_retriever"
-    kind_display: ClassVar[str] = "AWS Q Business Retriever"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Q Business Retriever"
+    _kind_description: ClassVar[str] = (
         "Represents a retriever in the AWS QBusiness service. Retrievers are used to fetch and"
         " process data from various sources within the QBusiness ecosystem."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/retriever/{id}",
         "extra_args_for_arn": ["application_id"],
     }
@@ -867,14 +867,14 @@ class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
 @define(eq=False, slots=False)
 class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_web_experience"
-    kind_display: ClassVar[str] = "AWS Q Business Web Experience"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Q Business Web Experience"
+    _kind_description: ClassVar[str] = (
         "Represents a web experience in the AWS QBusiness service. Web experiences define"
         " interactive web-based applications or interfaces within the QBusiness ecosystem."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
         "arn_tpl": "arn:{partition}:qbusiness:{region}:{account}:application/{application_id}/web-experience/{id}",
         "extra_args_for_arn": ["application_id"],
     }
@@ -935,15 +935,15 @@ class AwsQAppsCategory:
 @define(eq=False, slots=False)
 class AwsQAppsLibraryItem(AwsResource):
     kind: ClassVar[str] = "aws_q_apps_library_item"
-    kind_display: ClassVar[str] = "AWS QApps Library Item"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QApps Library Item"
+    _kind_description: ClassVar[str] = (
         "Represents a library item in the AWS QApps service. Library items include resources"
         " such as scripts, templates, or other components that can be used in QApps applications."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
     # Collected via AwsQBusinessApplication()
-    reference_kinds: ClassVar[ModelReference] = {
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_q_apps"]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1016,13 +1016,13 @@ class AwsQAppsLibraryItem(AwsResource):
 @define(eq=False, slots=False)
 class AwsQApps(AwsResource):
     kind: ClassVar[str] = "aws_q_apps"
-    kind_display: ClassVar[str] = "AWS QApps"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS QApps"
+    _kind_description: ClassVar[str] = (
         "Represents an application within the AWS QApps service. QApps applications include"
         " various components and configurations for developing and deploying apps within the AWS environment."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     # Collected via AwsQBusinessApplication()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("appId"),

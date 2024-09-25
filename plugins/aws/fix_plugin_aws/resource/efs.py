@@ -50,14 +50,14 @@ class EfsTaggable:
 @define(eq=False, slots=False)
 class AwsEfsMountTarget(AwsResource):
     kind: ClassVar[str] = "aws_efs_mount_target"
-    kind_display: ClassVar[str] = "AWS EFS Mount Target"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EFS Mount Target"
+    _kind_description: ClassVar[str] = (
         "EFS Mount Targets are endpoints in Amazon's Elastic File System that allow"
         " EC2 instances to mount the file system and access the shared data."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("MountTargetId"),
         "owner_id": S("OwnerId"),
@@ -65,7 +65,7 @@ class AwsEfsMountTarget(AwsResource):
         "ip_address": S("IpAddress"),
         "availability_zone_name": S("AvailabilityZoneName"),
     }
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_network_interface"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_ec2_network_interface"]}}
     owner_id: Optional[str] = field(default=None)
     life_cycle_state: Optional[str] = field(default=None)
     ip_address: Optional[str] = field(default=None)
@@ -79,13 +79,13 @@ class AwsEfsMountTarget(AwsResource):
 @define(eq=False, slots=False)
 class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
-    kind_display: ClassVar[str] = "AWS EFS File System"
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/file-systems/{FileSystemId}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EFS File System"
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/file-systems/{FileSystemId}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
+    _kind_description: ClassVar[str] = (
         "EFS (Elastic File System) provides a scalable and fully managed file storage"
         " service for Amazon EC2 instances."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
+    _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-file-systems",
@@ -110,7 +110,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
         "throughput_mode": S("ThroughputMode"),
         "availability_zone_name": S("AvailabilityZoneName"),
     }
-    reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_kms_key"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_kms_key"]}}
     owner_id: Optional[str] = field(default=None)
     creation_token: Optional[str] = field(default=None)
     number_of_mount_targets: Optional[int] = field(default=None)
@@ -149,10 +149,11 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
                 if policy := builder.client.get(
                     service_name,
                     "describe-file-system-policy",
+                    "Policy",
                     FileSystemId=fs.id,
-                    expected_errors=["PolicyNotFound"],
+                    expected_errors=["PolicyNotFound", "FileSystemNotFound"],
                 ):
-                    fs.file_system_policy = sort_json(json.loads(policy["Policy"]), sort_list=True)
+                    fs.file_system_policy = sort_json(json.loads(policy), sort_list=True)  # type: ignore
 
         for js in js_list:
             if instance := cls.from_api(js, builder):
@@ -230,15 +231,15 @@ class AwsEfsRootDirectory:
 @define(eq=False, slots=False)
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
-    kind_display: ClassVar[str] = "AWS EFS Access Point"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS EFS Access Point"
+    _kind_description: ClassVar[str] = (
         "AWS EFS Access Point is a way to securely access files in Amazon EFS"
         " (Elastic File System) using a unique hostname and optional path, providing"
         " fine-grained access control."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "storage"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "storage"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
         "describe-access-points",
@@ -256,7 +257,7 @@ class AwsEfsAccessPoint(AwsResource, EfsTaggable):
         "owner_id": S("OwnerId"),
         "life_cycle_state": S("LifeCycleState"),
     }
-    reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_efs_file_system"]}}
+    _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["aws_efs_file_system"]}}
     client_token: Optional[str] = field(default=None)
     posix_user: Optional[AwsEfsPosixUser] = field(default=None)
     root_directory: Optional[AwsEfsRootDirectory] = field(default=None)

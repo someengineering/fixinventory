@@ -1,4 +1,5 @@
 from typing import ClassVar, Dict, Optional, List, Any
+from json import loads as json_loads
 
 from attrs import define, field
 
@@ -11,6 +12,7 @@ from fixlib.baseresources import MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
 from fixlib.types import Json
+from fixlib.json import sort_json
 from typing import Type
 
 service_name = "kinesis"
@@ -89,16 +91,16 @@ class AwsKinesisEnhancedMetrics:
 @define(eq=False, slots=False)
 class AwsKinesisStream(AwsResource):
     kind: ClassVar[str] = "aws_kinesis_stream"
-    kind_display: ClassVar[str] = "AWS Kinesis Stream"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "AWS Kinesis Stream"
+    _kind_description: ClassVar[str] = (
         "Kinesis Streams are scalable and durable real-time data streaming services"
         " in Amazon's cloud, enabling users to capture, process, and analyze data in"
         " real-time."
     )
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kinesis/home?region={region}#/streams/details/{name}", "arn_tpl": "arn:{partition}:kinesis:{region}:{account}:stream/{name}"}  # fmt: skip
-    reference_kinds: ClassVar[ModelReference] = {
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kinesis/home?region={region}#/streams/details/{name}", "arn_tpl": "arn:{partition}:kinesis:{region}:{account}:stream/{name}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
             "delete": ["aws_kms_key"],
         },
@@ -132,6 +134,7 @@ class AwsKinesisStream(AwsResource):
     kinesis_enhanced_monitoring: List[AwsKinesisEnhancedMetrics] = field(factory=list)
     kinesis_encryption_type: Optional[str] = field(default=None)
     kinesis_key_id: Optional[str] = field(default=None)
+    kinesis_policy: Optional[Json] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -139,10 +142,22 @@ class AwsKinesisStream(AwsResource):
             cls.api_spec,
             AwsApiSpec(service_name, "describe-stream"),
             AwsApiSpec(service_name, "list-tags-for-stream"),
+            AwsApiSpec(service_name, "get-resource-policy"),
         ]
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_kinesis_policy(kinesis: AwsKinesisStream) -> None:
+            with builder.suppress(f"{service_name}.get-resource-policy"):
+                if raw_policy := builder.client.get(
+                    service_name,
+                    "get-resource-policy",
+                    "Policy",
+                    ResourceARN=kinesis.arn,
+                    expected_errors=["AccessDeniedException"],
+                ):
+                    kinesis.kinesis_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
+
         def add_instance(stream_name: str) -> None:
             # this call is paginated and will return a list
             stream_descriptions = builder.client.list(
@@ -156,6 +171,7 @@ class AwsKinesisStream(AwsResource):
                 if stream := AwsKinesisStream.from_api(js, builder):
                     builder.add_node(stream, js)
                     builder.submit_work(service_name, add_tags, stream)
+                    builder.submit_work(service_name, add_kinesis_policy, stream)
 
         def add_tags(stream: AwsKinesisStream) -> None:
             tags = builder.client.list(stream.api_spec.service, "list-tags-for-stream", "Tags", StreamName=stream.name)

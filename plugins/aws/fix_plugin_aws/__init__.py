@@ -21,6 +21,7 @@ from fixlib.baseresources import (
     Cloud,
     metrics_resource_cleanup_exceptions,
     metrics_resource_pre_cleanup_exceptions,
+    PhantomBaseResource,
 )
 from fixlib.config import Config, RunningConfig
 from fixlib.core.actions import CoreFeedback
@@ -272,7 +273,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
                 resource.log("Modification was requested even though resource is protected" " - refusing")
                 return False
 
-            if resource.phantom:
+            if isinstance(resource, PhantomBaseResource):
                 log.warning(f"Can't cleanup phantom resource {resource.rtdname}")
                 return False
 
@@ -314,7 +315,7 @@ class AWSCollectorPlugin(BaseCollectorPlugin):
     @staticmethod
     def cleanup(config: Config, resource: BaseResource, graph: Graph) -> bool:
         if isinstance(resource, AwsResource):
-            if resource.phantom:
+            if isinstance(resource, PhantomBaseResource):
                 raise RuntimeError(f"Can't cleanup phantom resource {resource.rtdname}")
 
             if resource.cleaned:

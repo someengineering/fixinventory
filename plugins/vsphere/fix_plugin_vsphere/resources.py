@@ -18,8 +18,8 @@ log = fixlib.logger.getLogger("fix." + __name__)
 @define(eq=False, slots=False)
 class VSphereHost(BaseAccount):
     kind: ClassVar[str] = "vsphere_host"
-    kind_display: ClassVar[str] = "vSphere Host"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Host"
+    _kind_description: ClassVar[str] = (
         "vSphere Host is a physical server that runs the VMware vSphere hypervisor,"
         " allowing for virtualization and management of multiple virtual machines."
     )
@@ -31,8 +31,8 @@ class VSphereHost(BaseAccount):
 @define(eq=False, slots=False)
 class VSphereDataCenter(BaseRegion):
     kind: ClassVar[str] = "vsphere_data_center"
-    kind_display: ClassVar[str] = "vSphere Data Center"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Data Center"
+    _kind_description: ClassVar[str] = (
         "vSphere Data Center is a virtualization platform provided by VMware for"
         " managing and organizing virtual resources in a data center environment."
     )
@@ -44,8 +44,8 @@ class VSphereDataCenter(BaseRegion):
 @define(eq=False, slots=False)
 class VSphereCluster(BaseZone):
     kind: ClassVar[str] = "vsphere_cluster"
-    kind_display: ClassVar[str] = "vSphere Cluster"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Cluster"
+    _kind_description: ClassVar[str] = (
         "A vSphere Cluster is a group of ESXi hosts that work together to provide"
         " resource pooling and high availability for virtual machines."
     )
@@ -57,8 +57,8 @@ class VSphereCluster(BaseZone):
 @define(eq=False, slots=False)
 class VSphereESXiHost(BaseResource):
     kind: ClassVar[str] = "vsphere_esxi_host"
-    kind_display: ClassVar[str] = "vSphere ESXi Host"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere ESXi Host"
+    _kind_description: ClassVar[str] = (
         "vSphere ESXi Host is a virtualization platform by VMware which allows users"
         " to run multiple virtual machines on a single physical server."
     )
@@ -70,8 +70,8 @@ class VSphereESXiHost(BaseResource):
 @define(eq=False, slots=False)
 class VSphereDataStore(BaseResource):
     kind: ClassVar[str] = "vsphere_datastore"
-    kind_display: ClassVar[str] = "vSphere Datastore"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Datastore"
+    _kind_description: ClassVar[str] = (
         "vSphere Datastore is a storage abstraction layer used in VMware vSphere to"
         " manage and store virtual machine files and templates."
     )
@@ -83,8 +83,8 @@ class VSphereDataStore(BaseResource):
 @define(eq=False, slots=False)
 class VSphereDataStoreCluster(BaseResource):
     kind: ClassVar[str] = "vsphere_datastore_cluster"
-    kind_display: ClassVar[str] = "vSphere Datastore Cluster"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Datastore Cluster"
+    _kind_description: ClassVar[str] = (
         "vSphere Datastore Cluster is a feature in VMware's virtualization platform"
         " that allows users to combine multiple storage resources into a single"
         " datastore cluster, providing advanced management and high availability for"
@@ -98,8 +98,8 @@ class VSphereDataStoreCluster(BaseResource):
 @define(eq=False, slots=False)
 class VSphereResourcePool(BaseResource):
     kind: ClassVar[str] = "vsphere_resource_pool"
-    kind_display: ClassVar[str] = "vSphere Resource Pool"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Resource Pool"
+    _kind_description: ClassVar[str] = (
         "vSphere Resource Pool is a feature in VMware's vSphere virtualization"
         " platform that allows for the efficient allocation and management of CPU,"
         " memory, and storage resources in a virtual datacenter."
@@ -126,8 +126,8 @@ class VSphereResource:
 @define(eq=False, slots=False)
 class VSphereInstance(BaseInstance, VSphereResource):
     kind: ClassVar[str] = "vsphere_instance"
-    kind_display: ClassVar[str] = "vSphere Instance"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Instance"
+    _kind_description: ClassVar[str] = (
         "vSphere Instances are virtual servers in VMware's cloud infrastructure,"
         " enabling users to run applications on VMware's virtualization platform."
     )
@@ -166,8 +166,8 @@ class VSphereInstance(BaseInstance, VSphereResource):
 @define(eq=False, slots=False)
 class VSphereTemplate(BaseResource, VSphereResource):
     kind: ClassVar[str] = "vsphere_template"
-    kind_display: ClassVar[str] = "vSphere Template"
-    kind_description: ClassVar[str] = (
+    _kind_display: ClassVar[str] = "vSphere Template"
+    _kind_description: ClassVar[str] = (
         "vSphere templates are pre-configured virtual machine images that can be used"
         " to deploy and scale virtual infrastructure within the VMware vSphere"
         " platform."

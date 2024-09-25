@@ -12,8 +12,8 @@ from fixlib.baseresources import (
 @define(eq=False, slots=False)
 class OnpremLocation(BaseAccount):
     kind: ClassVar[str] = "onprem_location"
-    kind_display: ClassVar[str] = "Onprem Location"
-    kind_description: ClassVar[str] = "An Onprem Location."
+    _kind_display: ClassVar[str] = "Onprem Location"
+    _kind_description: ClassVar[str] = "An Onprem Location."
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -22,8 +22,8 @@ class OnpremLocation(BaseAccount):
 @define(eq=False, slots=False)
 class OnpremRegion(BaseRegion):
     kind: ClassVar[str] = "onprem_region"
-    kind_display: ClassVar[str] = "Onprem Region"
-    kind_description: ClassVar[str] = "An Onprem Region."
+    _kind_display: ClassVar[str] = "Onprem Region"
+    _kind_description: ClassVar[str] = "An Onprem Region."
 
     def delete(self, graph: Graph) -> bool:
         return False
@@ -48,8 +48,8 @@ class OnpremResource:
 @define(eq=False, slots=False)
 class OnpremInstance(OnpremResource, BaseInstance):
     kind: ClassVar[str] = "onprem_instance"
-    kind_display: ClassVar[str] = "Onprem Instance"
-    kind_description: ClassVar[str] = "An Onprem Instance."
+    _kind_display: ClassVar[str] = "Onprem Instance"
+    _kind_description: ClassVar[str] = "An Onprem Instance."
     network_device: Optional[str] = None
     network_ip4: Optional[str] = None
     network_ip6: Optional[str] = None
@@ -58,5 +58,5 @@ class OnpremInstance(OnpremResource, BaseInstance):
 @define(eq=False, slots=False)
 class OnpremNetwork(OnpremResource, BaseNetwork):
     kind: ClassVar[str] = "onprem_network"
-    kind_display: ClassVar[str] = "Onprem Network"
-    kind_description: ClassVar[str] = "An Onprem Network."
+    _kind_display: ClassVar[str] = "Onprem Network"
+    _kind_description: ClassVar[str] = "An Onprem Network."

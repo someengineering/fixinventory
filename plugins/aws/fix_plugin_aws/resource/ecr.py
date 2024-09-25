@@ -1,6 +1,7 @@
 import json
 import logging
 from typing import ClassVar, Dict, Optional, List, Type, Any
+from json import loads as json_loads
 
 from attrs import define, field
 from boto3.exceptions import Boto3Error
@@ -26,11 +27,11 @@ class AwsEcrEncryptionConfiguration:
 @define(eq=False, slots=False)
 class AwsEcrRepository(AwsResource):
     kind: ClassVar[str] = "aws_ecr_repository"
-    kind_display: ClassVar[str] = "AWS ECR Repository"
-    kind_description: ClassVar[str] = "An AWS Elastic Container Registry (ECR) Repository is used for storing, managing, and deploying Docker container images in a secure, scalable, and private environment on AWS."  # fmt: skip
-    kind_service: ClassVar[Optional[str]] = service_name
-    metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "compute"}
-    aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecr/repositories/{name}?region={region}", "arn_tpl": "arn:{partition}:ecr:{region}:{account}:repository/{name}"}  # fmt: skip
+    _kind_display: ClassVar[str] = "AWS ECR Repository"
+    _kind_description: ClassVar[str] = "An AWS Elastic Container Registry (ECR) Repository is used for storing, managing, and deploying Docker container images in a secure, scalable, and private environment on AWS."  # fmt: skip
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "compute"}
+    _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecr/repositories/{name}?region={region}", "arn_tpl": "arn:{partition}:ecr:{region}:{account}:repository/{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr", "describe-repositories", "repositories")
     public_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr-public", "describe-repositories", "repositories")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -53,9 +54,21 @@ class AwsEcrRepository(AwsResource):
     encryption_configuration: Optional[AwsEcrEncryptionConfiguration] = field(default=None, metadata={"description": "The encryption configuration for the repository. This determines how the contents of your repository are encrypted at rest."})  # fmt: skip
     repository_visibility: Optional[str] = field(default=None, metadata={"description": "The repository is either public or private."})  # fmt: skip
     lifecycle_policy: Optional[Json] = field(default=None, metadata={"description": "The repository lifecycle policy."})  # fmt: skip
+    repository_policy: Optional[Json] = field(default=None, metadata={"description": "The repository policy."})  # fmt: skip
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
+        def add_repository_policy(repository: AwsEcrRepository) -> None:
+            with builder.suppress(f"{service_name}.get-repository-policy"):
+                if raw_policy := builder.client.get(
+                    service_name,
+                    "get-repository-policy",
+                    "policyText",
+                    repositoryName=repository.name,
+                    expected_errors=["RepositoryPolicyNotFoundException", "RepositoryNotFoundException"],
+                ):
+                    repository.repository_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
+
         def fetch_lifecycle_policy(repository: AwsEcrRepository) -> None:
             with builder.suppress(f"{service_name}.get-lifecycle-policy"):
                 if policy := builder.client.get(
@@ -79,8 +92,9 @@ class AwsEcrRepository(AwsResource):
                 for js in items:
                     if instance := cls.from_api(js, builder):
                         instance.repository_visibility = visibility
-                        builder.submit_work(service_name, fetch_lifecycle_policy, instance)
                         builder.add_node(instance, js)
+                        builder.submit_work(service_name, fetch_lifecycle_policy, instance)
+                        builder.submit_work(service_name, add_repository_policy, instance)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
@@ -98,7 +112,12 @@ class AwsEcrRepository(AwsResource):
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return [cls.api_spec, cls.public_spec, AwsApiSpec("ecr", "get-lifecycle-policy", None)]
+        return [
+            cls.api_spec,
+            cls.public_spec,
+            AwsApiSpec(service_name, "get-lifecycle-policy"),
+            AwsApiSpec(service_name, "get-repository-policy"),
+        ]
 
 
 # @define(eq=False, slots=False)

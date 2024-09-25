@@ -24,8 +24,8 @@ class PosthogResource:
 @define(eq=False, slots=False)
 class PosthogProject(PosthogResource, BaseAccount):
     kind: ClassVar[str] = "posthog_project"
-    kind_display: ClassVar[str] = "Posthog Project"
-    kind_description: ClassVar[str] = "A Posthog Project."
+    _kind_display: ClassVar[str] = "Posthog Project"
+    _kind_description: ClassVar[str] = "A Posthog Project."
 
     project_id: int
     app_urls: Optional[List[str]] = (None,)
@@ -75,8 +75,8 @@ class PosthogProject(PosthogResource, BaseAccount):
 @define(eq=False, slots=False)
 class PosthogEvent(PosthogResource, BaseResource):
     kind: ClassVar[str] = "posthog_event"
-    kind_display: ClassVar[str] = "Posthog Event"
-    kind_description: ClassVar[str] = "A Posthog Event."
+    _kind_display: ClassVar[str] = "Posthog Event"
+    _kind_description: ClassVar[str] = "A Posthog Event."
 
     project_id: int
     count: int = 0
