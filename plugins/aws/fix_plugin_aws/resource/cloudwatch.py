@@ -4,6 +4,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Callable, ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any, Union
 from concurrent.futures import as_completed
+from json import loads as json_loads
 
 from attr import define, field, frozen
 
@@ -14,7 +15,7 @@ from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import MetricName, MetricUnit, ModelReference, BaseResource, StatName
 from fixlib.durations import duration_str
 from fixlib.graph import Graph
-from fixlib.json import from_json
+from fixlib.json import from_json, sort_json
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
 from fixlib.types import Json
 from fixlib.utils import chunks
@@ -364,10 +365,73 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     group_metric_filter_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     group_stored_bytes: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
     group_data_protection_status: Optional[str] = field(default=None)
+    group_policy: Optional[Json] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("kmsKeyId"):
             builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(kms_key_id))
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+        def add_log_group_policy(group: AwsCloudwatchLogGroup) -> None:
+            def is_arn_match(resource_arn: str, target_arn: str) -> bool:
+                if resource_arn == target_arn:
+                    return True
+                if resource_arn.endswith(":*"):
+                    return target_arn.startswith(resource_arn[:-1])
+                return False
+
+            def parse_resource_arn(resource: Any) -> list:
+                if isinstance(resource, str):
+                    return [resource.split(":log-stream:")[0]]
+                elif isinstance(resource, list):
+                    return [arn.split(":log-stream:")[0] for arn in resource]
+                return []
+
+            def process_log_group_policies(raw_policies: List[Dict[str, Any]], target_group_arn: str) -> Dict[str, Any]:
+                associated_policies = {}
+                for policy in raw_policies:
+                    policy_name = policy.get("policyName", "Unknown")
+                    policy_document = json_loads(policy.get("policyDocument", "{}"))
+                    policy_statements = policy_document.get("Statement", [])
+
+                    if not isinstance(policy_statements, list):
+                        policy_statements = [policy_statements]
+
+                    for statement in policy_statements:
+                        statement_resources = statement.get("Resource")
+                        log_group_arns = parse_resource_arn(statement_resources)
+
+                        if any(is_arn_match(arn, target_group_arn) for arn in log_group_arns):
+                            associated_policies[policy_name] = policy
+                            break  # Found a match in this policy, move to next policy
+
+                return associated_policies
+
+            with builder.suppress(f"{service_name}.describe-resource-policies"):
+                if raw_policies := builder.client.list(
+                    "logs",
+                    "describe-resource-policies",
+                    "resourcePolicies",
+                    expected_errors=["ResourceNotFoundException"],
+                ):
+                    if not group.arn:
+                        return
+                    associated_policies = process_log_group_policies(raw_policies, group.arn)
+                    if associated_policies:
+                        group.group_policy = sort_json(associated_policies, sort_list=True)
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, add_log_group_policy, instance)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "describe-resource-policies"),
+        ]
 
     @classmethod
     def called_mutator_apis(cls) -> List[AwsApiSpec]:
