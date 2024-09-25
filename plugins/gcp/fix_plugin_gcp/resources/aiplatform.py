@@ -508,7 +508,9 @@ class GcpVertexAIBatchPredictionJob(AIPlatformRegionFilter, BaseAIJob, GcpResour
     kind: ClassVar[str] = "gcp_vertex_ai_batch_prediction_job"
     _kind_display: ClassVar[str] = "GCP Vertex AI Batch Prediction Job"
     _kind_description: ClassVar[str] = (
-        "A Batch Prediction Job is a job that runs batch inference requests on a trained model in Vertex AI. It processes large volumes of data and returns predictions in bulk."
+        "A Batch Prediction Job is a job that runs batch inference requests"
+        " on a trained model in Vertex AI."
+        " It processes large volumes of data and returns predictions in bulk."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
@@ -715,7 +717,9 @@ class GcpVertexAICustomJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_custom_job"
     _kind_display: ClassVar[str] = "GCP Vertex AI Custom Job"
     _kind_description: ClassVar[str] = (
-        "A Custom Job in Vertex AI is a job that allows users to run their own custom machine learning training or inference code on Google Cloud infrastructure."
+        "A Custom Job in Vertex AI allows users to run their own custom"
+        " machine learning training or inference code on Google Cloud"
+        " infrastructure."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
@@ -799,7 +803,9 @@ class GcpVertexAIDataset(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_dataset"
     _kind_display: ClassVar[str] = "GCP Vertex AI Dataset"
     _kind_description: ClassVar[str] = (
-        "A Dataset is a container for a collection of data that is used to train and evaluate machine learning models in Vertex AI. Each dataset contains _metadata about the data source and structure."
+        "A Dataset is a container for a collection of data used to train and"
+        " evaluate machine learning models in Vertex AI."
+        " Each dataset contains metadata about the data source and structure."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -868,7 +874,9 @@ class GcpVertexAIDatasetVersion(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_dataset_version"
     _kind_display: ClassVar[str] = "GCP Vertex AI Dataset Version"
     _kind_description: ClassVar[str] = (
-        "A Dataset Version in Vertex AI represents a specific snapshot of the dataset used during model training or evaluation. It ensures consistency and reproducibility of experiments."
+        "A Dataset Version in Vertex AI represents a specific snapshot of"
+        " the dataset used during model training or evaluation."
+        " It ensures consistency and reproducibility of experiments."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -1038,7 +1046,9 @@ class GcpVertexAIEndpoint(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_endpoint"
     _kind_display: ClassVar[str] = "GCP Vertex AI Endpoint"
     _kind_description: ClassVar[str] = (
-        "An Endpoint is a deployment resource in Vertex AI that hosts one or more machine learning models, enabling online prediction requests from clients."
+        "An Endpoint is a deployment resource in Vertex AI that hosts one"
+        " or more machine learning models."
+        " It enables online prediction requests from clients."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -1121,7 +1131,9 @@ class GcpVertexAIFeatureGroup(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_feature_group"
     _kind_display: ClassVar[str] = "GCP Vertex AI Feature Group"
     _kind_description: ClassVar[str] = (
-        "A Feature Group is a logical grouping of features in Vertex AI Feature Store, used to organize features that share the same lifecycle and access patterns."
+        "A Feature Group is a logical grouping of features in Vertex AI"
+        " Feature Store, used to organize features that share the same"
+        " lifecycle and access patterns."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -1204,7 +1216,11 @@ class GcpVertexAIFeature(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_feature"
     _kind_display: ClassVar[str] = "GCP Vertex AI Feature"
     _kind_description: ClassVar[str] = (
-        "A Feature is an individual data attribute stored in Vertex AI Feature Store. Features are grouped into Feature Groups and are used to improve the predictive power of machine learning models."
+        "A Feature in Vertex AI is an individual data attribute stored"
+        " in a Feature Store. It is used to improve"
+        " the predictive accuracy of machine learning"
+        " models by providing structured, consistent access to key data"
+        " characteristics."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -1283,7 +1299,9 @@ class GcpVertexAIFeaturestore(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_featurestore"
     _kind_display: ClassVar[str] = "GCP Vertex AI Featurestore"
     _kind_description: ClassVar[str] = (
-        "A Featurestore is a fully managed Vertex AI service used to store, manage, and serve machine learning features at scale. It enables faster, scalable, and consistent access to features during model development and serving."
+        "A Featurestore is a fully managed Vertex AI service used to store,"
+        " manage, and serve machine learning features at scale."
+        " It enables faster, scalable, and consistent access to features."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -1607,7 +1625,9 @@ class GcpVertexAIHyperparameterTuningJob(AIPlatformRegionFilter, BaseAIJob, GcpR
     kind: ClassVar[str] = "gcp_vertex_ai_hyperparameter_tuning_job"
     _kind_display: ClassVar[str] = "GCP Vertex AI Hyperparameter Tuning Job"
     _kind_description: ClassVar[str] = (
-        "A Hyperparameter Tuning Job is a job that optimizes the hyperparameters of a machine learning model in Vertex AI, improving the model's performance through efficient search over hyperparameter configurations."
+        "A Hyperparameter Tuning Job optimizes the hyperparameters of a"
+        " machine learning model in Vertex AI, improving the model's"
+        " performance through efficient search over configurations."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
@@ -1752,7 +1772,8 @@ class GcpVertexAIIndexEndpoint(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_index_endpoint"
     _kind_display: ClassVar[str] = "GCP Vertex AI Index Endpoint"
     _kind_description: ClassVar[str] = (
-        "An Index Endpoint is a deployment resource in Vertex AI that serves indexes, allowing real-time similarity search queries."
+        "An Index Endpoint is a deployment resource in Vertex AI that"
+        " serves indexes, allowing real-time similarity search queries."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -1833,7 +1854,9 @@ class GcpVertexAIIndex(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_index"
     _kind_display: ClassVar[str] = "GCP Vertex AI Index"
     _kind_description: ClassVar[str] = (
-        "An Index is a data structure in Vertex AI that supports fast, approximate nearest neighbor search for high-dimensional vectors, enabling fast similarity-based retrieval."
+        "An Index is a data structure in Vertex AI that supports fast,"
+        " approximate nearest neighbor search for high-dimensional vectors,"
+        " enabling fast similarity-based retrieval."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -2118,7 +2141,9 @@ class GcpVertexAIModelDeploymentMonitoringJob(AIPlatformRegionFilter, BaseAIJob,
     kind: ClassVar[str] = "gcp_vertex_ai_model_deployment_monitoring_job"
     _kind_display: ClassVar[str] = "GCP Vertex AI Model Deployment Monitoring Job"
     _kind_description: ClassVar[str] = (
-        "A Model Deployment Monitoring Job is a Vertex AI job that monitors the performance of machine learning models in production to detect data drift, model performance degradation, and other anomalies."
+        "A Model Deployment Monitoring Job monitors the performance of"
+        " machine learning models in production to detect data drift,"
+        " model performance degradation, and other anomalies."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
@@ -2258,7 +2283,9 @@ class GcpVertexAIModel(AIPlatformRegionFilter, BaseAIModel, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_model"
     _kind_display: ClassVar[str] = "GCP Vertex AI Model"
     _kind_description: ClassVar[str] = (
-        "A Model represents a trained machine learning model in Vertex AI that can be deployed to an endpoint for online predictions, or used to generate batch predictions."
+        "A Model represents a trained machine learning model in Vertex AI."
+        " It can be deployed to an endpoint for online predictions or used to"
+        " generate batch predictions."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -2403,7 +2430,8 @@ class GcpVertexAIModelEvaluation(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_model_evaluation"
     _kind_display: ClassVar[str] = "GCP Vertex AI Model Evaluation"
     _kind_description: ClassVar[str] = (
-        "A Model Evaluation in Vertex AI contains the performance metrics and results of a machine learning model tested on a specific dataset. These metrics provide insights into the model's predictive accuracy and other important characteristics."
+        "A Model Evaluation in Vertex AI provides performance metrics and"
+        " results of a machine learning model tested on a specific dataset."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -2702,7 +2730,9 @@ class GcpVertexAIPipelineJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_pipeline_job"
     _kind_display: ClassVar[str] = "GCP Vertex AI Pipeline Job"
     _kind_description: ClassVar[str] = (
-        "A Pipeline Job in Vertex AI defines a workflow that orchestrates multiple machine learning steps, such as data preparation, model training, and evaluation, in a cohesive manner."
+        "A Pipeline Job defines a workflow that orchestrates multiple"
+        " machine learning steps, such as data preparation, model training,"
+        " and evaluation."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
@@ -2794,7 +2824,8 @@ class GcpVertexAISchedule(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_schedule"
     _kind_display: ClassVar[str] = "GCP Vertex AI Schedule"
     _kind_description: ClassVar[str] = (
-        "A Schedule is a recurring execution of a task in Vertex AI, such as training or batch prediction jobs, which can be triggered based on defined intervals."
+        "A Schedule is a recurring execution of a task in Vertex AI, such as"
+        " training or batch prediction jobs, triggered based on defined intervals."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -2862,7 +2893,9 @@ class GcpVertexAITensorboard(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_tensorboard"
     _kind_display: ClassVar[str] = "GCP Vertex AI Tensorboard"
     _kind_description: ClassVar[str] = (
-        "Tensorboard is a Vertex AI service that provides a tool for visualizing and monitoring machine learning model training progress, including metrics, graphs, and histograms."
+        "Tensorboard is a Vertex AI service that provides a tool for"
+        " visualizing and monitoring machine learning model training"
+        " progress, including metrics, graphs, and histograms."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -3003,7 +3036,9 @@ class GcpVertexAITrainingPipeline(AIPlatformRegionFilter, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_training_pipeline"
     _kind_display: ClassVar[str] = "GCP Vertex AI Training Pipeline"
     _kind_description: ClassVar[str] = (
-        "A Training Pipeline in Vertex AI defines the steps necessary to train a machine learning model, including data preprocessing, model training, and evaluation."
+        "A Training Pipeline in Vertex AI defines the steps necessary to"
+        " train a machine learning model, including data preprocessing,"
+        " model training, and evaluation."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -3256,7 +3291,9 @@ class GcpVertexAITuningJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     kind: ClassVar[str] = "gcp_vertex_ai_tuning_job"
     _kind_display: ClassVar[str] = "GCP Vertex AI Tuning Job"
     _kind_description: ClassVar[str] = (
-        "A Tuning Job in Vertex AI refers to the hyperparameter tuning process that optimizes machine learning models by efficiently searching through hyperparameter values."
+        "A Tuning Job in Vertex AI refers to the hyperparameter tuning"
+        " process that optimizes machine learning models by efficiently"
+        " searching through hyperparameter values."
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
