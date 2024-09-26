@@ -1617,8 +1617,6 @@ class PolicySourceKind(StrEnum):
     Resource = "resource"  # e.g. s3 bucket policy
 
 
-
-
 ResourceConstraint = str
 
 ConditionString = str
