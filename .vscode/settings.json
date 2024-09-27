@@ -13,7 +13,7 @@
     "python.testing.pytestEnabled": false,
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
-        "editor.formatOnSave": true,
+        "editor.formatOnSave": true
     },
     "black-formatter.args": [
         "--line-length",
