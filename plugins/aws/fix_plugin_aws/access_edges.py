@@ -571,7 +571,9 @@ def check_policies(
             final_scopes = {scope}
             break
 
-    log.debug(f"Found access permission, {action} is allowed for {resource} by {request_context.principal}, level: {level}. Scopes: {len(final_scopes)}")
+    log.debug(
+        f"Found access permission, {action} is allowed for {resource} by {request_context.principal}, level: {level}. Scopes: {len(final_scopes)}"
+    )
 
     # return the result
     return AccessPermission(
