@@ -571,10 +571,6 @@ def check_policies(
             final_scopes = {scope}
             break
 
-    log.debug(
-        f"Found access permission, {action} is allowed for {resource} by {request_context.principal}, level: {level}. Scopes: {len(final_scopes)}"
-    )
-
     # return the result
     return AccessPermission(
         action=action,
@@ -692,8 +688,6 @@ class AccessEdgeCreator:
 
                 if not permissions:
                     continue
-
-                log.debug(f"Adding access edges for {node}, {len(permissions)} permissions found")
 
                 json_permissions = to_json(permissions)
                 reported = {"permissions": json_permissions}
