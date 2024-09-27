@@ -107,6 +107,8 @@ class AzureMysqlServerADAdministrator(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_ad_administrator"
     _kind_display: ClassVar[str] = "Azure MySQL Server Ad Administrator"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server AD Administrator is a role that integrates Azure Active Directory authentication with Azure Database for MySQL. It manages access and permissions for Azure AD users and groups to connect to MySQL databases using their Azure AD credentials, enhancing security by centralizing identity management and supporting single sign-on for database access."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/flexible-server/how-to-azure-ad"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftGraphUser.kind]}}
     # Collect via AzureMysqlServer()
@@ -217,6 +219,8 @@ class AzureMysqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_mysql_server_type"
     _kind_display: ClassVar[str] = "Azure MySQL Server Type"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server Type is a configuration option for MySQL databases in Microsoft Azure. It defines the hardware resources allocated to the database server, including CPU, memory, and storage. Users can choose from various server types to match their performance requirements and workload needs, with the ability to scale up or down as necessary."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -327,6 +331,8 @@ class AzureMysqlServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_configuration"
     _kind_display: ClassVar[str] = "Azure MySQL Server Configuration"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server Configuration is a management tool for MySQL databases hosted on Microsoft Azure. It provides settings to control database performance, security, networking, and backup options. Users can adjust parameters like connection limits, storage capacity, and access controls. The service integrates with other Azure features for monitoring and maintenance of MySQL instances."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/single-server/concepts-server-parameters"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureMysqlServer()
     config: Json = field(factory=dict)
@@ -364,6 +370,8 @@ class AzureMysqlServerDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_database"
     _kind_display: ClassVar[str] = "Azure MySQL Server Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server Database is a managed relational database service on Microsoft's cloud platform. It provides MySQL-compatible database capabilities, handling infrastructure management, backups, and security. Users can create, scale, and operate MySQL databases in the cloud, with options for high availability and automatic updates while maintaining compatibility with existing MySQL applications and tools."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -388,6 +396,10 @@ class AzureMysqlServerFirewallRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_firewall_rule"
     _kind_display: ClassVar[str] = "Azure MySQL Server Firewall Rule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server Firewall Rule is a security feature that controls network access to your Azure Database for MySQL server. It specifies which IP addresses or IP ranges can connect to the server, blocking all other connections. This rule helps protect your database from unauthorized access and provides a layer of security for your MySQL deployments in Azure."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/mysql/single-server/how-to-manage-firewall-using-portal"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -412,6 +424,8 @@ class AzureMysqlServerLogFile(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_log_file"
     _kind_display: ClassVar[str] = "Azure MySQL Server Log File"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server Log File is a component of Azure Database for MySQL that records database activities and events. It captures information about queries, connections, errors, and system operations. Administrators can use these logs for monitoring, troubleshooting, security auditing, and performance analysis. The log file helps maintain database health and optimize operations in Azure's managed MySQL service."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/single-server/concepts-server-logs"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -440,6 +454,8 @@ class AzureMysqlServerMaintenance(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_maintenance"
     _kind_display: ClassVar[str] = "Azure MySQL Server Maintenance"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server Maintenance is a service that manages and performs routine upkeep tasks for MySQL databases hosted on Azure. It handles tasks such as software updates, security patches, performance tuning, and backup management. This service helps maintain database health, security, and performance while reducing manual administrative work for database administrators."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/concepts-maintenance"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -531,6 +547,8 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_mysql_server"
     _kind_display: ClassVar[str] = "Azure MySQL Server"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server is a managed database service offered by Microsoft Azure. It provides a MySQL-compatible relational database in the cloud. Users can create, operate, and scale MySQL databases without managing infrastructure. The service offers automated backups, security features, and performance optimization tools. It supports various application types and integrates with other Azure services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="mysql",
@@ -771,6 +789,8 @@ class AzureMysqlServerBackup(MicrosoftResource):
     kind: ClassVar[str] = "azure_mysql_server_backup"
     _kind_display: ClassVar[str] = "Azure MySQL Server Backup"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure MySQL Server Backup is a service that creates and manages backups of MySQL databases hosted on Azure. It performs regular automated backups, stores them securely, and provides options for point-in-time restoration. Users can configure backup frequency, retention periods, and geo-redundancy settings. The service helps protect data and supports disaster recovery scenarios."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/mysql/single-server/concepts-backup"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
     # Collect via AzureMysqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {

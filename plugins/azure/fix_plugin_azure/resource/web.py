@@ -72,6 +72,8 @@ class AzureWebAppServicePlan(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_app_service_plan"
     _kind_display: ClassVar[str] = "Azure Web App Service Plan"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web App Service Plan is a resource that defines the compute capacity for running web apps in Azure. It specifies the number of virtual machines, their size, and features available to the hosted applications. Users can choose from various tiers, each offering different performance levels, storage options, and additional capabilities to match their application requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/app-service/overview-hosting-plans"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -147,6 +149,8 @@ class AzureWebCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_certificate"
     _kind_display: ClassVar[str] = "Azure Web Certificate"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web Certificate is a digital credential issued by Microsoft Azure for websites hosted on its platform. It verifies the identity and security of web applications, ensuring encrypted connections between users and servers. This certificate helps protect data in transit, prevents unauthorized access, and enhances trust in Azure-hosted websites for both site owners and visitors."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/app-service/configure-ssl-certificate"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -392,6 +396,8 @@ class AzureWebContainerApp(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_container_app"
     _kind_display: ClassVar[str] = "Azure Web Container App"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web Container App is a cloud service for deploying containerized web applications. It runs and manages containers in a serverless environment, handling infrastructure tasks like scaling and load balancing. The service supports various programming languages and frameworks, integrates with Azure services, and offers features for monitoring, security, and continuous deployment of containerized applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/container-apps/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -503,6 +509,8 @@ class AzureWebDomain(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_domain"
     _kind_display: ClassVar[str] = "Azure Web Domain"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web Domain is a service provided by Microsoft Azure that manages domain names for web applications. It offers domain registration, DNS configuration, and integration with other Azure services. Users can purchase domains, set up DNS records, and connect their domains to Azure-hosted websites or applications, simplifying web hosting and domain management within the Azure ecosystem."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/app-service/manage-custom-dns-buy-domain"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -646,6 +654,8 @@ class AzureWebHostingEnvironment(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_hosting_environment"
     _kind_display: ClassVar[str] = "Azure Web Hosting Environment"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web Hosting Environment is a cloud-based service for deploying and running web applications. It provides infrastructure, tools, and resources for hosting websites and web apps on Microsoft's Azure platform. Users can deploy applications, manage domains, configure security settings, and scale resources as needed. The service supports multiple programming languages and frameworks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/app-service/environment/intro"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -790,6 +800,8 @@ class AzureWebKubeEnvironment(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_kube_environment"
     _kind_display: ClassVar[str] = "Azure Web Kube Environment"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web Kube Environment is a service for deploying and managing containerized web applications on Azure Kubernetes Service. It provides tools for configuring, monitoring, and scaling applications in Kubernetes clusters. Users can deploy applications, set up networking, manage container registries, and handle application updates through this integrated platform."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/app-service/environment/overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -1390,6 +1402,8 @@ class AzureWebApp(MicrosoftResource, BaseServerlessFunction):
     kind: ClassVar[str] = "azure_web_app"
     _kind_display: ClassVar[str] = "Azure Web App"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web App is a cloud-based platform for hosting web applications. It supports multiple programming languages and frameworks, offering automatic scaling and load balancing. Users can deploy code directly from version control systems, configure custom domains, and implement SSL certificates. The service integrates with other Azure products for monitoring, security, and database connectivity."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/app-service/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
@@ -1649,6 +1663,8 @@ class AzureWebAppStaticSite(MicrosoftResource):
     kind: ClassVar[str] = "azure_web_app_static_site"
     _kind_display: ClassVar[str] = "Azure Web App Static Site"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Web App Static Site is a service for hosting static web content. It offers global content distribution, automated builds and deployments from code repositories, and integration with Azure services. Users can deploy HTML, CSS, JavaScript, and image files directly from their repositories, with support for custom domains and free SSL certificates."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/static-web-apps/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="web",
