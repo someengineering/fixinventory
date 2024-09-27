@@ -68,7 +68,7 @@ class ModelReference(TypedDict, total=False):
 class EdgeType(Enum):
     default = "default"
     delete = "delete"
-    access = "access"
+    iam = "iam"
 
     @staticmethod
     def from_value(value: Optional[str] = None) -> EdgeType:

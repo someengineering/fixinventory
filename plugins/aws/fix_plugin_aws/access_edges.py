@@ -703,5 +703,5 @@ class AccessEdgeCreator:
                 reported = {"permissions": json_permissions}
 
                 self.builder.add_edge(
-                    from_node=context.principal, edge_type=EdgeType.access, reported=reported, node=node
+                    from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node
                 )
