@@ -68,13 +68,13 @@ def find_all_allowed_actions(all_involved_policies: List[PolicyDocument], resour
     try:
         resource_actions = set(get_actions_matching_arn(resource_arn))
     except Exception as e:
-        log.warning(f"Error when trying to get actions matching ARN {resource_arn}: {e}")
+        log.info(f"Error when trying to get actions matching ARN {resource_arn}: {e}")
 
     service_prefix = ""
     try:
         service_prefix = get_service_from_arn(resource_arn)
     except Exception as e:
-        log.warning(f"Error when trying to get service prefix from ARN {resource_arn}: {e}")
+        log.info(f"Error when trying to get service prefix from ARN {resource_arn}: {e}")
     policy_actions: Set[IamAction] = set()
     for p in all_involved_policies:
         policy_actions.update(find_allowed_action(p, service_prefix))
@@ -571,6 +571,8 @@ def check_policies(
             final_scopes = {scope}
             break
 
+    log.debug(f"Found access permission, {action} is allowed for {resource} by {request_context.principal}, level: {level}. Scopes: {len(final_scopes)}")
+
     # return the result
     return AccessPermission(
         action=action,
@@ -688,6 +690,8 @@ class AccessEdgeCreator:
 
                 if not permissions:
                     continue
+
+                log.debug(f"Adding access edges for {node}, {len(permissions)} permissions found")
 
                 json_permissions = to_json(permissions)
                 reported = {"permissions": json_permissions}
