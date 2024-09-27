@@ -800,7 +800,8 @@ class AwsWafLoggingConfiguration:
 class AwsWafWebACL(AwsResource, BaseFirewall):
     kind: ClassVar[str] = "aws_waf_web_acl"
     _kind_display: ClassVar[str] = "AWS WAF Web ACL"
-    _kind_description: ClassVar[str] = "An AWS WAF Web ACL (Web Access Control List) is used for monitoring HTTP and HTTPS requests directed to AWS resources, allowing you to control access by permitting or blocking specific requests based on defined criteria."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS WAF Web ACL is a security tool that protects web applications from common attacks. It filters incoming web traffic based on customizable rules, blocking malicious requests and permitting legitimate ones. Users can define conditions to inspect various aspects of HTTP requests, such as IP addresses, headers, and content, to control access to their web resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/waf/latest/developerguide/web-acl.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/wafv2/homev2/web-acl/{name}/{id}/overview?region={region}", "arn_tpl": "arn:{partition}:wafv2:{region}:{account}:webacl/{id}"}  # fmt: skip

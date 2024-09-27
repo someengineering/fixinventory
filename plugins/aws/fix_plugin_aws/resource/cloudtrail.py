@@ -137,10 +137,8 @@ class AwsCloudTrailStatus:
 class AwsCloudTrail(AwsResource):
     kind: ClassVar[str] = "aws_cloud_trail"
     _kind_display: ClassVar[str] = "AWS CloudTrail"
-    _kind_description: ClassVar[str] = (
-        "CloudTrail is a service that enables governance, compliance, operational"
-        " auditing, and risk auditing of your AWS account."
-    )
+    _kind_description: ClassVar[str] = "AWS CloudTrail is a service that records API calls and events in AWS accounts. It provides an audit trail of actions taken by users, roles, and services. CloudTrail logs these activities, stores them securely, and offers tools for analysis and compliance. Users can monitor account activity, investigate security incidents, and meet regulatory requirements using CloudTrail's data."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/cloudtrail/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudtrail/home?region={region}#/trails/{arn}:trail/{name}", "arn_tpl": "arn:{partition}:cloudtrail:{region}:{account}:trail/{name}"}  # fmt: skip
     _kind_service: ClassVar[Optional[str]] = service_name

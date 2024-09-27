@@ -417,9 +417,8 @@ class AwsRedshiftLoggingStatus:
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
     _kind_display: ClassVar[str] = "AWS Redshift Cluster"
-    _kind_description: ClassVar[str] = (
-        "Redshift Cluster is a fully managed, petabyte-scale data warehouse service provided by AWS."
-    )
+    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-console.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:redshift:{region}:{account}:cluster/{name}"}  # fmt: skip

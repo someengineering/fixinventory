@@ -480,10 +480,8 @@ class AwsQBusinessDataSourceSyncJob(AwsResource):
 class AwsQBusinessDocument(AwsResource):
     kind: ClassVar[str] = "aws_q_business_document"
     _kind_display: ClassVar[str] = "AWS Q Business Document"
-    _kind_description: ClassVar[str] = (
-        "Represents a document within the AWS Q Business service. Documents are structured pieces"
-        " of information that can be used for various purposes within the Q Business ecosystem."
-    )
+    _kind_description: ClassVar[str] = "AWS Q Business Document is an AI-powered tool for querying and analyzing business documents. It uses natural language processing to interpret user questions and search through document repositories to find relevant information. The system can extract data, summarize content, and provide answers based on the documents it has access to."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://aws.amazon.com/q/business-docs/"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     # Collected via AwsQBusinessApplication()
@@ -524,6 +522,7 @@ class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
         "Represents an index in the AWS Q Business service. Indices are used to organize and"
         " facilitate efficient searching and retrieval of data within the Q Business framework."
     )
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/qs/latest/userguide/business-indices-qs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {
@@ -701,10 +700,8 @@ class AwsQBusinessActionExecution:
 class AwsQBusinessMessage(AwsResource):
     kind: ClassVar[str] = "aws_q_business_message"
     _kind_display: ClassVar[str] = "AWS Q Business Message"
-    _kind_description: ClassVar[str] = (
-        "Represents a message within the AWS Q Business service. Messages are used for communication"
-        " or data exchange between various components or users within the Q Business ecosystem."
-    )
+    _kind_description: ClassVar[str] = "AWS Q Business Message is a generative AI-powered tool for business communication within Amazon Web Services. It helps users create professional messages, emails, and documents by understanding context and generating appropriate content. The service aims to improve communication efficiency and quality while maintaining consistency with company standards and guidelines."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/qbusiness/latest/adminguide/what-is-qbusiness.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     # Collected via AwsQBusinessApplication()
@@ -745,10 +742,8 @@ class AwsQBusinessMessage(AwsResource):
 class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_plugin"
     _kind_display: ClassVar[str] = "AWS Q Business Plugin"
-    _kind_description: ClassVar[str] = (
-        "Represents a plugin in the AWS Q Business service. Plugins extend the functionality of"
-        " the Q Business framework by adding new features or capabilities."
-    )
+    _kind_description: ClassVar[str] = "AWS Q Business Plugin is a software tool that integrates with business applications. It provides users access to AWS Q's generative AI capabilities within their existing work environments. The plugin offers features like answering questions, summarizing documents, and generating content, helping users complete tasks efficiently while maintaining data security and compliance standards."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-business.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {
@@ -811,10 +806,8 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
 class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_retriever"
     _kind_display: ClassVar[str] = "AWS Q Business Retriever"
-    _kind_description: ClassVar[str] = (
-        "Represents a retriever in the AWS Q Business service. Retrievers are used to fetch and"
-        " process data from various sources within the Q Business ecosystem."
-    )
+    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/retriever.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {
@@ -868,10 +861,8 @@ class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
 class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_web_experience"
     _kind_display: ClassVar[str] = "AWS Q Business Web Experience"
-    _kind_description: ClassVar[str] = (
-        "Represents a web experience in the AWS Q Business service. Web experiences define"
-        " interactive web-based applications or interfaces within the Q Business ecosystem."
-    )
+    _kind_description: ClassVar[str] = "AWS Q Business Web Experience is a generative AI assistant for business users. It provides answers to questions about company data, policies, and processes. The tool integrates with an organization's knowledge base and applications to offer contextual responses. Users can interact with AWS Q through a web interface to access information and complete tasks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://aws.amazon.com/q/business/"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {

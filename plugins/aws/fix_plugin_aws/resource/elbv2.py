@@ -347,11 +347,8 @@ class AwsAlb(ElbV2Taggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_alb"
     _kind_display: ClassVar[str] = "AWS ALB"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={arn}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/app/{name}/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "AWS ALB is an Application Load Balancer that distributes incoming"
-        " application traffic across multiple targets, such as EC2 instances, in"
-        " multiple availability zones."
-    )
+    _kind_description: ClassVar[str] = "AWS Application Load Balancer (ALB) is a Layer 7 load balancing service that distributes incoming application traffic across multiple targets, such as EC2 instances, containers, and IP addresses. It supports content-based routing, can handle HTTP/HTTPS traffic, and provides features like SSL termination, health checks, and integration with other AWS services for improved application performance and availability."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
@@ -599,10 +596,9 @@ class AwsAlbTargetHealthDescription:
 class AwsAlbTargetGroup(ElbV2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_alb_target_group"
     _kind_display: ClassVar[str] = "AWS Alb Target Group"
-    _kind_description: ClassVar[str] = (
-        "An ALB Target Group is a group of instances or IP addresses registered with"
-        " an Application Load Balancer that receives traffic and distributes it to the"
-        " registered targets."
+    _kind_description: ClassVar[str] = "AWS ALB Target Group is a component of the Application Load Balancer service that routes incoming traffic to registered targets. It defines rules for health checks, load balancing algorithms, and target selection. Target Groups can include EC2 instances, containers, IP addresses, or Lambda functions, providing flexibility in distributing traffic across various backend resources."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
