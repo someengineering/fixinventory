@@ -571,6 +571,10 @@ def check_policies(
             final_scopes = {scope}
             break
 
+    log.debug(
+        f"Found access permission, {action} is allowed for {resource} by {request_context.principal}, level: {level}. Scopes: {len(final_scopes)}"
+    )
+
     # return the result
     return AccessPermission(
         action=action,
@@ -676,7 +680,13 @@ class AccessEdgeCreator:
 
     def add_access_edges(self) -> None:
 
+        principal_arns = set([p.principal.arn for p in self.principals])
+
         for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
+            if node.arn in principal_arns:
+                # do not create cycles
+                continue
+
             for context in self.principals:
 
                 resource_policies: List[Tuple[PolicySource, PolicyDocument]] = []
