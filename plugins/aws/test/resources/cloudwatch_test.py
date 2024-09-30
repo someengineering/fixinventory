@@ -26,13 +26,12 @@ def test_alarms() -> None:
 
 
 def test_log_groups() -> None:
-    round_trip_for(AwsCloudwatchLogGroup)
+    round_trip_for(AwsCloudwatchLogGroup, "group_policy")
 
 
 def test_metrics_filter() -> None:
-    first, aws_builder = round_trip_for(AwsCloudwatchMetricFilter)
+    first, aws_builder = round_trip_for(AwsCloudwatchMetricFilter, collect_also=[AwsCloudwatchLogGroup])
     # test connection to log group
-    AwsCloudwatchLogGroup.collect_resources(aws_builder)
     first.connect_in_graph(aws_builder, aws_builder.graph.nodes(data=True)[first]["source"])
     assert len(aws_builder.edges_of(AwsCloudwatchLogGroup, AwsCloudwatchMetricFilter)) == 1
 

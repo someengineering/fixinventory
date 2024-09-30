@@ -12,7 +12,7 @@ from fix_plugin_aws.resource.route53 import AwsRoute53Zone
 
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, Bend, bend, F
+from fixlib.json_bender import Bender, S, Bend, ParseJson, Sorted, bend, F
 from fixlib.types import Json
 from fixlib.json import sort_json
 
@@ -505,7 +505,7 @@ class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
         "api_minimum_compression_size": S("minimumCompressionSize"),
         "api_key_source": S("apiKeySource"),
         "api_endpoint_configuration": S("endpointConfiguration") >> Bend(AwsApiGatewayEndpointConfiguration.mapping),
-        "api_policy": S("policy") >> F(lambda x: sort_json(json_loads(x), sort_list=True)),
+        "api_policy": S("policy") >> ParseJson() >> Sorted(sort_list=True),
         "api_disable_execute_api_endpoint": S("disableExecuteApiEndpoint"),
     }
     description: Optional[str] = field(default=None)
