@@ -32,6 +32,16 @@ service_name = "cosmos-db"
 log = logging.getLogger("fix.plugins.azure")
 
 
+class CosmosDBRestorableLocation:
+    def __init__(self) -> None:
+        self.location: Optional[str] = None
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if isinstance(self, MicrosoftResource):
+            if location := self.extract_part("locations"):
+                self.location = location
+
+
 @define(eq=False, slots=False)
 class AzureManagedCassandraReaperStatus:
     kind: ClassVar[str] = "azure_managed_cassandra_reaper_status"
@@ -1518,7 +1528,7 @@ class AzureRestorableLocationResource:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableAccount(MicrosoftResource):
+class AzureCosmosDBRestorableAccount(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_account"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Account"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -1592,6 +1602,7 @@ class AzureCosmosDBRestorableAccount(MicrosoftResource):
             graph_builder.add_edge(self, node=clazz)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        super().post_process(graph_builder, source)
         if account_id := self.id:
             resources_to_collect = []
             # For fetching SQL resources required filtering by API type
@@ -2000,6 +2011,7 @@ class AzureCosmosDBLocation(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
+        "location": S("name"),
         "backup_storage_redundancies": S("properties", "backupStorageRedundancies"),
         "is_residency_restricted": S("properties", "isResidencyRestricted"),
         "is_subscription_region_access_allowed_for_az": S("properties", "isSubscriptionRegionAccessAllowedForAz"),
@@ -2015,6 +2027,7 @@ class AzureCosmosDBLocation(MicrosoftResource):
     is_subscription_region_access_allowed_for_regular: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating whether the subscription have access in region for Non-Availability Zones.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate current buildout status of the region.'})  # fmt: skip
     supports_availability_zone: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating whether the location supports availability zones or not.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
 
 @define(eq=False, slots=False)
@@ -2109,7 +2122,7 @@ class AzureRestorableDatabase:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
+class AzureCosmosDBRestorableGremlinDatabase(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Database"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2131,6 +2144,7 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
     restorable_gremlin_database: Optional[AzureRestorableDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin database event'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        super().post_process(graph_builder, source)
         if (resource := self.restorable_gremlin_database) and (rid := resource.owner_resource_id):
             account_id = "/".join(self.id.split("/")[:-2])
 
@@ -2155,7 +2169,7 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
+class AzureCosmosDBRestorableGremlinGraph(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_graph"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Graph"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2171,7 +2185,7 @@ class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
+class AzureCosmosDBRestorableMongoDBCollection(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_collection"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Collection"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2187,7 +2201,7 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
+class AzureCosmosDBRestorableMongoDBDatabase(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Database"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2209,6 +2223,7 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
     restorable_mongodb_database: Optional[AzureRestorableDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        super().post_process(graph_builder, source)
         if (resource := self.restorable_mongodb_database) and (rid := resource.owner_resource_id):
             account_id = "/".join(self.id.split("/")[:-2])
 
@@ -2233,7 +2248,7 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableSqlContainer(MicrosoftResource):
+class AzureCosmosDBRestorableSqlContainer(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_container"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Container"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2280,7 +2295,7 @@ class AzureExtendedPropertiesSqlDatabase(AzureSqlDatabaseResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
+class AzureCosmosDBRestorableSqlDatabase(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Database"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2316,6 +2331,7 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
     owner_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource ID of the SQL database.'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        super().post_process(graph_builder, source)
         if rid := self.owner_resource_id:
             account_id = "/".join(self.id.split("/")[:-2])
 
@@ -2340,7 +2356,7 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableTable(MicrosoftResource):
+class AzureCosmosDBRestorableTable(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_table"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Table"
     _kind_service: ClassVar[Optional[str]] = service_name
