@@ -36,7 +36,7 @@ class CosmosDBRestorableLocation:
     def __init__(self) -> None:
         self.location: Optional[str] = None
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if isinstance(self, MicrosoftResource):
             if location := self.extract_part("locations"):
                 self.location = location
@@ -1602,7 +1602,6 @@ class AzureCosmosDBRestorableAccount(CosmosDBRestorableLocation, MicrosoftResour
             graph_builder.add_edge(self, node=clazz)
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        super().post_process(graph_builder, source)
         if account_id := self.id:
             resources_to_collect = []
             # For fetching SQL resources required filtering by API type
@@ -2144,7 +2143,6 @@ class AzureCosmosDBRestorableGremlinDatabase(CosmosDBRestorableLocation, Microso
     restorable_gremlin_database: Optional[AzureRestorableDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB Gremlin database event'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        super().post_process(graph_builder, source)
         if (resource := self.restorable_gremlin_database) and (rid := resource.owner_resource_id):
             account_id = "/".join(self.id.split("/")[:-2])
 
@@ -2223,7 +2221,6 @@ class AzureCosmosDBRestorableMongoDBDatabase(CosmosDBRestorableLocation, Microso
     restorable_mongodb_database: Optional[AzureRestorableDatabase] = field(default=None, metadata={'description': 'The resource of an Azure Cosmos DB MongoDB database event'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        super().post_process(graph_builder, source)
         if (resource := self.restorable_mongodb_database) and (rid := resource.owner_resource_id):
             account_id = "/".join(self.id.split("/")[:-2])
 
@@ -2331,7 +2328,6 @@ class AzureCosmosDBRestorableSqlDatabase(CosmosDBRestorableLocation, MicrosoftRe
     owner_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource ID of the SQL database.'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        super().post_process(graph_builder, source)
         if rid := self.owner_resource_id:
             account_id = "/".join(self.id.split("/")[:-2])
 
