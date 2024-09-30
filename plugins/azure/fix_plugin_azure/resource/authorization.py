@@ -135,7 +135,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
         "Group": MicrosoftGraphGroup.kind,
         "Subscription": "azure_subscription",
         "ResourceGroup": "azure_resource_group",
-        "Resource": "azure_resource",
+        "Resource": "microsoft_resource",
     }
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -146,7 +146,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
                 "azure_authorization_role_definition",
                 "azure_subscription",
                 "azure_resource_group",
-                "azure_resource",
+                "microsoft_resource",
             ]
         },
     }
@@ -193,7 +193,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
             scope_parts = scope.split("/")
             if scope.startswith("/providers/Microsoft.Management/managementGroups/"):  # management group
                 pass
-            elif len(scope_parts) == 2:  # subscription
+            elif len(scope_parts) == 3:  # subscription
                 builder.add_edge(self, reverse=True, clazz=AzureSubscription, id=scope_parts[-1])
             else:  # resource group or resource
                 builder.add_edge(self, reverse=True, id=scope)
