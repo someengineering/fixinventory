@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Union, Any
-from json import loads as json_loads
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
@@ -12,9 +11,8 @@ from fix_plugin_aws.resource.route53 import AwsRoute53Zone
 
 from fixlib.baseresources import EdgeType, ModelReference
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, Bend, ParseJson, Sorted, bend, F
+from fixlib.json_bender import Bender, S, Bend, ParseJson, Sorted, bend
 from fixlib.types import Json
-from fixlib.json import sort_json
 
 service_name = "apigateway"
 

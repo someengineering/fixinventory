@@ -381,7 +381,7 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
                     return target_arn.startswith(resource_arn[:-1])
                 return False
 
-            def parse_resource_arn(resource: Any) -> list:
+            def parse_resource_arn(resource: Any) -> List[str]:
                 if isinstance(resource, str):
                     return [resource.split(":log-stream:")[0]]
                 elif isinstance(resource, list):
@@ -403,8 +403,9 @@ class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
                         log_group_arns = parse_resource_arn(statement_resources)
 
                         if any(is_arn_match(arn, target_group_arn) for arn in log_group_arns):
+                            # If a match is found, associate the policy and move to the next policy
                             associated_policies[policy_name] = policy
-                            break  # Found a match in this policy, move to next policy
+                            break
 
                 return associated_policies
 
