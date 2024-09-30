@@ -1992,7 +1992,7 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBLocation(MicrosoftResource):
+class AzureCosmosDBLocation(CosmosDBRestorableLocation, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_location"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Location"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2010,7 +2010,6 @@ class AzureCosmosDBLocation(MicrosoftResource):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "location": S("name"),
         "backup_storage_redundancies": S("properties", "backupStorageRedundancies"),
         "is_residency_restricted": S("properties", "isResidencyRestricted"),
         "is_subscription_region_access_allowed_for_az": S("properties", "isSubscriptionRegionAccessAllowedForAz"),
@@ -2026,7 +2025,6 @@ class AzureCosmosDBLocation(MicrosoftResource):
     is_subscription_region_access_allowed_for_regular: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating whether the subscription have access in region for Non-Availability Zones.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate current buildout status of the region.'})  # fmt: skip
     supports_availability_zone: Optional[bool] = field(default=None, metadata={'description': 'Flag indicating whether the location supports availability zones or not.'})  # fmt: skip
-    location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
 
 
 @define(eq=False, slots=False)
