@@ -472,19 +472,18 @@ def get_action_level(action: str) -> PermissionLevel:
             if action == info["action"]:
                 level = info["access_level"]
                 break
-    match level:
-        case "List":
-            return PermissionLevel.List
-        case "Read":
-            return PermissionLevel.Read
-        case "Tagging":
-            return PermissionLevel.Tagging
-        case "Write":
-            return PermissionLevel.Write
-        case "Permissions management":
-            return PermissionLevel.PermissionManagement
-        case _:
-            return PermissionLevel.Unknown
+    if level == "List":
+        return PermissionLevel.List
+    elif level == "Read":
+        return PermissionLevel.Read
+    elif level == "Tagging":
+        return PermissionLevel.Tagging
+    elif level == "Write":
+        return PermissionLevel.Write
+    elif level == "Permissions management":
+        return PermissionLevel.PermissionManagement
+    else:
+        return PermissionLevel.Unknown
 
 
 # logic according to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html

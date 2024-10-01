@@ -16,7 +16,7 @@ from fix_plugin_aws.access_edges import (
     compute_permissions,
 )
 
-from fixlib.baseresources import PolicySourceKind, PolicySource
+from fixlib.baseresources import PolicySourceKind, PolicySource, PermissionLevel
 from fixlib.json import to_json_str
 
 
@@ -390,7 +390,7 @@ def test_compute_permissions_user_inline_policy_allow() -> None:
     permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
-    assert permissions[0].level == "List"
+    assert permissions[0].level == PermissionLevel.List
     assert len(permissions[0].scopes) == 1
     s = permissions[0].scopes[0]
     assert s.source.kind == PolicySourceKind.Principal
@@ -429,7 +429,7 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
     permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
-    assert permissions[0].level == "List"
+    assert permissions[0].level == PermissionLevel.List
     assert len(permissions[0].scopes) == 1
     s = permissions[0].scopes[0]
     assert s.source.kind == PolicySourceKind.Principal
@@ -644,7 +644,7 @@ def test_deny_overrides_allow_with_condition() -> None:
     assert len(permissions) == 1
     p = permissions[0]
     assert p.action == "s3:ListBucket"
-    assert p.level == "List"
+    assert p.level == PermissionLevel.List
     assert len(p.scopes) == 1
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Principal
@@ -687,7 +687,7 @@ def test_compute_permissions_resource_based_policy_allow() -> None:
     assert len(permissions) == 1
     p = permissions[0]
     assert p.action == "s3:ListBucket"
-    assert p.level == "List"
+    assert p.level == PermissionLevel.List
     assert len(p.scopes) == 1
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Resource
@@ -744,7 +744,7 @@ def test_compute_permissions_permission_boundary_restrict() -> None:
     assert len(permissions) == 1
     p = permissions[0]
     assert p.action == "s3:ListBucket"
-    assert p.level == "List"
+    assert p.level == PermissionLevel.List
     assert len(p.scopes) == 1
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Principal
@@ -823,7 +823,7 @@ def test_compute_permissions_user_with_group_policies() -> None:
     assert len(permissions) == 1
     p = permissions[0]
     assert p.action == "s3:ListBucket"
-    assert p.level == "List"
+    assert p.level == PermissionLevel.List
     assert len(p.scopes) == 1
     s = p.scopes[0]
     assert s.source.kind == PolicySourceKind.Group
