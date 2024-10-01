@@ -34,10 +34,8 @@ class GcpSqlBackupRun(GcpResource):
     # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_backup_run"
     _kind_display: ClassVar[str] = "GCP SQL Backup Run"
-    _kind_description: ClassVar[str] = (
-        "GCP SQL Backup Run is a feature in Google Cloud Platform that allows users"
-        " to schedule and execute automated backups of their SQL databases."
-    )
+    _kind_description: ClassVar[str] = "GCP SQL Backup Run is a feature of Google Cloud Platform that creates and manages backups for Cloud SQL databases. It automatically captures database snapshots at scheduled intervals, storing them securely in Google Cloud Storage. These backups can be used to restore databases to specific points in time, protecting against data loss and facilitating disaster recovery."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/sql/docs/mysql/backup-recovery/backups"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_database_instance"]}}
@@ -116,9 +114,8 @@ class GcpSqlDatabase(GcpResource):
     # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_database"
     _kind_display: ClassVar[str] = "GCP SQL Database"
-    _kind_description: ClassVar[str] = (
-        "GCP SQL Database is a managed relational database service provided by Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP SQL Database is a managed relational database service on Google Cloud Platform. It offers MySQL, PostgreSQL, and SQL Server instances, handling maintenance, backups, and updates. Users can create, configure, and operate databases without managing infrastructure. The service provides features like replication, encryption, and automatic storage scaling for database management and performance optimization."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/sql/docs"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -646,10 +643,8 @@ class GcpSqlSettings:
 class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
     kind: ClassVar[str] = "gcp_sql_database_instance"
     _kind_display: ClassVar[str] = "GCP SQL Database Instance"
-    _kind_description: ClassVar[str] = (
-        "GCP SQL Database Instance is a resource provided by Google Cloud Platform"
-        " that allows users to create and manage relational databases in the cloud."
-    )
+    _kind_description: ClassVar[str] = "GCP SQL Database Instance is a managed relational database service on Google Cloud Platform. It provides MySQL, PostgreSQL, and SQL Server databases with automated backups, replication, and patching. Users can create, configure, and operate database instances without managing the underlying infrastructure, focusing on application development and data management tasks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/sql/docs/mysql/instance-settings"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_ssl_certificate"]}}
@@ -943,11 +938,8 @@ class GcpSqlImportContext:
 class GcpSqlOperation(GcpResource):
     kind: ClassVar[str] = "gcp_sql_operation"
     _kind_display: ClassVar[str] = "GCP SQL Operation"
-    _kind_description: ClassVar[str] = (
-        "The GCP SQL Operation is a representation of an administrative operation performed on a GCP SQL Database"
-        " instance, such as backups, imports, and exports, including details about execution times, status, and any"
-        " errors encountered."
-    )
+    _kind_description: ClassVar[str] = "GCP SQL Operation represents an asynchronous database operation in Google Cloud Platform's Cloud SQL service. It tracks the progress and status of tasks like instance creation, modification, or deletion. Users can monitor, manage, and retrieve information about these operations through the Cloud SQL API or command-line interface, ensuring visibility into database management processes."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/sql/docs/mysql/admin-api/rest/v1/operations"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "database"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sql_database_instance"]}}
@@ -1063,10 +1055,8 @@ class GcpSqlUser(GcpResource):
     # collected via GcpSqlDatabaseInstance
     kind: ClassVar[str] = "gcp_sql_user"
     _kind_display: ClassVar[str] = "GCP SQL User"
-    _kind_description: ClassVar[str] = (
-        "A GCP SQL User refers to a user account that can access and manage databases"
-        " in Google Cloud SQL, a fully-managed relational database service."
-    )
+    _kind_description: ClassVar[str] = "A GCP SQL User is an account within Google Cloud Platform's Cloud SQL service that has permissions to access and manage databases. It can connect to databases, execute queries, modify data, and perform administrative tasks based on its assigned privileges. GCP SQL Users are created and managed by database administrators to control access to Cloud SQL instances."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/sql/docs/mysql/users"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(

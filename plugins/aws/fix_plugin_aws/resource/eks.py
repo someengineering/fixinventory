@@ -190,11 +190,8 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
     # Note: this resource is collected via AwsEksCluster
     kind: ClassVar[str] = "aws_eks_nodegroup"
     _kind_display: ClassVar[str] = "AWS EKS Nodegroup"
-    _kind_description: ClassVar[str] = (
-        "An EKS Nodegroup is a set of EC2 instances that host containerized"
-        " applications and run Kubernetes pods in Amazon Elastic Kubernetes Service"
-        " (EKS) cluster."
-    )
+    _kind_description: ClassVar[str] = "AWS EKS Nodegroup is a feature of Amazon Elastic Kubernetes Service that manages groups of EC2 instances for Kubernetes clusters. It automates the provisioning and lifecycle of worker nodes, handles node updates and terminations, and integrates with other AWS services. Nodegroups simplify cluster management by reducing manual configuration and maintenance tasks for Kubernetes deployments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:eks:{region}:{account}:nodegroup/{id}"}  # fmt: skip
@@ -405,11 +402,8 @@ class AwsEksConnectorConfig:
 class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResource):
     kind: ClassVar[str] = "aws_eks_cluster"
     _kind_display: ClassVar[str] = "AWS EKS Cluster"
-    _kind_description: ClassVar[str] = (
-        "Amazon Elastic Kubernetes Service (EKS) Cluster is a managed Kubernetes"
-        " service provided by AWS for running containerized applications using"
-        " Kubernetes."
-    )
+    _kind_description: ClassVar[str] = "AWS EKS Cluster is a managed Kubernetes service that runs and orchestrates containerized applications on Amazon Web Services. It automates the deployment, scaling, and management of Kubernetes control plane and worker nodes. EKS integrates with AWS services for networking, storage, and security, providing a platform for running distributed applications across multiple availability zones."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/eks/latest/userguide/clusters.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/eks/home?region={region}#/clusters/{name}", "arn_tpl": "arn:{partition}:eks:{region}:{account}:cluster/{name}"}  # fmt: skip

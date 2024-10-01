@@ -64,10 +64,9 @@ class AwsConfigRecordingGroup:
 class AwsConfigRecorder(AwsResource):
     kind: ClassVar[str] = "aws_config_recorder"
     _kind_display: ClassVar[str] = "AWS Config Recorder"
-    _kind_description: ClassVar[str] = (
-        "AWS Config Recorder is a service provided by Amazon Web Services that"
-        " continuously records the configuration changes made to resources in an AWS"
-        " account."
+    _kind_description: ClassVar[str] = "AWS Config Recorder is a service that tracks and records configuration changes in AWS resources. It captures resource relationships and modifications, storing this information in a detailed history. This data can be used for compliance auditing, security analysis, and resource management. Config Recorder supports various AWS services and provides a foundation for configuration management."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/config/latest/developerguide/config-concepts.html#config-recorder"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}

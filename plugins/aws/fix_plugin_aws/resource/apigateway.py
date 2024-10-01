@@ -184,9 +184,9 @@ class AwsApiGatewayResource(AwsResource):
     # collection of resource resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_resource"
     _kind_display: ClassVar[str] = "AWS API Gateway Resource"
-    _kind_description: ClassVar[str] = (
-        "API Gateway Resource is a logical unit used in API Gateway to represent a"
-        " part of an API's resource hierarchy."
+    _kind_description: ClassVar[str] = "AWS API Gateway Resource is a component within Amazon Web Services that defines the structure and behavior of APIs. It represents a URL path segment and can be configured with methods, integrations, and authorizers. API Gateway Resources handle incoming requests, route them to backend services, and manage responses, facilitating the creation and management of APIs."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-basic-concept.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
@@ -250,10 +250,9 @@ class AwsApiGatewayAuthorizer(AwsResource):
     # collection of authorizer resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_authorizer"
     _kind_display: ClassVar[str] = "AWS API Gateway Authorizer"
-    _kind_description: ClassVar[str] = (
-        "API Gateway Authorizers are mechanisms that help control access to APIs"
-        " deployed on AWS API Gateway by authenticating and authorizing client"
-        " requests."
+    _kind_description: ClassVar[str] = "AWS API Gateway Authorizer is a security feature that controls access to API endpoints. It validates incoming requests by examining tokens or other credentials, applying custom logic to determine authorization. Authorizers can integrate with various authentication systems and provide fine-grained access control, ensuring only authenticated and authorized clients can access protected API resources."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html"
     )
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{api_link}/authorizers/{id}?api={api_link}&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:authorizer/{name}/{id}"}  # fmt: skip
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
@@ -344,10 +343,8 @@ class AwsApiGatewayStage(ApiGatewayTaggable, AwsResource):
     # collection of stage resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_stage"
     _kind_display: ClassVar[str] = "AWS API Gateway Stage"
-    _kind_description: ClassVar[str] = (
-        "API Gateway Stages are environment configurations for deploying and managing"
-        " APIs in the AWS API Gateway service."
-    )
+    _kind_description: ClassVar[str] = "AWS API Gateway Stage represents a deployment snapshot of an API, providing a distinct endpoint for client access. It acts as a named reference to a deployment, allowing version control and management of different API iterations. Stages facilitate the separation of development, testing, and production environments, enabling API versioning and controlled updates to API configurations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/apigateway/latest/developerguide/stages.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{api_link}/stages?api={api_link}&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/stages/{name}"}  # fmt: skip
@@ -408,10 +405,8 @@ class AwsApiGatewayDeployment(AwsResource):
     # collection of deployment resources happens in AwsApiGatewayRestApi.collect()
     kind: ClassVar[str] = "aws_apigateway_deployment"
     _kind_display: ClassVar[str] = "AWS API Gateway Deployment"
-    _kind_description: ClassVar[str] = (
-        "API Gateway Deployments represents a deployment of an API to an API Gateway stage."
-        " This allows the API to be invocable by end-users."
-    )
+    _kind_description: ClassVar[str] = "AWS API Gateway Deployment is a process that publishes an API to a specific stage, making it accessible to clients. It creates a snapshot of the API configuration and resources, which can be invoked through a unique URL. Deployments manage versioning and facilitate updates to APIs without disrupting existing users or applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:/restapis/{id}/deployments/{name}"}  # fmt: skip
@@ -470,10 +465,8 @@ class AwsApiGatewayEndpointConfiguration:
 class AwsApiGatewayRestApi(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_apigateway_rest_api"
     _kind_display: ClassVar[str] = "AWS API Gateway REST API"
-    _kind_description: ClassVar[str] = (
-        "API Gateway is a fully managed service that makes it easy for developers to"
-        " create, publish, and manage APIs at any scale."
-    )
+    _kind_description: ClassVar[str] = "AWS API Gateway REST API is a service for creating, publishing, and managing APIs. It acts as an entry point for applications to access data, business logic, or functionality from backend services. The service handles tasks such as traffic management, authorization, access control, monitoring, and API version management for REST APIs."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-rest-api.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/apis/{id}/resources?api={id}&experience=rest&region={region}", "arn_tpl": "arn:{partition}:apigateway:{region}:{account}:restapi/{id}"}  # fmt: skip
@@ -627,11 +620,8 @@ class AwsApiGatewayMutualTlsAuthentication:
 class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     kind: ClassVar[str] = "aws_apigateway_domain_name"
     _kind_display: ClassVar[str] = "AWS API Gateway Domain Name"
-    _kind_description: ClassVar[str] = (
-        "API Gateway Domain Name is a custom domain name that you can associate with"
-        " your API in Amazon API Gateway, allowing you to have a more branded and"
-        " user-friendly endpoint for your API."
-    )
+    _kind_description: ClassVar[str] = "AWS API Gateway Domain Name is a feature that associates a custom domain name with an API Gateway API. It provides a personalized URL for API access, replacing the default API Gateway-generated endpoint. This service handles SSL/TLS certificates and integrates with Amazon Route 53 for DNS management, offering a professional and branded API interface for users."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/apigateway/main/publish/domain-names?api=unselected&domain={name}&&region={region}", "arn_tpl": "arn:aws:apigateway:{region}:{account}:domainname/{name}"}  # fmt: skip

@@ -20,10 +20,9 @@ class AwsCognitoGroup(AwsResource):
     # collection of group resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_group"
     _kind_display: ClassVar[str] = "AWS Cognito Group"
-    _kind_description: ClassVar[str] = (
-        "Cognito Groups are a way to manage and organize users in AWS Cognito, a"
-        " fully managed service for user authentication, registration, and access"
-        " control."
+    _kind_description: ClassVar[str] = "AWS Cognito Group is a feature within Amazon Cognito that organizes users into collections for access control and permission management. It assigns users to specific groups, each with defined roles and privileges. Administrators can create, modify, and delete groups, as well as add or remove users from them, simplifying user management and enhancing security in applications and services."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-user-groups.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
@@ -99,12 +98,10 @@ class AwsCognitoUser(AwsResource, BaseUser):
     # collection of user resources happens in AwsCognitoUserPool.collect()
     kind: ClassVar[str] = "aws_cognito_user"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cognito/v2/idp/user-pools/{_pool_id}/users/details/{id}?region={region}", "arn_tpl": "arn:{partition}:cognito-idp:{region}:{account}:user/{id}"}  # fmt: skip
-
     _kind_display: ClassVar[str] = "AWS Cognito User"
-    _kind_description: ClassVar[str] = (
-        "AWS Cognito User represents a user account in the AWS Cognito service, which"
-        " provides secure user authentication and authorization for web and mobile"
-        " applications."
+    _kind_description: ClassVar[str] = "AWS Cognito User is an identity management service that handles user authentication and authorization for applications. It supports user sign-up, sign-in, and access control, integrating with social identity providers and enterprise identity systems. Cognito User manages user profiles, secures access to AWS resources, and syncs user data across devices, simplifying user identity management for developers."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -206,10 +203,9 @@ class AwsCognitoLambdaConfigType:
 class AwsCognitoUserPool(AwsResource):
     kind: ClassVar[str] = "aws_cognito_user_pool"
     _kind_display: ClassVar[str] = "AWS Cognito User Pool"
-    _kind_description: ClassVar[str] = (
-        "An AWS Cognito User Pool is a managed user directory that enables user"
-        " registration, authentication, and access control for your web and mobile"
-        " apps."
+    _kind_description: ClassVar[str] = "AWS Cognito User Pool is a managed service for user authentication and authorization. It handles user sign-up, sign-in, and access control for web and mobile applications. The service stores user profiles, supports multi-factor authentication, and integrates with social identity providers. It also offers customizable UI components and SDKs for various programming languages."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}

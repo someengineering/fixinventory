@@ -50,11 +50,8 @@ def health_check_types() -> Tuple[Type[GcpResource], ...]:
 class GcpAcceleratorType(GcpResource):
     kind: ClassVar[str] = "gcp_accelerator_type"
     _kind_display: ClassVar[str] = "GCP Accelerator Type"
-    _kind_description: ClassVar[str] = (
-        "GCP Accelerator Types are specialized hardware accelerators offered by"
-        " Google Cloud Platform (GCP) that are designed to enhance the performance of"
-        " certain workloads, such as machine learning models or graphics processing."
-    )
+    _kind_description: ClassVar[str] = "GCP Accelerator Type refers to specialized hardware components available in Google Cloud Platform. These accelerators, such as GPUs and TPUs, enhance computational performance for specific workloads like machine learning, data processing, and scientific simulations. Users can attach accelerators to virtual machines to boost processing speed and efficiency for their applications and tasks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/gpus"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -96,11 +93,8 @@ def get_ip_address_type(ip_address: str) -> str:
 class GcpAddress(GcpResource, BaseIPAddress):
     kind: ClassVar[str] = "gcp_address"
     _kind_display: ClassVar[str] = "GCP Address"
-    _kind_description: ClassVar[str] = (
-        "GCP Address is a resource in Google Cloud Platform that provides a static IP"
-        " address for virtual machine instances or other resources within the Google"
-        " Cloud network."
-    )
+    _kind_description: ClassVar[str] = "GCP Address is a Google Cloud Platform resource that provides static external IP addresses for virtual machine instances and network load balancers. It assigns permanent IP addresses to resources, ensuring consistent accessibility even when instances are stopped and restarted. GCP Address supports both regional and global IP addresses, facilitating network configuration and management in cloud environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/ip-addresses"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -329,11 +323,8 @@ class GcpAutoscalerStatusDetails:
 class GcpAutoscaler(GcpResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "gcp_autoscaler"
     _kind_display: ClassVar[str] = "GCP Autoscaler"
-    _kind_description: ClassVar[str] = (
-        "GCP Autoscaler is a feature in Google Cloud Platform that automatically"
-        " adjusts the number of instances in a managed instance group based on the"
-        " workload, helping to maintain cost efficiency and performance."
-    )
+    _kind_description: ClassVar[str] = "GCP Autoscaler is a Google Cloud Platform service that adjusts the number of virtual machine instances in a managed instance group based on workload demands. It monitors resource usage and automatically adds or removes instances to maintain performance and optimize costs. Users can set scaling policies and thresholds to control the autoscaling behavior."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/autoscaler"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -460,10 +451,8 @@ class GcpBackendBucketCdnPolicy:
 class GcpBackendBucket(GcpResource, BaseBucket):
     kind: ClassVar[str] = "gcp_backend_bucket"
     _kind_display: ClassVar[str] = "GCP Backend Bucket"
-    _kind_description: ClassVar[str] = (
-        "A GCP Backend Bucket is a storage bucket used to distribute static content"
-        " for a load balanced website or application running on Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP Backend Bucket is a Cloud Storage bucket that serves as the backend for a Google Cloud Load Balancer. It stores and delivers static content to users, reducing load on application servers. Backend Buckets can handle large files and high traffic volumes, improving website performance and reducing costs by offloading static content delivery from compute resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/backend-bucket"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
@@ -853,11 +842,8 @@ class GcpSecuritySettings:
 class GcpBackendService(GcpResource):
     kind: ClassVar[str] = "gcp_backend_service"
     _kind_display: ClassVar[str] = "GCP Backend Service"
-    _kind_description: ClassVar[str] = (
-        "GCP Backend Service is a managed load balancing service provided by Google"
-        " Cloud Platform that allows you to distribute traffic across multiple"
-        " backends and regions in a flexible and scalable manner."
-    )
+    _kind_description: ClassVar[str] = "GCP Backend Service is a Google Cloud Platform component that distributes incoming network traffic across multiple backend instances. It handles load balancing, health checks, and traffic routing for applications and services. Backend Service defines how traffic reaches the backend instances and can be used with various load balancing options in GCP."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/backend-service"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -984,10 +970,8 @@ class GcpBackendService(GcpResource):
 class GcpDiskType(GcpResource, BaseVolumeType):
     kind: ClassVar[str] = "gcp_disk_type"
     _kind_display: ClassVar[str] = "GCP Disk Type"
-    _kind_description: ClassVar[str] = (
-        "GCP Disk Types are storage options provided by Google Cloud Platform, which"
-        " define the performance characteristics and pricing of persistent disks."
-    )
+    _kind_description: ClassVar[str] = "GCP Disk Type refers to the storage options available for virtual machine instances in Google Cloud Platform. It includes persistent disks like standard HDD, balanced SSD, and performance SSD, as well as local SSDs. These disk types offer different performance characteristics and price points, catering to various workload requirements and storage needs in cloud computing environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/disks#disk-types"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -1110,10 +1094,8 @@ class GcpDiskParams:
 class GcpDisk(GcpResource, BaseVolume):
     kind: ClassVar[str] = "gcp_disk"
     _kind_display: ClassVar[str] = "GCP Disk"
-    _kind_description: ClassVar[str] = (
-        "GCP Disk is a persistent block storage service provided by Google Cloud"
-        " Platform, allowing users to store and manage data in the cloud."
-    )
+    _kind_description: ClassVar[str] = "GCP Disk is a storage option in Google Cloud Platform that provides persistent block storage for virtual machines. It functions as a hard drive for compute instances, storing data and operating systems. GCP Disk offers various types, including standard, balanced, and SSD, with different performance characteristics to suit diverse workload requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/disks"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_disk_type", "gcp_instance"]},
@@ -1239,10 +1221,8 @@ class GcpExternalVpnGatewayInterface:
 class GcpExternalVpnGateway(GcpResource, BaseGateway):
     kind: ClassVar[str] = "gcp_external_vpn_gateway"
     _kind_display: ClassVar[str] = "GCP External VPN Gateway"
-    _kind_description: ClassVar[str] = (
-        "GCP External VPN Gateway is a resource that provides connectivity from Google Cloud to external networks"
-        " via VPN, featuring interfaces for tunnel configuration and redundancy options for high availability."
-    )
+    _kind_description: ClassVar[str] = "GCP External VPN Gateway is a network resource representing a VPN device located outside Google Cloud Platform. It establishes secure, encrypted connections between on-premises networks and GCP virtual networks. This gateway facilitates data transfer and communication between external networks and GCP resources, extending an organization's network infrastructure into the cloud while maintaining security and privacy."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/vpn/concepts/external-vpn-gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
@@ -1386,10 +1366,8 @@ class GcpFirewallPolicyRule:
 class GcpFirewallPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_firewall_policy"
     _kind_display: ClassVar[str] = "GCP Firewall Policy"
-    _kind_description: ClassVar[str] = (
-        "GCP Firewall Policy is a security rule set that controls incoming and"
-        " outgoing network traffic for resources in the Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP Firewall Policy is a network security feature in Google Cloud Platform. It defines rules to control incoming and outgoing traffic for virtual machine instances. The policy specifies which network connections are permitted or blocked based on criteria like IP addresses, ports, and protocols. It helps protect cloud resources from unauthorized access and potential security threats."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/vpc/docs/firewall-policies"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
@@ -1482,11 +1460,8 @@ class GcpFirewallLogConfig:
 class GcpFirewall(GcpResource, BaseFirewall):
     kind: ClassVar[str] = "gcp_firewall"
     _kind_display: ClassVar[str] = "GCP Firewall"
-    _kind_description: ClassVar[str] = (
-        "GCP Firewall is a network security feature provided by Google Cloud Platform"
-        " that controls incoming and outgoing traffic to and from virtual machine"
-        " instances."
-    )
+    _kind_description: ClassVar[str] = "Google Cloud Platform (GCP) Firewall is a network security service that controls incoming and outgoing traffic to GCP resources. It uses rules to filter traffic based on IP addresses, protocols, and ports. GCP Firewall helps protect virtual machine instances and other resources from unauthorized access and potential security threats within the cloud environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/vpc/docs/firewalls"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_network"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -1591,11 +1566,8 @@ class GcpForwardingRuleServiceDirectoryRegistration:
 class GcpForwardingRule(GcpResource, BaseLoadBalancer):
     kind: ClassVar[str] = "gcp_forwarding_rule"
     _kind_display: ClassVar[str] = "GCP Forwarding Rule"
-    _kind_description: ClassVar[str] = (
-        "Forwarding rules are used in Google Cloud Platform to route traffic to"
-        " different destinations based on the configuration settings. They can be used"
-        " to load balance or redirect traffic within a network or between networks."
-    )
+    _kind_description: ClassVar[str] = "A GCP Forwarding Rule is a network configuration component in Google Cloud Platform that directs incoming traffic to specific destinations. It maps an IP address and port to one or more backend services or target instances, distributing network load across multiple resources. Forwarding rules can be used for load balancing, traffic routing, and network address translation."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/forwarding-rules"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1811,11 +1783,8 @@ class GcpNetworkEndpointGroupPscData:
 class GcpNetworkEndpointGroup(GcpResource):
     kind: ClassVar[str] = "gcp_network_endpoint_group"
     _kind_display: ClassVar[str] = "GCP Network Endpoint Group"
-    _kind_description: ClassVar[str] = (
-        "A GCP Network Endpoint Group is a logical grouping of network endpoints,"
-        " allowing users to distribute network traffic across multiple endpoints in"
-        " Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "A GCP Network Endpoint Group (NEG) is a configuration object that specifies a group of backend endpoints or services. It functions as a target for load balancing in Google Cloud Platform. NEGs can contain IP addresses, ports, and instance groups, providing flexibility in defining backend services and supporting various load balancing scenarios across different regions and instance types."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/negs"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2011,10 +1980,8 @@ class GcpWarnings:
 class GcpOperation(GcpResource):
     kind: ClassVar[str] = "gcp_operation"
     _kind_display: ClassVar[str] = "GCP Operation"
-    _kind_description: ClassVar[str] = (
-        "An operation represents a long-running asynchronous API call in Google Cloud"
-        " Platform (GCP), allowing users to create, update, or delete resources"
-    )
+    _kind_description: ClassVar[str] = "GCP Operation represents a long-running task in Google Cloud Platform. It tracks the progress and status of asynchronous operations, such as creating or modifying resources. GCP Operation provides information about the operation's start time, end time, current state, and any errors encountered. Users can monitor and manage these tasks through the GCP API or console."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/reference/rest/v1/operations"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2112,10 +2079,9 @@ class GcpPublicDelegatedPrefixPublicDelegatedSubPrefix:
 class GcpPublicDelegatedPrefix(GcpResource):
     kind: ClassVar[str] = "gcp_public_delegated_prefix"
     _kind_display: ClassVar[str] = "GCP Public Delegated Prefix"
-    _kind_description: ClassVar[str] = (
-        "A Public Delegated Prefix in Google Cloud Platform (GCP) allows customers to"
-        " use their own IPv6 addresses on GCP resources for public internet"
-        " connectivity."
+    _kind_description: ClassVar[str] = "GCP Public Delegated Prefix is a networking feature that lets users bring their own IP addresses to Google Cloud. It assigns a specific range of public IP addresses to a project, which can be used for various resources within that project. This feature provides control over IP address management and facilitates migration of existing workloads to GCP."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://cloud.google.com/network-connectivity/docs/network-connectivity-center/concepts/public-delegated-prefix"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
@@ -2311,11 +2277,8 @@ class GcpTCPHealthCheck:
 class GcpHealthCheck(GcpResource, BaseHealthCheck):
     kind: ClassVar[str] = "gcp_health_check"
     _kind_display: ClassVar[str] = "GCP Health Check"
-    _kind_description: ClassVar[str] = (
-        "Health Check is a feature in Google Cloud Platform that allows you to"
-        " monitor the health and availability of your resources by periodically"
-        " sending requests to them and verifying the responses."
-    )
+    _kind_description: ClassVar[str] = "GCP Health Check is a Google Cloud Platform service that monitors the health of backend instances in load balancing configurations. It performs periodic checks on specified endpoints to determine instance availability and readiness. Health Check reports instance status to load balancers, which use this information to direct traffic only to healthy instances, improving application reliability and performance."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/health-checks"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "health", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -2369,11 +2332,8 @@ class GcpHealthCheck(GcpResource, BaseHealthCheck):
 class GcpHttpHealthCheck(GcpResource):
     kind: ClassVar[str] = "gcp_http_health_check"
     _kind_display: ClassVar[str] = "GCP HTTP Health Check"
-    _kind_description: ClassVar[str] = (
-        "HTTP Health Checks are used by Google Cloud Platform to monitor the health"
-        " of web services and determine if they are reachable and responding correctly"
-        " to requests."
-    )
+    _kind_description: ClassVar[str] = "GCP HTTP Health Check is a monitoring service that verifies the availability and functionality of HTTP-based services running on Google Cloud Platform. It sends periodic HTTP requests to specified endpoints, evaluates responses, and reports the health status of the target resources. This information helps maintain service reliability by triggering automatic actions or alerting administrators to potential issues."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/health-checks"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "health", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -2417,11 +2377,8 @@ class GcpHttpHealthCheck(GcpResource):
 class GcpHttpsHealthCheck(GcpResource):
     kind: ClassVar[str] = "gcp_https_health_check"
     _kind_display: ClassVar[str] = "GCP HTTPS Health Check"
-    _kind_description: ClassVar[str] = (
-        "The GCP HTTPS Health Check is a monitoring service that allows users to"
-        " check the availability and performance of their HTTPS endpoints on Google"
-        " Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP HTTPS Health Check is a Google Cloud Platform service that monitors the health of HTTPS endpoints. It performs regular checks on specified URLs, verifying their availability and response status. The service helps maintain system reliability by detecting issues and facilitating automated responses, such as rerouting traffic or triggering alerts when problems are identified."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/health-checks#https-hc"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "health", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -2516,10 +2473,8 @@ class GcpInitialStateConfig:
 class GcpImage(GcpResource):
     kind: ClassVar[str] = "gcp_image"
     _kind_display: ClassVar[str] = "GCP Image"
-    _kind_description: ClassVar[str] = (
-        "GCP Images are pre-configured virtual machine templates that can be used to"
-        " create and deploy virtual machines in the Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP Image is a virtual machine image in Google Cloud Platform. It contains an operating system and pre-installed software, serving as a template for creating instances. Users can select from public images provided by Google or create custom images. GCP Images can be used to launch multiple identical instances or replicate environments across projects."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/images"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk"]}}
@@ -2818,9 +2773,9 @@ class GcpInstanceGroupManagerVersion:
 class GcpInstanceGroupManager(GcpResource):
     kind: ClassVar[str] = "gcp_instance_group_manager"
     _kind_display: ClassVar[str] = "GCP Instance Group Manager"
-    _kind_description: ClassVar[str] = (
-        "GCP Instance Group Manager is a resource in Google Cloud Platform that helps"
-        " manage and scale groups of Compute Engine instances."
+    _kind_description: ClassVar[str] = "GCP Instance Group Manager is a Google Cloud Platform service that automates the creation, management, and scaling of virtual machine instances. It maintains a specified number of instances, replaces unhealthy ones, and adjusts the group size based on defined rules. The service handles load balancing, rolling updates, and auto-scaling to meet application demands."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://cloud.google.com/compute/docs/instance-groups/working-with-managed-instance-groups"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
@@ -2902,10 +2857,8 @@ class GcpInstanceGroupManager(GcpResource):
 class GcpInstanceGroup(GcpResource):
     kind: ClassVar[str] = "gcp_instance_group"
     _kind_display: ClassVar[str] = "GCP Instance Group"
-    _kind_description: ClassVar[str] = (
-        "Instance Group is a resource in Google Cloud Platform that allows you to"
-        " manage and scale multiple instances together as a single unit."
-    )
+    _kind_description: ClassVar[str] = "A GCP Instance Group is a collection of virtual machine instances that operate as a single entity. It manages multiple identical instances, distributes incoming traffic, and automatically adjusts the number of instances based on demand. Instance Groups provide load balancing, auto-scaling, and rolling updates to maintain application availability and performance in Google Cloud Platform."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/instance-groups"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
@@ -3402,10 +3355,8 @@ class GcpSourceInstanceParams:
 class GcpInstanceTemplate(GcpResource):
     kind: ClassVar[str] = "gcp_instance_template"
     _kind_display: ClassVar[str] = "GCP Instance Template"
-    _kind_description: ClassVar[str] = (
-        "GCP Instance Templates are reusable configuration templates that define the"
-        " settings for Google Compute Engine virtual machine instances."
-    )
+    _kind_description: ClassVar[str] = "A GCP Instance Template is a resource that defines the configuration for virtual machine instances in Google Cloud Platform. It specifies the machine type, boot disk image, network interfaces, and other settings. Instance Templates serve as blueprints for creating multiple identical instances or instance groups, facilitating consistent and repeatable VM deployments across projects."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/instance-templates"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_machine_type"]}}
@@ -3456,10 +3407,8 @@ class GcpInstanceParams:
 class GcpInstance(GcpResource, BaseInstance):
     kind: ClassVar[str] = "gcp_instance"
     _kind_display: ClassVar[str] = "GCP Instance"
-    _kind_description: ClassVar[str] = (
-        "GCP Instances are virtual machines in Google Cloud Platform that can be used"
-        " to run applications and services on Google's infrastructure."
-    )
+    _kind_description: ClassVar[str] = "A GCP Instance is a virtual machine running on Google Cloud Platform. It provides computing resources for applications and services. Users can choose from various machine types, operating systems, and configurations to meet their specific needs. GCP Instances can be created, modified, and terminated as required, offering flexibility for workload management and resource allocation."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/instances"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -3655,11 +3604,8 @@ class GcpInterconnectAttachmentPartnerMetadata:
 class GcpInterconnectAttachment(GcpResource):
     kind: ClassVar[str] = "gcp_interconnect_attachment"
     _kind_display: ClassVar[str] = "GCP Interconnect Attachment"
-    _kind_description: ClassVar[str] = (
-        "Interconnect Attachment is a resource that allows you to connect your on-"
-        " premises network to Google Cloud Platform (GCP) using a dedicated physical"
-        " link."
-    )
+    _kind_description: ClassVar[str] = "GCP Interconnect Attachment is a networking component in Google Cloud Platform that connects on-premises networks to Google's network. It establishes a direct, private connection between a customer's data center and Google's infrastructure, bypassing the public internet. This connection provides increased security, reduced latency, and improved network performance for data transfer and cloud resource access."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/interconnect/concepts/overview"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -3762,12 +3708,8 @@ class GcpInterconnectLocationRegionInfo:
 class GcpInterconnectLocation(GcpResource):
     kind: ClassVar[str] = "gcp_interconnect_location"
     _kind_display: ClassVar[str] = "GCP Interconnect Location"
-    _kind_description: ClassVar[str] = (
-        "GCP Interconnect Location refers to the physical location where Google Cloud"
-        " Platform (GCP) Interconnects are available. Interconnects provide dedicated"
-        " connectivity options between an organization's on-premises network and GCP's"
-        " network."
-    )
+    _kind_description: ClassVar[str] = "A GCP Interconnect Location is a physical facility where Google Cloud Platform connects to external networks. It serves as a point of presence for establishing direct, private network connections between an organization's on-premises infrastructure and Google's network. This connection reduces latency, enhances security, and improves data transfer performance compared to public internet connections."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/interconnect/concepts/locations"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -3865,11 +3807,8 @@ class GcpInterconnectOutageNotification:
 class GcpInterconnect(GcpResource):
     kind: ClassVar[str] = "gcp_interconnect"
     _kind_display: ClassVar[str] = "GCP Interconnect"
-    _kind_description: ClassVar[str] = (
-        "GCP Interconnect is a dedicated connection between your on-premises network"
-        " and Google Cloud Platform, providing a high-speed and reliable link for data"
-        " transfer."
-    )
+    _kind_description: ClassVar[str] = "GCP Interconnect is a network connectivity service from Google Cloud Platform. It provides direct physical connections between on-premises networks and Google's network. This service offers dedicated bandwidth and reduced latency compared to public internet connections. It supports both layer 2 and layer 3 connectivity options, enhancing data transfer speeds and network security for organizations using Google Cloud services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/interconnect"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -3948,9 +3887,8 @@ class GcpLicenseResourceRequirements:
 class GcpLicense(GcpResource):
     kind: ClassVar[str] = "gcp_license"
     _kind_display: ClassVar[str] = "GCP License"
-    _kind_description: ClassVar[str] = (
-        "GCP Licenses are used to authorize the use of certain Google Cloud Platform services and resources."
-    )
+    _kind_description: ClassVar[str] = "GCP License refers to the agreement between Google and users of Google Cloud Platform (GCP) services. It outlines terms of use, pricing, and access rights for cloud computing resources. The license governs data storage, processing, and application deployment on GCP infrastructure. It specifies user responsibilities, service limitations, and compliance requirements for utilizing Google's cloud technologies."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/license-manager/docs"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -4111,11 +4049,8 @@ class GcpSourceInstanceProperties:
 class GcpMachineImage(GcpResource):
     kind: ClassVar[str] = "gcp_machine_image"
     _kind_display: ClassVar[str] = "GCP Machine Image"
-    _kind_description: ClassVar[str] = (
-        "Machine Images in Google Cloud Platform are snapshots of a virtual machine's"
-        " disk that can be used to create new instances with the same configuration"
-        " and data."
-    )
+    _kind_description: ClassVar[str] = "A GCP Machine Image is a resource that captures the complete state of a virtual machine instance, including its configuration, data, and software. It serves as a template for creating new instances or restoring existing ones. Machine Images can be used for backup, disaster recovery, and rapid deployment of preconfigured environments across Google Cloud Platform."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/machine-images"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -4200,10 +4135,8 @@ class GcpAccelerators:
 class GcpMachineType(GcpResource, BaseInstanceType):
     kind: ClassVar[str] = "gcp_machine_type"
     _kind_display: ClassVar[str] = "GCP Machine Type"
-    _kind_description: ClassVar[str] = (
-        "GCP Machine Types are predefined hardware configurations that define the"
-        " virtualized hardware resources for Google Cloud Platform virtual machines."
-    )
+    _kind_description: ClassVar[str] = "GCP Machine Type defines the hardware configuration for virtual machine instances in Google Cloud Platform. It specifies the CPU, memory, and storage resources allocated to a VM. Users select machine types based on their workload requirements, balancing performance and cost. Machine types range from small, economical options to large, high-performance configurations for resource-intensive applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/machine-types"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -4373,11 +4306,8 @@ class GcpMachineType(GcpResource, BaseInstanceType):
 class GcpNetworkEdgeSecurityService(GcpResource):
     kind: ClassVar[str] = "gcp_network_edge_security_service"
     _kind_display: ClassVar[str] = "GCP Network Edge Security Service"
-    _kind_description: ClassVar[str] = (
-        "GCP Network Edge Security Service provides secure and reliable access to"
-        " resources in the Google Cloud Platform network, reducing the risk of"
-        " unauthorized access and data breaches."
-    )
+    _kind_description: ClassVar[str] = "GCP Network Edge Security Service is a cloud-based security solution that protects networks at their entry points. It filters incoming traffic, detects and blocks threats, and secures connections between users and applications. The service applies security policies, inspects traffic for malware, and provides visibility into network activity, helping organizations maintain a secure network perimeter."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-edge-security/docs"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -4453,10 +4383,8 @@ class GcpNetworkPeering:
 class GcpNetwork(GcpResource, BaseNetwork):
     kind: ClassVar[str] = "gcp_network"
     _kind_display: ClassVar[str] = "GCP Network"
-    _kind_description: ClassVar[str] = (
-        "GCP Network is a virtual network infrastructure that allows users to"
-        " securely connect and isolate their resources in the Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP Network is Google Cloud Platform's networking infrastructure. It provides connectivity between resources within GCP and to external networks. The service includes virtual private clouds, load balancing, DNS, VPN, and CDN capabilities. It manages traffic routing, security, and performance optimization for applications and services running on Google Cloud."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/vpc/docs"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
@@ -4570,11 +4498,8 @@ class GcpShareSettings:
 class GcpNodeGroup(GcpResource):
     kind: ClassVar[str] = "gcp_node_group"
     _kind_display: ClassVar[str] = "GCP Node Group"
-    _kind_description: ClassVar[str] = (
-        "The GCP Node Group is a service that manages groups of sole-tenant nodes in Google Cloud, providing"
-        " capabilities for autoscaling, scheduled maintenance, and specifying node affinity to optimize placement"
-        " and utilization."
-    )
+    _kind_description: ClassVar[str] = "A GCP Node Group is a collection of virtual machine instances in Google Cloud Platform that function as worker nodes in a Kubernetes cluster. It manages node creation, scaling, and maintenance within a specified configuration. Node Groups automate the provisioning and lifecycle of compute resources, ensuring consistent performance and availability for containerized applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/kubernetes-engine/docs/concepts/node-pools"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_node_template"]}}
@@ -4660,10 +4585,8 @@ class GcpNodeTemplateNodeTypeFlexibility:
 class GcpNodeTemplate(GcpResource):
     kind: ClassVar[str] = "gcp_node_template"
     _kind_display: ClassVar[str] = "GCP Node Template"
-    _kind_description: ClassVar[str] = (
-        "GCP Node Template is a reusable configuration template used to create and"
-        " manage virtual machine instances in the Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP Node Template is a pre-configured setup for deploying Node.js applications on Google Cloud Platform. It includes the necessary files and settings to run a Node.js app on GCP services. The template provides a starting point for developers, reducing setup time and ensuring compatibility with GCP's infrastructure and best practices for Node.js deployments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/reference/rest/v1/nodeTemplates"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk_type"]}}
@@ -4718,11 +4641,8 @@ class GcpNodeTemplate(GcpResource):
 class GcpNodeType(GcpResource):
     kind: ClassVar[str] = "gcp_node_type"
     _kind_display: ClassVar[str] = "GCP Node Type"
-    _kind_description: ClassVar[str] = (
-        "GCP Node Types determine the hardware configuration of virtual machines in"
-        " Google Cloud Platform (GCP). Each node type has specific CPU, memory, and"
-        " storage capacity."
-    )
+    _kind_description: ClassVar[str] = "GCP Node Type refers to the configuration of virtual machine instances in Google Cloud Platform. It specifies the CPU, memory, and storage resources allocated to a node in a cluster. Node types determine the compute capacity and performance characteristics of instances, influencing workload capabilities and cost. Users select node types based on their application requirements and budget constraints."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/machine-types"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -4855,11 +4775,8 @@ class GcpPacketMirroringNetworkInfo:
 class GcpPacketMirroring(GcpResource):
     kind: ClassVar[str] = "gcp_packet_mirroring"
     _kind_display: ClassVar[str] = "GCP Packet Mirroring"
-    _kind_description: ClassVar[str] = (
-        "GCP Packet Mirroring is a service provided by Google Cloud Platform that"
-        " allows users to capture and mirror network traffic in order to monitor and"
-        " analyze network data for security and troubleshooting purposes."
-    )
+    _kind_description: ClassVar[str] = "GCP Packet Mirroring is a network traffic inspection tool that copies packets from specific instances or subnets and forwards them to a collector. It captures both ingress and egress traffic, providing visibility into network communications for security analysis, performance monitoring, and troubleshooting purposes. Users can configure filters to target specific traffic types or protocols."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/vpc/docs/packet-mirroring"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_instance", "gcp_subnetwork"]}}
@@ -4933,10 +4850,8 @@ class GcpPublicAdvertisedPrefixPublicDelegatedPrefix:
 class GcpPublicAdvertisedPrefix(GcpResource):
     kind: ClassVar[str] = "gcp_public_advertised_prefix"
     _kind_display: ClassVar[str] = "GCP Public Advertised Prefix"
-    _kind_description: ClassVar[str] = (
-        "A GCP Public Advertised Prefix is a range of IP addresses that can be"
-        " advertised over the internet to allow communication with GCP resources."
-    )
+    _kind_description: ClassVar[str] = "GCP Public Advertised Prefix is a networking feature in Google Cloud Platform that announces IP address ranges to the internet. It enables organizations to advertise their own IP addresses through Google's network infrastructure, maintaining control over their address space while benefiting from Google's global network for routing and connectivity to other networks and service providers."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/public-advertised-prefixes"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_public_delegated_prefix"]}}
@@ -5124,10 +5039,8 @@ class GcpResourceCommitment:
 class GcpCommitment(GcpResource):
     kind: ClassVar[str] = "gcp_commitment"
     _kind_display: ClassVar[str] = "GCP Commitment"
-    _kind_description: ClassVar[str] = (
-        "A GCP Commitment is a pre-purchased commitment in Google Cloud Platform,"
-        " which provides discounted pricing for certain services and resources."
-    )
+    _kind_description: ClassVar[str] = "GCP Commitment is a pricing model offered by Google Cloud Platform. It allows customers to reserve and prepay for specific amounts of cloud resources for a fixed term. In exchange for this commitment, users receive discounted rates compared to on-demand pricing. This model helps organizations manage costs and ensure resource availability for their cloud workloads."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/instances/signing-up-committed-use-discounts"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -5184,11 +5097,8 @@ class GcpCommitment(GcpResource):
 class GcpHealthCheckService(GcpResource):
     kind: ClassVar[str] = "gcp_health_check_service"
     _kind_display: ClassVar[str] = "GCP Health Check Service"
-    _kind_description: ClassVar[str] = (
-        "The GCP Health Check Service is a feature provided by Google Cloud Platform"
-        " (GCP) that monitors the health and availability of backend services and"
-        " instances."
-    )
+    _kind_description: ClassVar[str] = "GCP Health Check Service monitors the health and performance of applications and services running on Google Cloud Platform. It periodically sends probes to specified endpoints, verifying their availability and responsiveness. The service can detect issues, trigger alerts, and integrate with load balancers to route traffic away from unhealthy instances, helping maintain application reliability and uptime."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/health-checks"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "access_control"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -5252,10 +5162,8 @@ class GcpNotificationEndpointGrpcSettings:
 class GcpNotificationEndpoint(GcpResource):
     kind: ClassVar[str] = "gcp_notification_endpoint"
     _kind_display: ClassVar[str] = "GCP Notification Endpoint"
-    _kind_description: ClassVar[str] = (
-        "A GCP Notification Endpoint is a specific destination to send notifications"
-        " from Google Cloud Platform services to, such as Pub/Sub or HTTP endpoints."
-    )
+    _kind_description: ClassVar[str] = "GCP Notification Endpoint is a Google Cloud Platform service that receives and processes notifications from various GCP resources. It acts as a central point for collecting and routing alerts, updates, and event data. Users can configure endpoints to direct notifications to specific destinations like email, SMS, or third-party applications for monitoring and response purposes."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/eventarc/docs/create-notification-endpoint"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "management"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -5520,11 +5428,8 @@ class GcpSecurityPolicyRule:
 class GcpSecurityPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_security_policy"
     _kind_display: ClassVar[str] = "GCP Security Policy"
-    _kind_description: ClassVar[str] = (
-        "GCP Security Policy is a feature of Google Cloud Platform that allows users"
-        " to define and enforce security rules and policies for their virtual machine"
-        " instances."
-    )
+    _kind_description: ClassVar[str] = "GCP Security Policy is a set of rules and configurations that define access controls and network security for Google Cloud Platform resources. It manages firewall rules, network traffic, and user permissions across projects and organizations. This policy helps protect cloud infrastructure from unauthorized access and potential threats while enforcing compliance requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/vpc/docs/security-policies"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -5603,11 +5508,8 @@ class GcpSslCertificateSelfManagedSslCertificate:
 class GcpSslCertificate(GcpResource, BaseCertificate):
     kind: ClassVar[str] = "gcp_ssl_certificate"
     _kind_display: ClassVar[str] = "GCP SSL Certificate"
-    _kind_description: ClassVar[str] = (
-        "SSL Certificate is a digital certificate that authenticates the identity of"
-        " a website and encrypts information sent to the server, ensuring secure"
-        " communication over the Google Cloud Platform."
-    )
+    _kind_description: ClassVar[str] = "GCP SSL Certificate is a digital security credential used to encrypt data transmitted between web servers and browsers. It authenticates website identity and ensures secure communication. Google Cloud Platform manages the certificate lifecycle, including issuance, renewal, and revocation. This service helps protect sensitive information and maintains user trust in websites hosted on GCP."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/ssl-certificates"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -5653,10 +5555,8 @@ class GcpSslCertificate(GcpResource, BaseCertificate):
 class GcpSslPolicy(GcpResource):
     kind: ClassVar[str] = "gcp_ssl_policy"
     _kind_display: ClassVar[str] = "GCP SSL Policy"
-    _kind_description: ClassVar[str] = (
-        "SSL policies in Google Cloud Platform (GCP) manage how SSL/TLS connections"
-        " are established and maintained for HTTPS services."
-    )
+    _kind_description: ClassVar[str] = "GCP SSL Policy is a configuration feature in Google Cloud Platform that defines the SSL/TLS protocols and cipher suites used for secure connections. It controls the encryption standards and security levels for HTTPS load balancers, enhancing data protection and communication security. Administrators can customize SSL policies to meet specific compliance requirements or security needs for their applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/ssl-policies-concepts"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -5698,10 +5598,8 @@ class GcpSslPolicy(GcpResource):
 class GcpTargetHttpProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_http_proxy"
     _kind_display: ClassVar[str] = "GCP Target HTTP Proxy"
-    _kind_description: ClassVar[str] = (
-        "GCP Target HTTP Proxy is a resource in Google Cloud Platform that allows for"
-        " load balancing and routing of HTTP traffic to backend services."
-    )
+    _kind_description: ClassVar[str] = "A GCP Target HTTP Proxy is a Google Cloud Platform resource that routes incoming HTTP requests to backend services. It acts as an intermediary between external clients and internal services, distributing traffic based on URL maps. Target HTTP Proxies work with global load balancers to manage and direct incoming HTTP traffic across multiple regions."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/target-proxies"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -5745,11 +5643,8 @@ class GcpTargetHttpProxy(GcpResource):
 class GcpTargetHttpsProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_https_proxy"
     _kind_display: ClassVar[str] = "GCP Target HTTPS Proxy"
-    _kind_description: ClassVar[str] = (
-        "A GCP Target HTTPS Proxy is a Google Cloud Platform resource that enables"
-        " you to configure SSL/TLS termination for HTTP(S) load balancing, allowing"
-        " secure communication between clients and your backend services."
-    )
+    _kind_description: ClassVar[str] = "A GCP Target HTTPS Proxy is a component in Google Cloud Platform that routes HTTPS requests to backend services. It terminates SSL connections, performs SSL offloading, and directs traffic based on URL maps. This proxy works with load balancers to distribute incoming requests across multiple backend instances, enhancing security and performance for web applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/target-https-proxy"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -5810,11 +5705,8 @@ class GcpTargetHttpsProxy(GcpResource):
 class GcpTargetTcpProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_tcp_proxy"
     _kind_display: ClassVar[str] = "GCP Target TCP Proxy"
-    _kind_description: ClassVar[str] = (
-        "Target TCP Proxy is a Google Cloud Platform service that allows you to load"
-        " balance TCP traffic to backend instances based on target proxy"
-        " configuration."
-    )
+    _kind_description: ClassVar[str] = "GCP Target TCP Proxy is a Google Cloud Platform component that distributes incoming TCP traffic across backend services. It acts as an intermediary, receiving client requests and forwarding them to appropriate backend instances based on configured rules. Target TCP Proxy supports load balancing, SSL termination, and protocol forwarding, improving network performance and security for TCP-based applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/target-tcp-proxy"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -6304,11 +6196,8 @@ class GcpUrlMapTest:
 class GcpUrlMap(GcpResource):
     kind: ClassVar[str] = "gcp_url_map"
     _kind_display: ClassVar[str] = "GCP URL Map"
-    _kind_description: ClassVar[str] = (
-        "A GCP URL Map is a resource that maps a URL path to a specific backend"
-        " service in Google Cloud Platform. It allows for routing of requests based on"
-        " the URL path."
-    )
+    _kind_description: ClassVar[str] = "A GCP URL Map is a Google Cloud Platform resource that routes incoming HTTP(S) requests to specific backend services or buckets based on defined rules. It matches the URL path or host of requests to configured patterns and directs traffic accordingly, supporting load balancing and content-based routing across multiple backends within a single load balancer."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/url-map"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_backend_service"]}}
@@ -6579,11 +6468,8 @@ class GcpResourcePolicySnapshotSchedulePolicy:
 class GcpResourcePolicy(GcpResource):
     kind: ClassVar[str] = "gcp_resource_policy"
     _kind_display: ClassVar[str] = "GCP Resource Policy"
-    _kind_description: ClassVar[str] = (
-        "GCP Resource Policy is a tool that helps manage compute resources for VM instances in Google"
-        " Cloud, enabling users to define scheduling for instance creation, automated snapshots, and"
-        " resource grouping, which can optimize costs and maintain the necessary resource availability."
-    )
+    _kind_description: ClassVar[str] = "GCP Resource Policy is a Google Cloud Platform feature that defines rules and constraints for resource management. It controls the creation, modification, and deletion of resources across projects and organizations. Resource policies enforce governance, security, and compliance standards, ensuring consistent resource configurations and reducing potential misconfigurations or unauthorized actions within a GCP environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/reference/rest/v1/resourcePolicies"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "management"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -6893,10 +6779,8 @@ class GcpRouterNat:
 class GcpRouter(GcpResource):
     kind: ClassVar[str] = "gcp_router"
     _kind_display: ClassVar[str] = "GCP Router"
-    _kind_description: ClassVar[str] = (
-        "GCP Router is a networking component in Google Cloud Platform that directs"
-        " traffic between virtual networks."
-    )
+    _kind_description: ClassVar[str] = "GCP Router is a networking component in Google Cloud Platform that directs traffic between virtual networks and on-premises networks. It manages routing tables, implements BGP protocols, and facilitates communication between different subnets. GCP Router supports static and dynamic routing, enabling network administrators to control traffic flow and connect resources across various network environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/router"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -6964,10 +6848,8 @@ class GcpRouteAsPath:
 class GcpRoute(GcpResource):
     kind: ClassVar[str] = "gcp_route"
     _kind_display: ClassVar[str] = "GCP Route"
-    _kind_description: ClassVar[str] = (
-        "A GCP Route is a rule that specifies the next-hop information for network"
-        " traffic within a Google Cloud Platform virtual network."
-    )
+    _kind_description: ClassVar[str] = "GCP Route is a Google Cloud Platform service that defines paths for network traffic between virtual machine instances and other destinations. It specifies how packets should be forwarded within a network or between networks. Routes can be static or dynamic, and they control traffic flow based on destination IP addresses, ensuring data reaches its intended destination efficiently."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/reference/rest/v1/routes"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -7083,11 +6965,8 @@ class GcpUint128:
 class GcpServiceAttachment(GcpResource):
     kind: ClassVar[str] = "gcp_service_attachment"
     _kind_display: ClassVar[str] = "GCP Service Attachment"
-    _kind_description: ClassVar[str] = (
-        "GCP Service Attachment is a networking feature that manages connectivity and security policies between"
-        " Google Cloud services and external services, offering controls like connection preferences, domain"
-        " names management, and protocol support."
-    )
+    _kind_description: ClassVar[str] = "GCP Service Attachment is a networking feature that connects services across different Google Cloud projects or organizations. It creates private endpoints for services, restricting access to specific consumers while maintaining network isolation. Service Attachment facilitates secure communication between services without exposing them to the public internet, enhancing data security and network control."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/vpc/docs/private-service-connect#service-attachments"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "compute"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["gcp_backend_service", "gcp_subnetwork"]}}
@@ -7149,10 +7028,8 @@ class GcpServiceAttachment(GcpResource):
 class GcpSnapshot(GcpResource, BaseSnapshot):
     kind: ClassVar[str] = "gcp_snapshot"
     _kind_display: ClassVar[str] = "GCP Snapshot"
-    _kind_description: ClassVar[str] = (
-        "GCP Snapshot is a point-in-time copy of the data in a persistent disk in"
-        " Google Cloud Platform, allowing for data backup and recovery."
-    )
+    _kind_description: ClassVar[str] = "GCP Snapshot is a data backup feature for Google Cloud Platform. It creates point-in-time copies of persistent disks, providing a way to safeguard data and recover from system failures. Snapshots can be used to clone disks, transfer data between regions, or restore data to a previous state, offering protection against data loss and system disruptions."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/disks/snapshots"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_disk"]}}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -7274,11 +7151,8 @@ class GcpSubnetworkSecondaryRange:
 class GcpSubnetwork(GcpResource, BaseSubnet):
     kind: ClassVar[str] = "gcp_subnetwork"
     _kind_display: ClassVar[str] = "GCP Subnetwork"
-    _kind_description: ClassVar[str] = (
-        "A GCP Subnetwork is a segmented network within a Virtual Private Cloud (VPC)"
-        " that allows for more granular control over network traffic and IP address"
-        " allocation."
-    )
+    _kind_description: ClassVar[str] = "A GCP Subnetwork is a regional network segment within a Virtual Private Cloud (VPC) network. It defines an IP address range and controls network traffic flow between resources. Subnetworks isolate resources, enhance security, and manage network topology. They can be connected to other subnetworks and external networks through various networking features provided by Google Cloud Platform."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/vpc/docs/subnets"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -7349,10 +7223,8 @@ class GcpSubnetwork(GcpResource, BaseSubnet):
 class GcpTargetGrpcProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_grpc_proxy"
     _kind_display: ClassVar[str] = "GCP Target gRPC Proxy"
-    _kind_description: ClassVar[str] = (
-        "GCP Target gRPC Proxy is a service in Google Cloud Platform that allows you"
-        " to load balance gRPC traffic to backend services."
-    )
+    _kind_description: ClassVar[str] = "A GCP Target gRPC Proxy is a Google Cloud Platform component that routes gRPC traffic to backend services. It acts as an intermediary between clients and servers, handling load balancing, authentication, and protocol conversion. This proxy supports HTTP/2 and can distribute incoming requests across multiple backend instances, improving performance and reliability for gRPC-based applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/target-grpc-proxy"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -7400,10 +7272,8 @@ class GcpTargetGrpcProxy(GcpResource):
 class GcpTargetInstance(GcpResource):
     kind: ClassVar[str] = "gcp_target_instance"
     _kind_display: ClassVar[str] = "GCP Target Instance"
-    _kind_description: ClassVar[str] = (
-        "Target Instances in Google Cloud Platform are virtual machine instances that"
-        " are used as forwarding targets for load balancing and traffic routing."
-    )
+    _kind_description: ClassVar[str] = "A GCP Target Instance is a network resource in Google Cloud Platform that receives and handles incoming traffic for specific IP addresses and ports. It acts as a proxy, forwarding requests to designated virtual machine instances, facilitating load balancing and traffic management. Target Instances can be used to implement various networking scenarios and improve application availability."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/protocol-forwarding#targetinstances"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -7449,11 +7319,8 @@ class GcpTargetInstance(GcpResource):
 class GcpTargetPool(GcpResource):
     kind: ClassVar[str] = "gcp_target_pool"
     _kind_display: ClassVar[str] = "GCP Target Pool"
-    _kind_description: ClassVar[str] = (
-        "Target Pools in Google Cloud Platform (GCP) are groups of instances that can"
-        " receive traffic from a load balancer. They are used to distribute incoming"
-        " requests across multiple backend instances."
-    )
+    _kind_description: ClassVar[str] = "A GCP Target Pool is a network resource that distributes incoming traffic across multiple instances in a region. It acts as a single endpoint for load balancing, directing requests to healthy instances within the pool. Target Pools can be used with network load balancers to distribute traffic based on IP protocol data."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/target-pools"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -7505,11 +7372,8 @@ class GcpTargetPool(GcpResource):
 class GcpTargetSslProxy(GcpResource):
     kind: ClassVar[str] = "gcp_target_ssl_proxy"
     _kind_display: ClassVar[str] = "GCP Target SSL Proxy"
-    _kind_description: ClassVar[str] = (
-        "A GCP Target SSL Proxy is a resource that terminates SSL/TLS traffic for a"
-        " specific target HTTPS or SSL Proxy load balancing setup in Google Cloud"
-        " Platform."
-    )
+    _kind_description: ClassVar[str] = "A GCP Target SSL Proxy is a Google Cloud Platform resource that terminates SSL connections from clients and forwards traffic to backend services. It manages SSL certificates, handles encryption/decryption, and distributes incoming requests across multiple backend instances. This proxy supports HTTPS load balancing and can route traffic based on SNI information."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/load-balancing/docs/target-ssl-proxy"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "proxy", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -7560,11 +7424,8 @@ class GcpTargetSslProxy(GcpResource):
 class GcpTargetVpnGateway(GcpResource):
     kind: ClassVar[str] = "gcp_target_vpn_gateway"
     _kind_display: ClassVar[str] = "GCP Target VPN Gateway"
-    _kind_description: ClassVar[str] = (
-        "Target VPN Gateway is a virtual private network (VPN) gateway that allows"
-        " secure communication between on-premises networks and networks running on"
-        " Google Cloud Platform (GCP)."
-    )
+    _kind_description: ClassVar[str] = "GCP Target VPN Gateway is a Google Cloud Platform network resource that facilitates secure connections between on-premises networks and Google Cloud VPCs. It acts as an endpoint for VPN tunnels, encrypting traffic and managing routing between the connected networks. This gateway supports both static and dynamic routing protocols for flexible network configuration."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/vpn/concepts/overview#gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -7628,11 +7489,8 @@ class GcpVpnGatewayVpnGatewayInterface:
 class GcpVpnGateway(GcpResource, BaseGateway):
     kind: ClassVar[str] = "gcp_vpn_gateway"
     _kind_display: ClassVar[str] = "GCP VPN Gateway"
-    _kind_description: ClassVar[str] = (
-        "GCP VPN Gateway is a virtual private network (VPN) gateway on Google Cloud"
-        " Platform that allows users to securely connect their on-premises network to"
-        " their GCP network."
-    )
+    _kind_description: ClassVar[str] = "GCP VPN Gateway is a network component in Google Cloud Platform that establishes secure connections between on-premises networks and Google Cloud resources. It encrypts traffic over the public internet, creating a virtual private network. The gateway manages multiple tunnels, supports both static and dynamic routing, and provides secure access to cloud-based applications and data."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/vpn/concepts/overview"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_network"], "delete": ["gcp_network"]},
@@ -7678,11 +7536,8 @@ class GcpVpnGateway(GcpResource, BaseGateway):
 class GcpVpnTunnel(GcpResource, BaseTunnel):
     kind: ClassVar[str] = "gcp_vpn_tunnel"
     _kind_display: ClassVar[str] = "GCP VPN Tunnel"
-    _kind_description: ClassVar[str] = (
-        "A GCP VPN Tunnel is a secure virtual connection that allows users to connect"
-        " their on-premises network to their Google Cloud Platform (GCP) Virtual"
-        " Private Cloud (VPC)."
-    )
+    _kind_description: ClassVar[str] = "GCP VPN Tunnel is a secure connection service in Google Cloud Platform. It creates encrypted links between on-premises networks and Google Cloud resources over the public internet. This service helps organizations extend their private networks to the cloud, ensuring data transmission security and enabling hybrid cloud architectures while maintaining network isolation and control."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/network-connectivity/docs/vpn/concepts/overview"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {

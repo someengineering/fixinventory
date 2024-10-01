@@ -92,10 +92,8 @@ class AwsBeanstalkApplicationResourceLifecycleConfig:
 class AwsBeanstalkApplication(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_application"
     _kind_display: ClassVar[str] = "AWS Elastic Beanstalk Application"
-    _kind_description: ClassVar[str] = (
-        "Elastic Beanstalk is a fully managed service that makes it easy to deploy"
-        " and run applications in multiple languages."
-    )
+    _kind_description: ClassVar[str] = "AWS Elastic Beanstalk Application is a service that deploys and manages web applications. It handles infrastructure provisioning, capacity adjustment, load balancing, and health monitoring. Developers can upload their code, and Elastic Beanstalk automatically handles deployment details. It supports multiple programming languages and web servers, simplifying the process of running applications in the AWS cloud."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/Welcome.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/application/overview?applicationName={name}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:application/{name}"}  # fmt: skip
@@ -289,11 +287,8 @@ class AwsBeanstalkEnvironmentResourcesDescription:
 class AwsBeanstalkEnvironment(AwsResource):
     kind: ClassVar[str] = "aws_beanstalk_environment"
     _kind_display: ClassVar[str] = "AWS Elastic Beanstalk Environment"
-    _kind_description: ClassVar[str] = (
-        "An AWS Elastic Beanstalk environment is a collection of AWS resources running an application version."
-        " It includes an application server, server instances, load balancers, and optionally, a database."
-        " Each environment runs only one application and one version of that application at a time."
-    )
+    _kind_description: ClassVar[str] = "AWS Elastic Beanstalk Environment is a managed service that automates application deployment and infrastructure provisioning. It handles capacity provisioning, load balancing, auto-scaling, and application health monitoring. Users can deploy applications in multiple languages and frameworks while AWS manages the underlying infrastructure, reducing the complexity of server management and application maintenance."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/using-features-managing-env.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "environment", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticbeanstalk/home?region={region}#/environment/dashboard?environmentId={id}", "arn_tpl": "arn:{partition}:elasticbeanstalk:{region}:{account}:environment/{name}"}  # fmt: skip
