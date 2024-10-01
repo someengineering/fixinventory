@@ -900,13 +900,12 @@ def query_string(
                 # walk the path and return all/sliced vertices.
                 # this means intermediate nodes are returned multiple times and have to be made distinct
                 if with_edges:
-                    pa = f"{in_c}_path_edge"
                     pv = f"{in_path}.vertices[{in_r}]"
                     pe = f"{in_path}.edges[{in_r}]"
-                    vp_with_ep = f"MERGE({pv}, {{_edge:UNSET({pa}, {edge_unset_props})}})"
+                    pv_with_pe = f"MERGE({pv}, {{_edge:UNSET({pe}, {edge_unset_props})}})"
                     inout_result = (
                         f"FOR {in_r} in {start}..LENGTH({in_path}.vertices)-1 "
-                        f"LET {pa}={pe} RETURN DISTINCT({pa}!=null ? {vp_with_ep} : {pv})"
+                        f"RETURN DISTINCT({pe}!=null ? {pv_with_pe} : {pv})"
                     )
                 else:
                     slice_or_all = f"SLICE({in_path}.vertices, {start})" if start > 0 else f"{in_path}.vertices"
