@@ -269,9 +269,11 @@ class BaseResource(ABC):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     # Categories of this resource kind.
     _categories: ClassVar[List[Category]] = []
+    # Link to the cloud providers product documentation of this resource kind.
+    _docs_url: ClassVar[Optional[str]] = None
 
     ################################################################################
-    # InstanceVariables
+    # Instance Variables
 
     # Identifier of this resource. Does not need to be globally unique. chksum is used to compute a unique identifier.
     id: str

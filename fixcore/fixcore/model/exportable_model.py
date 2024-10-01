@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 from fixcore.model.model import (
     Model,
@@ -18,7 +18,7 @@ def json_export_simple_schema(
     model: Model,
     with_properties: bool = True,
     with_relatives: bool = True,
-    with_metadata: bool = True,
+    with_metadata: Union[bool, List[str]] = True,
 ) -> List[Json]:
     def export_simple(kind: SimpleKind) -> Json:
         result = kind.as_json()
@@ -56,7 +56,10 @@ def json_export_simple_schema(
             aggregate_root=kind.aggregate_root,
         )
         if with_metadata:
-            result["metadata"] = kind.metadata
+            if isinstance(with_metadata, list):
+                result["metadata"] = {k: v for k, v in kind.metadata.items() if k in with_metadata}
+            else:
+                result["metadata"] = kind.metadata
         if with_properties:
             result["allow_unknown_props"] = kind.allow_unknown_props
             result["properties"] = {prop.name: export_property(prop, kind) for prop, kind in kind.all_props_with_kind()}

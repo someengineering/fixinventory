@@ -72,11 +72,8 @@ class SagemakerTaggable:
 class AwsSagemakerNotebook(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_notebook"
     _kind_display: ClassVar[str] = "AWS SageMaker Notebook"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Notebooks are a fully managed service by AWS that provides a"
-        " Jupyter notebook environment for data scientists and developers to build,"
-        " train, and deploy machine learning models."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Notebook is a cloud-based development environment for machine learning. It provides Jupyter notebooks with pre-configured kernels and libraries for data science and ML tasks. Users can create, edit, and run code, visualize data, and train models within the notebook interface. It integrates with other AWS services for data storage, processing, and model deployment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:notebook/{name}"}  # fmt: skip
@@ -759,10 +756,8 @@ class AwsSagemakerAlgorithmStatusDetails:
 class AwsSagemakerAlgorithm(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_algorithm"
     _kind_display: ClassVar[str] = "AWS SageMaker Algorithm"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Algorithms are pre-built machine learning algorithms provided by"
-        " Amazon SageMaker, which can be used to train and deploy predictive models."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Algorithm is a machine learning component within Amazon SageMaker. It provides pre-built algorithms for common machine learning tasks, including classification, regression, and clustering. Users can select and deploy these algorithms to train models on their data without writing extensive code, reducing the complexity of implementing machine learning solutions in cloud environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/algos.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:algorithm/{name}"}  # fmt: skip
@@ -901,10 +896,8 @@ class AwsSagemakerVpcConfig:
 class AwsSagemakerModel(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_model"
     _kind_display: ClassVar[str] = "AWS SageMaker Model"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Models are machine learning models built and trained using Amazon"
-        " SageMaker, a fully-managed machine learning service by Amazon Web Services."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Model is a component of Amazon SageMaker that manages machine learning models. It stores, versions, and deploys trained models for inference. Users can create models from their own algorithms or pre-trained models, configure them for different hardware, and deploy them to production environments. It integrates with other SageMaker features for end-to-end machine learning workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints-deployment.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:model/{name}"}  # fmt: skip
@@ -1001,11 +994,8 @@ class AwsSagemakerResourceSpec:
 class AwsSagemakerApp(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_app"
     _kind_display: ClassVar[str] = "AWS SageMaker App"
-    _kind_description: ClassVar[str] = (
-        "The AWS SageMaker App facilitates the creation and management of machine learning applications, enabling"
-        " users to engage in interactive model building and analysis. It provides a user-centric, customizable"
-        " workspace, complete with monitoring of app health and activity."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker App is a machine learning development environment integrated within Amazon SageMaker. It provides tools for data scientists and developers to build, train, and deploy machine learning models. Users can access Jupyter notebooks, code editors, and data visualization tools through a web-based interface, facilitating collaborative work on machine learning projects within the AWS ecosystem."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/studio.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:app/{name}"}  # fmt: skip
@@ -1373,11 +1363,8 @@ class AwsSagemakerDefaultSpaceSettings:
 class AwsSagemakerDomain(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_domain"
     _kind_display: ClassVar[str] = "AWS SageMaker Domain"
-    _kind_description: ClassVar[str] = (
-        "A SageMaker Domain in AWS is a dedicated, managed environment within Amazon SageMaker that provides"
-        " data scientists and developers with the necessary tools and permissions to build, train, and deploy"
-        " machine learning models."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Domain is a managed environment for machine learning workflows. It provides a unified interface for data scientists and developers to access SageMaker tools, including notebooks, data preparation, model training, and deployment. Users can collaborate on projects, share resources, and manage access controls within the domain, simplifying the end-to-end machine learning process on AWS."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/sm-domain.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sagemaker/home?region={region}#/studio/{id}", "arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:domain/{name}"}  # fmt: skip
@@ -1575,11 +1562,8 @@ class AwsSagemakerExperimentSource:
 class AwsSagemakerExperiment(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_experiment"
     _kind_display: ClassVar[str] = "AWS SageMaker Experiment"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Experiment is a service in AWS that enables users to organize,"
-        " track and compare machine learning experiments and their associated"
-        " resources."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Experiment is a feature of Amazon SageMaker that helps data scientists and machine learning engineers organize, track, and compare machine learning experiments. It records metadata, parameters, and artifacts for each experiment run, facilitating reproducibility and analysis. Users can visualize results, compare different runs, and share findings with team members to improve collaboration and decision-making in ML projects."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/experiments.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:experiment/{name}"}  # fmt: skip
@@ -1658,11 +1642,8 @@ class AwsSagemakerMetadataProperties:
 class AwsSagemakerTrial(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_trial"
     _kind_display: ClassVar[str] = "AWS SageMaker Trial"
-    _kind_description: ClassVar[str] = (
-        "AWS SageMaker Trial represents a series of steps, known as trial components, which lead to the creation of"
-        " a machine learning model. It is nested within a single SageMaker experiment for organizational"
-        " and tracking purposes."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Trial is a component of Amazon SageMaker that organizes machine learning experiments. It tracks and manages individual iterations within an experiment, recording parameters, metrics, and artifacts. SageMaker Trial helps data scientists and developers compare different model versions, evaluate performance, and reproduce results. It integrates with other SageMaker features for end-to-end machine learning workflow management."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/experiments-create.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:trial/{name}"}  # fmt: skip
@@ -1745,11 +1726,8 @@ class AwsSagemakerTrial(AwsResource):
 class AwsSagemakerProject(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_project"
     _kind_display: ClassVar[str] = "AWS SageMaker Project"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Projects in AWS provide a collaborative environment for machine"
-        " learning teams to manage and track their ML workflows, datasets, models, and"
-        " code."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Project is a feature within Amazon SageMaker that helps organize and manage machine learning workflows. It provides templates for creating end-to-end ML solutions, including data preparation, model training, and deployment. SageMaker Project facilitates collaboration among team members, version control of ML artifacts, and automation of CI/CD pipelines for ML models."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:project/{id}"}  # fmt: skip
@@ -1796,10 +1774,8 @@ class AwsSagemakerGitConfig:
 class AwsSagemakerCodeRepository(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_code_repository"
     _kind_display: ClassVar[str] = "AWS SageMaker Code Repository"
-    _kind_description: ClassVar[str] = (
-        "The AWS SageMaker Code Repository is a managed Git-based code repository for storing and versioning"
-        " your machine learning code, making it easy to maintain and share code within your SageMaker projects."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Code Repository is a version control service integrated with SageMaker. It hosts Git repositories for machine learning projects, providing a centralized location for storing and managing code. Users can access, edit, and version their code directly within SageMaker, facilitating collaboration and maintaining a history of changes throughout the development process."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/nbi-git-repo.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:code-repository/{name}"}  # fmt: skip
@@ -2262,10 +2238,8 @@ class AwsSagemakerExplainerConfig:
 class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_endpoint"
     _kind_display: ClassVar[str] = "AWS SageMaker Endpoint"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Endpoints are the locations where deployed machine learning models"
-        " are hosted and can be accessed for making predictions or inferences."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Endpoint is a fully managed service for deploying machine learning models. It provides an HTTPS endpoint for real-time predictions, handles scaling and load balancing, and supports multiple instance types. Users can deploy models trained in SageMaker or other platforms, monitor performance, and update models without downtime. It integrates with other AWS services for logging and security."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:endpoint/{name}"}  # fmt: skip
@@ -2364,11 +2338,8 @@ class AwsSagemakerEndpoint(SagemakerTaggable, AwsResource):
 class AwsSagemakerImage(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_image"
     _kind_display: ClassVar[str] = "AWS SageMaker Image"
-    _kind_description: ClassVar[str] = (
-        "AWS SageMaker Images are pre-built machine learning environments that"
-        " include all necessary frameworks and packages to train and deploy models"
-        " using Amazon SageMaker."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Image is a container image service for machine learning tasks on Amazon SageMaker. It provides pre-built images with popular frameworks and tools, and supports custom images. Users can create, manage, and deploy images for training, inference, and model development. The service integrates with SageMaker's infrastructure for ML workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/studio-byoi.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:image/{name}"}  # fmt: skip
@@ -2458,10 +2429,8 @@ class AwsSagemakerArtifactSource:
 class AwsSagemakerArtifact(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_artifact"
     _kind_display: ClassVar[str] = "AWS SageMaker Artifact"
-    _kind_description: ClassVar[str] = (
-        "An Amazon SageMaker artifact is used for tracking the origin and usage of data"
-        " or models within ML workflows, providing a clear history for auditing and reproducibility."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Artifact is a feature within Amazon SageMaker that manages and stores machine learning artifacts. It provides a central repository for model versions, datasets, and other resources used in ML workflows. SageMaker Artifact tracks lineage, ensures reproducibility, and supports compliance requirements by maintaining records of artifacts throughout the machine learning lifecycle."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/model-cards.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:artifact/{id}"}  # fmt: skip
@@ -2547,11 +2516,8 @@ class AwsSagemakerArtifact(AwsResource):
 class AwsSagemakerUserProfile(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_user_profile"
     _kind_display: ClassVar[str] = "AWS SageMaker User Profile"
-    _kind_description: ClassVar[str] = (
-        "SageMaker User Profiles are user-specific configurations in Amazon SageMaker"
-        " that define settings and permissions for users accessing the SageMaker"
-        " Studio environment."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker User Profile is a feature within Amazon SageMaker that manages individual user settings and permissions in a SageMaker Domain. It stores user-specific configurations, including execution roles, security groups, and custom settings. User Profiles control access to SageMaker resources and define user-specific environments, ensuring proper isolation and resource allocation for machine learning projects."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/domain-user-profile.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:user-profile/{name}"}  # fmt: skip
@@ -2594,11 +2560,8 @@ class AwsSagemakerUserProfile(AwsResource):
 class AwsSagemakerPipeline(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_pipeline"
     _kind_display: ClassVar[str] = "AWS SageMaker Pipeline"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Pipelines is a fully managed, easy-to-use CI/CD service for"
-        " building, automating, and managing end-to-end machine learning workflows on"
-        " Amazon SageMaker."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Pipeline is a feature of Amazon SageMaker that automates and manages machine learning workflows. It defines a series of interconnected steps for data processing, model training, and deployment. Users can create reusable templates, track lineage, and version their ML pipelines. It integrates with other AWS services and supports both code-based and visual interfaces."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/pipelines.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:pipeline/{name}"}  # fmt: skip
@@ -2732,11 +2695,8 @@ class AwsSagemakerMemberDefinition:
 class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_workteam"
     _kind_display: ClassVar[str] = "AWS SageMaker Workteam"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Workteam is a service in Amazon's cloud that allows organizations"
-        " to create and manage teams of workers to label data for machine learning"
-        " models."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Workteam is a feature of Amazon SageMaker that manages human workforce for data labeling tasks. It provides tools to create, organize, and monitor labeling jobs using Amazon Mechanical Turk, third-party vendors, or private workforce. Users can set up labeling projects, distribute tasks, track progress, and integrate labeled data into machine learning workflows within the SageMaker ecosystem."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/sms-workforce-management.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:workteam/{name}"}  # fmt: skip
@@ -2811,11 +2771,8 @@ class AwsSagemakerWorkteam(SagemakerTaggable, AwsResource):
 class AwsSagemakerJob(AwsResource):
     kind: ClassVar[str] = "aws_sagemaker_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Jobs in AWS are used to train and deploy machine learning models"
-        " at scale, with built-in algorithms and frameworks provided by Amazon"
-        " SageMaker."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Job is a managed service for executing machine learning workflows. It automates the process of training, testing, and deploying models at scale. Users can configure and run jobs for data preprocessing, model training, and evaluation. The service handles resource provisioning, data management, and job monitoring, simplifying the end-to-end machine learning pipeline for data scientists and developers."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/processing-job.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:job/{id}"}  # fmt: skip
@@ -3140,10 +3097,9 @@ class AwsSagemakerModelDeployConfig:
 class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_auto_ml_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Auto ML Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker AutoML Jobs in AWS provide automated machine learning"
-        " capabilities, allowing users to automatically discover and build optimal"
-        " machine learning models without manual intervention."
+    _kind_description: ClassVar[str] = "AWS SageMaker Auto ML Job is a feature that automates machine learning model development. It handles data preprocessing, algorithm selection, and hyperparameter tuning. Users input their dataset and specify the target variable. The system then trains and evaluates multiple models, providing the best-performing one. This reduces the time and expertise required for creating machine learning models."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/sagemaker/latest/dg/autopilot-automate-model-development.html"
     )
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:automl-job/{name}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
@@ -3348,11 +3304,8 @@ class AwsSagemakerNeoVpcConfig:
 class AwsSagemakerCompilationJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_compilation_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Compilation Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Compilation Job is a resource in Amazon SageMaker that allows"
-        " users to compile machine learning models for deployment on edge devices or"
-        " inference in the cloud."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Compilation Job is a service that optimizes machine learning models for specific target hardware. It converts models trained in SageMaker or other platforms into an executable format, reducing the model's size and improving inference performance. This process adapts the model for deployment on various devices, from cloud instances to edge devices with limited resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/neo-job-compilation.html"
     _kind_service = service_name
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:compilation-job/{name}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
@@ -3822,11 +3775,8 @@ class AwsSagemakerHyperParameterTuningJobWarmStartConfig:
 class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_hyper_parameter_tuning_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Hyper Parameter Tuning Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Hyperparameter Tuning Job is an automated process in Amazon"
-        " SageMaker that helps optimize the hyperparameters of a machine learning"
-        " model to achieve better performance."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Hyperparameter Tuning Job automates the process of finding optimal hyperparameters for machine learning models. It runs multiple training jobs with different hyperparameter combinations, evaluates model performance, and selects the best-performing configuration. This service helps data scientists and developers improve model accuracy and efficiency without manually testing numerous parameter sets."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/automatic-model-tuning.html"
     _kind_service = service_name
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:hyperparameter-tuning-job/{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
@@ -4289,11 +4239,8 @@ class AwsSagemakerEndpointPerformance:
 class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_inference_recommendations_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Inference Recommendations Job"
-    _kind_description: ClassVar[str] = (
-        "AWS SageMaker Inference Recommendations Job evaluates different configurations for deploying machine"
-        " learning models, providing suggestions to optimize performance and efficiency, along with monitoring"
-        " job progress and outcomes."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Inference Recommendations Job is a feature that analyzes machine learning models and suggests optimal configurations for deployment. It evaluates model performance across different instance types and sizes, considering factors like latency and throughput. The job provides recommendations for instance selection and endpoint configuration to optimize cost and performance for inference workloads."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/inference-recommender.html"
     _kind_service = service_name
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
@@ -4640,10 +4587,8 @@ class AwsSagemakerLabelingJobOutput:
 class AwsSagemakerLabelingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_labeling_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Labeling Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Labeling Jobs are used to annotate and label data for training"
-        " machine learning models in Amazon SageMaker."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Labeling Job is a feature within Amazon SageMaker that facilitates data labeling for machine learning projects. It provides tools for creating, managing, and monitoring labeling tasks. Users can assign work to human annotators, track progress, and review results. The service supports various data types including images, text, and audio for classification and object detection tasks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/sms.html"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:labeling-job/{name}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -5037,11 +4982,8 @@ class AwsSagemakerNetworkConfig:
 class AwsSagemakerProcessingJob(AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_processing_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Processing Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Processing Jobs provide a managed infrastructure for executing"
-        " data processing tasks in Amazon SageMaker, enabling users to preprocess and"
-        " analyze data efficiently."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Processing Job is a feature that runs data processing, feature engineering, and model evaluation tasks on Amazon SageMaker. It provides a managed environment to execute scripts for data preparation, algorithm fine-tuning, and post-training analysis. Users can specify input data, output locations, and compute resources for their processing tasks within the SageMaker ecosystem."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/processing-job.html"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:processing-job/{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -5442,10 +5384,8 @@ class AwsSagemakerWarmPoolStatus:
 class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_training_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Training Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Training Job is a service provided by AWS that allows users to"
-        " train machine learning models and build high-quality custom models."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Training Job is a service that trains machine learning models using specified algorithms and datasets. It provisions and manages the necessary compute resources, executes the training process, and stores the resulting model artifacts. Users can configure training parameters, input data sources, and output locations. The service supports various machine learning frameworks and algorithms."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:sagemaker-training-job/{id}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -5686,11 +5626,8 @@ class AwsSagemakerDataProcessing:
 class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
     kind: ClassVar[str] = "aws_sagemaker_transform_job"
     _kind_display: ClassVar[str] = "AWS SageMaker Transform Job"
-    _kind_description: ClassVar[str] = (
-        "SageMaker Transform Jobs are used in Amazon SageMaker to transform input"
-        " data using a trained model, generating output results for further analysis"
-        " or inference."
-    )
+    _kind_description: ClassVar[str] = "AWS SageMaker Transform Job is a batch processing feature that applies machine learning models to large datasets. It takes input data, processes it through a trained model, and generates predictions or inferences. Transform Jobs can handle various data formats, distribute workloads across multiple instances, and output results to specified locations, facilitating efficient large-scale data processing and analysis."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sagemaker/latest/dg/batch-transform.html"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sagemaker:{region}:{account}:transform-job/{name}"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

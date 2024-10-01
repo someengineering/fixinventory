@@ -35,7 +35,8 @@ class AwsSSMInstanceAggregatedAssociationOverview:
 class AwsSSMInstance(AwsResource):
     kind: ClassVar[str] = "aws_ssm_instance"
     _kind_display: ClassVar[str] = "AWS SSM Instance"
-    _kind_description: ClassVar[str] = "An AWS SSM Instance refers to an EC2 instance or a managed node that has been configured for management by AWS Systems Manager, enabling centralized and automated management of configuration, security, and software updates."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS Systems Manager (SSM) Instance is a managed service that provides visibility and control over AWS infrastructure. It automates operational tasks, manages configuration, and maintains security compliance across EC2 instances and on-premises servers. SSM Instance collects system data, applies patches, executes commands, and configures instances according to defined policies, simplifying IT operations and enhancing system management capabilities."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/systems-manager/latest/userguide/managed_instances.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/fleet-manager/managed-nodes/{id}/general?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:instance/{name}"}  # fmt: skip
@@ -152,7 +153,8 @@ class AwsSSMAccountSharingInfo:
 class AwsSSMDocument(AwsResource):
     kind: ClassVar[str] = "aws_ssm_document"
     _kind_display: ClassVar[str] = "AWS SSM Document"
-    _kind_description: ClassVar[str] = "An AWS Systems Manager (SSM) Document defines the actions that Systems Manager performs on your managed instances and other AWS resources."  # fmt: skip
+    _kind_description: ClassVar[str] = "An AWS SSM Document is a configuration file that defines a set of actions to be performed on managed instances. It specifies tasks like installing software, configuring settings, or running scripts. SSM Documents can be created in JSON or YAML format and are used by AWS Systems Manager to automate system management and maintenance tasks across multiple instances."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-ssm-docs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/systems-manager/documents/{name}/description?region={region}", "arn_tpl": "arn:{partition}:ssm:{region}:{account}:document/{name}"}  # fmt: skip
@@ -352,7 +354,10 @@ ResourceTypeLookup = {
 class AwsSSMResourceCompliance(AwsResource):
     kind: ClassVar[str] = "aws_ssm_resource_compliance"
     _kind_display: ClassVar[str] = "AWS SSM Resource Compliance"
-    _kind_description: ClassVar[str] = "AWS SSM Resource Compliance is used to track the compliance status of your resources in relation to your AWS Systems Manager (SSM) configurations and policies."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS SSM Resource Compliance is a feature within AWS Systems Manager that evaluates and reports on the compliance status of AWS resources. It checks resources against predefined or custom rules, identifying non-compliant configurations and security issues. Users can view compliance data, generate reports, and take corrective actions to maintain resource adherence to organizational standards and best practices."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-compliance-about.html"
+    )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ssm:{region}:{account}:resource-compliance/{id}"}  # fmt: skip

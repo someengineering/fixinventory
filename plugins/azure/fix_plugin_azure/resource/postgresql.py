@@ -38,8 +38,12 @@ log = logging.getLogger("fix.plugins.azure")
 class AzurePostgresqlServerADAdministrator(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_ad_administrator"
     _kind_display: ClassVar[str] = "Azure PostgreSQL Ad Administrator"
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure PostgreSQL AD Administrator is a role that manages access to Azure Database for PostgreSQL using Azure Active Directory credentials. It controls user authentication, assigns database roles, and sets permissions for AD users and groups. This administrator can create and manage logins, ensuring secure and centralized identity management for PostgreSQL databases in Azure."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/how-to-configure-sign-in-azure-ad-authentication"
+    )
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
         "id": S("id"),
@@ -203,6 +207,8 @@ class AzurePostgresqlServerType(MicrosoftResource, BaseDatabaseInstanceType):
     kind: ClassVar[str] = "azure_postgresql_server_type"
     _kind_display: ClassVar[str] = "Azure PostgreSQL Server Type"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure PostgreSQL Server Type is a managed database service on Microsoft Azure cloud platform. It offers PostgreSQL databases with built-in security, automated backups, and performance optimization. Users can deploy, manage, and scale PostgreSQL databases without infrastructure management responsibilities. The service supports various PostgreSQL versions and provides options for different workload requirements and performance tiers."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/postgresql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "management"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -321,6 +327,10 @@ class AzurePostgresqlServerConfiguration(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_configuration"
     _kind_display: ClassVar[str] = "Azure PostgreSQL Server Configuration"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure PostgreSQL Server Configuration is a service for managing PostgreSQL database settings in Microsoft Azure. It provides options to adjust server parameters, performance tuning, and security settings. Users can modify configurations such as connection limits, memory allocation, and query optimization to align with specific application requirements and workload demands within the Azure cloud environment."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/postgresql/single-server/concepts-server-parameters"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzurePostgresqlServer()
     config: Json = field(factory=dict)
@@ -358,6 +368,8 @@ class AzurePostgresqlServerDatabase(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_database"
     _kind_display: ClassVar[str] = "Azure PostgreSQL Server Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure PostgreSQL Server Database is a managed database service on Microsoft's cloud platform. It provides a fully-functional PostgreSQL database environment without the need for infrastructure management. Users can create, operate, and scale PostgreSQL databases in the cloud, benefiting from built-in security features, automated backups, and integration with other Azure services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/postgresql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -378,6 +390,10 @@ class AzurePostgresqlServerFirewallRule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_firewall_rule"
     _kind_display: ClassVar[str] = "Azure PostgreSQL Server Firewall Rule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure PostgreSQL Server Firewall Rule is a security feature that controls network access to a PostgreSQL database server in Azure. It defines a range of IP addresses permitted to connect to the server, blocking all other incoming connections. This rule helps protect the database from unauthorized access and potential security threats."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/concepts-firewall-rules"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -413,6 +429,8 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
     kind: ClassVar[str] = "azure_postgresql_server"
     _kind_display: ClassVar[str] = "Azure PostgreSQL Server"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure PostgreSQL Server is a managed database service offering PostgreSQL on Microsoft's cloud platform. It provides automated backups, patching, and security updates. Users can deploy, manage, and scale PostgreSQL databases without infrastructure management responsibilities. The service supports various PostgreSQL versions and offers features like high availability, monitoring, and performance optimization tools."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.microsoft.com/en-us/azure/postgresql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="postgresql",
@@ -654,6 +672,10 @@ class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_postgresql_server_backup"
     _kind_display: ClassVar[str] = "Azure PostgreSQL Server Backup"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure PostgreSQL Server Backup is a feature in Azure Database for PostgreSQL that creates backups of your database automatically. It stores these backups in geo-redundant storage for data protection. The service retains backups for a specified period and supports point-in-time recovery, letting users restore their database to a previous state within the retention period."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/concepts-backup-restore"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "database"}
     # Collect via AzurePostgresqlServer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {

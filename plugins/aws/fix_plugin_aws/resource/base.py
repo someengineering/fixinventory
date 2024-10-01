@@ -273,11 +273,8 @@ AwsResourceType = TypeVar("AwsResourceType", bound=AwsResource)
 class AwsAccount(BaseAccount, AwsResource, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_account"
     _kind_display: ClassVar[str] = "AWS Account"
-    _kind_description: ClassVar[str] = (
-        "An AWS Account is a container for AWS resources, such as EC2 instances, S3"
-        " buckets, and RDS databases. It allows users to access and manage their"
-        " resources on the Amazon Web Services platform."
-    )
+    _kind_description: ClassVar[str] = "An AWS Account is a container for Amazon Web Services resources and services. It provides access to the AWS Management Console, APIs, and command-line tools. Users can create, manage, and monitor AWS resources, set security permissions, and track usage and billing. Each account has a unique identifier and can be linked to other accounts for consolidated billing."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/accounts/latest/reference/welcome.html"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/billing/home?region={region}#/account"}  # fmt: skip
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_region"]}}
 
@@ -324,6 +321,7 @@ class AwsRegion(BaseRegion, AwsResource):
         " allowing users to choose the geographic area in which their resources are"
         " located."
     )
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/general/latest/gr/rande.html"
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [

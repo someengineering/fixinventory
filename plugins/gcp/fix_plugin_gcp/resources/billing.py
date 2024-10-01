@@ -20,10 +20,8 @@ service_name = "cloudbilling"
 class GcpBillingAccount(GcpResource):
     kind: ClassVar[str] = "gcp_billing_account"
     _kind_display: ClassVar[str] = "GCP Billing Account"
-    _kind_description: ClassVar[str] = (
-        "GCP Billing Account is a financial account used to manage the payment and"
-        " billing information for Google Cloud Platform services."
-    )
+    _kind_description: ClassVar[str] = "A GCP Billing Account is a financial entity in Google Cloud Platform that manages payment for services used across projects. It tracks costs, sets budgets, generates invoices, and handles payments. Users can associate multiple projects with a single billing account, view detailed usage reports, and configure alerts for spending thresholds."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/billing/docs/how-to/manage-billing-account"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -72,10 +70,8 @@ class GcpBillingAccount(GcpResource):
 class GcpProjectBillingInfo(GcpResource):
     kind: ClassVar[str] = "gcp_project_billing_info"
     _kind_display: ClassVar[str] = "GCP Project Billing Info"
-    _kind_description: ClassVar[str] = (
-        "GCP Project Billing Info provides information and management capabilities"
-        " for the billing aspects of a Google Cloud Platform project."
-    )
+    _kind_description: ClassVar[str] = "GCP Project Billing Info provides detailed financial data for Google Cloud Platform projects. It displays current charges, past expenses, and usage breakdowns for services and resources. Users can view, analyze, and export billing information, set budget alerts, and manage payment methods. This feature helps organizations track costs and make informed decisions about cloud spending."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/billing/docs/how-to/get-project-billing-info"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -114,11 +110,8 @@ class GcpProjectBillingInfo(GcpResource):
 class GcpService(GcpResource):
     kind: ClassVar[str] = "gcp_service"
     _kind_display: ClassVar[str] = "GCP Service"
-    _kind_description: ClassVar[str] = (
-        "GCP Service refers to any of the various services and products offered by"
-        " Google Cloud Platform, which provide scalable cloud computing solutions for"
-        " businesses and developers."
-    )
+    _kind_description: ClassVar[str] = "Google Cloud Platform (GCP) Service is a suite of cloud computing tools and infrastructure provided by Google. It offers computing, storage, networking, and data analytics capabilities. Users can deploy applications, manage databases, and process data using GCP's infrastructure. The service supports various programming languages and provides APIs for integration with other systems."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/docs"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "management"}
     _reference_kinds: ClassVar[ModelReference] = {
@@ -318,10 +311,8 @@ class GcpPricingInfo:
 class GcpSku(GcpResource):
     kind: ClassVar[str] = "gcp_sku"
     _kind_display: ClassVar[str] = "GCP SKU"
-    _kind_description: ClassVar[str] = (
-        "GCP SKU represents a Stock Keeping Unit in Google Cloud Platform, providing"
-        " unique identifiers for different resources and services."
-    )
+    _kind_description: ClassVar[str] = "GCP SKU (Google Cloud Platform Stock Keeping Unit) is a unique identifier for a specific product or service within Google Cloud. It represents a distinct billing unit for resources, features, or offerings. SKUs help users track and manage their cloud usage, costs, and resource allocation across different GCP services and configurations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/skus"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,

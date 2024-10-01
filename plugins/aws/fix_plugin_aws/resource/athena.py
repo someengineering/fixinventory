@@ -92,11 +92,8 @@ class AwsAthenaWorkGroupConfiguration:
 class AwsAthenaWorkGroup(AwsResource):
     kind: ClassVar[str] = "aws_athena_work_group"
     _kind_display: ClassVar[str] = "AWS Athena Work Group"
-    _kind_description: ClassVar[str] = (
-        "Amazon Athena Work Groups are a resource type for isolating query execution and history among different"
-        " users, teams, or applications within the same AWS account, with features for access control, cost"
-        " management, and integration with AWS CloudWatch for metrics monitoring."
-    )
+    _kind_description: ClassVar[str] = "AWS Athena Work Group is a feature that organizes users, teams, or applications within Athena. It helps manage query execution, control costs, and track usage across different projects or departments. Work Groups let administrators set query limits, enforce security policies, and monitor resource consumption, providing a structured approach to Athena resource management and access control."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/athena/latest/ug/workgroups.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#/workgroups/details/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:workgroup/{id}"}  # fmt: skip
@@ -209,11 +206,8 @@ class AwsAthenaWorkGroup(AwsResource):
 class AwsAthenaDataCatalog(AwsResource):
     kind: ClassVar[str] = "aws_athena_data_catalog"
     _kind_display: ClassVar[str] = "AWS Athena Data Catalog"
-    _kind_description: ClassVar[str] = (
-        "Athena Data Catalog is a managed metadata repository in AWS that allows you"
-        " to store and organize metadata about your data sources, such as databases,"
-        " tables, and partitions."
-    )
+    _kind_description: ClassVar[str] = "AWS Athena Data Catalog is a metadata repository for data stored in AWS services. It organizes and manages information about databases, tables, and partitions. Users can query this catalog to locate and access data across various sources, facilitating data analysis and exploration without moving or transforming the underlying data."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/athena/latest/ug/data-catalog.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/athena/home?region={region}#datacatalog/detail/{name}", "arn_tpl": "arn:{partition}:athena:{region}:{account}:catalog/{name}"}  # fmt: skip

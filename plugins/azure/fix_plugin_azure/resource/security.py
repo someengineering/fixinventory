@@ -40,6 +40,8 @@ class AzureSecurityPricing(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_pricing"
     _kind_display: ClassVar[str] = "Azure Security Pricing"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Security Pricing outlines the costs associated with Microsoft's cloud security services. It covers various security features and tools offered within the Azure platform, including identity management, threat protection, and data encryption. The pricing structure typically follows a pay-as-you-go model, with options for different service tiers based on specific security needs and usage levels."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://azure.microsoft.com/en-us/pricing/details/security-center/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -94,6 +96,10 @@ class AzureSecurityAssessment(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_assessment"
     _kind_display: ClassVar[str] = "Azure Security Assessment"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Security Assessment is a service that evaluates Azure resources for potential security vulnerabilities and compliance issues. It scans configurations, identifies risks, and provides recommendations to improve security posture. The assessment covers various aspects including network security, data protection, and access control, offering insights to help organizations strengthen their Azure environment's security."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/defender-for-cloud/secure-score-security-controls"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -137,6 +143,10 @@ class AzureSecurityServerVulnerabilityAssessmentsSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_server_vulnerability_assessments_setting"
     _kind_display: ClassVar[str] = "Azure Security Server Vulnerability Assessments Setting"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Security Server Vulnerability Assessments Setting is a feature that scans Azure virtual machines for security vulnerabilities. It identifies potential weaknesses in the system configuration, missing security updates, and other security risks. The setting provides recommendations for addressing these vulnerabilities, helping organizations improve their overall security posture and reduce the risk of cyber attacks."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/defender-for-cloud/deploy-vulnerability-assessment-vm"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -165,6 +175,8 @@ class AzureSecuritySetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_setting"
     _kind_display: ClassVar[str] = "Azure Security Setting"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Security Setting is a feature in Microsoft Azure that configures and manages security controls for cloud resources. It provides options to set access policies, enable encryption, implement network security, and monitor for threats. Users can adjust these settings to align with their organization's security requirements and compliance standards across Azure services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/security/fundamentals/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -191,6 +203,8 @@ class AzureSecurityAutoProvisioningSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_security_auto_provisioning_setting"
     _kind_display: ClassVar[str] = "Azure Security Auto Provisioning Setting"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Security Auto Provisioning Setting is a feature that automatically deploys security agents to Azure virtual machines and other resources. It monitors these resources for security vulnerabilities and compliance issues, then reports findings to Azure Security Center. This setting helps maintain consistent security across an Azure environment without manual intervention for each resource."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/defender-for-cloud/enable-data-collection"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,

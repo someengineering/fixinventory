@@ -110,12 +110,8 @@ class AwsIamRole(AwsResource, BaseRole, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_iam_role"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/roles/details/{RoleName}", "arn_tpl": "arn:{partition}:iam:{region}:{account}:role/{name}"}  # fmt: skip
     _kind_display: ClassVar[str] = "AWS IAM Role"
-    _kind_description: ClassVar[str] = (
-        "IAM Roles are a way to delegate permissions to entities that you trust. IAM"
-        " roles are similar to users, in that they are both AWS identity types."
-        " However, instead of being uniquely associated with one person, IAM roles are"
-        " intended to be assumable by anyone who needs it."
-    )
+    _kind_description: ClassVar[str] = "AWS IAM Role is a security feature in Amazon Web Services that defines permissions for AWS resources. It specifies what actions an entity can perform and which resources it can access within AWS. IAM Roles can be assigned to users, applications, or services, providing temporary credentials and eliminating the need to manage long-term access keys."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -223,12 +219,8 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     _kind_display: ClassVar[str] = "AWS IAM Server Certificate"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:server-certificate/{name}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "AWS IAM Server Certificate is a digital certificate that AWS Identity and"
-        " Access Management (IAM) uses to verify the identity of a resource like an"
-        " HTTPS server. It enables secure communication between the server and AWS"
-        " services."
-    )
+    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-server-certificates", "ServerCertificateMetadataList"
@@ -317,10 +309,8 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     kind: ClassVar[str] = "aws_iam_policy"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iamv2/home?region={region}#/policies/details/{arn}?section=permissions", "arn_tpl": "arn:{partition}:iam::{account}:policy/{name}"}  # fmt: skip
     _kind_display: ClassVar[str] = "AWS IAM Policy"
-    _kind_description: ClassVar[str] = (
-        "IAM Policies in AWS are used to define permissions and access controls for"
-        " users, groups, and roles within the AWS ecosystem."
-    )
+    _kind_description: ClassVar[str] = "AWS IAM Policy is a document that defines permissions for AWS resources. It specifies actions users, groups, or roles can perform on specific resources under certain conditions. These policies control access to AWS services and operations, enhancing security by implementing the principle of least privilege. Administrators use IAM policies to manage and enforce access controls across their AWS environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("PolicyId"),
@@ -397,11 +387,8 @@ class AwsIamGroup(AwsResource, BaseGroup):
     kind: ClassVar[str] = "aws_iam_group"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/groups/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:group/{name}"}  # fmt: skip
     _kind_display: ClassVar[str] = "AWS IAM Group"
-    _kind_description: ClassVar[str] = (
-        "IAM Groups are collections of IAM users. They allow you to manage"
-        " permissions collectively for multiple users, making it easier to manage"
-        " access to AWS resources."
-    )
+    _kind_description: ClassVar[str] = "AWS IAM Group is a feature of Amazon Web Services Identity and Access Management that organizes users with similar access needs. It simplifies permissions management by assigning policies to groups rather than individual users. Administrators can add or remove users from groups, controlling access to AWS resources and services efficiently across multiple users."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": ["aws_iam_policy"], "delete": ["aws_iam_policy"]},
@@ -499,9 +486,8 @@ class AwsIamAccessKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_iam_access_key"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/{UserName}?section=security_credentials&display=access_key&accessKeyID={AccessKeyId}"}  # fmt: skip
     _kind_display: ClassVar[str] = "AWS IAM Access Key"
-    _kind_description: ClassVar[str] = (
-        "An AWS IAM Access Key is used to securely access AWS services and resources using API operations."
-    )
+    _kind_description: ClassVar[str] = "An AWS IAM Access Key is a set of credentials used to authenticate and authorize programmatic access to AWS services. It consists of an access key ID and a secret access key. These keys are used in API calls, SDKs, and command-line tools to interact with AWS resources securely, granting permissions defined by the associated IAM user or role."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("AccessKeyId"),
@@ -636,6 +622,7 @@ class AwsRootUser(AwsResource, BaseUser, BaseIamPrincipal):
         "The AWS Root User is the initial user created when setting up an AWS account"
         " and has unrestricted access to all resources in the account."
     )
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["aws_account"]},
@@ -653,10 +640,8 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_iam_user"
     _kind_display: ClassVar[str] = "AWS IAM User"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:user/{name}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "IAM Users are identities created within AWS Identity and Access Management"
-        " (IAM) that can be assigned permissions to access and manage AWS resources."
-    )
+    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "get-account-authorization-details")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -818,9 +803,9 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
 class AwsIamInstanceProfile(AwsResource, BaseInstanceProfile):
     kind: ClassVar[str] = "aws_iam_instance_profile"
     _kind_display: ClassVar[str] = "AWS IAM Instance Profile"
-    _kind_description: ClassVar[str] = (
-        "IAM Instance Profiles are used to associate IAM roles with EC2 instances,"
-        " allowing the instances to securely access AWS services and resources."
+    _kind_description: ClassVar[str] = "An AWS IAM Instance Profile is a container for an IAM role that can be attached to Amazon EC2 instances. It provides temporary security credentials to applications running on the instance, granting them permissions to access AWS resources. This eliminates the need to store long-term credentials on EC2 instances, enhancing security and simplifying credential management."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "access_control"}

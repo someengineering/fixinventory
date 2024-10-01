@@ -176,10 +176,8 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
     kind: ClassVar[str] = "aws_s3_bucket"
     _kind_display: ClassVar[str] = "AWS S3 Bucket"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/buckets/{name}?region={region_id}&bucketType=general&tab=objects", "arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "S3 buckets are simple storage containers in Amazon's cloud, offering a"
-        " scalable storage solution for various types of data."
-    )
+    _kind_description: ClassVar[str] = "AWS S3 Bucket is a cloud storage service provided by Amazon Web Services. It stores and retrieves data objects, such as files, documents, and images. S3 Buckets organize data into containers, offering features like access control, versioning, and lifecycle management. Users can interact with S3 Buckets through APIs, SDKs, or the AWS Management Console."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-buckets", "Buckets", override_iam_permission="s3:ListAllMyBuckets"
@@ -464,10 +462,8 @@ class AwsS3AccountSettings(AwsResource, PhantomBaseResource):
 
     kind: ClassVar[str] = "aws_s3_account_settings"
     _kind_display: ClassVar[str] = "AWS S3 Account Settings"
-    _kind_description: ClassVar[str] = (
-        "AWS S3 Account Settings refer to the configuration options and preferences"
-        " available for an Amazon S3 (Simple Storage Service) account."
-    )
+    _kind_description: ClassVar[str] = "AWS S3 Account Settings is a configuration interface for managing Amazon Simple Storage Service (S3) at the account level. It provides options to control public access, default encryption, and versioning for S3 buckets. Users can set policies, adjust security measures, and configure access points to align S3 behavior with their organization's requirements and compliance standards."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-account-settings.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/settings?region={region_id}", "arn_tpl": "arn:{partition}:s3control:{region}:{account}:account/{name}"}  # fmt: skip
