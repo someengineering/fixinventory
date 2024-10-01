@@ -903,7 +903,7 @@ def query_string(
                     pa = f"{in_c}_path_edge"
                     pv = f"{in_path}.vertices[{in_r}]"
                     pe = f"{in_path}.edges[{in_r}]"
-                    vp_with_ep = f"MERGE({pv}, {{_edge:UNSET({pe}, {edge_unset_props})}})"
+                    vp_with_ep = f"MERGE({pv}, {{_edge:UNSET({pa}, {edge_unset_props})}})"
                     inout_result = (
                         f"FOR {in_r} in {start}..LENGTH({in_path}.vertices)-1 "
                         f"LET {pa}={pe} RETURN DISTINCT({pa}!=null ? {vp_with_ep} : {pv})"
