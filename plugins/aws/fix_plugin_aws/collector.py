@@ -461,7 +461,8 @@ class AwsAccountCollector:
 class AwsOrganizationalRoot(BaseOrganizationalRoot, AwsResource):
     kind: ClassVar[str] = "aws_organizational_root"
     _kind_display: ClassVar[str] = "AWS Organizational Root"
-    _kind_description: ClassVar[str] = "An AWS Organizational Root is the root of an AWS Organization."
+    _kind_description: ClassVar[str] = "AWS Organizational Root is the top-level entity in AWS Organizations. It serves as the starting point for creating and managing multiple AWS accounts within an organization. The root provides centralized control over billing, access management, and resource allocation across all member accounts, ensuring consistent policies and governance throughout the organizational structure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_root.html"
     _kind_service = "organizations"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
 
@@ -471,5 +472,6 @@ class AwsOrganizationalUnit(BaseOrganizationalUnit, AwsResource):
     kind: ClassVar[str] = "aws_organizational_unit"
     _kind_display: ClassVar[str] = "AWS Organizational Unit"
     _kind_description: ClassVar[str] = "An AWS Organizational Unit is a container for AWS Accounts."
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_ous.html"
     _kind_service = "organizations"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}

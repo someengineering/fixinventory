@@ -68,6 +68,8 @@ class AzureMachineLearningBatchEndpoint(MicrosoftResource, AzureTrackedResource)
     kind: ClassVar[str] = "azure_machine_learning_batch_endpoint"
     _kind_display: ClassVar[str] = "Azure Machine Learning Batch Endpoint"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Batch Endpoint is a feature for processing large volumes of data asynchronously. It provides a consistent interface for running machine learning models on batches of data, managing compute resources, and retrieving results. Users can schedule jobs, monitor progress, and access outputs through API calls or the Azure portal."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-batch-endpoint"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -153,6 +155,10 @@ class AzureMachineLearningWorkspaceCodeContainer(AzureMachineLearningCodeContain
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_workspace_code_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Code Container"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Code Container is a development environment for machine learning projects in Azure. It provides tools and libraries for data preparation, model training, and deployment. Users can write, test, and run code within the container, which integrates with Azure services and resources. The container supports collaboration and version control for ML workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-access-workspace?view=azureml-api-2"
+    )
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -189,6 +195,10 @@ class AzureMachineLearningRegistryCodeContainer(AzureMachineLearningCodeContaine
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_registry_code_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Code Container"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Code Container is a component of Azure Machine Learning that stores and manages versioned machine learning code assets. It provides a central repository for data scientists and developers to share, track, and collaborate on code artifacts, including scripts, notebooks, and models, within their machine learning projects and workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-registry-container-resource"
+    )
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -252,12 +262,18 @@ class AzureMachineLearningWorkspaceCodeVersion(AzureMachineLearningCodeVersionBa
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_workspace_code_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Code Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Code Version is a feature that tracks and manages different iterations of machine learning code within an Azure workspace. It stores and organizes code snapshots, facilitating version control and collaboration among data scientists. Users can compare versions, revert changes, and reproduce experiments based on specific code states."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-code-version"
 
 
 @define(eq=False, slots=False)
 class AzureMachineLearningRegistryCodeVersion(AzureMachineLearningCodeVersionBase, MicrosoftResource):
     # Defined to split registry and workspace resource
     kind: ClassVar[str] = "azure_machine_learning_registry_code_version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Code Version is a component of Azure Machine Learning that manages and tracks different versions of machine learning code. It stores and organizes code iterations, facilitating collaboration among team members. Users can access, compare, and revert to previous versions, ensuring reproducibility and maintaining a history of code changes throughout the development process."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-models-in-registry"
+    )
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Code Version"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
 
@@ -295,6 +311,10 @@ class AzureMachineLearningWorkspaceComponentContainer(AzureMachineLearningCompon
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_component_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Component Container"
+    _kind_description: ClassVar[str] = "The Azure Machine Learning Workspace Component Container is a containerized environment within Azure Machine Learning that hosts and manages workspace components. It provides a unified space for storing, organizing, and accessing machine learning assets such as datasets, models, and experiments. Users can collaborate, version control, and deploy machine learning projects from this centralized container."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-component-specification"
+    )
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -332,6 +352,10 @@ class AzureMachineLearningRegistryComponentContainer(AzureMachineLearningCompone
 
     kind: ClassVar[str] = "azure_machine_learning_registry_component_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Component Container"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Component Container is a service for storing and managing machine learning components in Azure. It provides a centralized repository for versioning, sharing, and reusing ML artifacts such as models, datasets, and environments. Users can access and deploy components across different projects and teams, promoting collaboration and standardization in ML workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-component-specification"
+    )
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -397,6 +421,10 @@ class AzureMachineLearningWorkspaceComponentVersion(AzureMachineLearningComponen
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_component_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Component Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Component Version is a specific iteration of a reusable asset within an Azure Machine Learning workspace. It represents a snapshot of a component's configuration, code, and dependencies at a particular point in time. This versioning system helps track changes, maintain consistency, and facilitate collaboration among data scientists and machine learning engineers."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-component-version"
+    )
 
 
 @define(eq=False, slots=False)
@@ -405,6 +433,10 @@ class AzureMachineLearningRegistryComponentVersion(AzureMachineLearningComponent
 
     kind: ClassVar[str] = "azure_machine_learning_registry_component_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Component Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Component Version represents a specific iteration of a component within the Azure Machine Learning Registry. It contains the component's code, dependencies, and metadata for a particular version. This versioning system helps track changes, manage different implementations, and ensure reproducibility of machine learning workflows across projects and teams."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/reference-yaml-component-version"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
 
 
@@ -413,6 +445,8 @@ class AzureMachineLearningComputeNode(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_compute_node"
     _kind_display: ClassVar[str] = "Azure Machine Learning Compute Node"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Compute Node is a managed compute resource for running machine learning workloads. It provides a dedicated virtual machine environment for training models, conducting experiments, and deploying solutions. Users can configure the node's specifications, including CPU, GPU, and memory, to match their computational needs. It integrates with other Azure ML services for data processing and model management."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-compute-target"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     # Collected via AzureMachineLearningCompute()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -465,6 +499,8 @@ class AzureMachineLearningCompute(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_compute"
     _kind_display: ClassVar[str] = "Azure Machine Learning Compute"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Compute is a cloud-based service for running machine learning workloads. It provides managed compute resources for training and deploying models. Users can create and manage compute clusters, select virtual machine sizes, and autoscale resources as needed. The service supports various machine learning frameworks and integrates with other Azure services for data processing and model deployment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.microsoft.com/en-us/azure/machine-learning/concept-compute-target"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -622,6 +658,8 @@ class AzureMachineLearningWorkspaceDataContainer(AzureMachineLearningDataContain
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_data_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Data Container"
+    _kind_description: ClassVar[str] = "The Azure Machine Learning Workspace Data Container is a storage resource within Azure Machine Learning. It serves as a central repository for datasets, models, and other artifacts used in machine learning projects. This container stores and manages data, facilitating collaboration among team members and providing version control for machine learning assets."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-data"
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -659,6 +697,10 @@ class AzureMachineLearningRegistryDataContainer(AzureMachineLearningDataContaine
 
     kind: ClassVar[str] = "azure_machine_learning_registry_data_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Data Container"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Data Container is a storage solution for machine learning artifacts in Azure. It stores and manages models, datasets, and environments, providing version control and collaboration features. Users can access, share, and deploy these artifacts across projects and teams, supporting the entire machine learning lifecycle within the Azure ecosystem."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-share-models-pipelines-across-workspaces-with-registries"
+    )
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -726,6 +768,8 @@ class AzureMachineLearningWorkspaceDataVersion(AzureMachineLearningDataVersionBa
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_data_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Data Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Data Version is a feature that tracks and manages different iterations of datasets within a workspace. It stores metadata about data changes, creation dates, and lineage information. This versioning system helps data scientists and machine learning engineers maintain data consistency, reproduce experiments, and collaborate on projects using shared datasets."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-version-track-datasets"
 
 
 @define(eq=False, slots=False)
@@ -734,6 +778,10 @@ class AzureMachineLearningRegistryDataVersion(AzureMachineLearningDataVersionBas
 
     kind: ClassVar[str] = "azure_machine_learning_registry_data_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Data Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Data Version is a component that tracks and manages versions of datasets within the Azure Machine Learning service. It stores metadata about data assets, including their source, format, and schema. This versioning system helps data scientists and machine learning engineers maintain data lineage, reproduce experiments, and collaborate on projects effectively."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-registries?tabs=cli"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
 
 
@@ -742,6 +790,10 @@ class AzureMachineLearningDatastore(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_datastore"
     _kind_display: ClassVar[str] = "Azure Machine Learning Datastore"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Datastore is a storage abstraction that connects to various Azure storage services. It provides a unified interface for accessing data across different storage types, including Azure Blob Storage, Azure Data Lake Storage, and Azure SQL Database. Users can read from and write to datastores without specifying connection information or authentication details in their code."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-data?view=azureml-api-2"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -787,6 +839,8 @@ class AzureMachineLearningEndpoint(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_endpoint"
     _kind_display: ClassVar[str] = "Azure Machine Learning Endpoint"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Endpoint is a cloud-based service that provides a deployment target for machine learning models. It creates a secure HTTPS endpoint for real-time inference, handling incoming requests and returning predictions. Users can deploy models, manage versions, and monitor performance through this interface, facilitating integration of machine learning into applications and services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-endpoints"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -878,6 +932,8 @@ class AzureMachineLearningWorkspaceEnvironmentContainer(
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_environment_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Environment Container"
+    _kind_description: ClassVar[str] = "The Azure Machine Learning Workspace Environment Container is a component of Azure's cloud-based machine learning platform. It provides a preconfigured workspace with necessary tools and dependencies for developing, training, and deploying machine learning models. This container includes libraries, frameworks, and computational resources, offering a consistent environment for data scientists and developers to collaborate on machine learning projects."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-environments"
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -915,6 +971,8 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningEnvir
 
     kind: ClassVar[str] = "azure_machine_learning_registry_environment_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Environment Container"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Environment Container is a component of Azure Machine Learning that stores and manages environment definitions. It provides a central repository for containerized environments used in machine learning workflows. Users can create, version, and share environments across projects and teams, ensuring reproducibility and consistency in model development and deployment processes."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-environments"
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -994,6 +1052,8 @@ class AzureMachineLearningWorkspaceEnvironmentVersion(AzureMachineLearningEnviro
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_environment_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Environment Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Environment Version represents a specific configuration snapshot of a workspace environment. It includes libraries, dependencies, and settings required for machine learning projects. Users can create, manage, and deploy different versions to maintain consistency across development stages and ensure reproducibility of experiments and models within the Azure Machine Learning platform."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-environments"
 
 
 @define(eq=False, slots=False)
@@ -1002,6 +1062,10 @@ class AzureMachineLearningRegistryEnvironmentVersion(AzureMachineLearningEnviron
 
     kind: ClassVar[str] = "azure_machine_learning_registry_environment_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Environment Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Environment Version represents a specific iteration of a containerized environment in Azure Machine Learning. It includes dependencies, libraries, and runtime configurations required for machine learning workflows. Users can create, manage, and deploy these versions to maintain consistency across different stages of model development and deployment within Azure Machine Learning projects."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-environments?view=azureml-api-2#environment-versions"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
 
 
@@ -1010,6 +1074,8 @@ class AzureMachineLearningFeature(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_feature"
     _kind_display: ClassVar[str] = "Azure Machine Learning Feature"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Feature is a cloud-based service for creating, managing, and deploying machine learning models. It offers tools for data preparation, model training, and evaluation. Users can build, test, and deploy models using various programming languages and frameworks. The service integrates with other Azure products and supports both supervised and unsupervised learning techniques."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AzureMachineLearningFeaturesetVersion()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -1113,6 +1179,8 @@ class AzureMachineLearningFeaturesetContainer(MicrosoftResource, AzureProxyResou
     kind: ClassVar[str] = "azure_machine_learning_featureset_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Featureset Container"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Featureset Container is a component of Azure Machine Learning that stores and manages feature data for machine learning models. It provides a centralized repository for feature definitions, values, and metadata. Users can create, update, and retrieve features, ensuring consistency across training and inference pipelines while supporting feature reuse and version control."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-datasets-featuresets"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1169,6 +1237,8 @@ class AzureMachineLearningFeaturesetVersion(MicrosoftResource, AzureProxyResourc
     kind: ClassVar[str] = "azure_machine_learning_featureset_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Featureset Version"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Featureset Version is a component of Azure Machine Learning that manages and tracks versions of feature sets. It stores feature definitions, data, and metadata, enabling data scientists to reproduce experiments, compare model performance across versions, and maintain consistency in machine learning pipelines. This versioning system supports collaboration and helps ensure data lineage in ML projects."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-feature-store"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
     # Collected via AzureMachineLearningFeaturesetContainer()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1233,6 +1303,8 @@ class AzureMachineLearningFeaturestoreEntityContainer(MicrosoftResource, AzurePr
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Featurestore Entity Container"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Featurestore Entity Container is a storage component within Azure Machine Learning. It stores and manages feature data for machine learning models. This container organizes features into logical groups, tracks feature lineage, and provides version control. It supports data access across different projects and teams, promoting feature reuse and consistency in model development."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-feature-store"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "container", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1297,6 +1369,8 @@ class AzureMachineLearningFeaturestoreEntityVersion(MicrosoftResource, AzureProx
     kind: ClassVar[str] = "azure_machine_learning_featurestore_entity_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Featurestore Entity Version"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Featurestore Entity Version represents a specific iteration of a feature entity in the Azure Machine Learning Featurestore. It contains metadata about the feature entity, including its schema, data sources, and transformations. This versioning system tracks changes to feature definitions over time, supporting reproducibility and consistency in machine learning workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-feature-store"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
     # Collected via AzureMachineLearningFeaturestoreEntityContainer()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -1348,6 +1422,8 @@ class AzureMachineLearningJob(BaseAIJob, MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_job"
     _kind_display: ClassVar[str] = "Azure Machine Learning Job"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Job is a task execution unit within Azure Machine Learning service. It encapsulates the code, data, and compute resources required to run a machine learning workflow. Jobs can perform various operations like data preparation, model training, and evaluation. They support different compute targets and can be monitored, managed, and tracked through the Azure ML platform."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-ml-job"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1517,6 +1593,10 @@ class AzureMachineLearningLabelingJob(BaseAIJob, MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_labeling_job"
     _kind_display: ClassVar[str] = "Azure Machine Learning Labeling Job"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Labeling Job is a feature that helps users annotate data for machine learning projects. It provides tools for tagging images, text, or other data types, and supports collaboration among team members. The job organizes tasks, tracks progress, and manages the labeling workflow to prepare datasets for model training and evaluation."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-create-labeling-projects"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1588,6 +1668,10 @@ class AzureMachineLearningWorkspaceModelContainer(
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Model Container"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Model Container is a component within Azure Machine Learning that stores and manages machine learning models. It provides a centralized location for data scientists and developers to register, version, and deploy models. The container supports various model formats and integrates with Azure Machine Learning pipelines for model training, evaluation, and deployment processes."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-model-management-and-deployment"
+    )
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1627,6 +1711,10 @@ class AzureMachineLearningRegistryModelContainer(
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_container"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Model Container"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Model Container is a component of Azure Machine Learning that stores and manages machine learning models. It provides version control, metadata tracking, and deployment capabilities for models. Users can register, retrieve, and share models within their organization, facilitating collaboration and reproducibility in machine learning projects."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-model-management-and-deployment"
+    )
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -1707,6 +1795,10 @@ class AzureMachineLearningWorkspaceModelVersion(AzureMachineLearningModelVersion
 
     kind: ClassVar[str] = "azure_machine_learning_workspace_model_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Model Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Model Version represents a specific iteration of a machine learning model within an Azure ML workspace. It captures the model's artifacts, code, and metadata at a particular point in time. This versioning system facilitates tracking, comparing, and managing different iterations of models throughout their lifecycle, supporting reproducibility and collaboration in machine learning projects."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-model-management-and-deployment"
+    )
 
 
 @define(eq=False, slots=False)
@@ -1715,6 +1807,10 @@ class AzureMachineLearningRegistryModelVersion(AzureMachineLearningModelVersionB
 
     kind: ClassVar[str] = "azure_machine_learning_registry_model_version"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry Model Version"
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry Model Version is a component that stores and manages versions of machine learning models in Azure. It tracks model metadata, artifacts, and performance metrics across iterations. Users can register, retrieve, and deploy specific model versions, facilitating version control, reproducibility, and collaboration in machine learning workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-model-management-and-deployment#registering-and-versioning-models"
+    )
 
 
 @define(eq=False, slots=False)
@@ -1722,6 +1818,8 @@ class AzureMachineLearningOnlineEndpoint(MicrosoftResource, AzureTrackedResource
     kind: ClassVar[str] = "azure_machine_learning_online_endpoint"
     _kind_display: ClassVar[str] = "Azure Machine Learning Online Endpoint"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Online Endpoint is a cloud-based service for deploying and hosting machine learning models. It provides a secure, managed environment for serving real-time predictions. Users can deploy models, manage versions, and scale compute resources as needed. The endpoint handles incoming requests, processes data, and returns predictions using the deployed model."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-endpoints"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1788,6 +1886,8 @@ class AzureMachineLearningPrivateEndpointConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_endpoint_connection"
     _kind_display: ClassVar[str] = "Azure Machine Learning Private Endpoint Connection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Private Endpoint Connection is a network interface that securely connects Azure Machine Learning workspaces to virtual networks. It uses Azure Private Link to establish a private connection, restricting data access to authorized resources within the virtual network and preventing exposure to the public internet, enhancing security and compliance for machine learning workflows."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-private-link"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "connection", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1839,6 +1939,8 @@ class AzureMachineLearningPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_private_link"
     _kind_display: ClassVar[str] = "Azure Machine Learning Private Link"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Private Link is a network security feature that provides private connectivity between Azure Machine Learning workspaces and other Azure resources. It creates a secure, private endpoint within a virtual network, restricting access to authorized networks and eliminating exposure to the public internet while maintaining full functionality of Azure Machine Learning services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-private-link"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2001,6 +2103,8 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_machine_learning_registry"
     _kind_display: ClassVar[str] = "Azure Machine Learning Registry"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Registry is a centralized repository for storing and managing machine learning models, datasets, and components. It provides version control, collaboration features, and integration with Azure Machine Learning workflows. Users can publish, share, and deploy models across their organization, ensuring reproducibility and governance in machine learning projects."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-model-registry"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
@@ -2124,6 +2228,8 @@ class AzureMachineLearningQuota(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_quota"
     _kind_display: ClassVar[str] = "Azure Machine Learning Quota"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Quota sets limits on resources available for machine learning workloads in Azure. It controls the number of compute instances, cores, and other resources a user or organization can utilize. This quota system helps manage costs and resource allocation, ensuring fair distribution across users and preventing overuse of Azure's machine learning services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-quotas"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
@@ -2152,6 +2258,10 @@ class AzureMachineLearningSchedule(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_machine_learning_schedule"
     _kind_display: ClassVar[str] = "Azure Machine Learning Schedule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Schedule is a feature within Azure Machine Learning that automates and manages the execution of machine learning workflows. It enables users to set up recurring or one-time runs of their ML pipelines, experiments, or scripts. This tool helps coordinate tasks, handle dependencies, and optimize resource allocation for machine learning processes in Azure."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-endpoints-online#schedule"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {
@@ -2189,6 +2299,10 @@ class AzureMachineLearningServerlessEndpoint(MicrosoftResource, AzureTrackedReso
     kind: ClassVar[str] = "azure_machine_learning_serverless_endpoint"
     _kind_display: ClassVar[str] = "Azure Machine Learning Serverless Endpoint"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Serverless Endpoint is a deployment option for machine learning models in Azure. It provides on-demand compute resources for model inference without the need to manage infrastructure. Users can deploy models, send requests, and receive predictions while paying only for the compute time used during inference operations."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-managed-online-endpoint-serverless"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2259,6 +2373,8 @@ class AzureMachineLearningUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_machine_learning_usage"
     _kind_display: ClassVar[str] = "Azure Machine Learning Usage"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Usage refers to the utilization of Microsoft's cloud-based platform for developing, training, and deploying machine learning models. It provides tools and services for data preparation, model creation, and deployment across various environments. Users can build, test, and manage machine learning workflows while monitoring resource consumption and performance metrics."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-plan-manage-cost"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
@@ -2316,6 +2432,10 @@ class AzureMachineLearningVirtualMachineSize(MicrosoftResource, BaseInstanceType
     kind: ClassVar[str] = "azure_machine_learning_virtual_machine_size"
     _kind_display: ClassVar[str] = "Azure Machine Learning Virtual Machine Size"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Virtual Machine Size refers to the computational resources allocated to a virtual machine used for machine learning tasks in Azure. It determines the processing power, memory, and storage capacity available for training models, running experiments, and deploying solutions. Users can select from various sizes to match their specific machine learning workload requirements and budget constraints."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/machine-learning/concept-compute-target#supported-vm-series-and-sizes"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "management"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
@@ -2497,6 +2617,8 @@ class AzureMachineLearningWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_workspace"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace is a cloud-based environment for developing, training, and deploying machine learning models. It provides tools and services for data preparation, model creation, and experiment tracking. Users can collaborate on projects, manage datasets, and deploy models to production. The workspace integrates with other Azure services for enhanced functionality and resource management."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/concept-workspace"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="machinelearningservices",
@@ -2720,6 +2842,8 @@ class AzureMachineLearningWorkspaceConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_machine_learning_workspace_connection"
     _kind_display: ClassVar[str] = "Azure Machine Learning Workspace Connection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Machine Learning Workspace Connection is a resource that links an Azure Machine Learning workspace to other Azure services. It facilitates data access, compute resource management, and model deployment within the Azure ecosystem. This connection integrates machine learning projects with Azure storage, compute, and networking capabilities, supporting the end-to-end machine learning lifecycle."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-workspace-cli"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AzureMachineLearningWorkspace()
     mapping: ClassVar[Dict[str, Bender]] = {

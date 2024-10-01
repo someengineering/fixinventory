@@ -38,11 +38,8 @@ class AwsSqsRedrivePolicy:
 class AwsSqsQueue(AwsResource, BaseQueue):
     kind: ClassVar[str] = "aws_sqs_queue"
     _kind_display: ClassVar[str] = "AWS SQS Queue"
-    _kind_description: ClassVar[str] = (
-        "SQS (Simple Queue Service) is a fully managed message queuing service"
-        " provided by Amazon Web Services. It enables you to decouple and scale"
-        " microservices, distributed systems, and serverless applications."
-    )
+    _kind_description: ClassVar[str] = "AWS SQS Queue is a managed message queuing service that facilitates communication between distributed system components. It stores messages from producers and delivers them to consumers, ensuring reliable data transfer. SQS supports multiple messaging patterns, including point-to-point and publish-subscribe, and handles message retention, delivery, and deletion. It integrates with other AWS services for building decoupled applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sqs/v3/home?region={region}#/queues/{QueueUrl}", "arn_tpl": "arn:{partition}:sqs:{region}:{account}:{id}"}  # fmt: skip

@@ -958,6 +958,8 @@ class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_application_gateway"
     _kind_display: ClassVar[str] = "Azure Network Application Gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Application Gateway is a web traffic load balancer operating at the application layer. It routes incoming requests to appropriate backend pools based on URL paths, host headers, or other criteria. It provides SSL termination, web application firewall protection, and session affinity. The gateway supports both HTTP and HTTPS traffic."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/application-gateway/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -1121,6 +1123,8 @@ class AzureNetworkApplicationGatewayFirewallRuleSet(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_application_gateway_firewall_rule_set"
     _kind_display: ClassVar[str] = "Azure Network Application Gateway Firewall Rule Set"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Application Gateway Firewall Rule Set is a configuration component for Azure Application Gateway's Web Application Firewall. It defines a collection of security rules that protect web applications from common vulnerabilities and attacks. The rule set filters incoming traffic, blocking malicious requests and ensuring compliance with security standards for web applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/web-application-firewall/ag/waf-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -1352,6 +1356,8 @@ class AzureNetworkFirewall(MicrosoftResource, BaseFirewall):
     kind: ClassVar[str] = "azure_network_firewall"
     _kind_display: ClassVar[str] = "Azure Network Firewall"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Firewall is a cloud-based security service that protects Azure Virtual Network resources. It filters incoming and outgoing traffic using stateful inspection, application-level filtering, and threat intelligence. The firewall supports both IPv4 and IPv6 protocols, implements network address translation, and provides logging and analytics capabilities for monitoring network activity."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.microsoft.com/en-us/azure/firewall/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -1451,6 +1457,8 @@ class AzureNetworkBastionHost(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_bastion_host"
     _kind_display: ClassVar[str] = "Azure Network Bastion Host"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Bastion Host is a managed service that provides secure remote access to virtual machines in Azure virtual networks. It acts as a jump server, eliminating the need for public IP addresses on VMs. Users connect through the Azure portal or via SSH/RDP protocols, with Bastion handling authentication and network traversal."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/bastion/bastion-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "host", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -1519,6 +1527,10 @@ class AzureNetworkCustomIpPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_custom_ip_prefix"
     _kind_display: ClassVar[str] = "Azure Network Custom IP Prefix"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Custom IP Prefix is a feature that lets users bring their own public IP address ranges to Azure. It provides control over IP address management, facilitates IP address migration to Azure, and supports scenarios requiring specific IP ranges. Users can associate these prefixes with resources like public IP addresses and public load balancers."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/custom-ip-address-prefix"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -1573,6 +1585,8 @@ class AzureNetworkDdosProtectionPlan(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ddos_protection_plan"
     _kind_display: ClassVar[str] = "Azure Network DDoS Protection Plan"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network DDoS Protection Plan is a service that defends Azure resources against Distributed Denial of Service attacks. It monitors network traffic, detects potential threats, and automatically mitigates them. The plan provides real-time attack metrics, alerting, and logging. It offers protection for virtual networks, public IP addresses, and application gateways without requiring changes to applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/ddos-protection/ddos-protection-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -1755,6 +1769,10 @@ class AzureNetworkFlowLog(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_flow_log"
     _kind_display: ClassVar[str] = "Azure Network Flow Log"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Flow Log is a feature that records information about IP traffic flowing through Azure network security groups. It captures data on allowed and denied connections, including source and destination IP addresses, ports, protocols, and traffic direction. This log helps administrators monitor network activity, troubleshoot connectivity issues, and enhance security posture."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/network-watcher/network-watcher-nsg-flow-logging-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     # Collect via AzureNetworkWatcher()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1799,6 +1817,10 @@ class AzureNetworkSecurityGroup(MicrosoftResource, BaseSecurityGroup):
     kind: ClassVar[str] = "azure_network_security_group"
     _kind_display: ClassVar[str] = "Azure Network Security Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Security Group is a virtual firewall that controls inbound and outbound network traffic for Azure resources. It filters traffic based on rules that specify allowed or denied communication between resources. These rules can be applied to subnets, virtual machines, or network interfaces, providing a layer of protection for Azure-hosted applications and services."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "security_group", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -1879,6 +1901,8 @@ class AzureNetworkRouteTable(MicrosoftResource, BaseRoutingTable):
     kind: ClassVar[str] = "azure_network_route_table"
     _kind_display: ClassVar[str] = "Azure Network Route Table"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Route Table is a networking component in Microsoft Azure that controls traffic routing within virtual networks. It defines custom routes to direct network traffic between subnets, virtual networks, and on-premises networks. Route tables override Azure's default system routes, providing granular control over data flow and enhancing network security by specifying next-hop destinations for network traffic."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/manage-route-table"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -2018,6 +2042,8 @@ class AzureNetworkNatGateway(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_nat_gateway"
     _kind_display: ClassVar[str] = "Azure Network NAT Gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network NAT Gateway is a managed service that provides outbound internet connectivity for virtual networks. It translates private IP addresses to public IP addresses, letting multiple resources share a single public IP. This service enhances security by hiding internal network structures and centralizes outbound internet traffic management for Azure resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/nat-gateway-resource"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -2060,6 +2086,8 @@ class AzureNetworkPublicIPAddress(MicrosoftResource, BaseIPAddress):
     kind: ClassVar[str] = "azure_network_public_ip_address"
     _kind_display: ClassVar[str] = "Azure Network Public IP Address"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Public IP Address is a resource that provides a static or dynamic public IP address for Azure resources. It assigns an internet-facing IP to virtual machines, load balancers, and other services, enabling inbound and outbound communication with the internet. This address can be associated with network interfaces or used as a frontend IP for load balancers."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/public-ip-addresses"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -2234,6 +2262,8 @@ class AzureNetworkSubnet(MicrosoftResource, BaseSubnet):
     kind: ClassVar[str] = "azure_network_subnet"
     _kind_display: ClassVar[str] = "Azure Network Subnet"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Subnet is a logical subdivision of an Azure virtual network. It segments the network address space, organizing resources and controlling traffic flow. Subnets define IP address ranges for devices and services, enabling network isolation and security. They facilitate communication between resources within the same subnet and manage access to other subnets or external networks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-manage-subnet"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "subnet", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -2351,6 +2381,8 @@ class AzureNetworkVirtualNetworkTap(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_network_tap"
     _kind_display: ClassVar[str] = "Azure Network Virtual Network TAP"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Network TAP is a feature that copies network traffic from Azure virtual machines. It sends the copied data to a network packet collector or analytics tool. This lets users monitor, analyze, and troubleshoot network traffic without affecting the original data flow or VM performance. It supports both inbound and outbound traffic monitoring."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-tap-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -2555,6 +2587,8 @@ class AzureNetworkPrivateLinkService(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_private_link_service"
     _kind_display: ClassVar[str] = "Azure Network Private Link Service"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Private Link Service is a networking feature that provides private connectivity to services in Azure. It creates a secure link between a service provider's resources and a consumer's virtual network, bypassing the public internet. This service offers enhanced security and reduced data exposure by keeping network traffic within the Azure backbone."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/private-link/private-link-service-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -2606,6 +2640,10 @@ class AzureNetworkInterface(MicrosoftResource, BaseNetworkInterface):
     kind: ClassVar[str] = "azure_network_interface"
     _kind_display: ClassVar[str] = "Azure Network Interface"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "An Azure Network Interface is a virtual network adapter that connects Azure virtual machines to the internet, Azure virtual networks, and on-premises networks. It assigns IP addresses, network security group rules, and load balancing settings to VMs. Network Interfaces can be attached to or detached from VMs and configured with multiple IP configurations."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -2720,6 +2758,8 @@ class AzureNetworkDscpConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_dscp_configuration"
     _kind_display: ClassVar[str] = "Azure Network Dscp Configuration"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network DSCP Configuration is a feature that manages Quality of Service (QoS) for network traffic in Azure. It allows users to set Differentiated Services Code Point (DSCP) values on outbound packets from virtual machines. This configuration helps prioritize and control network traffic, ensuring specific applications or services receive appropriate bandwidth and performance levels within Azure networks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-qos-settings"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3007,6 +3047,8 @@ class AzureNetworkExpressRouteCircuit(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_circuit"
     _kind_display: ClassVar[str] = "Azure Network Express Route Circuit"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Express Route Circuit is a service that creates a private connection between an organization's on-premises network and Microsoft Azure data centers. It bypasses the public internet, offering more reliable connectivity, lower latency, and higher security for data transfer. This service supports various connectivity models and can be integrated with virtual networks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/expressroute/expressroute-circuit-peerings"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3137,6 +3179,10 @@ class AzureNetworkExpressRouteCrossConnection(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_cross_connection"
     _kind_display: ClassVar[str] = "Azure Network Express Route Cross Connection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Express Route Cross Connection is a service that links on-premises networks to Microsoft Azure through a dedicated private connection. It bypasses the public internet, providing direct access to Azure services with increased reliability, lower latency, and higher security. This connection supports various network protocols and can be used for data transfer, application hosting, and disaster recovery."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/expressroute/expressroute-cross-connections-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3284,6 +3330,10 @@ class AzureNetworkExpressRouteGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_express_route_gateway"
     _kind_display: ClassVar[str] = "Azure Network Express Route Gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Express Route Gateway is a service that connects on-premises networks to Microsoft Azure using dedicated private connections. It provides a direct route to Azure services, bypassing the public internet for improved performance and security. The gateway facilitates data transfer between on-premises infrastructure and Azure virtual networks, supporting various connectivity options and protocols."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/expressroute/expressroute-about-virtual-network-gateways"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3361,6 +3411,8 @@ class AzureNetworkExpressRoutePort(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_port"
     _kind_display: ClassVar[str] = "Azure Network Express Route Port"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Express Route Port is a Microsoft Azure service that provides dedicated high-bandwidth connections between on-premises networks and Azure data centers. It bypasses the public internet, offering direct connectivity for faster data transfer and reduced latency. This service supports large-scale data migration, disaster recovery, and hybrid cloud deployments for organizations requiring consistent network performance."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/expressroute/expressroute-ports-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3417,6 +3469,8 @@ class AzureNetworkExpressRoutePortsLocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_express_route_ports_location"
     _kind_display: ClassVar[str] = "Azure Network Express Route Ports Location"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Express Route Ports Location is a physical connection point for direct, private connectivity between on-premises networks and Microsoft Azure. It provides dedicated, high-bandwidth links to Azure, bypassing the public internet. This service offers consistent network performance, reduced latency, and enhanced security for critical workloads and data transfer between enterprise infrastructure and Azure datacenters."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/expressroute/expressroute-locations-providers"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3604,6 +3658,8 @@ class AzureNetworkFirewallPolicy(MicrosoftResource, BasePolicy):
     kind: ClassVar[str] = "azure_network_firewall_policy"
     _kind_display: ClassVar[str] = "Azure Network Firewall Policy"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Firewall Policy is a cloud-based security service that manages network traffic rules for Azure Firewall instances. It enforces security controls across multiple virtual networks and subscriptions, providing centralized configuration and management of firewall rules. The policy defines network and application rules, threat intelligence settings, and DNS configurations for connected firewalls."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/firewall-manager/policy-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3663,6 +3719,10 @@ class AzureNetworkIpAllocation(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ip_allocation"
     _kind_display: ClassVar[str] = "Azure Network IP Allocation"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network IP Allocation is a service that manages IP address assignments within Azure virtual networks. It automates the distribution of IP addresses to resources, tracks usage, and prevents conflicts. The service handles both public and private IP addresses, supporting IPv4 and IPv6 protocols. It integrates with other Azure networking features for efficient address management."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/ip-address-allocation-types"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3709,6 +3769,8 @@ class AzureNetworkIpGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_ip_group"
     _kind_display: ClassVar[str] = "Azure Network IP Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network IP Group is a feature in Azure networking that lets users group IP addresses, ranges, and subnets. It simplifies network security rule management by applying policies to multiple IPs simultaneously. Users can create, update, and delete IP groups, then reference them in security rules for network security groups and Azure Firewalls."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/ip-groups-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -3771,6 +3833,10 @@ class AzureNetworkLoadBalancerProbe(MicrosoftResource, BaseHealthCheck):
     kind: ClassVar[str] = "azure_network_load_balancer_probe"
     _kind_display: ClassVar[str] = "Azure Network Load Balancer Probe"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Load Balancer Probe is a component that checks the health of backend instances in a load-balanced pool. It sends periodic requests to each instance and monitors responses. Based on these checks, the probe determines which instances are healthy and can receive traffic, ensuring that requests are only routed to functioning servers within the load balancer's backend pool."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/load-balancer/load-balancer-custom-probe-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     # Collect via AzureNetworkLoadBalancer
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -3998,6 +4064,8 @@ class AzureNetworkLoadBalancer(MicrosoftResource, BaseLoadBalancer):
     kind: ClassVar[str] = "azure_network_load_balancer"
     _kind_display: ClassVar[str] = "Azure Network Load Balancer"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Load Balancer is a Layer 4 load balancing service for Azure resources. It distributes incoming network traffic across multiple instances of an application, improving availability and fault tolerance. The service supports both inbound and outbound scenarios, can handle millions of flows, and works with virtual machines in virtual networks or internet-facing services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/load-balancer/load-balancer-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4199,6 +4267,10 @@ class AzureNetworkProfile(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_profile"
     _kind_display: ClassVar[str] = "Azure Network Profile"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Profile is a configuration template for network resources in Microsoft Azure. It defines settings for virtual networks, subnets, network security groups, and other network components. Network Profiles simplify the deployment and management of consistent network configurations across multiple Azure resources, reducing setup time and potential configuration errors in cloud environments."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#network-interface-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4334,6 +4406,10 @@ class AzureNetworkVirtualAppliance(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance"
     _kind_display: ClassVar[str] = "Azure Network Virtual Appliance"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Appliance is a network security service in Microsoft Azure. It functions as a virtual firewall, routing traffic between subnets and enforcing security policies. The appliance inspects network packets, filters traffic, and protects against threats. It can be deployed in virtual networks to control data flow and implement network security rules."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-vnet-plan-design-arm#network-virtual-appliances"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4458,6 +4534,10 @@ class AzureNetworkVirtualApplianceSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance_sku"
     _kind_display: ClassVar[str] = "Azure Network Virtual Appliance SKU"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Appliance SKU is a service offering from Microsoft Azure that provides network security and connectivity services. It includes virtual appliances for firewalls, intrusion detection, load balancing, and VPN gateways. These appliances can be deployed in Azure virtual networks to protect and manage network traffic between on-premises and cloud resources."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-virtual-appliance-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4489,6 +4569,8 @@ class AzureNetworkWatcher(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_watcher"
     _kind_display: ClassVar[str] = "Azure Network Watcher"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Watcher is a monitoring and diagnostic service for Azure networks. It provides tools to observe, analyze, and troubleshoot network issues. Users can view network topology, test connectivity, capture packets, and diagnose VPN problems. Network Watcher offers insights into network performance and security, helping administrators maintain and optimize their Azure network infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/network-watcher/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4649,6 +4731,8 @@ class AzureNetworkP2SVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_p2_s_vpn_gateway"
     _kind_display: ClassVar[str] = "Azure Network P2 S VPN Gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network P2S VPN Gateway is a virtual network gateway that establishes secure connections between remote clients and Azure virtual networks. It supports point-to-site VPN connectivity, letting individual devices access resources in Azure over an encrypted tunnel. Users can connect from various locations using supported VPN clients, maintaining secure access to Azure resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/vpn-gateway/point-to-site-about"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4696,6 +4780,8 @@ class AzureNetworkPublicIPPrefix(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_public_ip_prefix"
     _kind_display: ClassVar[str] = "Azure Network Public IP Prefix"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Public IP Prefix is a feature that reserves a contiguous range of public IP addresses in Azure. It provides a fixed set of public IPs for network resources, simplifying IP management and reducing the need for frequent updates to firewall rules. Users can assign addresses from this prefix to multiple resources within their Azure environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/public-ip-address-prefix"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4763,6 +4849,8 @@ class AzureNetworkRouteFilter(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_route_filter"
     _kind_display: ClassVar[str] = "Azure Network Route Filter"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Route Filter is a service that controls BGP route exchange between virtual network gateways and Microsoft Edge routers. It filters incoming and outgoing routes based on specified criteria, such as route prefix or community values. This helps manage traffic flow and optimize routing in Azure networking environments, enhancing security and performance."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/route-server/route-filter-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4793,6 +4881,10 @@ class AzureNetworkSecurityPartnerProvider(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_security_partner_provider"
     _kind_display: ClassVar[str] = "Azure Network Security Partner Provider"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Security Partner Provider is a service that integrates third-party network security solutions into Azure's infrastructure. It offers a range of security tools from Microsoft's partners, including firewalls, intrusion detection systems, and content filtering. This service helps organizations enhance their network security posture within the Azure environment by implementing additional protective measures."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-provider-security-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4823,6 +4915,8 @@ class AzureNetworkUsage(MicrosoftResource, AzureBaseUsage, BaseNetworkQuota):
     kind: ClassVar[str] = "azure_network_usage"
     _kind_display: ClassVar[str] = "Azure Network Usage"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Usage is a monitoring feature in Microsoft Azure that tracks and reports network traffic data for virtual machines, virtual networks, and other Azure resources. It provides information on data transfer volumes, bandwidth consumption, and network connectivity patterns, helping users analyze and optimize their network resource utilization and costs within the Azure cloud environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/networking/azure-network-usage"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -4898,6 +4992,8 @@ class AzureNetworkVirtualHub(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_hub"
     _kind_display: ClassVar[str] = "Azure Network Virtual Hub"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Hub is a managed networking service in Microsoft Azure. It serves as a central connection point for virtual networks and on-premises networks. The hub facilitates secure communication between connected networks, implements routing, and integrates with other Azure networking services. It supports site-to-site VPN, ExpressRoute, and point-to-site VPN connections."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-wan/virtual-wan-about"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -5100,6 +5196,8 @@ class AzureNetworkVirtualNetwork(MicrosoftResource, BaseNetwork):
     kind: ClassVar[str] = "azure_network_virtual_network"
     _kind_display: ClassVar[str] = "Azure Network Virtual Network"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Network is a service in Microsoft Azure that creates isolated, private networks in the cloud. It lets users define IP address ranges, subnets, and network security policies. Virtual Network connects Azure resources, enables communication between them, and provides connectivity to on-premises networks through VPN or ExpressRoute. It supports network segmentation and traffic filtering."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -5180,6 +5278,8 @@ class AzureNetworkVirtualRouter(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_router"
     _kind_display: ClassVar[str] = "Azure Network Virtual Router"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Router is a cloud service that provides routing capabilities within Azure virtual networks. It manages traffic flow between subnets, on-premises networks, and the internet. The service supports BGP routing protocols, custom route tables, and network address translation, enabling users to control and optimize network traffic across their Azure infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-router-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "routing_table", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -5214,6 +5314,8 @@ class AzureNetworkVirtualWAN(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_virtual_wan"
     _kind_display: ClassVar[str] = "Azure Network Virtual WAN"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual WAN is a Microsoft networking service that connects and manages multiple networks across different locations. It integrates on-premises networks, branch offices, and remote sites with Azure virtual networks. The service provides automated routing, optimized data paths, and simplified connectivity for organizations with distributed network infrastructures, supporting both site-to-site and point-to-site VPN configurations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-wan/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -5347,6 +5449,8 @@ class AzureNetworkVirtualWANVpnConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_network_virtual_wan_vpn_connection"
     _kind_display: ClassVar[str] = "Azure Network Virtual WAN VPN Connection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual WAN VPN Connection is a service that establishes secure tunnels between on-premises networks and Azure's Virtual WAN. It creates encrypted connections over the internet, facilitating data transfer and resource access across distributed locations. This service integrates with Azure's global network infrastructure to provide connectivity for branch offices and remote sites."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-wan/virtual-wan-site-to-site-portal"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     # Collect via AzureNetworkVirtualWANVpnGateway
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -5483,6 +5587,8 @@ class AzureNetworkVirtualWANVpnGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_virtual_wan_vpn_gateway"
     _kind_display: ClassVar[str] = "Azure Network Virtual WAN VPN Gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual WAN VPN Gateway is a managed service that connects on-premises networks to Azure through site-to-site VPN tunnels. It provides encrypted communication between remote locations and Azure virtual networks, supporting both policy-based and route-based VPN connections. The service handles routing, encryption, and high availability for secure and reliable connectivity across distributed environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-wan/virtual-wan-about"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -5609,6 +5715,8 @@ class AzureNetworkVpnServerConfiguration(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_vpn_server_configuration"
     _kind_display: ClassVar[str] = "Azure Network VPN Server Configuration"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network VPN Server Configuration is a service in Microsoft Azure that sets up and manages virtual private network gateways. It creates secure connections between on-premises networks and Azure virtual networks, encrypting data transmitted over the internet. This configuration supports site-to-site, point-to-site, and VNet-to-VNet connections, providing remote access and network integration capabilities."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpn-devices"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -5738,6 +5846,8 @@ class AzureNetworkVpnSite(MicrosoftResource, BasePeeringConnection):
     kind: ClassVar[str] = "azure_network_vpn_site"
     _kind_display: ClassVar[str] = "Azure Network VPN Site"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network VPN Site is a service that creates secure connections between on-premises networks and Azure virtual networks. It establishes encrypted tunnels over the internet, facilitating data transfer and resource access across locations. This service supports both site-to-site and point-to-site configurations, providing remote users with access to Azure resources while maintaining network security."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpn-gateway"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -5987,6 +6097,8 @@ class AzureNetworkWebApplicationFirewallPolicy(MicrosoftResource):
     kind: ClassVar[str] = "azure_network_web_application_firewall_policy"
     _kind_display: ClassVar[str] = "Azure Network Web Application Firewall Policy"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Web Application Firewall Policy is a security configuration for web applications in Azure. It defines rules to protect against common web vulnerabilities and threats. The policy filters incoming traffic, blocks malicious requests, and enforces security measures. It can be applied to Azure Application Gateway, Azure Front Door, and Azure CDN to safeguard web applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/web-application-firewall/ag/policy-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",
@@ -6224,6 +6336,8 @@ class AzureNetworkVirtualNetworkGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_virtual_network_gateway"
     _kind_display: ClassVar[str] = "Azure Network Virtual Network Gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Network Gateway is a managed service that connects on-premises networks to Azure virtual networks through site-to-site VPNs or ExpressRoute circuits. It establishes secure connections, handles traffic routing, and provides encryption for data transfer between on-premises and cloud environments. The gateway supports various VPN types and can be configured for high availability."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpngateways"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -6300,6 +6414,10 @@ class AzureNetworkLocalNetworkGateway(MicrosoftResource, BaseGateway):
     kind: ClassVar[str] = "azure_network_local_network_gateway"
     _kind_display: ClassVar[str] = "Azure Network Local Network Gateway"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Local Network Gateway represents an on-premises network in Azure. It defines the IP address ranges of the local network and serves as a connection point for site-to-site VPN tunnels. This resource facilitates secure communication between Azure virtual networks and on-premises networks, enabling hybrid connectivity and data exchange across environments."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpn-gateway#local-network-gateway"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "gateway", "group": "networking"}
     # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -6346,9 +6464,13 @@ class AzureTunnelConnectionHealth:
 class AzureNetworkVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel):
     kind: ClassVar[str] = "azure_network_virtual_network_gateway_connection"
     _kind_display: ClassVar[str] = "Azure Network Virtual Network Gateway Connection"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Virtual Network Gateway Connection is a service that links on-premises networks with Azure virtual networks through secure VPN tunnels. It establishes encrypted connections over the internet or private peering, facilitating data transfer and resource access between local infrastructure and Azure cloud environments. This service supports site-to-site, point-to-site, and VNet-to-VNet connectivity options."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpn-gateway-settings"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     # Collect via AzureResourceGroup
-    _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_network_virtual_network_gateway", "azure_network_local_network_gateway"]},
     }
@@ -6507,6 +6629,8 @@ class AzureNetworkDNSRecordSet(MicrosoftResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "azure_network_dns_record_set"
     _kind_display: ClassVar[str] = "Azure Network DNS Record Set"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network DNS Record Set is a collection of DNS records within a specific domain hosted in Azure DNS. It contains multiple records of the same type (e.g., A, CNAME, MX) for a given name. This feature manages and organizes DNS entries, facilitating domain name resolution and routing for Azure resources and external services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/dns/dns-zones-records"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_network_dns_zone"]},
@@ -6553,6 +6677,8 @@ class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
     kind: ClassVar[str] = "azure_network_dns_zone"
     _kind_display: ClassVar[str] = "Azure Network DNS Zone"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network DNS Zone is a managed service that hosts DNS records for a domain within Microsoft Azure. It provides name resolution for resources in virtual networks and public internet services. Users can create, update, and delete DNS records through Azure's management interfaces or APIs, supporting various record types like A, AAAA, CNAME, and MX."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/dns/dns-zones-records"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="network",

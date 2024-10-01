@@ -250,12 +250,8 @@ class AwsElbLoadBalancerAttributes:
 class AwsElb(ElbTaggable, AwsResource, BaseLoadBalancer):
     kind: ClassVar[str] = "aws_elb"
     _kind_display: ClassVar[str] = "AWS ELB"
-    _kind_description: ClassVar[str] = (
-        "ELB stands for Elastic Load Balancer. It is a service provided by Amazon Web"
-        " Services that automatically distributes incoming application traffic across"
-        " multiple Amazon EC2 instances, making it easier to achieve fault tolerance"
-        " in your applications."
-    )
+    _kind_description: ClassVar[str] = "AWS Elastic Load Balancing (ELB) is a service that distributes incoming application traffic across multiple targets, such as EC2 instances, containers, and IP addresses. It automatically adjusts capacity based on traffic patterns, provides health checks for connected resources, and supports various load balancing algorithms to optimize application performance and availability in Amazon Web Services environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/elasticloadbalancing/"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "load_balancer", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#LoadBalancer:loadBalancerArn={name}", "arn_tpl": "arn:{partition}:elasticloadbalancing:{region}:{account}:loadbalancer/{id}"}  # fmt: skip

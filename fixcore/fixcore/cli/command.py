@@ -110,7 +110,7 @@ from fixcore.db.graphdb import HistoryChange, GraphDB
 from fixcore.db.model import QueryModel
 from fixcore.db.runningtaskdb import RunningTaskData
 from fixcore.error import CLIParseError, ClientError, CLIExecutionError, NotEnoughPermissions
-from fixcore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password
+from fixcore.ids import ConfigId, TaskId, InfraAppName, TaskDescriptorId, GraphName, Email, Password, NodeId
 from fixcore.infra_apps.manifest import AppManifest
 from fixcore.infra_apps.package_manager import Failure
 from fixcore.model.graph_access import Section, EdgeTypes
@@ -6553,6 +6553,46 @@ class RefineResourceDataCommand(CLICommand, InternalPart):
         return CLIFlow(setup_stream, required_permissions={Permission.read})
 
 
+class NodeCommand(CLICommand):
+    """
+    node delete <node_id>
+    """
+
+    @property
+    def name(self) -> str:
+        return "node"
+
+    def args_info(self) -> ArgsInfo:
+        return {
+            "delete": [
+                ArgInfo("--keep-history", False, help_text=""),
+                ArgInfo(None, True, help_text="<node_id>"),
+            ]
+        }
+
+    def info(self) -> str:
+        return "Operations on nodes"
+
+    def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
+        async def delete_node(node_id: NodeId, keep_history: bool) -> AsyncIterator[str]:
+            model = await self.dependencies.model_handler.load_model(ctx.graph_name)
+            await self.dependencies.db_access.get_graph_db(ctx.graph_name).delete_node(node_id, model, keep_history)
+            yield f"Node {node_id} deleted."
+
+        if arg:
+            args = arg.split(maxsplit=1)
+            if len(args) == 2 and args[0] == "delete":
+                parser = NoExitArgumentParser()
+                parser.add_argument("node_id", type=str)
+                parser.add_argument("--keep-history", action="store_true")
+                parsed = parser.parse_args(args_parts_unquoted_parser.parse(args[1]))
+                return CLISource.single(
+                    fn=partial(delete_node, node_id=parsed.node_id, keep_history=parsed.keep_history),
+                    required_permissions={Permission.write},
+                )
+        return CLISource.single(lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read})
+
+
 def all_commands(d: TenantDependencies) -> List[CLICommand]:
     commands = [
         AggregateCommand(d, "search"),
@@ -6582,6 +6622,7 @@ def all_commands(d: TenantDependencies) -> List[CLICommand]:
         KindsCommand(d, "search", allowed_in_source_position=True),
         LimitPart(d, "search"),
         ListCommand(d, "format"),
+        NodeCommand(d, "action", allowed_in_source_position=True),
         TemplatesCommand(d, "search", allowed_in_source_position=True),
         PredecessorsPart(d, "search"),
         ProtectCommand(d, "action"),

@@ -106,9 +106,9 @@ class AwsEcsCapacityProvider(EcsTaggable, AwsResource):
     # collection of capacity provider resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_capacity_provider"
     _kind_display: ClassVar[str] = "AWS ECS Capacity Provider"
-    _kind_description: ClassVar[str] = (
-        "ECS Capacity Providers are used in Amazon's Elastic Container Service to"
-        " manage the capacity and scaling for containerized applications."
+    _kind_description: ClassVar[str] = "AWS ECS Capacity Provider is a feature that manages compute capacity for Amazon Elastic Container Service (ECS) clusters. It automates the scaling of EC2 instances based on task demands, balancing resource utilization and availability. Capacity Providers can work with EC2 Auto Scaling groups to add or remove instances as needed, optimizing cluster performance and cost efficiency."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-capacity-providers.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "provider", "group": "compute"}
@@ -427,10 +427,8 @@ class AwsEcsTask(EcsTaggable, AwsResource):
     # collection of task resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_task"
     _kind_display: ClassVar[str] = "AWS ECS Task"
-    _kind_description: ClassVar[str] = (
-        "ECS Tasks are containers managed by Amazon Elastic Container Service, which"
-        " allow users to run and scale applications easily using Docker containers."
-    )
+    _kind_description: ClassVar[str] = "An AWS ECS Task is a configuration that defines one or more containers to run together on Amazon Elastic Container Service. It specifies the Docker image, CPU and memory requirements, network settings, and other parameters for each container. Tasks are used to deploy and manage applications within ECS clusters."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/tasks/{id}/configuration?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task/{name}"}  # fmt: skip
@@ -1075,11 +1073,8 @@ class AwsEcsProxyConfiguration:
 class AwsEcsTaskDefinition(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_task_definition"
     _kind_display: ClassVar[str] = "AWS ECS Task Definition"
-    _kind_description: ClassVar[str] = (
-        "An ECS Task Definition is a blueprint for running tasks in AWS Elastic"
-        " Container Service (ECS), providing information such as the Docker image,"
-        " CPU, memory, network configuration, and other parameters."
-    )
+    _kind_description: ClassVar[str] = "An AWS ECS Task Definition is a configuration file that specifies how containers should run within an Amazon ECS cluster. It defines container images, resource requirements, environment variables, networking settings, and storage options for tasks. Task Definitions serve as blueprints for deploying and managing containerized applications in Amazon ECS environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/task-definitions/{name}?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:task-definition/{name}"}  # fmt: skip
@@ -1498,11 +1493,8 @@ class AwsEcsService(EcsTaggable, AwsResource):
     # collection of service resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_service"
     _kind_display: ClassVar[str] = "AWS ECS Service"
-    _kind_description: ClassVar[str] = (
-        "ECS (Elastic Container Service) is a scalable container orchestration"
-        " service provided by AWS, allowing users to easily manage, deploy, and scale"
-        " containerized applications."
-    )
+    _kind_description: ClassVar[str] = "AWS ECS Service is a container management feature within Amazon Elastic Container Service. It maintains and scales a specified number of task instances, automatically replaces failed tasks, and integrates with Elastic Load Balancing for distributing traffic. ECS Service handles task placement, scheduling, and service discovery, simplifying the deployment and management of containerized applications on AWS infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{clusterArn}/services/{name}/health?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:service/{name}"}  # fmt: skip
@@ -1789,11 +1781,8 @@ class AwsEcsContainerInstance(EcsTaggable, AwsResource):
     # collection of container instance resources happens in AwsEcsCluster.collect()
     kind: ClassVar[str] = "aws_ecs_container_instance"
     _kind_display: ClassVar[str] = "AWS ECS Container Instance"
-    _kind_description: ClassVar[str] = (
-        "ECS Container Instances are virtual servers in Amazon's Elastic Container"
-        " Service (ECS) that are used to run and manage containers within the ECS"
-        " environment."
-    )
+    _kind_description: ClassVar[str] = "An AWS ECS Container Instance is a virtual machine that runs the Amazon ECS container agent and Docker daemon. It serves as a host for containers managed by Amazon ECS. These instances provide compute resources for running containers, handle container scheduling, and communicate with the ECS service to manage tasks and report instance status."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_instances.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ecs:{region}:{account}:container-instance/{id}"}  # fmt: skip
@@ -1936,10 +1925,8 @@ class AwsEcsClusterSetting:
 class AwsEcsCluster(EcsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_ecs_cluster"
     _kind_display: ClassVar[str] = "AWS ECS Cluster"
-    _kind_description: ClassVar[str] = (
-        "ECS (Elastic Container Service) Cluster is a managed cluster of Amazon EC2"
-        " instances used to deploy and manage Docker containers."
-    )
+    _kind_description: ClassVar[str] = "AWS ECS Cluster is a container management service that organizes and runs Docker containers on EC2 instances. It handles container deployment, scheduling, and scaling across multiple instances. ECS Cluster manages the underlying infrastructure, monitors container health, and balances workloads. It integrates with other AWS services for networking, storage, and security."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_clusters.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecs/v2/clusters/{name}/services?region={region}", "arn_tpl": "arn:{partition}:ecs:{region}:{account}:cluster/{name}"}  # fmt: skip

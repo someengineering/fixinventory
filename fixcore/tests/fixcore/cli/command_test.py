@@ -1530,3 +1530,17 @@ async def test_detect_secrets(cli: CLI) -> None:
         }
     ]
     assert await detect({"foo": "innocent string"}) == []
+
+
+@pytest.mark.asyncio
+async def test_node(cli: CLI) -> None:
+    async def exec(cmd: str) -> List[JsonElement]:
+        res = await cli.execute_cli_command(cmd, list_sink)
+        return cast(List[JsonElement], res[0])
+
+    # Assert full graph
+    assert await exec("search all | count") == ["total matched: 113", "total unmatched: 0"]
+    # Delete account node
+    await exec("node delete sub_root")
+    # Graph_root and cloud node still exist
+    assert await exec("search all | count") == ["total matched: 2", "total unmatched: 0"]
