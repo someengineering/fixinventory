@@ -215,7 +215,6 @@ class MicrosoftBaseCollector:
 class AzureSubscriptionCollector(MicrosoftBaseCollector):
     def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
         locations = AzureLocation.collect_resources(builder)
-        # сreate a location lookup map with lowercase name and display name of the locations
         return CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
 
     def collect_with(self, builder: GraphBuilder, locations: Dict[str, BaseRegion]) -> None:
