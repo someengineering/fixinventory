@@ -12,7 +12,7 @@ from fixlib.baseresources import (
     ResourceConstraint,
 )
 from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser
-from fixlib.baseresources import EdgeType, PolicySourceKind, HasResourcePolicy
+from fixlib.baseresources import EdgeType, PolicySourceKind, HasResourcePolicy, PermissionLevel
 from fixlib.json import to_json, to_json_str
 from fixlib.types import Json
 
@@ -461,18 +461,30 @@ def is_service_linked_role(principal: AwsResource) -> bool:
     return False
 
 
-def get_action_level(action: str) -> str:
+def get_action_level(action: str) -> PermissionLevel:
     service, action_name = action.split(":")
-    level = "Unknown"
+    level = ""
     action_data = get_action_data(service, action_name)
     if not action_data:
-        return level
+        return PermissionLevel.Unknown
     if len(action_data[service]) > 0:
         for info in action_data[service]:
             if action == info["action"]:
                 level = info["access_level"]
                 break
-    return level
+    match level:
+        case "List":
+            return PermissionLevel.List
+        case "Read":
+            return PermissionLevel.Read
+        case "Tagging":
+            return PermissionLevel.Tagging
+        case "Write":
+            return PermissionLevel.Write
+        case "Permissions management":
+            return PermissionLevel.PermissionManagement
+        case _:
+            return PermissionLevel.Unknown
 
 
 # logic according to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
@@ -699,7 +711,6 @@ class AccessEdgeCreator:
                 if not permissions:
                     continue
 
-                json_permissions = to_json(permissions)
-                reported = {"permissions": json_permissions}
+                reported = to_json({"permissions": permissions}, strip_nulls=True)
 
                 self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)

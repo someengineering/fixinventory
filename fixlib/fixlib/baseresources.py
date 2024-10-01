@@ -1668,10 +1668,19 @@ class PermissionScope:
         return False
 
 
+class PermissionLevel(StrEnum):
+    List = "list"
+    Read = "read"
+    Tagging = "tagging"
+    Write = "write"
+    PermissionManagement = "permission"
+    Unknown = "unknown"  # in case a resource is not in the levels database
+
+
 @frozen
 class AccessPermission:
     action: str
-    level: str
+    level: PermissionLevel
     scopes: Tuple[PermissionScope, ...]
 
 

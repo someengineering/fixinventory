@@ -270,7 +270,7 @@ class AwsConfig:
     )
     collect_access_edges: Optional[bool] = field(
         default=False,
-        metadata={"description": "Collect IAM access edges, enabled by default"},
+        metadata={"description": "Collect IAM access edges, disabled by default"},
     )
 
     @staticmethod
