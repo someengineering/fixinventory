@@ -19,45 +19,15 @@ from fixlib.types import Json
 service_name = "aiplatform"
 log = logging.getLogger("fix.plugins.gcp")
 
-# The following list of regions is sourced from the official Google Cloud Vertex AI service endpoints documentation:
+# AI Platform (Vertex AI) resources can only be deployed and managed within specific regions.
 # https://cloud.google.com/vertex-ai/docs/reference/rest#service-endpoint
-# AI Platform (Vertex AI) resources can only be deployed and managed within these specific regions.
+# This is the reason we use expected substrings to handle errors related to incorrect regions
+# or permission issues dynamically, rather than maintaining a static list of supported regions.
 
-regions = [
-    "asia-east1",
-    "asia-east2",
-    "asia-northeast1",
-    "asia-northeast2",
-    "asia-northeast3",
-    "asia-south1",
-    "asia-southeast1",
-    "asia-southeast2",
-    "australia-southeast1",
-    "australia-southeast2",
-    "europe-central2",
-    "europe-north1",
-    "europe-southwest1",
-    "europe-west1",
-    "europe-west2",
-    "europe-west3",
-    "europe-west4",
-    "europe-west6",
-    "europe-west8",
-    "europe-west9",
-    "me-west1",
-    "northamerica-northeast1",
-    "northamerica-northeast2",
-    "southamerica-east1",
-    "southamerica-west1",
-    "us-central1",
-    "us-east1",
-    "us-east4",
-    "us-south1",
-    "us-west1",
-    "us-west2",
-    "us-west3",
-    "us-west4",
-]
+expected_message_substrings = {
+    "Matching Engine is not supported in region",
+    "Permission denied by location policies",
+}
 
 
 class AIPlatformRegionFilter:
@@ -70,11 +40,14 @@ class AIPlatformRegionFilter:
             else:
                 log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind}")
             if spec := cls.api_spec:
-                expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set())
+                expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set()) | {"HttpError:none:none"}
                 with GcpErrorHandler(
-                    builder.core_feedback, expected_errors, f" in {builder.project.id} kind {cls.kind}"
+                    builder.core_feedback,
+                    expected_errors,
+                    f" in {builder.project.id} kind {cls.kind}",
+                    expected_message_substrings,
                 ):
-                    if builder.region and builder.region.id in regions:
+                    if builder.region:
                         items = builder.client.list(spec, **kwargs)
                         collected_resources = cls.collect(items, builder)
                         log.info(f"[GCP:{builder.project.id}] finished collecting: {cls.kind}")
@@ -3356,7 +3329,7 @@ class GcpVertexAITuningJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
 resources: List[Type[GcpResource]] = [
     GcpVertexAIModel,
     GcpVertexAIDataset,
-    # GcpVertexAIDatasetVersion, : collected via GcpVertexAIFeatureGroup
+    # GcpVertexAIDatasetVersion, : collected via GcpVertexAIDataset
     GcpVertexAIEndpoint,
     GcpVertexAISchedule,
     GcpVertexAIFeatureGroup,
