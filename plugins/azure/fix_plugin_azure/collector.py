@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor, Future
 from datetime import datetime, timezone
-from typing import Any, Optional, Type, List, Dict, Set
+from typing import Any, Optional, Type, List, Dict
 
 from azure.core.utils import CaseInsensitiveDict
 
@@ -216,7 +216,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
     def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
         locations = AzureLocation.collect_resources(builder)
         # сreate a location lookup map with lowercase name and display name of the locations
-        return CaseInsensitiveDict({loc.safe_name: loc for loc in locations} | {loc.display_name: loc for loc in locations})  # type: ignore
+        return CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
 
     def collect_with(self, builder: GraphBuilder, locations: Dict[str, BaseRegion]) -> None:
         # add deferred edge to organization
@@ -225,11 +225,9 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         regional_resources = [r for r in subscription_resources if resource_with_params(r, "location")]
         global_resources = list(set(subscription_resources) - set(regional_resources))
         self.collect_resource_list("subscription", builder, global_resources)
-        processed_locations: Set[str] = set()
+
         for location in locations.values():
-            if location.safe_name not in processed_locations:
-                self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
-                processed_locations.add(location.safe_name)
+            self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
 
     def remove_unused(self) -> None:
         remove_nodes = []
