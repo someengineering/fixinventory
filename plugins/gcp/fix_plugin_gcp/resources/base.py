@@ -608,10 +608,17 @@ GcpExpectedErrorCodes = {
 
 
 class GcpErrorHandler:
-    def __init__(self, core_feedback: CoreFeedback, expected_errors: Set[str], extra_info: str = "") -> None:
+    def __init__(
+        self,
+        core_feedback: CoreFeedback,
+        expected_errors: Set[str],
+        extra_info: str = "",
+        expected_message_substrings: Optional[Set[str]] = None,
+    ) -> None:
         self.core_feedback = core_feedback
         self.extra_info = extra_info
         self.expected_errors = expected_errors
+        self.expected_message_substrings = expected_message_substrings
 
     def __enter__(self) -> "GcpErrorHandler":
         return self
@@ -628,6 +635,8 @@ class GcpErrorHandler:
         error_details = str(exc_value)
         errors: Set[str] = set()
         if exc_type is HttpError and isinstance(exc_value, HttpError):
+            if exc_value.resp.status == 404 and "HttpError:none:none" in self.expected_errors:
+                return True
             try:
                 exc_content: Json = json.loads(exc_value.content.decode())
                 status = value_in_path(exc_content, ["error", "status"])
@@ -636,9 +645,14 @@ class GcpErrorHandler:
                     for error in (value_in_path(exc_content, ["error", "errors"]) or [])
                 }
                 error_details = str(exc_content.get("error", {}).get("message", exc_value))
+                # Check if error message matches any of the expected substrings
+                if self.expected_message_substrings:
+                    for substring in self.expected_message_substrings:
+                        if substring in error_details:
+                            log.info(f"Ignoring expected HttpError in {self.extra_info}: {error_details}.")
+                            return True  # Suppress the exception
             except Exception as ex:
                 errors = {f"ParseError:unknown:{ex}"}
-                pass
         error_summary = " Error Codes: " + (", ".join(errors)) if errors else ""
 
         if errors and errors.issubset(self.expected_errors):
