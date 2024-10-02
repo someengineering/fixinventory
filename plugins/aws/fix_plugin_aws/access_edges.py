@@ -11,7 +11,7 @@ from fixlib.baseresources import (
     AccessPermission,
     ResourceConstraint,
 )
-from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser
+from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser, AwsIamRole
 from fixlib.baseresources import EdgeType, PolicySourceKind, HasResourcePolicy, PermissionLevel
 from fixlib.json import to_json, to_json_str
 from fixlib.types import Json
@@ -625,7 +625,7 @@ class AccessEdgeCreator:
         for node in self.builder.nodes(clazz=AwsResource):
             if isinstance(node, AwsIamUser):
 
-                identity_based_policies = self._get_identity_based_policies(node)
+                identity_based_policies = self._get_user_based_policies(node)
                 # todo: colect these resources
                 permission_boundaries: List[PolicyDocument] = []
 
@@ -641,53 +641,129 @@ class AccessEdgeCreator:
 
                 self.principals.append(request_context)
 
-    def _get_identity_based_policies(self, principal: AwsResource) -> List[Tuple[PolicySource, PolicyDocument]]:
-        if isinstance(principal, AwsIamUser):
-            inline_policies = [
-                (
-                    PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
-                    PolicyDocument(policy.policy_document),
+            if isinstance(node, AwsIamGroup):
+                identity_based_policies = self._get_group_based_policies(node)
+                # todo: colect these resources
+                permission_boundaries = []
+                # todo: collect these resources
+                service_control_policy_levels = []
+
+                request_context = IamRequestContext(
+                    principal=node,
+                    identity_policies=identity_based_policies,
+                    permission_boundaries=permission_boundaries,
+                    service_control_policy_levels=service_control_policy_levels,
                 )
-                for policy in principal.user_policies
-                if policy.policy_document
-            ]
-            attached_policies = []
-            group_policies = []
-            for _, to_node in self.builder.graph.edges(principal):
-                if isinstance(to_node, AwsIamPolicy):
-                    if doc := to_node.policy_document_json():
-                        attached_policies.append(
+
+                self.principals.append(request_context)
+
+            if isinstance(node, AwsIamRole):
+                identity_based_policies = self._get_role_based_policies(node)
+                # todo: colect these resources
+                permission_boundaries = []
+                # todo: collect these resources
+                service_control_policy_levels = []
+
+                request_context = IamRequestContext(
+                    principal=node,
+                    identity_policies=identity_based_policies,
+                    permission_boundaries=permission_boundaries,
+                    service_control_policy_levels=service_control_policy_levels,
+                )
+
+                self.principals.append(request_context)
+
+    def _get_user_based_policies(self, principal: AwsIamUser) -> List[Tuple[PolicySource, PolicyDocument]]:
+        inline_policies = [
+            (
+                PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
+                PolicyDocument(policy.policy_document),
+            )
+            for policy in principal.user_policies
+            if policy.policy_document
+        ]
+        attached_policies = []
+        group_policies = []
+        for _, to_node in self.builder.graph.edges(principal):
+            if isinstance(to_node, AwsIamPolicy):
+                if doc := to_node.policy_document_json():
+                    attached_policies.append(
+                        (
+                            PolicySource(kind=PolicySourceKind.Principal, uri=to_node.arn or ""),
+                            PolicyDocument(doc),
+                        )
+                    )
+
+            if isinstance(to_node, AwsIamGroup):
+                group = to_node
+                # inline group policies
+                for policy in group.group_policies:
+                    if policy.policy_document:
+                        group_policies.append(
                             (
-                                PolicySource(kind=PolicySourceKind.Principal, uri=to_node.arn or ""),
-                                PolicyDocument(doc),
+                                PolicySource(kind=PolicySourceKind.Group, uri=group.arn or ""),
+                                PolicyDocument(policy.policy_document),
                             )
                         )
-
-                if isinstance(to_node, AwsIamGroup):
-                    group = to_node
-                    # inline group policies
-                    for policy in group.group_policies:
-                        if policy.policy_document:
+                # attached group policies
+                for _, group_successor in self.builder.graph.edges(group):
+                    if isinstance(group_successor, AwsIamPolicy):
+                        if doc := group_successor.policy_document_json():
                             group_policies.append(
                                 (
-                                    PolicySource(kind=PolicySourceKind.Group, uri=group.arn or ""),
-                                    PolicyDocument(policy.policy_document),
+                                    PolicySource(kind=PolicySourceKind.Group, uri=group_successor.arn or ""),
+                                    PolicyDocument(doc),
                                 )
                             )
-                    # attached group policies
-                    for _, group_successor in self.builder.graph.edges(group):
-                        if isinstance(group_successor, AwsIamPolicy):
-                            if doc := group_successor.policy_document_json():
-                                group_policies.append(
-                                    (
-                                        PolicySource(kind=PolicySourceKind.Group, uri=group_successor.arn or ""),
-                                        PolicyDocument(doc),
-                                    )
-                                )
 
-            return inline_policies + attached_policies + group_policies
+        return inline_policies + attached_policies + group_policies
 
-        return []
+    def _get_group_based_policies(self, principal: AwsIamGroup) -> List[Tuple[PolicySource, PolicyDocument]]:
+        # not really a principal, but could be useful to have access edges for groups
+        inline_policies = [
+            (
+                PolicySource(kind=PolicySourceKind.Group, uri=principal.arn or ""),
+                PolicyDocument(policy.policy_document),
+            )
+            for policy in principal.group_policies
+            if policy.policy_document
+        ]
+
+        attached_policies = []
+        for _, to_node in self.builder.graph.edges(principal):
+            if isinstance(to_node, AwsIamPolicy):
+                if doc := to_node.policy_document_json():
+                    attached_policies.append(
+                        (
+                            PolicySource(kind=PolicySourceKind.Group, uri=to_node.arn or ""),
+                            PolicyDocument(doc),
+                        )
+                    )
+
+        return inline_policies + attached_policies
+
+    def _get_role_based_policies(self, principal: AwsIamRole) -> List[Tuple[PolicySource, PolicyDocument]]:
+        inline_policies = []
+        for doc in [p.policy_document for p in principal.role_policies if p.policy_document]:
+            inline_policies.append(
+                (
+                    PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
+                    PolicyDocument(doc),
+                )
+            )
+
+        attached_policies = []
+        for _, to_node in self.builder.graph.edges(principal):
+            if isinstance(to_node, AwsIamPolicy):
+                if policy_doc := to_node.policy_document_json():
+                    attached_policies.append(
+                        (
+                            PolicySource(kind=PolicySourceKind.Principal, uri=to_node.arn or ""),
+                            PolicyDocument(policy_doc),
+                        )
+                    )
+
+        return inline_policies + attached_policies
 
     def add_access_edges(self) -> None:
 

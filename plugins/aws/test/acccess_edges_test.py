@@ -2,7 +2,7 @@ from cloudsplaining.scan.policy_document import PolicyDocument
 from cloudsplaining.scan.statement_detail import StatementDetail
 
 from fix_plugin_aws.resource.base import AwsResource
-from fix_plugin_aws.resource.iam import AwsIamUser
+from fix_plugin_aws.resource.iam import AwsIamUser, AwsIamGroup, AwsIamRole
 from typing import Any, Dict, List
 
 import re
@@ -843,3 +843,77 @@ def test_compute_permissions_implicit_deny() -> None:
 
     # Assert that permissions do not include any actions (implicit deny)
     assert len(permissions) == 0
+
+
+def test_compute_permissions_group_inline_policy_allow() -> None:
+    group = AwsIamGroup(id="group123", arn="arn:aws:iam::123456789012:group/test-group")
+    assert group.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3ListBucket",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    policy_document = PolicyDocument(policy_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Group, uri=group.arn), policy_document)]
+
+    request_context = IamRequestContext(
+        principal=group, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+
+    assert len(permissions) == 1
+    assert permissions[0].action == "s3:ListBucket"
+    assert permissions[0].level == PermissionLevel.List
+    assert len(permissions[0].scopes) == 1
+    s = permissions[0].scopes[0]
+    assert s.source.kind == PolicySourceKind.Group
+    assert s.source.uri == group.arn
+    assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
+
+
+def test_compute_permissions_role_inline_policy_allow() -> None:
+    role = AwsIamRole(id="role123", arn="arn:aws:iam::123456789012:role/test-role")
+    assert role.arn
+
+    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowS3PutObject",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::my-test-bucket",
+            }
+        ],
+    }
+    policy_document = PolicyDocument(policy_json)
+
+    identity_policies = [(PolicySource(kind=PolicySourceKind.Principal, uri=role.arn), policy_document)]
+
+    request_context = IamRequestContext(
+        principal=role, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+    )
+
+    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+
+    assert len(permissions) == 1
+    assert permissions[0].action == "s3:ListBucket"
+    assert permissions[0].level == PermissionLevel.List
+    assert len(permissions[0].scopes) == 1
+    s = permissions[0].scopes[0]
+    assert s.source.kind == PolicySourceKind.Principal
+    assert s.source.uri == role.arn
+    assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
