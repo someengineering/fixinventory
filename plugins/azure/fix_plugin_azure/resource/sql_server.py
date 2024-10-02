@@ -30,6 +30,10 @@ class AzureSqlServerADAdministrator(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_ad_administrator"
     _kind_display: ClassVar[str] = "Azure SQL Server Ad Administrator"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server AD Administrator is a role that integrates Azure Active Directory authentication with SQL Server. It manages access control for SQL databases using Azure AD credentials, allowing organizations to centralize user management and enforce multi-factor authentication. This role simplifies security administration by applying Azure AD policies and permissions to SQL Server resources."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?tabs=azure-powershell"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "database"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     # Collect via AzureSqlServer()
@@ -86,6 +90,8 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_database"
     _kind_display: ClassVar[str] = "Azure SQL Server Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Database is a cloud-based relational database service provided by Microsoft. It offers SQL Server functionality in a managed environment, handling tasks like backups, updates, and scaling. Users can store and retrieve structured data, run complex queries, and integrate with applications while Microsoft maintains the underlying infrastructure and ensures data security and availability."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureSqlServer()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -324,6 +330,8 @@ class AzureSqlServerElasticPool(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_elastic_pool"
     _kind_display: ClassVar[str] = "Azure SQL Server Elastic Pool"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Elastic Pool is a resource management tool for multiple SQL databases. It allocates a shared set of compute and storage resources across databases, optimizing performance and costs. Administrators can set resource limits for the pool and individual databases, adjusting capacity as needed without affecting application availability or performance."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/elastic-pool-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "compute"}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -390,6 +398,8 @@ class AzureSqlServerFailoverGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_failover_group"
     _kind_display: ClassVar[str] = "Azure SQL Server Failover Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Failover Group is a feature that manages automatic failover for multiple databases across Azure regions. It maintains data synchronization between primary and secondary servers, ensuring database availability during outages or disasters. When failover occurs, the group redirects client connections to the secondary server, minimizing downtime and data loss for mission-critical applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/auto-failover-group-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     # Collect via AzureSqlServer()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -429,6 +439,8 @@ class AzureSqlServerFirewallRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_firewall_rule"
     _kind_display: ClassVar[str] = "Azure SQL Server Firewall Rule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Firewall Rule is a security feature that controls network access to Azure SQL databases and servers. It defines IP address ranges permitted to connect to the database, blocking unauthorized access attempts. Administrators can configure rules at the server or database level, specifying individual IP addresses or address ranges to grant or restrict access."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/firewall-configure"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "firewall", "group": "networking"}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -449,6 +461,10 @@ class AzureSqlServerDatabaseGeoBackupPolicy(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_database_geo_backup_policy"
     _kind_display: ClassVar[str] = "Azure SQL Server Database Geo Backup Policy"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Database Geo Backup Policy is a feature that creates automated backups of SQL databases in a secondary region. It provides disaster recovery capabilities by replicating data across geographically distant Azure regions. This policy ensures data protection and business continuity in case of regional outages or failures, minimizing data loss and enabling quick recovery to maintain database availability."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/database/active-geo-replication-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "database"}
     # Collect via AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -501,6 +517,10 @@ class AzureSqlServerManagedInstanceFailoverGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_failover_group"
     _kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Failover Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Managed Instance Failover Group is a feature that provides database redundancy and high availability across multiple regions. It automatically replicates databases from a primary managed instance to a secondary instance in a different region. During outages or disasters, it initiates failover to the secondary instance, ensuring continuous data access and minimizing downtime for applications."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/auto-failover-group-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureSqlServerManagedInstance()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -555,6 +575,10 @@ class AzureSqlServerManagedInstancePool(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_pool"
     _kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Pool"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Managed Instance Pool is a service that hosts multiple SQL Server Managed Instances within a shared resource environment. It provides cost-effective database management by sharing resources across instances while maintaining isolation. Users can create and manage instances within the pool, optimizing resource utilization and reducing operational overhead for database deployments."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/instance-pools-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
@@ -596,6 +620,8 @@ class AzureSqlServerJobAgent(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_job_agent"
     _kind_display: ClassVar[str] = "Azure SQL Server Job Agent"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Job Agent is a component of Azure SQL Managed Instance that automates and schedules database maintenance tasks. It executes jobs containing Transact-SQL scripts across multiple databases, performs routine operations, and manages backups. The agent supports recurring schedules, monitors job status, and provides notifications for successful or failed job runs."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/job-agent-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "database"}
     # Collect via AzureSqlServer()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -629,6 +655,10 @@ class AzureSqlServerManagedInstanceADAdministrator(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_ad_administrator"
     _kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Ad Administrator"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Managed Instance AD Administrator is a role that manages authentication and authorization for a SQL Managed Instance using Azure Active Directory. It configures and maintains AD integration, sets up single sign-on, and controls access to database resources. This role ensures secure user authentication and simplifies identity management within the SQL Managed Instance environment."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/authentication-aad-configure?view=azuresql#provision-azure-ad-administrator"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     # Collect via AzureSqlManagedInstance()
@@ -662,6 +692,10 @@ class AzureSqlServerManagedInstanceDatabase(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_sql_server_managed_instance_database"
     _kind_display: ClassVar[str] = "Azure SQL Server Managed Instance Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Managed Instance Database is a cloud-based service that provides SQL Server functionality in Azure. It offers compatibility with on-premises SQL Server databases while handling maintenance, updates, and backups. Users can migrate existing databases to the cloud, retaining features and security settings, and benefit from Azure's infrastructure without managing hardware or software."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/instance-create-quickstart"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -819,6 +853,8 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_managed_instance"
     _kind_display: ClassVar[str] = "Azure SQL Server Managed Instance"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Managed Instance is a cloud database service that provides SQL Server compatibility with automated management features. It offers a near-complete parity with on-premises SQL Server instances, including native virtual network support and full SQL Server engine compatibility, while handling routine database management tasks such as backups, patching, and monitoring."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
@@ -1032,6 +1068,8 @@ class AzureSqlServerVirtualCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_virtual_cluster"
     _kind_display: ClassVar[str] = "Azure SQL Server Virtual Cluster"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Virtual Cluster is a managed database service in Microsoft Azure. It provides SQL Server functionality in a cloud environment, offering high availability and disaster recovery features. Users can deploy, manage, and scale SQL Server databases without maintaining physical infrastructure. The service supports various workloads and integrates with other Azure services for data management and analytics."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/virtual-cluster-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",
@@ -1079,6 +1117,10 @@ class AzureSqlServerTrustGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_trust_group"
     _kind_display: ClassVar[str] = "Azure SQL Server Trust Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Trust Group is a security feature that enhances data protection across multiple SQL Server instances. It creates a trusted boundary for data sharing and communication between servers, reducing the need for individual firewall rules. This group facilitates secure cross-server queries and transactions while maintaining isolation from external networks."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/database/trust-group-concept-overview?view=azuresql"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "access_control"}
     # Collect via AzureSqlServerManagedInstance()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1099,6 +1141,10 @@ class AzureSqlServerVirtualNetworkRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_virtual_network_rule"
     _kind_display: ClassVar[str] = "Azure SQL Server Virtual Network Rule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Virtual Network Rule is a security feature that controls network access to SQL Server instances. It defines which subnet within an Azure Virtual Network can connect to the SQL Server. This rule enhances database security by restricting access to specific virtual networks, reducing potential attack surfaces and improving data protection."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/database/vnet-service-endpoint-rule-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     # Collect via AzureSqlServer()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1121,6 +1167,10 @@ class AzureSqlServerDatabaseWorkloadGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_database_workload_group"
     _kind_display: ClassVar[str] = "Azure SQL Server Database Workload Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Database Workload Group is a resource management feature that organizes database queries into groups with defined resource limits. It controls CPU, memory, and concurrent request usage for each group, ensuring fair resource distribution and preventing resource contention. This feature helps manage workload priorities and maintain performance across different database tasks."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-sql/database/workload-group-resource-governor-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     # Collect via AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1275,6 +1325,8 @@ class AzureSqlServerAdvisor(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server_advisor"
     _kind_display: ClassVar[str] = "Azure SQL Server Advisor"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server Advisor is a performance optimization tool for SQL databases in Microsoft Azure. It analyzes database usage patterns and provides recommendations to improve query performance, indexing strategies, and overall database efficiency. The advisor identifies potential issues, suggests corrective actions, and offers guidance on implementing its recommendations to enhance database operations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/advisor-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "database"}
     # Collect via AzureSqlServer() and AzureSqlServerDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1376,6 +1428,8 @@ class AzureSqlServer(MicrosoftResource):
     kind: ClassVar[str] = "azure_sql_server"
     _kind_display: ClassVar[str] = "Azure SQL Server"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure SQL Server is a cloud-based relational database service provided by Microsoft. It offers SQL Server functionality in a managed environment, including automatic updates, backups, and performance optimization. Users can create, scale, and maintain databases without managing infrastructure, while benefiting from built-in security features and integration with other Azure services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-sql/database/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="sql",

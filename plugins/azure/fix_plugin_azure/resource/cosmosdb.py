@@ -32,6 +32,16 @@ service_name = "cosmos-db"
 log = logging.getLogger("fix.plugins.azure")
 
 
+class CosmosDBLocationSetter:
+    def __init__(self) -> None:
+        self.location: Optional[str] = None
+
+    def pre_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        if isinstance(self, MicrosoftResource):
+            if location := self.extract_part("locations"):
+                self.location = location
+
+
 @define(eq=False, slots=False)
 class AzureManagedCassandraReaperStatus:
     kind: ClassVar[str] = "azure_managed_cassandra_reaper_status"
@@ -166,6 +176,8 @@ class AzureCosmosDBCassandraClusterPublicStatus(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_public_status"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Public Status"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Public Status is a monitoring feature that displays the current operational condition of Cassandra clusters within Azure Cosmos DB. It provides real-time information about cluster health, availability, and performance metrics. Users can check this status to assess service reliability, identify potential issues, and make informed decisions about their database operations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/cassandra/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "database"}
     # Collect via AzureCosmosDBCassandraCluster()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -230,6 +242,8 @@ class AzureCosmosDBCassandraKeyspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_keyspace"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Keyspace"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Cassandra Keyspace is a container within Azure Cosmos DB that organizes data for Apache Cassandra workloads. It functions as a namespace for tables and provides a logical grouping for related data. Users can create, manage, and query keyspaces using Cassandra Query Language (CQL), maintaining compatibility with existing Cassandra applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/cassandra/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -323,6 +337,8 @@ class AzureCosmosDBCassandraTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_table"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Table"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Cassandra Table is a feature within Azure Cosmos DB that provides compatibility with Apache Cassandra. It offers a distributed database solution for applications using Cassandra Query Language (CQL) and protocols. Users can store and manage data in a table format, benefiting from Azure Cosmos DB's global distribution and performance capabilities while maintaining Cassandra-like operations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/cassandra/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBCassandraKeyspace()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -371,6 +387,8 @@ class AzureCosmosDBSqlDatabaseClientEncryptionKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_client_encryption_key"
     _kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database Client Encryption Key"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB SQL Database Client Encryption Key is a security feature that encrypts sensitive data on the client side before sending it to the database. It provides an additional layer of protection for confidential information by ensuring data remains encrypted at rest and in transit, with decryption occurring only on authorized clients using the specified encryption key."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-setup-client-side-encryption"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -400,6 +418,8 @@ class AzureCosmosDBCassandraCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster is a managed service that provides Apache Cassandra-compatible storage within the Azure cloud platform. It offers distributed NoSQL database capabilities, supporting multi-region writes and reads. Users can deploy and operate Cassandra workloads on Azure infrastructure while maintaining compatibility with existing Cassandra applications and tools."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/cassandra/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
@@ -564,6 +584,10 @@ class AzureCosmosDBCassandraClusterDataCenter(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_cassandra_cluster_data_center"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Data Center"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Cassandra Cluster Data Center is a managed service within Microsoft's Azure cloud platform. It provides a distributed database system compatible with Apache Cassandra, offering multi-region replication and automatic scaling. The service handles data storage, querying, and management tasks, supporting applications that require low-latency access and global data distribution."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/cosmos-db/cassandra/manage-data-centers-multi-region"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     # Collect via AzureCosmosDBCassandraCluster()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -788,6 +812,8 @@ class AzureCosmosDBAccount(MicrosoftResource, BaseDatabase):
     kind: ClassVar[str] = "azure_cosmos_db_account"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Account"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Account is a cloud-based database service offered by Microsoft Azure. It provides a globally distributed, multi-model database platform for storing and managing data. Users can create and manage databases, containers, and items within the account. It supports multiple APIs, including SQL, MongoDB, Cassandra, Gremlin, and Table, offering flexibility for various application needs."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
@@ -1080,6 +1106,8 @@ class AzureCosmosDBGremlinDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Gremlin Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Gremlin Database is a graph database service within Microsoft's Azure cloud platform. It supports the Apache TinkerPop Gremlin API for storing and querying graph data. Users can model complex relationships between entities, perform traversals, and execute graph operations. The service offers global distribution and multi-region writes for graph data workloads."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/gremlin/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1253,6 +1281,8 @@ class AzureCosmosDBGremlinGraph(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_gremlin_graph"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Gremlin Graph"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Gremlin Graph is a graph database service within Microsoft's Azure cloud platform. It supports the Apache TinkerPop graph traversal language and Gremlin API for storing and querying graph data. Users can model complex relationships between entities, perform graph queries, and manage data with global distribution and automatic scaling capabilities."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/gremlin/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBGremlinDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1316,6 +1346,8 @@ class AzureCosmosDBMongoDBCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_collection"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Collection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB MongoDB Collection is a storage container within Azure Cosmos DB that supports MongoDB API. It stores JSON-like documents and provides querying, indexing, and CRUD operations compatible with MongoDB. Users can interact with the collection using MongoDB drivers, tools, and protocols while benefiting from Azure Cosmos DB's global distribution and performance capabilities."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBMongoDBDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1347,6 +1379,8 @@ class AzureCosmosDBMongoDBDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB MongoDB Database is a cloud-based service that provides MongoDB API compatibility within Microsoft's Azure ecosystem. It offers document storage and querying capabilities, supporting MongoDB operations and drivers. Users can create, read, update, and delete data using familiar MongoDB syntax while benefiting from Azure's global distribution and consistency options."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1421,6 +1455,8 @@ class AzureCosmosDBMongoDBRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_role_definition"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Role Definition"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Mongo DB Role Definition specifies access permissions for users and applications interacting with Azure Cosmos DB's MongoDB API. It defines the actions and operations allowed on database resources, including read, write, and execute privileges. This role-based access control helps manage security and compliance in MongoDB-compatible databases within the Azure ecosystem."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/rbac-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1443,6 +1479,8 @@ class AzureCosmosDBMongoDBUserDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_user_definition"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB User Definition"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB MongoDB User Definition specifies access permissions for users in a MongoDB database within Azure Cosmos DB. It defines authentication credentials and authorization roles, controlling database operations a user can perform. This configuration helps manage security and access control for MongoDB workloads in the Azure Cosmos DB environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1469,6 +1507,8 @@ class AzureCosmosDBNotebookWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_notebook_workspace"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Notebook Workspace"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Notebook Workspace is an integrated development environment within Azure Cosmos DB. It provides a platform for data scientists and developers to write, execute, and share code using Jupyter notebooks. Users can analyze data, create visualizations, and perform database operations directly on their Cosmos DB data without switching between different tools or environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/notebooks-workspace"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1487,6 +1527,8 @@ class AzureCosmosDBPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_private_link"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Private Link"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Private Link is a network security feature that provides private connectivity to Cosmos DB accounts. It creates a direct connection between virtual networks and Cosmos DB resources using Microsoft's private network infrastructure. This service restricts access to specific resources, enhancing data isolation and reducing exposure to public internet threats."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-configure-private-endpoints"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1518,10 +1560,12 @@ class AzureRestorableLocationResource:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableAccount(MicrosoftResource):
+class AzureCosmosDBRestorableAccount(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_account"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Account"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable Account is a feature that provides data recovery capabilities for Azure Cosmos DB databases. It creates periodic backups of your database, letting you restore your account to a specific point in time within the last 30 days. This helps protect against accidental deletions, modifications, or other data loss scenarios."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/configure-periodic-backup-restore"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
@@ -1702,6 +1746,8 @@ class AzureCosmosDBSqlDatabaseContainer(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database_container"
     _kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database Container"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB SQL Database Container is a storage unit within Azure Cosmos DB that holds JSON documents and related JavaScript stored procedures, triggers, and user-defined functions. It supports SQL queries for data retrieval and manipulation. Containers have a defined schema and partition key, which determine how data is distributed and accessed across physical partitions."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/sql/how-to-create-container"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1765,6 +1811,8 @@ class AzureCosmosDBSqlDatabase(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB SQL Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB SQL Database is a cloud-based NoSQL database service provided by Microsoft Azure. It stores and queries data using SQL syntax, supports multiple data models, and offers global distribution. The service provides automatic indexing, multi-region replication, and consistent performance. It caters to applications requiring low-latency data access and global scalability."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/sql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1837,6 +1885,8 @@ class AzureCosmosDBSqlRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_assignment"
     _kind_display: ClassVar[str] = "Azure Cosmos DB SQL Role Assignment"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB SQL Role Assignment is a feature that manages access control for Cosmos DB SQL API accounts. It defines permissions for users and applications to perform specific actions on database resources. This role-based system enhances security by granting precise access levels, from read-only to full administrative rights, based on assigned roles."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-setup-rbac"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1892,6 +1942,8 @@ class AzureCosmosDBSqlRoleDefinition(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_role_definition"
     _kind_display: ClassVar[str] = "Azure Cosmos DB SQL Role Definition"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB SQL Role Definition is a security feature that defines permissions for users and applications accessing Cosmos DB resources. It specifies the actions allowed on containers, databases, and items within a Cosmos DB account. Administrators can create custom roles to manage access control and implement principle of least privilege in their database environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/sql/how-to-setup-rbac"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1925,6 +1977,8 @@ class AzureCosmosDBTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_table"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Table"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Table is a NoSQL database service in Microsoft Azure. It stores data in key-value pairs and supports schema-less designs. The service offers automatic indexing, fast query performance, and global distribution. It provides APIs compatible with Azure Table Storage, making it suitable for applications requiring low-latency access to structured data at scale."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.microsoft.com/en-us/azure/cosmos-db/table/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1943,6 +1997,10 @@ class AzureCosmosDBSqlThroughputSetting(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_sql_throughput_setting"
     _kind_display: ClassVar[str] = "Azure Cosmos DB SQL Throughput Setting"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB SQL Throughput Setting controls the performance and capacity of a Cosmos DB container or database. It determines the amount of resources allocated for read and write operations, measured in Request Units per second (RU/s). Users can adjust this setting to meet their application's needs, balancing performance requirements with cost considerations."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/cosmos-db/sql/how-to-provision-container-throughput"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureCosmosDBSqlDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1959,6 +2017,8 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_cosmos_db_account_usage"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Account Usage"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Account Usage provides metrics and data about the consumption of resources within an Azure Cosmos DB account. It tracks database operations, storage usage, and throughput utilization. This information helps users monitor performance, optimize resource allocation, and manage costs associated with their Cosmos DB deployments. It supports capacity planning and troubleshooting efforts."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/monitor-account-usage"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     # Collect via AzureCosmosDBAccount()
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
@@ -1982,10 +2042,12 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBLocation(MicrosoftResource):
+class AzureCosmosDBLocation(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_location"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Location"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Location refers to the geographic region where an Azure Cosmos DB database is deployed and hosted. It determines the physical data center that stores and processes the database, affecting latency, compliance, and data residency. Users can select specific locations to optimize performance and meet regulatory requirements for their applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/location-based-routing"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
@@ -2050,6 +2112,8 @@ class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
     kind: ClassVar[str] = "azure_cosmos_db_mongo_db_cluster"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Mongo DB Cluster"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Mongo DB Cluster is a managed database service that provides MongoDB compatibility on Microsoft's Azure cloud platform. It offers distributed data storage and retrieval, supporting MongoDB APIs and drivers. Users can deploy, scale, and manage MongoDB databases while benefiting from Azure's global infrastructure, automatic backups, and security features."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
@@ -2109,10 +2173,12 @@ class AzureRestorableDatabase:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
+class AzureCosmosDBRestorableGremlinDatabase(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Database is a feature that provides point-in-time recovery for graph databases in Azure Cosmos DB. It creates automatic backups of the database at regular intervals, allowing users to restore the database to a specific point within the retention period. This helps protect against accidental data loss or corruption."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/gremlin/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2155,10 +2221,12 @@ class AzureCosmosDBRestorableGremlinDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
+class AzureCosmosDBRestorableGremlinGraph(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_graph"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Graph"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Graph is a feature that provides point-in-time recovery for graph databases in Azure Cosmos DB. It creates automatic backups of Gremlin graph data at regular intervals, allowing users to restore their database to a specific moment within the retention period. This helps protect against data loss and accidental changes."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/restorable-gremlin-graph-accounts"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2171,10 +2239,12 @@ class AzureCosmosDBRestorableGremlinGraph(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
+class AzureCosmosDBRestorableMongoDBCollection(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_collection"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Collection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable MongoDB Collection is a feature that provides point-in-time recovery for MongoDB databases in Azure Cosmos DB. It creates backups of collections at regular intervals, letting users restore data to a specific timestamp within the retention period. This helps recover from accidental deletions, modifications, or application errors."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/restorable-mongodb-resources"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2187,10 +2257,12 @@ class AzureCosmosDBRestorableMongoDBCollection(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
+class AzureCosmosDBRestorableMongoDBDatabase(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable MongoDB Database is a feature that provides point-in-time recovery for MongoDB databases within Azure Cosmos DB. It creates periodic backups of your database, letting you restore to any moment within the retention period. This helps protect against data loss, corruption, or accidental changes, ensuring data continuity and recovery options."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/restorable-mongodb-resources"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2233,10 +2305,12 @@ class AzureCosmosDBRestorableMongoDBDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableSqlContainer(MicrosoftResource):
+class AzureCosmosDBRestorableSqlContainer(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_container"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Container"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable SQL Container is a feature that provides point-in-time recovery for SQL API containers in Azure Cosmos DB. It creates continuous backups of container data, letting users restore to any timestamp within the retention period. This functionality helps protect against accidental deletions, modifications, or corruption of data."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/sql/restorable-container-properties"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2280,10 +2354,12 @@ class AzureExtendedPropertiesSqlDatabase(AzureSqlDatabaseResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
+class AzureCosmosDBRestorableSqlDatabase(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Database"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable SQL Database is a feature that creates automatic backups of your database. It lets you restore your database to any point within the last 30 days. This helps recover from accidental deletions, modifications, or other data loss scenarios, ensuring data integrity and business continuity."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/sql/how-to-restore-database"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2340,10 +2416,12 @@ class AzureCosmosDBRestorableSqlDatabase(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableTable(MicrosoftResource):
+class AzureCosmosDBRestorableTable(CosmosDBLocationSetter, MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_table"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Table"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB Restorable Table is a feature that provides point-in-time recovery for Azure Cosmos DB table data. It creates periodic backups of table data, allowing users to restore tables to a specific timestamp within the retention period. This functionality helps protect against accidental deletions, modifications, or corruption of data in Azure Cosmos DB tables."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/table/restorable-table-accounts"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     # Collect via AzureCosmosDBRestorableAccount()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2386,6 +2464,8 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster"
     _kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster is a managed database service that provides PostgreSQL compatibility within the Azure cloud environment. It offers distributed data storage and processing capabilities, supporting multi-region deployments and automatic scaling. The service handles database administration tasks, including backups, updates, and security, while maintaining PostgreSQL compatibility for existing applications and tools."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="cosmos-db",
@@ -2540,6 +2620,8 @@ class AzureCosmosDBPostgresqlClusterServer(MicrosoftResource, BaseDatabase, Azur
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server"
     _kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server is a managed database service that combines PostgreSQL with distributed database capabilities. It provides horizontal scaling, automatic sharding, and global distribution for PostgreSQL workloads. Users can deploy and manage PostgreSQL databases across multiple regions, ensuring data consistency and availability while maintaining compatibility with existing PostgreSQL tools and applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2635,6 +2717,8 @@ class AzureCosmosDBPostgresqlClusterConfiguration(MicrosoftResource, AzureProxyR
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_configuration"
     _kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Configuration"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Configuration defines settings for PostgreSQL clusters within Azure Cosmos DB. It manages node count, compute resources, storage capacity, network configurations, and security options. Users can specify replication settings, backup policies, and performance parameters. This configuration controls the deployment and operation of PostgreSQL databases in the Azure cloud environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/howto-create-cluster"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     config: Json = field(factory=dict)
@@ -2673,6 +2757,10 @@ class AzureCosmosDBPostgresqlClusterServerConfiguration(MicrosoftResource, Azure
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_server_configuration"
     _kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server Configuration"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Server Configuration is a setting within Azure Cosmos DB that manages PostgreSQL clusters. It controls server parameters, resource allocation, and performance settings for PostgreSQL databases. Users can adjust these configurations to optimize database operations, manage workloads, and customize the PostgreSQL environment according to their specific application requirements and performance needs."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/how-to-manage-server-configuration"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "database"}
     # Collect via AzureCosmosDBPostgresqlClusterServer()
     config: Json = field(factory=dict)
@@ -2710,6 +2798,10 @@ class AzureCosmosDBPostgresqlClusterPrivateEndpointConnection(MicrosoftResource)
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_endpoint_connection"
     _kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Endpoint Connection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Endpoint Connection provides a secure, private network link between a virtual network and an Azure Cosmos DB PostgreSQL cluster. It uses Azure Private Link to create this connection, bypassing the public internet. This feature enhances data security and reduces exposure to potential threats while maintaining network performance."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/how-to-configure-private-endpoints"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2736,6 +2828,10 @@ class AzureCosmosDBPostgresqlClusterPrivateLink(MicrosoftResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_private_link"
     _kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Link"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Private Link is a network security feature that provides private connectivity between your virtual network and your PostgreSQL database cluster. It eliminates exposure of your database to the public internet by creating a private endpoint within your virtual network, ensuring data traffic remains on the Microsoft Azure backbone network."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/howto-configure-privatelink"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "networking"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2760,6 +2856,8 @@ class AzureCosmosDBPostgresqlClusterRole(MicrosoftResource, AzureProxyResource):
     kind: ClassVar[str] = "azure_cosmos_db_postgresql_cluster_role"
     _kind_display: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Role"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Cosmos DB PostgreSQL Cluster Role represents a PostgreSQL database instance within an Azure Cosmos DB cluster. It provides PostgreSQL-compatible database services with distributed capabilities. This role handles data storage, query processing, and transaction management while offering compatibility with existing PostgreSQL tools and applications in a distributed environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cosmos-db/postgresql/concepts-roles"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     # Collect via AzureCosmosDBPostgresqlCluster()
     mapping: ClassVar[Dict[str, Bender]] = AzureProxyResource.mapping | {

@@ -51,10 +51,8 @@ class EfsTaggable:
 class AwsEfsMountTarget(AwsResource):
     kind: ClassVar[str] = "aws_efs_mount_target"
     _kind_display: ClassVar[str] = "AWS EFS Mount Target"
-    _kind_description: ClassVar[str] = (
-        "EFS Mount Targets are endpoints in Amazon's Elastic File System that allow"
-        " EC2 instances to mount the file system and access the shared data."
-    )
+    _kind_description: ClassVar[str] = "An AWS EFS Mount Target is a network interface in a Virtual Private Cloud (VPC) subnet that connects to an Elastic File System (EFS). It provides an IP address for accessing the file system within the VPC. Mount targets act as endpoints for NFS clients to connect and mount EFS file systems on EC2 instances."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/efs/latest/ug/mounting-fs-mount-cmd-general.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:efs:{region}:{account}:mount-target/{id}"}  # fmt: skip
@@ -81,10 +79,8 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     kind: ClassVar[str] = "aws_efs_file_system"
     _kind_display: ClassVar[str] = "AWS EFS File System"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/file-systems/{FileSystemId}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "EFS (Elastic File System) provides a scalable and fully managed file storage"
-        " service for Amazon EC2 instances."
-    )
+    _kind_description: ClassVar[str] = "AWS EFS (Elastic File System) is a cloud-based network file storage service for Amazon EC2 instances. It provides a shared file system that can be accessed by multiple EC2 instances simultaneously. EFS automatically scales storage capacity as files are added or removed, and users pay only for the storage they use."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/efs/latest/ug/"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name,
@@ -232,11 +228,8 @@ class AwsEfsRootDirectory:
 class AwsEfsAccessPoint(AwsResource, EfsTaggable):
     kind: ClassVar[str] = "aws_efs_access_point"
     _kind_display: ClassVar[str] = "AWS EFS Access Point"
-    _kind_description: ClassVar[str] = (
-        "AWS EFS Access Point is a way to securely access files in Amazon EFS"
-        " (Elastic File System) using a unique hostname and optional path, providing"
-        " fine-grained access control."
-    )
+    _kind_description: ClassVar[str] = "AWS EFS Access Point is a feature of Amazon Elastic File System that creates a unique entry point to an EFS file system. It manages access permissions and enforces a root directory for NFS clients. Access Points simplify sharing data in multi-tenant applications by providing isolated namespaces within a single file system."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/access-points/{id}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:access-point/{id}"}  # fmt: skip

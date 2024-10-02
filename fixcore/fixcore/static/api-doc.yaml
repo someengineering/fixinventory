@@ -55,6 +55,15 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: format
+          description: "The format of the returned json"
+          in: query
+          schema:
+            type: string
+            enum:
+              - schema
+              - simple
+          required: false
         - name: kind
           description: "Only return information about the defined kinds. Comma separated list."
           in: query
@@ -69,27 +78,48 @@ paths:
           schema:
             type: string
             default: null
-        - name: with_bases
-          description: "Render all base classes. Only together with kind or filter"
+        - name: aggregate_roots_only
+          description: "Only return aggregate roots."
           in: query
           schema:
             type: boolean
             default: false
-        - name: format
-          description: "The format of the returned json"
+        - name: with_bases
+          description: "Include base classes and render the base section"
           in: query
           schema:
-            type: string
-            enum:
-              - schema
-              - simple
-          required: false
+            type: boolean
+            default: false
         - name: with_property_kinds
           description: "Render types of property values. Only together with kind or filter"
           in: query
           schema:
             type: boolean
             default: false
+        - name: with_properties
+          description: "Render the properties of complex kinds"
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: with_relatives
+          description: "Include information about relationships to other kinds."
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: with_metadata
+          description: "Include metadata information."
+          in: query
+          schema:
+            oneOf:
+              - type: boolean
+                description: "If true, all metadata is included."
+              - type: array
+                description: "List of metadata keys to include."
+                items:
+                  type: string
+            default: true
 
 
       responses:

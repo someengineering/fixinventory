@@ -360,14 +360,14 @@ def test_resolve_graph_data() -> None:
     assert n1.descendant_summary == AccessNone(None)
 
     r1 = AccessJson(graph.node("region_account_cloud_gcp_1_europe"))  # type: ignore
-    assert r1.metadata.descendant_summary == {"child": 9}
-    assert r1.metadata.descendant_count == 9
+    assert r1.metadata.descendant_summary == {"child": 9, "parent": 3, "region": 1}
+    assert r1.metadata.descendant_count == 13
     r2 = AccessJson(graph.node("account_cloud_gcp_1"))  # type: ignore
-    assert r2.metadata.descendant_summary == {"child": 54, "region": 6}
-    assert r2.metadata.descendant_count == 60
+    assert r2.metadata.descendant_summary == {"account": 1, "child": 54, "parent": 18, "region": 6}
+    assert r2.metadata.descendant_count == 79
     r3 = AccessJson(graph.node("cloud_gcp"))  # type: ignore
-    assert r3.metadata.descendant_summary == {"child": 162, "region": 18, "account": 3}
-    assert r3.metadata.descendant_count == 183
+    assert r3.metadata.descendant_summary == {"account": 3, "child": 162, "cloud": 1, "parent": 54, "region": 18}
+    assert r3.metadata.descendant_count == 238
 
 
 def test_model_size(person_model: Model) -> None:

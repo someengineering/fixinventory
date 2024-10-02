@@ -961,13 +961,21 @@ class Api(Service):
         return response
 
     async def get_model(self, request: Request, deps: TenantDependencies) -> StreamResponse:
+        def parse_bool_or_list(s: str) -> Union[bool, List[str]]:
+            lwr = s.lower()
+            if lwr == "true":
+                return True
+            if lwr == "false":
+                return False
+            return s.split(",")
+
         graph_id = GraphName(request.match_info.get("graph_id", "fix"))
         full_model = await deps.model_handler.load_model(graph_id)
         with_bases = if_set(request.query.get("with_bases"), lambda x: x.lower() == "true", False)
         with_property_kinds = if_set(request.query.get("with_property_kinds"), lambda x: x.lower() == "true", False)
         with_properties = if_set(request.query.get("with_properties"), lambda x: x.lower() == "true", True)
         with_relatives = if_set(request.query.get("with_relatives"), lambda x: x.lower() == "true", True)
-        with_metadata = if_set(request.query.get("with_metadata"), lambda x: x.lower() == "true", True)
+        with_metadata = if_set(request.query.get("with_metadata"), parse_bool_or_list, True)
         aggregate_roots_only = if_set(request.query.get("aggregate_roots_only"), lambda x: x.lower() == "true", False)
         md = full_model
         if kind := request.query.get("kind"):
@@ -990,7 +998,12 @@ class Api(Service):
             )
         else:
             json_model = [
-                m.as_json(with_properties=with_properties, with_relatives=with_relatives, with_metadata=with_metadata)
+                m.as_json(
+                    with_properties=with_properties,
+                    with_relatives=with_relatives,
+                    with_metadata=with_metadata,
+                    with_bases=with_bases,
+                )
                 for m in md.kinds.values()
             ]
             return await single_result(request, json.loads(json.dumps(json_model, sort_keys=True)))

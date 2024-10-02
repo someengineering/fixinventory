@@ -6,7 +6,7 @@ import logging
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
-from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union, Iterator
+from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union, Iterator, DefaultDict
 
 from attrs import define
 from networkx import DiGraph, MultiDiGraph, is_directed_acyclic_graph
@@ -476,40 +476,34 @@ class GraphAccess:
             log.info("Resolve attributes finished.")
 
     def __resolve_count_descendants(self) -> None:
-        visited: Set[str] = set()
         empty_set: Set[str] = set()
 
-        def count_successors_by(node_id: NodeId, edge_type: EdgeType, path: List[str]) -> Dict[str, int]:
-            result: Dict[str, int] = {}
-            to_visit = list(self.successors(node_id, edge_type))
-            while to_visit:
-                visit_next: List[NodeId] = []
-                for elem_id in to_visit:
-                    if elem_id not in visited:
-                        visited.add(elem_id)
-                        elem = self.nodes[elem_id]
-                        if "phantom" not in elem.get("kinds_set", empty_set):
-                            extracted = value_in_path(elem, path)
-                            if isinstance(extracted, str):
-                                result[extracted] = result.get(extracted, 0) + 1
-                        # check if there is already a successor summary: stop the traversal and take the result.
-                        existing = value_in_path(elem, NodePath.descendant_summary)
-                        if existing and isinstance(existing, dict):
-                            for summary_item, count in existing.items():
-                                result[summary_item] = result.get(summary_item, 0) + count
-                        else:
-                            visit_next.extend(a for a in self.successors(elem_id, edge_type) if a not in visited)
-                to_visit = visit_next
+        def count_descendants_of(identifier: str, ancestor_kind: str, path: List[str]) -> Dict[str, int]:
+            result: DefaultDict[str, int] = defaultdict(int)
+            ancestor_path = ["ancestors", ancestor_kind, "reported", "id"]
+            for _, elem in self.g.nodes(data=True):
+                if value_in_path(elem, ancestor_path) == identifier:
+                    kinds_set = elem.get("kinds_set", empty_set)
+                    extracted = value_in_path(elem, path)
+                    if "phantom_resource" not in kinds_set and isinstance(extracted, str):
+                        result[extracted] += 1
             return result
 
         for on_kind, prop in GraphResolver.count_successors.items():
-            for node_id, node in self.g.nodes(data=True):
+            for _, node in self.g.nodes(data=True):
                 kinds = node.get("kinds_set")
                 if kinds and on_kind in kinds:
-                    summary = count_successors_by(node_id, EdgeTypes.default, prop.extract_path)
-                    set_value_in_path(summary, prop.to_path, node)
-                    total = reduce(lambda left, right: left + right, summary.values(), 0)
-                    set_value_in_path(total, NodePath.descendant_count, node)
+                    if rid := value_in_path(node, NodePath.reported_id):
+                        # descendant summary
+                        summary = count_descendants_of(rid, on_kind, prop.extract_path)
+                        set_value_in_path(summary, prop.to_path, node)
+                        # descendant count
+                        total = reduce(lambda left, right: left + right, summary.values(), 0)
+                        set_value_in_path(total, NodePath.descendant_count, node)
+                        # update hash
+                        node["hash"] = GraphBuilder.content_hash(
+                            node["reported"], node.get("desired"), node.get("metadata")
+                        )
 
     def __resolve(self, node_id: NodeId, node: Json) -> Json:
         def with_ancestor(ancestor: Json, prop: ResolveProp) -> None:

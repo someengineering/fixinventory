@@ -317,10 +317,8 @@ class GcpObject(GcpResource):
     # they are not intended to be collected and stored in the graph
     kind: ClassVar[str] = "gcp_object"
     _kind_display: ClassVar[str] = "GCP Object"
-    _kind_description: ClassVar[str] = (
-        "GCP Object, specifically referring to the Google Cloud Storage, is a basic unit of data that is stored"
-        " in Google Cloud Storage, often matching to an individual file."
-    )
+    _kind_description: ClassVar[str] = "GCP Object refers to data stored in Google Cloud Storage, a component of Google Cloud Platform. It represents files or unstructured data of any size or format. Users can upload, download, and manage these objects through APIs or web interfaces. GCP Objects support versioning, access control, and metadata, facilitating data storage and retrieval for various applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/storage/docs/json_api/v1/objects"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
@@ -342,10 +340,8 @@ class GcpObject(GcpResource):
 class GcpBucket(GcpResource, BaseBucket):
     kind: ClassVar[str] = "gcp_bucket"
     _kind_display: ClassVar[str] = "GCP Bucket"
-    _kind_description: ClassVar[str] = (
-        "A GCP Bucket is a cloud storage container provided by Google Cloud Platform,"
-        " allowing users to store and access data in a scalable and durable manner."
-    )
+    _kind_description: ClassVar[str] = "A GCP Bucket is a cloud storage container in Google Cloud Platform. It stores and organizes data objects, such as files and folders. Users can upload, download, and manage data in buckets through APIs or web interfaces. Buckets offer access control, versioning, and lifecycle management features. They support various data types and can be accessed globally."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/storage/docs/buckets"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,

@@ -137,6 +137,14 @@ def model_name(clazz: Union[type, Tuple[Any], None]) -> str:
         return "any"
 
 
+def model_source(module_name: str) -> Optional[str]:
+    if module_name.startswith("fix_plugin_"):  # Naming scheme for all fix plugins: fix_plugin_<source>.xxx
+        return module_name.split(".")[0][11:]
+    elif module_name.startswith("fixlib.baseresources"):  # All base kinds are defined in this package
+        return "base"
+    return None
+
+
 # define if a field should be exported or not.
 # Use python default: hide props starting with underscore.
 def should_export(field: Attribute) -> bool:  # type: ignore
@@ -257,6 +265,8 @@ def dataclasses_to_fixcore_model(
             metadata["service"] = s
         if (slc := getattr(clazz, "categories", None)) and callable(slc) and (sl := slc()):
             metadata["categories"] = sl
+        if (docs_url := getattr(clazz, "_docs_url", None)) and isinstance(docs_url, str):
+            metadata["docs_url"] = docs_url
         if (  # only export kind description on aggregate roots
             with_kind_description
             and (ar := aggregate_root)
@@ -265,6 +275,8 @@ def dataclasses_to_fixcore_model(
             and isinstance(s, str)
         ):
             metadata["description"] = s
+        if root and (source := model_source(clazz.__module__)):
+            metadata["source"] = source
 
         model.append(
             {

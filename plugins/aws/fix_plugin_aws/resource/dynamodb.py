@@ -359,11 +359,8 @@ class AwsDynamoDbContinuousBackup:
 class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_table"
     _kind_display: ClassVar[str] = "AWS DynamoDB Table"
-    _kind_description: ClassVar[str] = (
-        "An AWS DynamoDB Table is a collection of data items organized by a primary key in Amazon DynamoDB,"
-        " a fully managed NoSQL database service that provides fast and predictable performance with seamless"
-        " scalability."
-    )
+    _kind_description: ClassVar[str] = "AWS DynamoDB Table is a fully managed NoSQL database service that stores and retrieves data. It supports key-value and document data models, offering automatic scaling and low-latency performance. DynamoDB Tables handle data storage, indexing, and querying, providing consistent read and write throughput. They offer data encryption, backup, and recovery features for secure and reliable data management."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/dynamodbv2/home?region={region}#table?name={name}", "arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip
@@ -504,11 +501,8 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     kind: ClassVar[str] = "aws_dynamodb_global_table"
     _kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
-    _kind_description: ClassVar[str] = (
-        "AWS DynamoDB Global Tables provide fully managed, multi-region, and globally"
-        " distributed replicas of DynamoDB tables, enabling low-latency and high-"
-        " performance global access to data."
-    )
+    _kind_description: ClassVar[str] = "AWS DynamoDB Global Table is a feature that replicates DynamoDB tables across multiple AWS regions. It provides multi-region read and write access to data, ensuring low-latency access for globally distributed applications. Global Table maintains consistency across regions, handles conflict resolution, and offers automatic failover, improving availability and disaster recovery capabilities for applications with global user bases."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GlobalTables.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:dynamodb:{region}:{account}:table/{name}"}  # fmt: skip

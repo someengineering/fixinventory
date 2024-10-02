@@ -945,14 +945,18 @@ class ComplexKind(Kind):
 
     def as_json(self, **kwargs: bool) -> Json:
         result: Json = {"fqn": self.fqn, "aggregate_root": self.aggregate_root}
-        if kwargs.get("with_metadata", True):
-            result["metadata"] = self.metadata
+        if wm := kwargs.get("with_metadata", True):
+            if isinstance(wm, list):
+                result["metadata"] = {k: v for k, v in self.metadata.items() if k in wm}
+            else:
+                result["metadata"] = self.metadata
         if kwargs.get("with_properties", True):
             result["allow_unknown_props"] = self.allow_unknown_props
             result["properties"] = [to_js(prop) for prop in self.properties]
         if kwargs.get("with_relatives", True):
-            result["bases"] = self.bases
             result["successor_kinds"] = self.successor_kinds
+        if kwargs.get("with_bases", True):
+            result["bases"] = self.bases
         return result
 
     def copy(
