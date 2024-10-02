@@ -1181,7 +1181,7 @@ class ArangoGraphDB(GraphDB):
                 root_kind = GraphResolver.resolved_kind(graph_to_merge.nodes[root])
                 if root_kind:
                     # noinspection PyTypeChecker
-                    log.info(f"Update subgraph: root={root} ({root_kind}, {num+1} of {len(roots)})")
+                    log.info(f"Update subgraph: root={root} ({root_kind}, {num + 1} of {len(roots)})")
                     node_query = self.query_update_nodes(root_kind), {"update_id": root}
                     edge_query = partial(merge_edges, root, root_kind)
                     change += await prepare_graph(graph, node_query, edge_query)
