@@ -56,7 +56,7 @@ lint: ## static code analysis
 	black --line-length 120 --check fixshell test
 	flake8 fixshell
 	pylint fixshell
-	mypy --python-version 3.11 --strict --install-types --non-interactive fixshell test
+	mypy --python-version 3.12 --strict --install-types --non-interactive fixshell test
 
 test: ## run tests quickly with the default Python
 	pytest

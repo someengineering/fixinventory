@@ -59,7 +59,7 @@ lint: ## static code analysis
 	black --line-length 120 --check fixlib test
 	flake8 fixlib
 	#pylint fixlib
-	mypy --python-version 3.11 --strict --install-types --non-interactive fixlib
+	mypy --python-version 3.12 --strict --install-types --non-interactive fixlib
 
 test: ## run tests quickly with the default Python
 	pytest
