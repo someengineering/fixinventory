@@ -198,7 +198,7 @@ class ModelCreator:
     def create_resource_class(self, name: str, schema: dict) -> None:
         result = "@define\n"
         result += f"class Kubernetes{name}(KubernetesResource):\n"
-        result += f'  kind: ClassVar[str] = "{to_snake("kubernetes_"+name)}"\n'
+        result += f'  kind: ClassVar[str] = "{to_snake("kubernetes_" + name)}"\n'
         result += self.props(
             name,
             schema,
