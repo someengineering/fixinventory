@@ -31,7 +31,8 @@ class AwsSecretsManagerSecret(AwsResource):
     kind: ClassVar[str] = "aws_secretsmanager_secret"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-secrets", "SecretList")
     _kind_display: ClassVar[str] = "AWS Secrets Manager Secret"
-    _kind_description: ClassVar[str] = "An AWS Secrets Manager Secret is used for securely storing and managing sensitive information, such as passwords, API keys, and database credentials, in AWS environments."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS Secrets Manager Secret is a secure storage service for sensitive information like passwords, API keys, and database credentials. It encrypts and manages secrets, rotates them automatically, and provides access control. Applications and services can retrieve secrets programmatically, reducing the risk of exposing sensitive data in code or configuration files."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [AwsKmsKey.kind]}}
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}

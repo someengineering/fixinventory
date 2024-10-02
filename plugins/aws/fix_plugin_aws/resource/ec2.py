@@ -387,11 +387,8 @@ class AwsEc2InferenceAcceleratorInfo:
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     kind: ClassVar[str] = "aws_ec2_instance_type"
     _kind_display: ClassVar[str] = "AWS EC2 Instance Type"
-    _kind_description: ClassVar[str] = (
-        "AWS EC2 Instance Type refers to the classification of an EC2 instance based on the resources and"
-        " capabilities it offers, such as CPU, memory, storage, and networking capacity, tailored for different"
-        " workload requirements and applications."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Instance Types are predefined virtual server configurations offered by Amazon Web Services. Each type specifies the compute, memory, storage, and networking capacity of the virtual machine. Users select an instance type based on their application's requirements, balancing performance and cost. EC2 instances can be launched, stopped, and terminated as needed for various computing workloads."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
@@ -516,11 +513,8 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
     kind: ClassVar[str] = "aws_ec2_volume"
     _kind_display: ClassVar[str] = "AWS EC2 Volume"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#VolumeDetails:volumeId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "EC2 Volumes are block-level storage devices that can be attached to EC2"
-        " instances in Amazon's cloud, providing additional storage for applications"
-        " and data."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Volume Type refers to the storage options available for Amazon Elastic Compute Cloud (EC2) instances. These volume types include General Purpose SSD, Provisioned IOPS SSD, Throughput Optimized HDD, and Cold HDD. Each type offers different performance characteristics and pricing, catering to various workload requirements such as database storage, log processing, and data archiving."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volumes.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-volumes", "Volumes")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -737,11 +731,8 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_ec2_snapshot"
     _kind_display: ClassVar[str] = "AWS EC2 Snapshot"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#SnapshotDetails:snapshotId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:snapshot/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "EC2 Snapshots are backups of Amazon Elastic Block Store (EBS)"
-        " volumes, allowing users to capture and store point-in-time copies of their"
-        " data."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Snapshot is a backup tool for Amazon Elastic Compute Cloud (EC2) instances. It creates point-in-time copies of Elastic Block Store (EBS) volumes, preserving data at a specific moment. Users can restore snapshots to new EBS volumes, create images for launching new instances, or transfer data between AWS regions for disaster recovery and data migration purposes."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-snapshots", "Snapshots", dict(OwnerIds=["self"])
@@ -807,7 +798,8 @@ class AwsEc2Snapshot(EC2Taggable, AwsResource, BaseSnapshot):
 class AwsEc2KeyPair(EC2Taggable, AwsResource, BaseKeyPair):
     kind: ClassVar[str] = "aws_ec2_keypair"
     _kind_display: ClassVar[str] = "AWS EC2 Keypair"
-    _kind_description: ClassVar[str] = "EC2 Keypairs are SSH key pairs used to securely connect to EC2 instances in Amazon's cloud."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS EC2 Keypair is a security credential for Amazon Elastic Compute Cloud. It consists of a public key stored by AWS and a private key file kept by the user. This keypair authenticates secure SSH connections to EC2 instances, providing access control and encryption for remote management of virtual servers in the AWS cloud environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#KeyPairs:search={name}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:keypair/{name}"}  # fmt: skip
@@ -1247,10 +1239,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     kind: ClassVar[str] = "aws_ec2_instance"
     _kind_display: ClassVar[str] = "AWS EC2 Instance"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#InstanceDetails:instanceId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "EC2 Instances are virtual servers in Amazon's cloud, allowing users to run"
-        " applications on the Amazon Web Services infrastructure."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Instance is a virtual server in Amazon's Elastic Compute Cloud. It provides computing capacity in the cloud, offering various configurations of CPU, memory, storage, and networking capacity. Users can launch instances with different operating systems, configure security and networking, and manage storage. EC2 instances support diverse workloads and applications, from web servers to databases."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/ec2/"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instances", "Reservations")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1576,11 +1566,8 @@ class AwsEc2RecurringCharge:
 class AwsEc2ReservedInstances(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_reserved_instances"
     _kind_display: ClassVar[str] = "AWS EC2 Reserved Instances"
-    _kind_description: ClassVar[str] = (
-        "Reserved Instances are a purchasing option to save money on EC2 instance"
-        " usage. Users can reserve instances for a one- or three-year term, allowing"
-        " them to pay a lower hourly rate compared to on-demand instances."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Reserved Instances are a purchasing option for Amazon Elastic Compute Cloud (EC2) that provide discounted hourly rates in exchange for a one-time upfront payment and commitment to a specific instance type in a chosen region for a term of one or three years. They offer cost savings compared to On-Demand Instance pricing for workloads with predictable usage."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-reserved-instances.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#ReservedInstances:instanceId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:reserved-instances/{id}"}  # fmt: skip
@@ -1714,10 +1701,8 @@ class AwsEc2NetworkAclEntry:
 class AwsEc2NetworkAcl(EC2Taggable, AwsResource, BaseNetworkAcl):
     kind: ClassVar[str] = "aws_ec2_network_acl"
     _kind_display: ClassVar[str] = "AWS EC2 Network ACL"
-    _kind_description: ClassVar[str] = (
-        "EC2 Network ACLs are virtual stateless firewalls that control inbound and"
-        " outbound traffic for EC2 instances in Amazon's cloud."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Network ACL is a security layer for Amazon Virtual Private Clouds (VPCs) that controls inbound and outbound traffic at the subnet level. It acts as a firewall, evaluating network traffic against user-defined rules. Network ACLs filter packets based on protocol, port, and source/destination IP addresses, providing an additional line of defense for EC2 instances within VPCs."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpc/home?region={region}#NetworkAclDetails:networkAclId={NetworkAclId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:network-acl/{id}"}  # fmt: skip
@@ -1768,11 +1753,8 @@ class AwsEc2ElasticIp(EC2Taggable, AwsResource, BaseIPAddress):
     kind: ClassVar[str] = "aws_ec2_elastic_ip"
     _kind_display: ClassVar[str] = "AWS EC2 Elastic IP"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#ElasticIpDetails:AllocationId={AllocationId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:elastic-ip/{name}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "Elastic IP addresses are static, IPv4 addresses designed for dynamic cloud"
-        " computing. They allow you to mask the failure or replacement of an instance"
-        " by rapidly remapping the address to another instance in your account."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Elastic IP is a static IPv4 address for dynamic cloud computing. It provides a consistent public IP that can be associated with different EC2 instances, masking instance failures or replacements. Users can remap the address to other instances in their account, maintaining a fixed entry point for applications and services running on EC2."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-addresses", "Addresses")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -1939,11 +1921,8 @@ class AwsEc2Tag:
 class AwsEc2NetworkInterface(EC2Taggable, AwsResource, BaseNetworkInterface):
     kind: ClassVar[str] = "aws_ec2_network_interface"
     _kind_display: ClassVar[str] = "AWS EC2 Network Interface"
-    _kind_description: ClassVar[str] = (
-        "An EC2 Network Interface is a virtual network interface that can be attached"
-        " to EC2 instances in the AWS cloud, allowing for communication between"
-        " instances and with external networks."
-    )
+    _kind_description: ClassVar[str] = "An AWS EC2 Network Interface is a virtual network card that can be attached to EC2 instances. It provides network connectivity for instances within a VPC, allowing them to communicate with other resources and the internet. Network Interfaces can have multiple IP addresses, security groups, and can be moved between instances to maintain network configurations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/v2/home?region={region}#NetworkInterface:networkInterfaceId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:network-interface/{id}"}  # fmt: skip
@@ -2114,11 +2093,8 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
     kind: ClassVar[str] = "aws_vpc"
     _kind_display: ClassVar[str] = "AWS VPC"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#VpcDetails:VpcId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:vpc/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "AWS VPC stands for Amazon Virtual Private Cloud. It is a virtual network"
-        " dedicated to your AWS account, allowing you to launch AWS resources in a"
-        " defined virtual network environment."
-    )
+    _kind_description: ClassVar[str] = "AWS VPC (Amazon Virtual Private Cloud) is a network service that creates isolated cloud environments within AWS. It lets users define virtual networks, configure IP ranges, set up subnets, and manage network gateways. VPC provides control over network architecture, enhances security through access controls, and supports connectivity between AWS resources and on-premises infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpcs", "Vpcs")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -2228,11 +2204,8 @@ class AwsEc2VpcPeeringConnection(EC2Taggable, AwsResource, BasePeeringConnection
     kind: ClassVar[str] = "aws_vpc_peering_connection"
     _kind_display: ClassVar[str] = "AWS VPC Peering Connection"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#PeeringConnectionDetails:vpcPeeringConnectionId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:vpc-peering-connection/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "VPC Peering Connection is a networking connection between two Amazon Virtual"
-        " Private Clouds (VPCs) that enables you to route traffic between them using"
-        " private IP addresses."
-    )
+    _kind_description: ClassVar[str] = "AWS VPC Peering Connection is a networking feature that connects two Virtual Private Clouds (VPCs) within the same or different AWS accounts. It establishes direct network routing between VPCs, letting resources in each VPC communicate with each other using private IP addresses. This connection works across regions and improves network performance by bypassing the public internet for inter-VPC traffic."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "describe-vpc-peering-connections", "VpcPeeringConnections"
@@ -2314,11 +2287,8 @@ class AwsEc2VpcEndpoint(EC2Taggable, AwsResource, BaseEndpoint):
     kind: ClassVar[str] = "aws_vpc_endpoint"
     _kind_display: ClassVar[str] = "AWS VPC Endpoint"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#Endpoints:vpcEndpointId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:vpc-endpoint/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "VPC Endpoints enable secure and private communication between your VPC and"
-        " supported AWS services without using public IPs or requiring traffic to"
-        " traverse the internet."
-    )
+    _kind_description: ClassVar[str] = "An AWS VPC Endpoint is a service that provides private connectivity between Amazon Virtual Private Clouds (VPCs) and supported AWS services. It routes traffic within the Amazon network, bypassing the public internet. VPC Endpoints improve security by keeping data within the AWS infrastructure and can reduce data transfer costs for certain services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-vpc-endpoints", "VpcEndpoints")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2457,11 +2427,8 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
     kind: ClassVar[str] = "aws_ec2_subnet"
     _kind_display: ClassVar[str] = "AWS EC2 Subnet"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#SubnetDetails:subnetId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:subnet/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "An AWS EC2 Subnet is a logical subdivision of a VPC (Virtual Private Cloud)"
-        " in Amazon's cloud, allowing users to group resources and control network"
-        " access within a specific network segment."
-    )
+    _kind_description: ClassVar[str] = "An AWS EC2 Subnet is a segmented portion of a Virtual Private Cloud (VPC) network. It defines a range of IP addresses within the VPC and can be configured as public or private. Subnets help organize and isolate resources, control network traffic, and manage security settings. They operate in specific Availability Zones, supporting high availability and fault tolerance."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-subnets", "Subnets")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2629,10 +2596,8 @@ class AwsEc2IpPermission:
 class AwsEc2SecurityGroup(EC2Taggable, AwsResource, BaseSecurityGroup):
     kind: ClassVar[str] = "aws_ec2_security_group"
     _kind_display: ClassVar[str] = "AWS EC2 Security Group"
-    _kind_description: ClassVar[str] = (
-        "An EC2 Security Group acts as a virtual firewall that controls inbound and"
-        " outbound traffic for EC2 instances within a VPC."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Security Groups are virtual firewalls that control inbound and outbound traffic for EC2 instances. They act at the instance level, specifying which protocols, ports, and IP ranges can communicate with the associated instances. Security Groups operate on a deny-all-by-default principle, requiring explicit rules to permit traffic, and can be modified while instances are running."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "security_group", "group": "access_control"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/v2/home?region={region}#SecurityGroup:groupId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:security-group/{id}"}  # fmt: skip
@@ -2773,12 +2738,8 @@ class AwsEc2NatGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_nat_gateway"
     _kind_display: ClassVar[str] = "AWS EC2 NAT Gateway"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#NatGatewayDetails:natGatewayId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:nat-gateway/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "A NAT Gateway is a fully managed network address translation (NAT) service"
-        " provided by Amazon Web Services (AWS) that allows instances within a private"
-        " subnet to connect outbound to the Internet while also preventing inbound"
-        " connections from the outside."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 NAT Gateway is a managed service that provides Network Address Translation for Amazon EC2 instances in private subnets. It routes outbound internet traffic from these instances while preventing inbound connections from the internet. NAT Gateway handles network address translation, improving security and facilitating internet access for resources in private subnets within a Virtual Private Cloud."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-nat-gateways", "NatGateways")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -2906,11 +2867,8 @@ class AwsEc2InternetGatewayAttachment:
 class AwsEc2InternetGateway(EC2Taggable, AwsResource, BaseGateway):
     kind: ClassVar[str] = "aws_ec2_internet_gateway"
     _kind_display: ClassVar[str] = "AWS EC2 Internet Gateway"
-    _kind_description: ClassVar[str] = (
-        "An Internet Gateway is a horizontally scalable, redundant, and highly"
-        " available VPC component that allows communication between instances in your"
-        " VPC and the internet."
-    )
+    _kind_description: ClassVar[str] = "An AWS EC2 Internet Gateway is a component that connects a Virtual Private Cloud (VPC) to the internet. It acts as a bridge between the VPC and the public internet, facilitating inbound and outbound traffic. The Internet Gateway provides a target for route tables and performs network address translation for instances with public IP addresses."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpc/home?region={region}#InternetGateway:internetGatewayId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:internet-gateway/{id}"}  # fmt: skip
@@ -3057,10 +3015,8 @@ class AwsEc2RouteTable(EC2Taggable, AwsResource, BaseRoutingTable):
     kind: ClassVar[str] = "aws_ec2_route_table"
     _kind_display: ClassVar[str] = "AWS EC2 Route Table"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/vpcconsole/home?region={region}#RouteTableDetails:RouteTableId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:route-table/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "EC2 Route Tables are used to determine where network traffic is directed"
-        " within a Virtual Private Cloud (VPC) in Amazon's cloud infrastructure."
-    )
+    _kind_description: ClassVar[str] = "An AWS EC2 Route Table is a networking component in Amazon Web Services that directs traffic between subnets within a Virtual Private Cloud (VPC) and to external networks. It contains rules, called routes, which determine where network traffic is sent based on its destination IP address. Route tables control both inbound and outbound traffic for associated subnets."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-route-tables", "RouteTables")
     _reference_kinds: ClassVar[ModelReference] = {
@@ -3201,9 +3157,8 @@ class AwsEc2HostInstance:
 class AwsEc2Host(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_host"
     _kind_display: ClassVar[str] = "AWS EC2 Host"
-    _kind_description: ClassVar[str] = (
-        "EC2 Hosts are physical servers in Amazon's cloud that are used to run EC2 instances."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Host is a virtual server in Amazon's Elastic Compute Cloud (EC2) service. It provides computing capacity in the cloud, letting users run applications on Amazon's infrastructure. EC2 Hosts offer various instance types with different CPU, memory, storage, and networking capabilities. Users can start, stop, and terminate instances as needed, paying only for the resources they use."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-hosts-overview.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "host", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#Host:hostId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:host/{id}"}  # fmt: skip
@@ -3299,11 +3254,8 @@ class AwsEc2DestinationOption:
 class AwsEc2FlowLog(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_flow_log"
     _kind_display: ClassVar[str] = "AWS EC2 Flow Log"
-    _kind_description: ClassVar[str] = (
-        "EC2 Flow Logs capture information about the IP traffic going to and from"
-        " network interfaces in an Amazon EC2 instance, helping to troubleshoot"
-        " network connectivity issues."
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Flow Logs capture network traffic information for EC2 instances, VPCs, and subnet interfaces. They record details about IP traffic, including source and destination addresses, ports, protocols, and packet counts. This data helps monitor network traffic patterns, troubleshoot connectivity issues, and enhance security by identifying potential threats or anomalies within AWS infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:flow-log/{id}"}  # fmt: skip
@@ -3402,10 +3354,8 @@ class AwsEc2BlockDeviceMapping:
 class AwsEc2Image(AwsResource):
     kind: ClassVar[str] = "aws_ec2_image"
     _kind_display: ClassVar[str] = "AWS EC2 Image"
-    _kind_description: ClassVar[str] = (
-        "An Amazon Machine Image (AMI) is a supported and maintained image "
-        "provided by AWS that provides the information required to launch an instance. "
-    )
+    _kind_description: ClassVar[str] = "AWS EC2 Image is a pre-configured virtual machine template for Amazon Elastic Compute Cloud (EC2). It contains an operating system, applications, and settings, serving as a blueprint for launching EC2 instances. Users can create custom images or choose from a library of public images to quickly deploy virtual servers with specific configurations in the cloud."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/home?region={region}#ImageDetails:imageId={id}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:image/{id}"}  # fmt: skip
@@ -3974,7 +3924,8 @@ class AwsEc2LaunchTemplateData:
 class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
     kind: ClassVar[str] = "aws_ec2_launch_template"
     _kind_display: ClassVar[str] = "AWS EC2 Launch Template"
-    _kind_description: ClassVar[str] = "An AWS EC2 Launch Template provides a configurable blueprint for launching EC2 instances, allowing for the specification of settings like instance type, AMI, security groups, and block device mappings for consistency and automation in instance creation."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS EC2 Launch Template is a configuration tool for Amazon EC2 instances. It stores instance settings, including AMI ID, instance type, network configurations, and storage options. Users can create multiple versions of templates and use them to launch instances or auto scaling groups, reducing repetitive configuration steps and ensuring consistent instance deployments across an AWS environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-launch-templates.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ec2/v2/home?region={region}#LaunchTemplateDetails:launchTemplateId={LaunchTemplateId}", "arn_tpl": "arn:{partition}:ec2:{region}:{account}:launch-template/{id}"}  # fmt: skip

@@ -185,6 +185,8 @@ class AzureKeyVaultSecret(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_secret"
     _kind_display: ClassVar[str] = "Azure Key Vault Secret"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Key Vault Secret is a secure storage service for sensitive information in Azure cloud. It stores and manages secrets, encryption keys, and certificates. The service provides access control, encryption at rest, and logging capabilities. Users can retrieve secrets programmatically or through Azure portal, ensuring confidentiality and integrity of sensitive data in cloud applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/key-vault/secrets/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -211,6 +213,8 @@ class AzureKeyVaultManagedHsm(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_managed_hsm"
     _kind_display: ClassVar[str] = "Azure Key Vault Managed Hsm"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Key Vault Managed HSM is a cloud service that provides secure storage and management of cryptographic keys and secrets. It uses FIPS 140-2 Level 3 validated hardware security modules (HSMs) to protect sensitive data. Users can create, store, and control access to encryption keys, passwords, and certificates within the Azure cloud environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/key-vault/managed-hsm/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",
@@ -274,6 +278,8 @@ class AzureKeyVaultKey(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault_key"
     _kind_display: ClassVar[str] = "Azure Key Vault Key"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Key Vault Key is a secure storage and management service for cryptographic keys in Microsoft Azure. It provides encryption for sensitive data, supports key rotation, and integrates with Azure services. Users can create, import, and control access to keys, while the service handles key storage, backup, and compliance requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/key-vault/keys/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
     # collected via AzureKeyVault
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -308,6 +314,8 @@ class AzureKeyVault(MicrosoftResource):
     kind: ClassVar[str] = "azure_key_vault"
     _kind_display: ClassVar[str] = "Azure Key Vault"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Key Vault is a cloud service for storing and managing cryptographic keys, secrets, and certificates. It provides secure storage and access control for sensitive information used by applications and services. Key Vault offers encryption, key rotation, and monitoring features to protect data and comply with security standards in cloud environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/key-vault/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "vault", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="keyvault",

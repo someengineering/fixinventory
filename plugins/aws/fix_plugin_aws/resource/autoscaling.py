@@ -278,11 +278,8 @@ class AwsAutoScalingGroup(AwsResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "aws_autoscaling_group"
     _kind_display: ClassVar[str] = "AWS Autoscaling Group"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/awsautoscaling/home?region={region}#dashboard/{name}", "arn_tpl": "arn:{partition}:autoscaling:{region}:{account}:autoscalinggroup/{name}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "An AWS Autoscaling Group is a collection of Amazon EC2 instances that are"
-        " treated as a logical grouping for the purpose of automatic scaling and"
-        " management."
-    )
+    _kind_description: ClassVar[str] = "AWS Auto Scaling Group is a service that manages multiple EC2 instances as a collective unit. It automatically adjusts the number of instances based on defined conditions, ensuring optimal performance and resource utilization. It maintains a specified number of instances, replaces unhealthy ones, and scales capacity up or down according to demand or schedule."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-auto-scaling-groups", "AutoScalingGroups")
     _reference_kinds: ClassVar[ModelReference] = {

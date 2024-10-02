@@ -322,10 +322,8 @@ class AwsRdsDBRole:
 class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_instance"
     _kind_display: ClassVar[str] = "AWS RDS Instance"
-    _kind_description: ClassVar[str] = (
-        "RDS instances are managed relational databases in Amazon's cloud, providing"
-        " scalable and fast performance for applications."
-    )
+    _kind_description: ClassVar[str] = "AWS RDS Instance is a managed relational database service in Amazon Web Services. It provides a database instance with automated backups, software patching, and monitoring. Users can choose from various database engines, including MySQL, PostgreSQL, and Oracle. RDS handles routine database tasks, freeing developers to focus on application development and optimization."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={id};is-cluster=false", "arn_tpl": "arn:{partition}:rds:{region}:{account}:db:{name}"}  # fmt: skip
@@ -855,11 +853,8 @@ class AwsRdsMasterUserSecret:
 class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
     kind: ClassVar[str] = "aws_rds_cluster"
     _kind_display: ClassVar[str] = "AWS RDS Cluster"
-    _kind_description: ClassVar[str] = (
-        "RDS Clusters are managed relational database services in Amazon's cloud,"
-        " providing scalable and highly available databases for applications running"
-        " on the Amazon Web Services infrastructure."
-    )
+    _kind_description: ClassVar[str] = "AWS RDS Cluster is a managed database service that groups multiple database instances together. It provides high availability and fault tolerance by replicating data across instances in different availability zones. Users can scale read capacity by adding read replicas and perform automatic failover to maintain database accessibility during instance failures or maintenance."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#database:id={id};is-cluster=true", "arn_tpl": "arn:{partition}:rds:{region}:{account}:cluster/{name}"}  # fmt: skip
@@ -1064,7 +1059,10 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
 class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
     kind: ClassVar[str] = "aws_rds_snapshot"
     _kind_display: ClassVar[str] = "AWS RDS Snapshot"
-    _kind_description: ClassVar[str] = "An AWS RDS Snapshot is a backup tool used for creating a point-in-time copy of an RDS database instance, facilitating data recovery and replication."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS RDS Snapshot is a feature of Amazon Relational Database Service that creates point-in-time copies of entire database instances. These snapshots preserve data and configurations, serving as backups or for creating new instances. Users can restore databases to specific points, migrate data between regions, or clone environments for testing and development purposes."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html#USER_WorkingWithAutomatedBackups.BackupWindow"
+    )
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": [AwsRdsInstance.kind, AwsEc2Vpc.kind]}}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/rds/home?region={region}#db-snapshot:engine={Engine};id={id}", "arn_tpl": "arn:{partition}:rds:{region}:{account}:snapshot:{id}/{name}"}  # fmt: skip
@@ -1165,7 +1163,10 @@ class AwsRdsSnapshot(RdsTaggable, AwsResource, BaseSnapshot):
 class AwsRdsClusterSnapshot(AwsResource):
     kind: ClassVar[str] = "aws_rds_cluster_snapshot"
     _kind_display: ClassVar[str] = "AWS RDS Cluster Snapshot"
-    _kind_description: ClassVar[str] = "An AWS RDS Cluster Snapshot is a point-in-time backup of an Amazon RDS cluster that provides data persistence and recovery for disaster management."  # fmt: skip
+    _kind_description: ClassVar[str] = "An AWS RDS Cluster Snapshot is a point-in-time backup of an entire Amazon Aurora database cluster. It captures data from all instances in the cluster, including the primary and replicas. Users can create manual snapshots or configure automated backups. These snapshots are used for data recovery, cloning databases, or migrating data between regions."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_CreateSnapshotCluster.html"
+    )
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AwsRdsCluster.kind, AwsEc2Vpc.kind]},

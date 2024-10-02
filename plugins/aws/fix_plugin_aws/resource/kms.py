@@ -66,11 +66,8 @@ class AwsKmsMultiRegionConfig:
 class AwsKmsKey(AwsResource, BaseAccessKey):
     kind: ClassVar[str] = "aws_kms_key"
     _kind_display: ClassVar[str] = "AWS KMS Key"
-    _kind_description: ClassVar[str] = (
-        "AWS KMS (Key Management Service) Key is a managed service that allows you to"
-        " create and control the encryption keys used to encrypt your data stored on"
-        " various AWS services and applications."
-    )
+    _kind_description: ClassVar[str] = "AWS KMS Key is a managed service that creates and controls cryptographic keys used to protect data in AWS services and applications. It generates, stores, and manages keys for encryption and decryption operations. KMS Keys integrate with other AWS services, providing a centralized system for key management and helping users meet compliance requirements for data security and access control."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#kms_keys"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/kms/home?region={region}#/kms/keys/{id}", "arn_tpl": "arn:{partition}:kms:{region}:{account}:key/{id}"}  # fmt: skip

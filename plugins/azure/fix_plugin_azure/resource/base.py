@@ -309,6 +309,8 @@ class AzureLocation(MicrosoftResource, BaseRegion):
     kind: ClassVar[str] = "azure_location"
     _kind_display: ClassVar[str] = "Azure Location"
     _kind_service: ClassVar[str] = "resources"
+    _kind_description: ClassVar[str] = "Azure Location is a geographic area containing one or more Azure data centers. It represents a specific region where customers can deploy and run their cloud resources. Azure Locations provide options for data residency, compliance, and reduced latency by allowing users to choose where their applications and data are stored and processed within Microsoft's global infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/regions"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "region", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
@@ -345,6 +347,10 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
     kind: ClassVar[str] = "azure_resource_group"
     _kind_display: ClassVar[str] = "Azure Resource Group"
     _kind_service: ClassVar[str] = "resources"
+    _kind_description: ClassVar[str] = "An Azure Resource Group is a container for organizing and managing related Azure resources. It serves as a logical unit for grouping services, applications, and infrastructure components within a single Azure subscription. Resource Groups help users control access, track costs, and apply policies across multiple resources, simplifying administration and deployment of cloud-based solutions."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-portal"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",
@@ -548,6 +554,10 @@ class AzureSubscription(MicrosoftResource, BaseAccount):
     kind: ClassVar[str] = "azure_subscription"
     _kind_display: ClassVar[str] = "Azure Subscription"
     _kind_service: ClassVar[str] = "resources"
+    _kind_description: ClassVar[str] = "An Azure Subscription is a logical container for organizing and managing Microsoft Azure resources. It provides access to cloud services and defines usage limits and billing arrangements. Users can create, deploy, and control Azure resources within their subscription, while Microsoft tracks resource consumption and generates invoices based on the subscription's payment model."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/cost-management-billing/manage/create-subscription"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="resources",

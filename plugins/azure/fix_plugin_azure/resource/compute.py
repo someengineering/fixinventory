@@ -69,6 +69,8 @@ class AzureComputeAvailabilitySet(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_availability_set"
     _kind_display: ClassVar[str] = "Azure Compute Availability Set"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Availability Set is a feature that groups virtual machines to distribute them across multiple physical servers, racks, storage units, and network switches. This configuration helps maintain service continuity during planned maintenance or hardware failures by ensuring that at least one virtual machine remains operational, reducing downtime and improving overall reliability for applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/availability-set-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -124,6 +126,8 @@ class AzureComputeCapacityReservationGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_capacity_reservation_group"
     _kind_display: ClassVar[str] = "Azure Compute Capacity Reservation Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Capacity Reservation Group is a feature that lets users reserve virtual machine capacity in advance for specific Azure regions and availability zones. It ensures that the reserved resources are available when needed, helping to maintain consistent performance and reduce deployment delays for critical workloads during periods of high demand or limited capacity."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/capacity-reservation-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -300,6 +304,8 @@ class AzureComputeCloudService(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_cloud_service"
     _kind_display: ClassVar[str] = "Azure Compute Cloud Service"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Cloud Service is a Platform as a Service (PaaS) offering from Microsoft Azure. It provides a hosting environment for applications without the need to manage underlying infrastructure. Users can deploy, manage, and scale applications using virtual machines that run on Microsoft's data centers, with automatic OS and security updates."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/cloud-services/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "service", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -355,6 +361,8 @@ class AzureComputeDedicatedHostGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_dedicated_host_group"
     _kind_display: ClassVar[str] = "Azure Compute Dedicated Host Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Dedicated Host Group is a logical grouping of isolated physical servers in Azure that host virtual machines. It provides control over the underlying hardware, ensuring compliance with specific regulatory or security requirements. Users can manage and allocate resources within the group, offering flexibility in VM placement and hardware isolation for workloads."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/dedicated-hosts"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -721,6 +729,8 @@ class AzureComputeDiskTypePricing(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_type_pricing"
     _kind_display: ClassVar[str] = "Azure Compute Disk Type Pricing"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Disk Type Pricing refers to the cost structure for different storage options available for virtual machines in Microsoft Azure. It outlines the prices for various disk types, including Standard HDD, Standard SSD, and Premium SSD, based on their performance characteristics, capacity, and usage. This pricing model helps users select appropriate storage solutions for their workloads."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://azure.microsoft.com/en-us/pricing/details/managed-disks/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -746,6 +756,8 @@ class AzureComputeDiskType(MicrosoftResource, BaseVolumeType):
     kind: ClassVar[str] = "azure_compute_disk_type"
     _kind_display: ClassVar[str] = "Azure Compute Disk Type"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Disk Types are storage options for virtual machines in Microsoft Azure. They provide persistent block storage for data and applications. Users can choose from different disk types, including standard HDD, standard SSD, and premium SSD, each offering varying performance levels and capacities to meet specific workload requirements and budget constraints."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
     # Collect via AzureComputeDisk()
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -930,6 +942,8 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
     kind: ClassVar[str] = "azure_compute_disk"
     _kind_display: ClassVar[str] = "Azure Compute Disk"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Disk is a storage service for virtual machines in Microsoft Azure. It provides persistent block storage for Azure VMs, offering various disk types with different performance levels and capacities. Users can select disk options based on their workload requirements, attach multiple disks to VMs, and manage data storage and retrieval for their cloud-based applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "volume", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -1185,6 +1199,8 @@ class AzureComputeDiskAccess(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_access"
     _kind_display: ClassVar[str] = "Azure Compute Disk Access"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Disk Access is a feature that manages access to Azure managed disks. It provides granular control over disk operations, including read, write, and delete actions. This service enhances security by restricting disk access to authorized virtual machines and users, reducing potential vulnerabilities and improving data protection in Azure cloud environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types#disk-access"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -1273,6 +1289,8 @@ class AzureComputeDiskEncryptionSet(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_encryption_set"
     _kind_display: ClassVar[str] = "Azure Compute Disk Encryption Set"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Disk Encryption Set is a resource that manages encryption keys for Azure virtual machine disks. It provides centralized control over key management and encryption settings for multiple disks. Users can apply consistent encryption policies across their VM infrastructure, enhancing data protection and compliance with security standards."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/disk-encryption-sets"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -1374,6 +1392,8 @@ class AzureComputeGallery(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_gallery"
     _kind_display: ClassVar[str] = "Azure Compute Gallery"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Gallery is a service for storing and managing virtual machine images and related artifacts. It provides a central repository for sharing, versioning, and replicating images across Azure regions and subscriptions. Users can create and maintain custom images, distribute them to different teams, and deploy virtual machines from these shared resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/shared-image-galleries"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -1449,6 +1469,8 @@ class AzureComputeImage(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_image"
     _kind_display: ClassVar[str] = "Azure Compute Image"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Image is a template for virtual machines in Microsoft Azure. It contains a pre-configured operating system and software stack. Users can create and deploy multiple identical virtual machines from a single image, saving time on installation and configuration. Images can be customized and shared across an organization or made available in the Azure Marketplace."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/image-version"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -1496,6 +1518,8 @@ class AzureComputeProximityPlacementGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_proximity_placement_group"
     _kind_display: ClassVar[str] = "Azure Compute Proximity Placement Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Proximity Placement Group is a feature that groups virtual machines within a single Azure datacenter. It minimizes network latency between VMs by placing them physically close to each other. This configuration improves performance for applications that require low-latency communication between components, such as high-performance computing or tightly coupled distributed systems."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/co-location"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -2016,6 +2040,8 @@ class AzureComputeRestorePointCollection(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_restore_point_collection"
     _kind_display: ClassVar[str] = "Azure Compute Restore Point Collection"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Restore Point Collection is a feature in Microsoft Azure that stores multiple restore points for virtual machines. It provides a way to capture and manage VM states at specific times, facilitating quick recovery or rollback to previous configurations. This collection helps users maintain system consistency and recover from errors or unwanted changes efficiently."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/restore-point-collections"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -2071,6 +2097,8 @@ class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
     kind: ClassVar[str] = "azure_compute_virtual_machine_snapshot"
     _kind_display: ClassVar[str] = "Azure Compute Virtual Machine Snapshot"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Virtual Machine Snapshot is a feature that creates point-in-time copies of virtual machine disks. It captures the disk's data state at a specific moment, including all files and system settings. These snapshots can be used for backup, disaster recovery, or to create new virtual machines with the same configuration and data as the original."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/snapshot-copy-managed-disk"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -2162,6 +2190,8 @@ class AzureComputeSshPublicKey(MicrosoftResource, BaseKeyPair):
     kind: ClassVar[str] = "azure_compute_ssh_public_key"
     _kind_display: ClassVar[str] = "Azure Compute SSH Public Key"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute SSH Public Key is a cryptographic key used for secure authentication when connecting to Azure virtual machines via SSH. It provides a more secure alternative to password-based authentication, reducing the risk of unauthorized access. Users can generate or import SSH key pairs and associate them with Azure VMs for remote access and management."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/linux/ssh-keys-portal"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -2801,6 +2831,8 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
     kind: ClassVar[str] = "azure_compute_virtual_machine_base"
     _kind_display: ClassVar[str] = "Azure Compute Virtual Machine Base"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Virtual Machine Base is a foundational service in Microsoft Azure that provides virtual machines for computing tasks. It offers a range of virtual machine sizes and types, supporting various operating systems and workloads. Users can create, manage, and scale virtual machines to run applications, host services, and perform computational operations in the cloud environment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "instance", "group": "compute"}
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {
@@ -3096,6 +3128,8 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
 class AzureComputeVirtualMachine(AzureComputeVirtualMachineBase):
     kind: ClassVar[str] = "azure_compute_virtual_machine"
     _kind_display: ClassVar[str] = "Azure Compute Virtual Machine"
+    _kind_description: ClassVar[str] = "Azure Compute Virtual Machine is a cloud service that provides on-demand, configurable computing resources. It offers Windows or Linux-based virtual machines that run on Microsoft's infrastructure. Users can select from various machine sizes and types, install custom software, and manage their VMs remotely. These VMs support diverse workloads, from development and testing to running applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/"
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
@@ -3548,6 +3582,8 @@ class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup
     kind: ClassVar[str] = "azure_compute_virtual_machine_scale_set"
     _kind_display: ClassVar[str] = "Azure Compute Virtual Machine Scale Set"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Virtual Machine Scale Set is a service that manages and scales multiple identical virtual machines. It automates the creation, updating, and deletion of VMs based on demand or schedules. The service distributes traffic, handles load balancing, and integrates with Azure monitoring tools to maintain performance and availability across the scaled instances."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machine-scale-sets/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "autoscaling_group", "group": "compute"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
@@ -3678,6 +3714,8 @@ class AzureComputeVirtualMachineSize(MicrosoftResource, BaseInstanceType):
     kind: ClassVar[str] = "azure_compute_virtual_machine_size"
     _kind_display: ClassVar[str] = "Azure Compute Virtual Machine Size"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Compute Virtual Machine Size refers to the configuration options for virtual machines in Microsoft Azure. It defines the CPU, memory, storage, and networking capacity allocated to a VM. Users can select from various predefined sizes or customize specifications to match their workload requirements, balancing performance and cost considerations for their cloud computing needs."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/sizes"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name"),
@@ -3724,6 +3762,8 @@ class AzureComputeVirtualMachineScaleSetInstance(AzureComputeVirtualMachineBase)
 
     kind: ClassVar[str] = "azure_compute_virtual_machine_scale_set_instance"
     _kind_display: ClassVar[str] = "Azure Compute Virtual Machine Scale Set Instance"
+    _kind_description: ClassVar[str] = "Azure Compute Virtual Machine Scale Set Instance is a component of Microsoft Azure's cloud infrastructure. It creates and manages a group of identical, load-balanced virtual machines that can automatically increase or decrease in number based on demand or defined rules. This service helps distribute workloads and maintain application availability during fluctuations in resource requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machine-scale-sets/"
 
 
 resources: List[Type[MicrosoftResource]] = [

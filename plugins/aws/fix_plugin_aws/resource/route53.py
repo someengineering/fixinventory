@@ -62,9 +62,9 @@ class AwsRoute53LoggingConfig:
 class AwsRoute53Zone(AwsResource, BaseDNSZone):
     kind: ClassVar[str] = "aws_route53_zone"
     _kind_display: ClassVar[str] = "AWS Route53 Zone"
-    _kind_description: ClassVar[str] = (
-        "AWS Route 53 Zones manage domain DNS settings, enabling users to direct"
-        " internet traffic for their domains through various DNS records."
+    _kind_description: ClassVar[str] = "AWS Route 53 Zone is a DNS hosting service that manages domain names and routes internet traffic. It translates human-readable domain names into IP addresses, stores DNS records, and handles DNS queries. Route 53 Zone supports various record types, provides global distribution for low-latency responses, and integrates with other AWS services for DNS management."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-working-with.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "zone", "group": "networking"}
@@ -240,10 +240,8 @@ class AwsRoute53CidrRoutingConfig:
 class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
     kind: ClassVar[str] = "aws_route53_resource_record"
     _kind_display: ClassVar[str] = "AWS Route53 Resource Record"
-    _kind_description: ClassVar[str] = (
-        "Route 53 Resource Records are domain name system (DNS) records used by AWS"
-        " Route 53 to route traffic to AWS resources or to external resources."
-    )
+    _kind_description: ClassVar[str] = "AWS Route 53 Resource Record is a DNS record that defines how traffic is routed for a specific domain or subdomain. It contains information such as IP addresses, domain names, or values specific to the record type. Route 53 uses these records to respond to DNS queries and direct internet traffic to the appropriate destinations."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ResourceRecordTypes.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns_record", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53:::{id}"}  # fmt: skip
@@ -267,11 +265,8 @@ class AwsRoute53ResourceRecord(AwsResource, BaseDNSRecord):
 class AwsRoute53ResourceRecordSet(AwsResource, BaseDNSRecordSet):
     kind: ClassVar[str] = "aws_route53_resource_record_set"
     _kind_display: ClassVar[str] = "AWS Route53 Resource Record Set"
-    _kind_description: ClassVar[str] = (
-        "Route 53 Resource Record Sets are DNS records that map domain names to IP"
-        " addresses or other DNS resources, allowing users to manage domain name"
-        " resolution in the Amazon Route 53 service."
-    )
+    _kind_description: ClassVar[str] = "AWS Route 53 Resource Record Set is a collection of DNS records for a domain. It defines how traffic is routed to resources like websites, email servers, or other services. These records include types such as A, AAAA, CNAME, MX, and TXT, each serving specific purposes in DNS resolution and domain configuration."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:route53::{account}:recordset/{id}"}  # fmt: skip

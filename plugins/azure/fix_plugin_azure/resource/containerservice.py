@@ -67,6 +67,8 @@ class AzureContainerServiceFleet(MicrosoftResource):
     kind: ClassVar[str] = "azure_container_service_fleet"
     _kind_display: ClassVar[str] = "Azure Container Service Fleet"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Container Service Fleet is a management tool for containerized applications across multiple Azure Kubernetes Service (AKS) clusters. It provides centralized control for deploying, updating, and monitoring applications in different environments or regions. The service offers consistent application management, resource optimization, and unified governance for large-scale Kubernetes deployments within Azure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/container-apps/fleet-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
@@ -750,6 +752,8 @@ class AzureContainerServiceManagedCluster(MicrosoftResource, BaseManagedKubernet
     kind: ClassVar[str] = "azure_container_service_managed_cluster"
     _kind_display: ClassVar[str] = "Azure Container Service Managed Cluster"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Container Service Managed Cluster is a Kubernetes-based container orchestration platform offered by Microsoft Azure. It automates the deployment, scaling, and management of containerized applications. The service handles cluster provisioning, upgrades, and monitoring, while providing integration with Azure services for networking, storage, and security. Users can focus on application development and deployment without managing the underlying infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/aks/"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",
@@ -895,6 +899,8 @@ class AzureContainerServiceManagedClusterSnapshot(MicrosoftResource, BaseSnapsho
     kind: ClassVar[str] = "azure_container_service_managed_cluster_snapshot"
     _kind_display: ClassVar[str] = "Azure Container Service Managed Cluster Snapshot"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Container Service Managed Cluster Snapshot is a feature that creates point-in-time copies of Azure Kubernetes Service (AKS) clusters. It captures the cluster's configuration, workloads, and associated resources. These snapshots can be used for backup, disaster recovery, or to replicate cluster environments. Users can restore clusters to previous states or create new clusters from snapshots."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/aks/managed-cluster-snapshot"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "managed_kubernetes"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="containerservice",

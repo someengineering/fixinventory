@@ -283,11 +283,8 @@ class GraphBuilder:
 class GcpResource(BaseResource):
     kind: ClassVar[str] = "gcp_resource"
     _kind_display: ClassVar[str] = "GCP Resource"
-    _kind_description: ClassVar[str] = (
-        "GCP Resource refers to any resource or service available on the Google Cloud"
-        " Platform, such as virtual machines, databases, storage buckets, and"
-        " networking components."
-    )
+    _kind_description: ClassVar[str] = "A GCP Resource is a specific instance of a service or component within Google Cloud Platform. It represents a unit of cloud infrastructure or functionality, such as a virtual machine, storage bucket, or database. GCP Resources are created, managed, and organized to build and operate cloud-based applications and services on the Google Cloud Platform."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/docs"
     api_spec: ClassVar[Optional[GcpApiSpec]] = None
     mapping: ClassVar[Dict[str, Bender]] = {}
 
@@ -449,10 +446,8 @@ class GcpProject(GcpResource, BaseAccount):
     kind: ClassVar[str] = "gcp_project"
     _kind_display: ClassVar[str] = "GCP Project"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "networking"}
-    _kind_description: ClassVar[str] = (
-        "A GCP Project is a container for resources in the Google Cloud Platform,"
-        " allowing users to organize and manage their cloud resources."
-    )
+    _kind_description: ClassVar[str] = "A GCP Project is a container for organizing and managing resources on Google Cloud Platform. It groups related services, applications, and configurations under a single entity. Projects provide access control, billing, and resource allocation mechanisms. Users can create, modify, and delete resources within projects, ensuring separation and organization of cloud assets across different initiatives or teams."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/resource-manager/docs/creating-managing-projects"
 
 
 @define(eq=False, slots=False)
@@ -502,11 +497,8 @@ class GcpLimit:
 class GcpRegionQuota(GcpResource):
     kind: ClassVar[str] = "gcp_region_quota"
     _kind_display: ClassVar[str] = "GCP Region Quota"
-    _kind_description: ClassVar[str] = (
-        "Region Quota in GCP refers to the maximum limits of resources that can be"
-        " provisioned in a specific region, such as compute instances, storage, or"
-        " networking resources."
-    )
+    _kind_description: ClassVar[str] = "GCP Region Quota is a Google Cloud Platform feature that limits resource usage within specific geographic regions. It controls the number of resources, such as virtual machines or storage capacity, that can be created in a given region. This helps manage costs, ensure resource availability, and comply with regional regulations or organizational policies."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/quotas#region_quotas"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "misc"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -524,10 +516,8 @@ class GcpRegionQuota(GcpResource):
 class GcpRegion(GcpResource, BaseRegion):
     kind: ClassVar[str] = "gcp_region"
     _kind_display: ClassVar[str] = "GCP Region"
-    _kind_description: ClassVar[str] = (
-        "A GCP Region is a specific geographical location where Google Cloud Platform"
-        " resources are deployed and run."
-    )
+    _kind_description: ClassVar[str] = "A GCP Region is a geographic area where Google Cloud Platform resources are hosted. It consists of multiple data centers called zones. Regions provide redundancy and reduced latency for cloud services. Users can deploy applications and store data in specific regions to meet performance, compliance, or data residency requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/regions-zones"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
@@ -580,12 +570,8 @@ class GcpRegion(GcpResource, BaseRegion):
 class GcpZone(GcpResource, BaseZone):
     kind: ClassVar[str] = "gcp_zone"
     _kind_display: ClassVar[str] = "GCP Zone"
-    _kind_description: ClassVar[str] = (
-        "A GCP Zone is a specific geographic location where Google Cloud Platform"
-        " resources can be deployed. Zones are isolated from each other within a"
-        " region, providing fault tolerance and high availability for applications and"
-        " services."
-    )
+    _kind_description: ClassVar[str] = "A GCP Zone is a specific geographical location within a Google Cloud Platform region where computing resources are hosted. It contains data centers with independent power, cooling, and networking infrastructure. Zones provide isolation for workloads and help improve fault tolerance and availability by distributing resources across multiple physical locations within a region."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/regions-zones"
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="compute",
         version="v1",
