@@ -36,7 +36,7 @@ setup(
         # License information
         "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
         # Supported python versions
-        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         # Supported OS's
         "Operating System :: POSIX :: Linux",
         "Operating System :: Unix",
