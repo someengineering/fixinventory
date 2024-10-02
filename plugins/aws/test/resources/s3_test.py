@@ -7,7 +7,7 @@ from fix_plugin_aws.resource.s3 import AwsS3Bucket, AwsS3AccountSettings
 
 
 def test_buckets() -> None:
-    first, builder = round_trip_for(AwsS3Bucket)
+    first, builder = round_trip_for(AwsS3Bucket, "bucket_lifecycle_policy")
     assert len(builder.resources_of(AwsS3Bucket)) == 4
     assert len(first.bucket_encryption_rules or []) == 1
     assert first.arn == "arn:aws:s3:::bucket-1"
@@ -25,7 +25,7 @@ def test_s3_account_settings() -> None:
 
 
 def test_tagging() -> None:
-    bucket, _ = round_trip_for(AwsS3Bucket)
+    bucket, _ = round_trip_for(AwsS3Bucket, "bucket_lifecycle_policy")
 
     def validate_update_args(**kwargs: Any) -> Any:
         if kwargs["action"] == "get-bucket-tagging":
@@ -53,7 +53,7 @@ def test_tagging() -> None:
 
 
 def test_deletion() -> None:
-    bucket, _ = round_trip_for(AwsS3Bucket)
+    bucket, _ = round_trip_for(AwsS3Bucket, "bucket_lifecycle_policy")
 
     def validate_delete_args(aws_service: str, fn: Callable[[Any], None]) -> Any:
         assert aws_service == "s3"
