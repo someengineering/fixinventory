@@ -857,6 +857,11 @@ class GraphBuilder:
             if location := self.location_lookup.get(source_location):
                 node._region = location
                 last_edge_key = self.add_edge(location, node=node)
+        elif (node_location := getattr(node, "location", None)) is not None:
+            # reference the location node if available in resource property
+            if location := self.location_lookup.get(node_location):
+                node._region = location
+                last_edge_key = self.add_edge(location, node=node)
         if source and "locations" in source:
             for loc in source["locations"]:
                 # reference the location node if available
