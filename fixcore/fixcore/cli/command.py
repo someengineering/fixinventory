@@ -16,6 +16,7 @@ from asyncio import Future, Task
 # noinspection PyProtectedMember
 from asyncio.subprocess import Process
 from collections import defaultdict
+from collections.abc import Hashable
 from contextlib import suppress
 from datetime import timedelta, datetime
 from functools import partial, lru_cache, cached_property
@@ -28,7 +29,6 @@ from typing import (
     Optional,
     Any,
     AsyncIterator,
-    Hashable,
     Iterable,
     Callable,
     Awaitable,
