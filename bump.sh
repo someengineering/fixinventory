@@ -15,6 +15,6 @@ git ls-files | grep \
     -e pyproject.toml \
 | xargs grep "$bump_from" \
 | cut -d : -f 1 \
-| xargs sed -i -e "s/$bump_from/$bump_to/g"
+| xargs gsed -i -e "s/$bump_from/$bump_to/g"
 git status
 git diff
