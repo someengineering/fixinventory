@@ -137,6 +137,14 @@ def model_name(clazz: Union[type, Tuple[Any], None]) -> str:
         return "any"
 
 
+def model_source(module_name: str) -> Optional[str]:
+    if module_name.startswith("fix_plugin_"):  # Naming scheme for all fix plugins: fix_plugin_<source>.xxx
+        return module_name.split(".")[0][11:]
+    elif module_name.startswith("fixlib.baseresources"):  # All base kinds are defined in this package
+        return "base"
+    return None
+
+
 # define if a field should be exported or not.
 # Use python default: hide props starting with underscore.
 def should_export(field: Attribute) -> bool:  # type: ignore
@@ -267,6 +275,8 @@ def dataclasses_to_fixcore_model(
             and isinstance(s, str)
         ):
             metadata["description"] = s
+        if root and (source := model_source(clazz.__module__)):
+            metadata["source"] = source
 
         model.append(
             {

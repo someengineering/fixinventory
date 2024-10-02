@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Union, ClassVar
 
 from attrs import define, field
 
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import ModelReference, BaseAccessKey
 from fixlib.core.model_export import (
     is_collection,
     type_arg,
@@ -14,6 +14,7 @@ from fixlib.core.model_export import (
     dataclasses_to_fixcore_model,
     model_name,
     dynamic_object_to_fixcore_model,
+    model_source,
 )
 
 
@@ -208,3 +209,11 @@ def test_config_export():
     # All global config properties are defined
     config = {a["name"] for a in result_dict["config"]["properties"]}
     assert config == {"aws", "gcp"}
+
+
+def test_module_source() -> None:
+    assert model_source(BaseAccessKey.__module__) == "base"
+    assert model_source(DataClassBase.__module__) is None
+    assert model_source("fix_plugin_aws.resource.sagemaker.AwsSagemakerAlgorithm") == "aws"
+    assert model_source("fix_plugin_digitalocean.resources.DigitalOceanApp") == "digitalocean"
+    assert model_source("fix_plugin_azure.resource.machinelearning.AzureMachineLearningCompute") == "azure"
