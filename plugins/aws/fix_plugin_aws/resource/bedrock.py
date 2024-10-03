@@ -143,9 +143,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
         "successors": {"default": ["aws_bedrock_model_customization_job", AwsKmsKey.kind]},
         "predecessors": {"default": [AwsBedrockFoundationModel.kind]},
     }
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "bedrock", "list-custom-models", "modelSummaries", expected_errors=["InternalServerException"]
-    )
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-custom-models", "modelSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("modelArn"),
         "name": S("modelName"),
@@ -551,7 +549,7 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "bedrock",
         "list-model-customization-jobs",
         "modelCustomizationJobSummaries",
-        expected_errors=["ValidationException", "InternalServerException"],
+        expected_errors=["ValidationException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
@@ -781,7 +779,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "bedrock",
         "list-evaluation-jobs",
         "jobSummaries",
-        expected_errors=["AccessDeniedException", "InternalServerException"],
+        expected_errors=["AccessDeniedException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
