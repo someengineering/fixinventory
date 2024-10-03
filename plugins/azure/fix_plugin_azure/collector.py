@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor, Future
 from datetime import datetime, timezone
-from typing import Any, Optional, Type, List, Dict
+from typing import Any, Optional, Type, List, Dict, Set
 
 from azure.core.utils import CaseInsensitiveDict
 
@@ -215,7 +215,11 @@ class MicrosoftBaseCollector:
 class AzureSubscriptionCollector(MicrosoftBaseCollector):
     def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
         locations = AzureLocation.collect_resources(builder)
-        return CaseInsensitiveDict({loc.safe_name: loc for loc in locations})  # type: ignore
+        # сreate a location lookup map with lowercase name and display name of the locations
+        locations_map = CaseInsensitiveDict()
+        locations_map.update({loc.safe_name: loc for loc in locations})
+        locations_map.update({loc.display_name or loc.safe_name: loc for loc in locations})
+        return locations_map  # type: ignore
 
     def collect_with(self, builder: GraphBuilder, locations: Dict[str, BaseRegion]) -> None:
         # add deferred edge to organization
@@ -224,8 +228,11 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         regional_resources = [r for r in subscription_resources if resource_with_params(r, "location")]
         global_resources = list(set(subscription_resources) - set(regional_resources))
         self.collect_resource_list("subscription", builder, global_resources)
+        processed_locations: Set[str] = set()
         for location in locations.values():
-            self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
+            if location.safe_name not in processed_locations:
+                self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
+                processed_locations.add(location.safe_name)
 
     def remove_unused(self) -> None:
         remove_nodes = []
@@ -264,7 +271,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_nodes(AzureStorageSku, AzureLocation)
         rm_nodes(AzureMysqlServerType, AzureSubscription)
         rm_nodes(AzurePostgresqlServerType, AzureSubscription)
-        rm_nodes(AzureCosmosDBLocation, AzureSubscription, check_pred=False)
+        rm_nodes(AzureCosmosDBLocation, AzureLocation, check_pred=False)
         rm_nodes(AzureLocation, check_pred=False)
         remove_usage_zero_value()
 

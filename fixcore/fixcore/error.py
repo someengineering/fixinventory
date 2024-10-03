@@ -106,7 +106,7 @@ class NotEnoughPermissions(web.HTTPForbidden):
     def __init__(self, user_permissions: Set[Any], required_permissions: Set[Any]) -> None:
         super().__init__(
             text=f"Not allowed to perform this operation. "
-            f"Missing permission: {', '.join(a.name for a in (required_permissions-user_permissions))}"
+            f"Missing permission: {', '.join(a.name for a in (required_permissions - user_permissions))}"
         )
         self.user_permissions = user_permissions
         self.required_permissions = required_permissions

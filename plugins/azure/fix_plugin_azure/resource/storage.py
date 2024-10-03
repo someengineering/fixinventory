@@ -135,6 +135,8 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
     kind: ClassVar[str] = "azure_storage_blob_container"
     _kind_display: ClassVar[str] = "Azure Storage Blob Container"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage Blob Container is a Microsoft Azure service that stores unstructured data as objects. It organizes and manages large amounts of binary or text data, such as documents, images, and videos. Users can access, upload, and download files via HTTP/HTTPS, with options for public or private access. It supports data redundancy and integrates with other Azure services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -190,6 +192,8 @@ class AzureStorageAccountDeleted(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_account_deleted"
     _kind_display: ClassVar[str] = "Azure Storage Account Deleted"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage Account Deleted is an event that occurs when a storage account is removed from an Azure subscription. This action permanently erases all data within the account, including blobs, files, queues, and tables. Once deleted, the storage account name becomes available for reuse, and associated resources are released back to the Azure infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/storage/common/storage-account-delete"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
@@ -248,6 +252,8 @@ class AzureStorageFileShare(MicrosoftResource, BaseNetworkShare):
     kind: ClassVar[str] = "azure_storage_file_share"
     _kind_display: ClassVar[str] = "Azure Storage File Share"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage File Share is a cloud-based file storage service provided by Microsoft Azure. It offers shared access to files across multiple virtual machines and applications using the Server Message Block (SMB) protocol. Users can mount file shares on Windows, Linux, and macOS systems, and access them like traditional network drives."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/storage/files/storage-files-introduction"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network_share", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -302,6 +308,8 @@ class AzureStorageQueue(MicrosoftResource, BaseQueue):
     kind: ClassVar[str] = "azure_storage_queue"
     _kind_display: ClassVar[str] = "Azure Storage Queue"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage Queue is a cloud-based messaging service for storing and retrieving messages. It provides asynchronous communication between application components, supporting distributed applications and microservices. Users can create, send, receive, and delete messages programmatically. The service offers durability, reliability, and scalability for handling large volumes of messages across multiple clients."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/storage/queues/storage-queues-introduction"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -336,6 +344,10 @@ class AzureStorageSku(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_sku"
     _kind_display: ClassVar[str] = "Azure Storage SKU"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage SKU is a pricing tier for Microsoft's cloud storage service. It defines the capacity, performance, and features available for storing and managing data in Azure. SKUs offer different levels of redundancy, access speeds, and data protection options, allowing users to choose the most suitable storage solution for their specific needs and budget."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#storage-account-skus"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "misc"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
@@ -710,6 +722,8 @@ class AzureStorageAccount(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_account"
     _kind_display: ClassVar[str] = "Azure Storage Account"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage Account is a Microsoft cloud service that provides data storage for various applications. It offers different storage types including blob, file, queue, and table storage. Users can store and retrieve data securely, manage access controls, and integrate with other Azure services. The account supports data redundancy and encryption for data protection."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "account", "group": "storage"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
@@ -1056,6 +1070,8 @@ class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
     kind: ClassVar[str] = "azure_storage_account_usage"
     _kind_display: ClassVar[str] = "Azure Storage Account Usage"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage Account Usage tracks and reports the consumption of Azure storage services within an account. It provides data on storage capacity utilization, transaction counts, and data transfer volumes across various storage types like blobs, files, queues, and tables. This information helps users monitor resource usage, manage costs, and plan for capacity needs."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="storage",
@@ -1102,6 +1118,8 @@ class AzureStorageTable(MicrosoftResource):
     kind: ClassVar[str] = "azure_storage_table"
     _kind_display: ClassVar[str] = "Azure Storage Table"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Storage Table is a NoSQL data store in Microsoft Azure that stores structured data without a schema. It organizes data into entities with properties, grouped into tables. Users can query and update data using REST APIs or client libraries. It supports large volumes of data and provides automatic partitioning for performance and scalability."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.microsoft.com/en-us/azure/storage/tables/table-storage-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),

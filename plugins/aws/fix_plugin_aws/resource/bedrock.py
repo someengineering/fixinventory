@@ -86,10 +86,8 @@ class BedrockTaggable:
 class AwsBedrockFoundationModel(BaseAIModel, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_foundation_model"
     _kind_display: ClassVar[str] = "AWS Bedrock Foundation Model"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Foundation Model represents the base machine learning models provided by AWS Bedrock. "
-        "These models are pre-trained and can be used as a starting point for various machine learning tasks."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Foundation Model is a managed service for accessing and using large language models from various providers through a single API. It offers tools for customizing models, fine-tuning them with specific data, and integrating them into applications. Users can experiment with different models and deploy them for tasks like text generation and analysis."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/providers?model={id}"}  # fmt: skip
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -132,10 +130,8 @@ class AwsBedrockValidationDataConfig:
 class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_custom_model"
     _kind_display: ClassVar[str] = "AWS Bedrock Custom Model"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Custom Model enables users to create and train machine learning models "
-        "tailored to specific needs, providing flexibility in model customization for a variety of applications."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Custom Model is a service that lets users create and deploy their own AI models on AWS infrastructure. It provides tools for model training, fine-tuning, and hosting. Users can build models for various tasks like natural language processing, image recognition, and predictive analytics. The service integrates with other AWS offerings for data storage and management."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/custom-models.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/{name}"}  # fmt: skip
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
@@ -233,10 +229,8 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
 class AwsBedrockProvisionedModelThroughput(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_provisioned_model_throughput"
     _kind_display: ClassVar[str] = "AWS Bedrock Provisioned Model Throughput"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Provisioned Model Throughput manages the throughput capacity for machine learning models, "
-        "ensuring consistent performance and scalability to handle varying workloads."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Provisioned Model Throughput is a feature that allocates dedicated compute resources for foundation models in AWS Bedrock. It provides consistent performance and response times for AI workloads by reserving capacity for specific models. Users can set and adjust throughput levels to meet their application's demands, ensuring reliable access to AI capabilities during peak usage periods."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/provisioned-throughput.html"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/provisioned-throughput/{name}"}  # fmt: skip
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -413,10 +407,8 @@ class AwsBedrockGuardrailContextualGroundingPolicy:
 class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_guardrail"
     _kind_display: ClassVar[str] = "AWS Bedrock Guardrail"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Guardrail provides safety mechanisms and policies to ensure responsible use of machine learning models, "
-        "helping to enforce compliance, security, and ethical standards."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Guardrail is a feature that helps manage and control access to foundation models in AWS Bedrock. It applies filters to user inputs and model outputs, enforcing content policies and preventing misuse. Administrators can set rules to block specific topics, limit personal information sharing, and ensure appropriate content generation across applications using AWS Bedrock."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "bedrock", "list-guardrails", "guardrails", expected_errors=["AccessDeniedException"]
     )
@@ -532,10 +524,8 @@ class AwsBedrockVpcConfig:
 class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_model_customization_job"
     _kind_display: ClassVar[str] = "AWS Bedrock Model Customization Job"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Model Customization Job is responsible for executing the processes involved in tailoring a machine learning model "
-        "to specific datasets and tasks, optimizing the model for unique use cases."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Model Customization Job is a service for fine-tuning foundation models on custom datasets. Users can train models to perform specific tasks or adapt to domain-specific language. The service handles the infrastructure setup, model training, and optimization processes. It provides options for data preprocessing, hyperparameter tuning, and model evaluation to improve performance on target tasks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/custom-models.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/custom-models/item/?arn={arn}"}  # fmt: skip
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
@@ -764,10 +754,8 @@ class AwsBedrockEvaluationInferenceConfig:
 class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_evaluation_job"
     _kind_display: ClassVar[str] = "AWS Bedrock Evaluation Job"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Evaluation Job assesses the performance of machine learning models, running test datasets and producing metrics "
-        "that indicate the effectiveness of the model's predictions."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Evaluation Job is a feature that assesses the performance of foundation models in AWS Bedrock. It runs a set of predefined or custom tasks on selected models, comparing their outputs against human-generated responses. The job generates metrics and reports to help users evaluate model quality and suitability for specific use cases."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/evaluation-jobs.html"
     _aws_metadata: ClassVar[Dict[str, Any]] = {}
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -927,10 +915,8 @@ class AwsBedrockPromptOverrideConfiguration:
 class AwsBedrockAgent(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent"
     _kind_display: ClassVar[str] = "AWS Bedrock Agent"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Agent is an intelligent service designed to facilitate communication with machine learning models, "
-        "acting as a mediator between applications and model execution workflows."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Agent is a service for building AI-powered applications. It provides tools to create, train, and deploy conversational AI agents. Users can develop agents that interact with customers, answer questions, and perform tasks. The service integrates with other AWS offerings and supports multiple languages and platforms for agent deployment."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html"
     _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}"
     }
@@ -1072,10 +1058,8 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
 class AwsBedrockAgentVersion(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_version"
     _kind_display: ClassVar[str] = "AWS Bedrock Agent Version"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Agent Version refers to a specific iteration of the Bedrock Agent, ensuring compatibility "
-        "and enhancements across different versions of the agent for improved functionality."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Agent Version is a feature that tracks changes in Bedrock agents over time. It maintains a record of agent configurations, including knowledge bases, prompts, and action groups. Users can view, compare, and revert to previous versions, ensuring version control and facilitating collaboration across teams working on AI agent development."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-version.html"
     _kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}/versions/{version}"
@@ -1367,10 +1351,8 @@ class AwsBedrockStorageConfiguration:
 class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_knowledge_base"
     _kind_display: ClassVar[str] = "AWS Bedrock Agent Knowledge Base"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Agent Knowledge Base contains the knowledge resources that the Bedrock Agent relies on "
-        "to provide accurate responses and perform tasks based on learned information."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Agent Knowledge Base is a feature that stores and manages information for AI agents. It provides a structured repository for data, documents, and facts that agents can access and use to answer questions, make decisions, and perform tasks. The knowledge base supports natural language queries and helps maintain context during interactions."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-knowledge-base.html"
     _kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/knowledge-bases/knowledge-base/{name}/{id}/0"
@@ -1536,10 +1518,8 @@ class AwsBedrockPromptVariant:
 class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_prompt"
     _kind_display: ClassVar[str] = "AWS Bedrock Agent Prompt"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Agent Prompt defines the input that the agent uses to generate responses or actions, "
-        "guiding the interaction between users and machine learning models through structured prompts."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Agent Prompt is a feature that helps developers create AI agents within the AWS Bedrock service. It provides a framework for defining agent behaviors, integrating with foundation models, and handling user interactions. The prompt system guides the creation of agents that can perform tasks, answer questions, and assist users in various applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-prompt.html"
     _kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-management/{id}"}  # fmt: skip
@@ -1842,10 +1822,8 @@ class AwsBedrockFlowValidation:
 class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_flow"
     _kind_display: ClassVar[str] = "AWS Bedrock Agent Flow"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Agent Flow outlines the logical sequence of interactions between the agent and the model, "
-        "defining the steps to be followed in executing tasks or answering queries."
-    )
+    _kind_description: ClassVar[str] = "AWS Bedrock Agent Flow is a tool for creating conversational AI agents. It provides a visual interface to define agent behaviors, integrate with external data sources and APIs, and configure conversation flows. Users can build agents that perform tasks, answer questions, and interact with users based on predefined rules and natural language understanding capabilities."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-flow.html"
     _kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/prompt-flows/{id}"}  # fmt: skip
@@ -1973,9 +1951,9 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
 class AwsBedrockAgentFlowVersion(BedrockTaggable, AwsResource):
     kind: ClassVar[str] = "aws_bedrock_agent_flow_version"
     _kind_display: ClassVar[str] = "AWS Bedrock Agent Flow Version"
-    _kind_description: ClassVar[str] = (
-        "AWS Bedrock Agent Flow Version tracks the version history of agent workflows, ensuring compatibility and stability "
-        "as workflows evolve and improve over time."
+    _kind_description: ClassVar[str] = "AWS Bedrock Agent Flow Version represents a specific iteration of an AWS Bedrock Agent's workflow configuration. It defines the agent's interaction patterns, data processing steps, and decision-making logic. Each version captures a distinct set of instructions that guide the agent's behavior when responding to user inputs or performing tasks within the AWS Bedrock environment."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/bedrock/latest/APIReference/API_Agent_CreateAgentFlowVersion.html"
     )
     _kind_service: ClassVar[Optional[str]] = "bedrock-agent"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}

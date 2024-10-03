@@ -67,10 +67,8 @@ class AwsServiceQuota(AwsResource, BaseQuota):
     kind: ClassVar[str] = "aws_service_quota"
     _kind_display: ClassVar[str] = "AWS Service Quota"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/servicequotas/home/services/{source.ServiceCode}/quotas/{id}", "arn_tpl": "arn:{partition}:service-quotas:{region}:{account}:quotas/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "AWS Service Quota is a feature that enables you to view and manage your"
-        " quotas (also referred to as limits) for AWS services."
-    )
+    _kind_description: ClassVar[str] = "AWS Service Quota manages and tracks usage limits for AWS resources across an account or organization. It provides a centralized view of quotas, lets users request increases, and monitors quota utilization. The service helps prevent resource overuse, ensures compliance with AWS limits, and supports capacity planning for applications and workloads running on AWS."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/servicequotas/latest/userguide/intro.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {

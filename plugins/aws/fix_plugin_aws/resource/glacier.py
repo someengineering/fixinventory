@@ -137,10 +137,8 @@ class AwsGlacierJobOutputLocation:
 class AwsGlacierJob(AwsResource):
     kind: ClassVar[str] = "aws_glacier_job"
     _kind_display: ClassVar[str] = "AWS Glacier Job"
-    _kind_description: ClassVar[str] = (
-        "AWS Glacier Jobs are used to manage and execute operations on data stored in"
-        " Amazon S3 Glacier, such as data retrieval or inventory retrieval."
-    )
+    _kind_description: ClassVar[str] = "AWS Glacier Job is a process for retrieving data from Amazon S3 Glacier storage. It initiates and manages the retrieval of archives or inventory from Glacier vaults. Users can specify job parameters, including the retrieval type and data range. The job runs asynchronously, and users can track its progress and access results upon completion."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazonglacier/latest/dev/querying-glacier-archives.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:glacier:{region}:{account}:job/{id}"}  # fmt: skip
@@ -212,10 +210,8 @@ class AwsGlacierJob(AwsResource):
 class AwsGlacierVault(AwsResource):
     kind: ClassVar[str] = "aws_glacier_vault"
     _kind_display: ClassVar[str] = "AWS Glacier Vault"
-    _kind_description: ClassVar[str] = (
-        "AWS Glacier Vaults are used for long term data archiving and backup,"
-        " providing a secure and durable storage solution with low cost."
-    )
+    _kind_description: ClassVar[str] = "AWS Glacier Vault is a storage container within Amazon S3 Glacier for archiving data. It holds archives, which are objects stored in the vault. Users can create multiple vaults in their AWS account and control access to each vault independently. Glacier Vault provides secure, durable storage for long-term data retention and compliance purposes."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-vaults.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/glacier/home?region={region}#/vault/{name}/view/properties", "arn_tpl": "arn:{partition}:glacier:{region}:{account}:vault/{name}"}  # fmt: skip

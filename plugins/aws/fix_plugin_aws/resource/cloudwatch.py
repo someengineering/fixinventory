@@ -236,9 +236,8 @@ class AwsCloudwatchMetricDataQuery:
 class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_alarm"
     _kind_display: ClassVar[str] = "AWS CloudWatch Alarm"
-    _kind_description: ClassVar[str] = (
-        "CloudWatch Alarms allow you to monitor metrics and send notifications based on the thresholds you set."
-    )
+    _kind_description: ClassVar[str] = "AWS CloudWatch Alarm is a monitoring service that tracks metrics from AWS resources and applications. It sends notifications or performs automated actions when predefined thresholds are breached. Users can set alarms for various metrics, including CPU utilization, network traffic, and custom application metrics. CloudWatch Alarm integrates with other AWS services to trigger responses based on specified conditions."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:alarm/{name}", "arn_tpl": "arn:{partition}:cloudwatch:{region}:{account}:alarm/{name}"}  # fmt: skip
@@ -337,10 +336,9 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
 class AwsCloudwatchLogGroup(LogsTaggable, AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_log_group"
     _kind_display: ClassVar[str] = "AWS CloudWatch Log Group"
-    _kind_description: ClassVar[str] = (
-        "CloudWatch Log Groups are containers for log streams in Amazon's CloudWatch"
-        " service, enabling centralized storage and analysis of log data from various"
-        " AWS resources."
+    _kind_description: ClassVar[str] = "AWS CloudWatch Log Group is a container for log streams in Amazon CloudWatch. It organizes and stores log data from various AWS resources and applications. Users can set retention policies, apply metric filters, and configure alarms based on log content. Log Groups facilitate centralized monitoring, analysis, and troubleshooting of systems and applications within the AWS ecosystem."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
@@ -472,11 +470,8 @@ class AwsCloudwatchMetricTransformation:
 class AwsCloudwatchMetricFilter(AwsResource):
     kind: ClassVar[str] = "aws_cloudwatch_metric_filter"
     _kind_display: ClassVar[str] = "AWS CloudWatch Metric Filter"
-    _kind_description: ClassVar[str] = (
-        "CloudWatch Metric Filter is a feature in Amazon CloudWatch that allows you"
-        " to define a pattern to extract information from your log events and use it"
-        " to create CloudWatch metrics."
-    )
+    _kind_description: ClassVar[str] = "AWS CloudWatch Metric Filter is a feature that extracts specific data from CloudWatch Logs and transforms it into metrics. It applies user-defined patterns to log events, creating numerical values that can be graphed, used in alarms, or monitored. This functionality helps users track and analyze log data, converting textual information into quantifiable metrics for monitoring and alerting purposes."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudwatch/home?region={region}#logsV2:log-groups/log-group/{arn}", "arn_tpl": "arn:{partition}:logs:{region}:{account}:metric-filter/{id}"}  # fmt: skip
@@ -693,7 +688,9 @@ class AwsCloudwatchMetricData:
         queries: List[AwsCloudwatchQuery],
         scan_desc: bool = True,
     ) -> "Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData]":
-        log.info(f"[{builder.region.safe_name}|{start}|{duration_str(until-start)}] Query for {len(queries)} metrics.")
+        log.info(
+            f"[{builder.region.safe_name}|{start}|{duration_str(until - start)}] Query for {len(queries)} metrics."
+        )
         lookup = {query.metric_id: query for query in queries}
         result: Dict[AwsCloudwatchQuery, AwsCloudwatchMetricData] = {}
         futures = []

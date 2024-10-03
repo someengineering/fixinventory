@@ -65,6 +65,8 @@ class AzureAuthorizationDenyAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_deny_assignment"
     _kind_display: ClassVar[str] = "Azure Authorization Deny Assignment"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Authorization Deny Assignment is a feature in Azure's Role-Based Access Control (RBAC) system. It creates explicit restrictions on resource access, overriding existing permissions. Deny Assignments prevent specified users, groups, or service principals from performing certain actions on resources, even if a role assignment grants them access. This helps enforce stricter access control policies in Azure environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/role-based-access-control/deny-assignments"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -118,6 +120,10 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_role_assignment"
     _kind_display: ClassVar[str] = "Azure Authorization Role Assignment"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Authorization Role Assignment is a security feature in Azure that controls access to resources. It grants specific permissions to users, groups, or applications within Azure subscriptions and resource groups. By assigning roles, administrators define what actions can be performed on Azure resources, ensuring proper access management and adherence to the principle of least privilege."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-portal"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "link", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -135,7 +141,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
         "Group": MicrosoftGraphGroup.kind,
         "Subscription": "azure_subscription",
         "ResourceGroup": "azure_resource_group",
-        "Resource": "azure_resource",
+        "Resource": "microsoft_resource",
     }
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -146,7 +152,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
                 "azure_authorization_role_definition",
                 "azure_subscription",
                 "azure_resource_group",
-                "azure_resource",
+                "microsoft_resource",
             ]
         },
     }
@@ -193,7 +199,7 @@ class AzureAuthorizationRoleAssignment(MicrosoftResource):
             scope_parts = scope.split("/")
             if scope.startswith("/providers/Microsoft.Management/managementGroups/"):  # management group
                 pass
-            elif len(scope_parts) == 2:  # subscription
+            elif len(scope_parts) == 3:  # subscription
                 builder.add_edge(self, reverse=True, clazz=AzureSubscription, id=scope_parts[-1])
             else:  # resource group or resource
                 builder.add_edge(self, reverse=True, id=scope)
@@ -225,6 +231,8 @@ class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
     kind: ClassVar[str] = "azure_authorization_role_definition"
     _kind_display: ClassVar[str] = "Azure Authorization Role Definition"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Authorization Role Definition is a security component in Microsoft Azure that specifies a set of permissions for accessing and managing Azure resources. It defines what actions users or applications can perform on specific resources within a subscription or resource group. Role definitions are used to implement role-based access control (RBAC) in Azure environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/role-based-access-control/role-definitions"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "role", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
@@ -264,6 +272,10 @@ class AzureAuthorizationManagementLock(MicrosoftResource):
     kind: ClassVar[str] = "azure_authorization_management_lock"
     _kind_display: ClassVar[str] = "Azure Authorization Management Lock"
     _kind_service: ClassVar[Optional[str]] = "resources"
+    _kind_description: ClassVar[str] = "Azure Authorization Management Lock is a security feature in Microsoft Azure that prevents accidental deletion or modification of resources. It applies restrictions at the subscription or resource group level, ensuring critical assets remain protected from unauthorized changes. Users with appropriate permissions can configure locks to either prevent deletion or block all modifications to specified resources."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/lock-resources"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "lock", "group": "access_control"}
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(

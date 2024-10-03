@@ -581,10 +581,9 @@ class AwsCloudFrontDistribution(CloudFrontTaggable, CloudFrontResource, AwsResou
     kind: ClassVar[str] = "aws_cloudfront_distribution"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("cloudfront", "get-distribution", "Distribution")
     _kind_display: ClassVar[str] = "AWS CloudFront Distribution"
-    _kind_description: ClassVar[str] = (
-        "CloudFront Distributions are a content delivery network (CDN) offered by"
-        " Amazon Web Services, which enables users to deliver their content to end-"
-        " users with low latency and high transfer speeds."
+    _kind_description: ClassVar[str] = "AWS CloudFront Distribution is a content delivery network service that caches and serves web content from edge locations worldwide. It reduces latency by delivering data, videos, applications, and APIs to users from the nearest server. CloudFront integrates with other AWS services and supports custom domain names, SSL certificates, and security features like DDoS protection."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-working-with.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
@@ -763,10 +762,9 @@ class AwsCloudFrontFunctionConfig:
 class AwsCloudFrontFunction(CloudFrontTaggable, BaseServerlessFunction, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_function"
     _kind_display: ClassVar[str] = "AWS CloudFront Function"
-    _kind_description: ClassVar[str] = (
-        "CloudFront Functions are serverless functions that allow developers to"
-        " customize and extend the functionality of CloudFront content delivery"
-        " network, enabling advanced edge processing of HTTP requests and responses."
+    _kind_description: ClassVar[str] = "AWS CloudFront Function is a serverless compute platform integrated with CloudFront's content delivery network. It executes lightweight JavaScript code at the edge locations, close to users. This function can modify viewer requests and responses, perform authentication, authorization, and URL rewriting tasks. It operates with low latency and high throughput for improved performance."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "networking"}
@@ -817,9 +815,9 @@ class AwsCloudFrontFunction(CloudFrontTaggable, BaseServerlessFunction, CloudFro
 class AwsCloudFrontPublicKey(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_public_key"
     _kind_display: ClassVar[str] = "AWS CloudFront Public Key"
-    _kind_description: ClassVar[str] = (
-        "AWS CloudFront Public Key is a public key used in conjunction with a private key for managing the"
-        " identity of the content distributors and validating access to content served by AWS CloudFront."
+    _kind_description: ClassVar[str] = "AWS CloudFront Public Key is a component of Amazon's content delivery network service. It is used to verify signed URLs and signed cookies, which control access to private content distributed through CloudFront. The public key is paired with a private key to create trusted signatures, ensuring that only authorized users can access protected content across CloudFront's global edge locations."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PrivateContent.html#private-content-trusted-signers"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
@@ -880,11 +878,8 @@ class AwsCloudFrontEndPoint:
 class AwsCloudFrontRealtimeLogConfig(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_realtime_log_config"
     _kind_display: ClassVar[str] = "AWS CloudFront Real-time Log Configuration"
-    _kind_description: ClassVar[str] = (
-        "CloudFront Real-time Log Configuration allows you to configure real-time"
-        " logging for your CloudFront distribution, enabling you to receive real-time"
-        " logs for your web traffic."
-    )
+    _kind_description: ClassVar[str] = "AWS CloudFront Real-time Log Configuration is a feature that sends log data about viewer requests to CloudFront distributions to specified destinations in real-time. It delivers logs within seconds of viewer requests, providing immediate insights into content delivery and user behavior. This configuration helps monitor and analyze distribution performance and usage patterns promptly."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/real-time-logs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudfront/v4/home?region={region}#/logs/realtime/{name}", "arn_tpl": "arn:{partition}:cloudfront:{region}:{account}:real-time-log-config/{id}"}  # fmt: skip
@@ -1117,10 +1112,9 @@ class AwsCloudFrontResponseHeadersPolicyConfig:
 class AwsCloudFrontResponseHeadersPolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_response_headers_policy"
     _kind_display: ClassVar[str] = "AWS CloudFront Response Headers Policy"
-    _kind_description: ClassVar[str] = (
-        "The AWS CloudFront Response Headers Policy is a configuration that allows"
-        " you to manage and control the response headers that are included in the HTTP"
-        " responses delivered by CloudFront."
+    _kind_description: ClassVar[str] = "AWS CloudFront Response Headers Policy is a configuration that controls HTTP headers in responses sent from CloudFront to viewers. It lets users add, modify, or remove headers for improved security, caching, and content delivery. This policy can be applied to multiple distributions, simplifying header management across CloudFront's content delivery network."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/adding-response-headers.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
@@ -1172,10 +1166,9 @@ class AwsCloudFrontS3Origin:
 class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_streaming_distribution"
     _kind_display: ClassVar[str] = "AWS CloudFront Streaming Distribution"
-    _kind_description: ClassVar[str] = (
-        "CloudFront Streaming Distribution is a content delivery network (CDN)"
-        " service provided by AWS that allows for fast and secure streaming of audio"
-        " and video content over the internet."
+    _kind_description: ClassVar[str] = "AWS CloudFront Streaming Distribution is a content delivery service for streaming media. It caches and distributes video content from origin servers to edge locations worldwide, reducing latency and improving performance for viewers. The service supports various streaming protocols and can handle live and on-demand content, providing a reliable and efficient way to deliver streaming media to global audiences."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web-rtmp.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cdn", "group": "networking"}
@@ -1211,10 +1204,9 @@ class AwsCloudFrontStreamingDistribution(CloudFrontTaggable, CloudFrontResource,
 class AwsCloudFrontOriginAccessControl(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_origin_access_control"
     _kind_display: ClassVar[str] = "AWS CloudFront Origin Access Control"
-    _kind_description: ClassVar[str] = (
-        "AWS CloudFront Origin Access Control is a security feature that allows you to control access"
-        " to your S3 bucket or custom origin, ensuring that your content can only be accessed via"
-        " CloudFront distributions and not directly from the origin itself."
+    _kind_description: ClassVar[str] = "AWS CloudFront Origin Access Control is a security feature that restricts access to Amazon S3 bucket content, ensuring it's only accessible through CloudFront. It creates a trust relationship between CloudFront and S3, preventing direct access to S3 objects. This mechanism enhances content protection by controlling who can retrieve files from the origin, reducing potential security risks."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "access_control", "group": "access_control"}
@@ -1352,10 +1344,9 @@ class AwsCloudFrontCachePolicyConfig:
 class AwsCloudFrontCachePolicy(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_cache_policy"
     _kind_display: ClassVar[str] = "AWS CloudFront Cache Policy"
-    _kind_description: ClassVar[str] = (
-        "CloudFront Cache Policies in AWS specify the caching behavior for CloudFront"
-        " distributions, allowing users to control how content is cached and delivered"
-        " to end users."
+    _kind_description: ClassVar[str] = "AWS CloudFront Cache Policy is a configuration component for CloudFront distributions. It defines how CloudFront caches and serves content from edge locations. The policy specifies caching behaviors, including TTL settings, cache key composition, and compression support. It controls which HTTP headers, cookies, and query strings are included in the cache key for content delivery optimization."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/controlling-origin-requests.html#cache-policy-reference"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "policy", "group": "networking"}
@@ -1456,10 +1447,9 @@ class AwsCloudFrontContentTypeProfileConfig:
 class AwsCloudFrontFieldLevelEncryptionConfig(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_config"
     _kind_display: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration"
-    _kind_description: ClassVar[str] = (
-        "AWS CloudFront Field-Level Encryption Configuration is a feature that helps you to protect sensitive data"
-        " by encrypting specific HTTP fields at CloudFront edge locations. It allows you to encrypt data within"
-        " each individual field of an HTTPS request or response."
+    _kind_description: ClassVar[str] = "AWS CloudFront Field-Level Encryption Configuration is a security feature that encrypts sensitive data fields in web forms before transmission to origin servers. It uses public key cryptography to protect specific information, ensuring that only authorized applications with the corresponding private key can decrypt the data, enhancing security for sensitive user input during transit."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/field-level-encryption.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "networking"}
@@ -1533,10 +1523,9 @@ class AwsCloudFrontEncryptionEntity:
 class AwsCloudFrontFieldLevelEncryptionProfile(CloudFrontResource, AwsResource):
     kind: ClassVar[str] = "aws_cloudfront_field_level_encryption_profile"
     _kind_display: ClassVar[str] = "AWS CloudFront Field Level Encryption Profile"
-    _kind_description: ClassVar[str] = (
-        "Field Level Encryption Profiles in AWS CloudFront allow users to encrypt"
-        " specific fields in a web form, providing an extra layer of security to"
-        " sensitive data."
+    _kind_description: ClassVar[str] = "AWS CloudFront Field Level Encryption Profile is a security feature that encrypts specific data fields in web forms before transmitting them to origin servers. It uses public key cryptography to protect sensitive information, ensuring that only authorized systems with the corresponding private key can decrypt the data. This adds an extra layer of protection for user-submitted data."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/field-level-encryption.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "profile", "group": "networking"}

@@ -28,7 +28,8 @@ class AwsEcrEncryptionConfiguration:
 class AwsEcrRepository(AwsResource):
     kind: ClassVar[str] = "aws_ecr_repository"
     _kind_display: ClassVar[str] = "AWS ECR Repository"
-    _kind_description: ClassVar[str] = "An AWS Elastic Container Registry (ECR) Repository is used for storing, managing, and deploying Docker container images in a secure, scalable, and private environment on AWS."  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS ECR (Elastic Container Registry) is a managed Docker container registry service. It stores, manages, and deploys container images for applications. ECR integrates with other AWS services, provides secure access control, and supports image scanning for vulnerabilities. Users can push, pull, and share Docker images within their AWS environment or with external parties."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecr/repositories/{name}?region={region}", "arn_tpl": "arn:{partition}:ecr:{region}:{account}:repository/{name}"}  # fmt: skip
@@ -74,10 +75,11 @@ class AwsEcrRepository(AwsResource):
                 if policy := builder.client.get(
                     service_name,
                     "get-lifecycle-policy",
+                    "lifecyclePolicyText",
                     repositoryName=repository.name,
                     expected_errors=["LifecyclePolicyNotFoundException"],
                 ):
-                    repository.lifecycle_policy = sort_json(json.loads(policy["lifecyclePolicyText"]), sort_list=True)
+                    repository.lifecycle_policy = sort_json(json.loads(policy), sort_list=True)  # type: ignore
 
         def collect(visibility: str, spec: AwsApiSpec) -> None:
             try:

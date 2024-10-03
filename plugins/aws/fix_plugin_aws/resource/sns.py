@@ -20,12 +20,8 @@ service_name = "sns"
 class AwsSnsTopic(AwsResource):
     kind: ClassVar[str] = "aws_sns_topic"
     _kind_display: ClassVar[str] = "AWS SNS Topic"
-    _kind_description: ClassVar[str] = (
-        "AWS SNS (Simple Notification Service) Topic is a publish-subscribe messaging"
-        " service provided by Amazon Web Services. It allows applications, services,"
-        " and devices to send and receive notifications via email, SMS, push"
-        " notifications, and more."
-    )
+    _kind_description: ClassVar[str] = "AWS SNS Topic is a messaging service that facilitates communication between distributed systems, applications, and microservices. It implements a publish-subscribe model, where publishers send messages to topics and subscribers receive those messages. SNS supports multiple protocols for message delivery, including HTTP, email, SMS, and mobile push notifications, making it useful for various notification scenarios."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sns/latest/dg/sns-create-topic.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/topic/{arn}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
@@ -176,11 +172,8 @@ class AwsSnsTopic(AwsResource):
 class AwsSnsSubscription(AwsResource):
     kind: ClassVar[str] = "aws_sns_subscription"
     _kind_display: ClassVar[str] = "AWS SNS Subscription"
-    _kind_description: ClassVar[str] = (
-        "SNS Subscriptions in AWS allow applications to receive messages from topics"
-        " of interest using different protocols such as HTTP, email, SMS, or Lambda"
-        " function invocation."
-    )
+    _kind_description: ClassVar[str] = "AWS SNS Subscription is a feature of Amazon Simple Notification Service that lets users receive messages from SNS topics. It supports multiple protocols, including email, SMS, HTTP/S, and AWS Lambda. Subscribers can filter messages based on attributes, ensuring they only receive relevant information. SNS Subscription facilitates message delivery across distributed systems and applications."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sns/latest/dg/sns-create-subscribe-endpoint-to-topic.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/sns/v3/home?region={region}#/topic/{arn}", "arn_tpl": "arn:{partition}:sns:{region}:{account}:{name}"}  # fmt: skip
@@ -265,11 +258,8 @@ class AwsSnsEndpoint(AwsResource):
     # collection of endpoint resources happens in AwsSnsPlatformApplication.collect()
     kind: ClassVar[str] = "aws_sns_endpoint"
     _kind_display: ClassVar[str] = "AWS SNS Endpoint"
-    _kind_description: ClassVar[str] = (
-        "An endpoint in the AWS Simple Notification Service (SNS), which is used to"
-        " send push notifications or SMS messages to mobile devices or other"
-        " applications."
-    )
+    _kind_description: ClassVar[str] = "AWS SNS Endpoint is a destination for Amazon Simple Notification Service (SNS) messages. It represents a specific target where notifications are sent, such as mobile devices, email addresses, or web servers. SNS Endpoints receive messages published to SNS topics, facilitating the distribution of information across various platforms and applications within AWS infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sns/latest/dg/sns-create-endpoint.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "endpoint", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sns:{region}:{account}:endpoint/{id}"}  # fmt: skip
@@ -299,11 +289,8 @@ class AwsSnsEndpoint(AwsResource):
 class AwsSnsPlatformApplication(AwsResource):
     kind: ClassVar[str] = "aws_sns_platform_application"
     _kind_display: ClassVar[str] = "AWS SNS Platform Application"
-    _kind_description: ClassVar[str] = (
-        "AWS SNS Platform Application is a service that allows you to create a"
-        " platform application and register it with Amazon SNS so that your"
-        " application can receive push notifications."
-    )
+    _kind_description: ClassVar[str] = "AWS SNS Platform Application is a component of Amazon Simple Notification Service that facilitates message delivery to mobile devices. It represents a specific mobile platform, such as iOS or Android, and manages the credentials required to send push notifications to devices on that platform. It handles authentication and communication with platform-specific notification services."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/sns/latest/dg/sns-mobile-application-as-subscriber.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "networking"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:sns:{region}:{account}:platform-application/{name}"}  # fmt: skip

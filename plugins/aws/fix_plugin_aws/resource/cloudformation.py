@@ -92,10 +92,8 @@ class AwsCloudFormationStack(AwsResource, BaseStack):
     kind: ClassVar[str] = "aws_cloudformation_stack"
     _kind_display: ClassVar[str] = "AWS CloudFormation Stack"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/cloudformation/home?region={region}#/stacks/stackinfo?stackId={id}", "arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack/{name}/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "CloudFormation Stacks are a collection of AWS resources that are created,"
-        " updated, or deleted together as a single unit."
-    )
+    _kind_description: ClassVar[str] = "AWS CloudFormation Stack is a collection of AWS resources managed as a single unit. It defines and provisions infrastructure components using templates, which specify resource configurations and relationships. CloudFormation Stacks automate resource creation, update, and deletion processes, maintaining consistency across deployments. Users can version control and replicate entire infrastructure setups using these stacks."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacks.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-stacks", "Stacks")
     _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": ["aws_resource"]}}
@@ -254,10 +252,9 @@ class AwsCloudFormationAutoDeployment:
 class AwsCloudFormationStackSet(AwsResource):
     kind: ClassVar[str] = "aws_cloudformation_stack_set"
     _kind_display: ClassVar[str] = "AWS CloudFormation Stack Set"
-    _kind_description: ClassVar[str] = (
-        "CloudFormation Stack Set is a feature in AWS CloudFormation that enables you"
-        " to create, update, or delete stacks across multiple accounts and regions"
-        " with a single CloudFormation template."
+    _kind_description: ClassVar[str] = "AWS CloudFormation Stack Set is a service that creates, updates, or deletes stacks across multiple accounts and regions with a single operation. It manages the deployment of consistent resources or applications across AWS accounts and regions, providing centralized control and automation for infrastructure management in large-scale environments or organizations with distributed AWS resources."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/what-is-cfnstacksets.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
@@ -375,10 +372,8 @@ class AwsCloudFormationStackInstanceSummary(AwsResource):
     # note: resource is collected via AwsCloudFormationStackSet
     kind: ClassVar[str] = "aws_cloud_formation_stack_instance_summary"
     _kind_display: ClassVar[str] = "AWS CloudFormation Stack Instance Summary"
-    _kind_description: ClassVar[str] = (
-        "CloudFormation Stack Instance Summary provides a summary of the overall stacks in a CloudFormation"
-        " deployment. The information includes current status, name, and any associated resources or parameters."
-    )
+    _kind_description: ClassVar[str] = "AWS CloudFormation Stack Instance Summary provides an overview of stack instances within a stack set. It displays key information such as stack instance status, account ID, region, and drift status. This summary helps users monitor and manage multiple stack instances across accounts and regions, offering insights into the deployment and synchronization state of resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stackinstances-view.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:cloudformation:{region}:{account}:stack-instance/{id}"}  # fmt: skip

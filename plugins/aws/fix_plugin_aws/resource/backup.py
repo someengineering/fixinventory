@@ -70,10 +70,8 @@ class AwsBackupRecoveryPointCreator:
 class AwsBackupJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_job"
     _kind_display: ClassVar[str] = "AWS Backup Job"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Jobs represent the individual backup tasks that are executed based on backup plans. "
-        "They encompass the execution details and status of the backup process for a specified resource."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Job is a task that creates and manages backups of AWS resources. It defines the source data, backup frequency, and retention policy. The job executes according to a schedule, creating point-in-time snapshots of specified resources. It handles backup creation, storage, and lifecycle management, ensuring data protection and recovery capabilities for AWS environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/backup-jobs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}"}  # fmt: skip
@@ -153,10 +151,8 @@ class AwsBackupJob(AwsResource):
 class AwsBackupProtectedResource(AwsResource):
     kind: ClassVar[str] = "aws_backup_protected_resource"
     _kind_display: ClassVar[str] = "AWS Backup Protected Resource"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Protected Resources represent the AWS resources that are configured to be backed up according to a backup plan. "
-        "They include information about the resource type and identifiers."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Protected Resource refers to a specific data entity or system component safeguarded by AWS Backup service. It includes databases, file systems, and storage volumes that are backed up and can be restored as needed. This resource type helps organizations maintain data integrity, comply with retention policies, and recover from potential data loss or system failures."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/protected-resources.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/resources/{id}"}  # fmt: skip
@@ -231,10 +227,8 @@ class AwsBackupAdvancedBackupSetting:
 class AwsBackupPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_plan"
     _kind_display: ClassVar[str] = "AWS Backup Plan"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Plans define the schedule and rules for automatically backing up AWS resources. "
-        "They include settings such as backup frequency, retention period, and lifecycle policies."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Plan is a feature of AWS Backup that automates and manages data protection for AWS resources. It defines when and how often backups are created, specifies retention periods for backups, and sets rules for copying backups across AWS Regions or accounts. Users can create custom backup plans or use pre-configured plans to meet their data protection requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/create-a-backup-plan.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-plan:{id}"}  # fmt: skip
@@ -313,10 +307,8 @@ class AwsBackupPlan(BackupResourceTaggable, AwsResource):
 class AwsBackupVault(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_vault"
     _kind_display: ClassVar[str] = "AWS Backup Vault"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Vaults are secure storage locations for backup data. "
-        "They are used to store and organize backups created by AWS Backup, providing encryption and access control."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Vault is a secure storage container for backup data in AWS Backup. It stores and organizes backup copies, providing encryption and access policies to protect backups. Users can create multiple vaults to separate backups by application, environment, or compliance requirements. AWS Backup Vault supports retention policies and lifecycle management for stored backups."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/vaults.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
@@ -445,11 +437,8 @@ class AwsBackupLifecycle:
 class AwsBackupRecoveryPoint(AwsResource):
     kind: ClassVar[str] = "aws_backup_recovery_point"
     _kind_display: ClassVar[str] = "AWS Backup Recovery Point"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Recovery Points by Vault represent specific instances of backup data stored within a backup vault. "
-        "They provide detailed information on the recovery points, including metadata, status, and lifecycle policies. "
-        "These recovery points are crucial for restoring data during disaster recovery or operational recovery scenarios."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Recovery Point is a snapshot of data created by AWS Backup. It represents a point-in-time copy of resources, such as EBS volumes, RDS databases, or EFS file systems. Recovery Points can be used to restore data to a specific state, helping organizations recover from data loss or system failures."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/recovery-points.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupvaults/details/{backup_vault_name}/{id}"}  # fmt: skip
@@ -599,10 +588,8 @@ class AwsBackupReportDeliveryChannel:
 class AwsBackupReportPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_report_plan"
     _kind_display: ClassVar[str] = "AWS Backup Report Plan"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Report Plans generate reports that provide detailed information on backup jobs and resource compliance. "
-        "These reports help in monitoring and auditing backup activities and compliance with organizational policies."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Report Plan is a feature that generates reports on backup activities across AWS services. It provides insights into backup jobs, restore points, and protected resources. Users can schedule recurring reports or create on-demand reports, customizing content and delivery options. These reports help monitor backup compliance, track resource changes, and analyze backup trends."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/report-plans.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/reports/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:report-plan:{name}"}  # fmt: skip
@@ -689,10 +676,8 @@ class AwsBackupReportPlan(BackupResourceTaggable, AwsResource):
 class AwsBackupRestoreTestingPlan(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_testing_plan"
     _kind_display: ClassVar[str] = "AWS Backup Restore Testing Plan"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Restore Testing Plans are configurations designed to test the restore capabilities and processes for backed-up data. "
-        "They ensure that recovery procedures are effective and that data can be reliably restored."
-    )
+    _kind_description: ClassVar[str] = "An AWS Backup Restore Testing Plan outlines procedures for validating backup recovery processes in AWS environments. It specifies test scenarios, recovery objectives, and success criteria for restoring data and applications from AWS Backup. This plan helps organizations verify their backup strategies, identify potential issues, and ensure reliable data recovery capabilities in case of system failures or data loss events."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/restore-testing.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "plan", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
@@ -769,10 +754,8 @@ class AwsBackupRestoreTestingPlan(BackupResourceTaggable, AwsResource):
 class AwsBackupLegalHold(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_legal_hold"
     _kind_display: ClassVar[str] = "AWS Backup Legal Hold"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Legal Holds are used to retain backup data for compliance and legal purposes. "
-        "They prevent deletion of backups that might be required for legal or regulatory reasons."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Legal Hold is a feature that preserves backup copies of data for legal or compliance purposes. It prevents the deletion or modification of specified backups, ensuring data remains intact and accessible during investigations or litigation. Users can apply legal holds to backups across multiple AWS services, maintaining data integrity and meeting regulatory requirements."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/legal-holds.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/legalholds/details/{id}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:legal-hold:{id}"}  # fmt: skip
@@ -836,10 +819,8 @@ class AwsBackupLegalHold(BackupResourceTaggable, AwsResource):
 class AwsBackupRestoreJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_restore_job"
     _kind_display: ClassVar[str] = "AWS Backup Restore Job"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Restore Jobs represent the tasks that restore data from backups. "
-        "They include details on the restore process, target resources, and status of the restoration."
-    )
+    _kind_description: ClassVar[str] = "An AWS Backup Restore Job is a process that retrieves data from an AWS Backup vault and reinstates it to its original or a new location. It recovers backed-up resources, such as databases, file systems, or EC2 instances, to a specified point in time. Users can initiate and monitor restore jobs through the AWS Management Console or API."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/restoring-a-backup.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/restore/details/{id}"}  # fmt: skip
@@ -902,10 +883,8 @@ class AwsBackupRestoreJob(AwsResource):
 class AwsBackupCopyJob(AwsResource):
     kind: ClassVar[str] = "aws_backup_copy_job"
     _kind_display: ClassVar[str] = "AWS Backup Copy Job"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Copy Jobs are operations that duplicate backups from one backup vault to another. "
-        "They facilitate data redundancy and disaster recovery by ensuring copies are stored in different locations."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Copy Job is a feature that creates and transfers copies of backup data between AWS Regions or AWS accounts. It automates the process of replicating backups, enhancing disaster recovery capabilities and data protection. Users can specify source and destination locations, schedule copy jobs, and manage retention policies for the copied backups."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/backup-copy-job.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/jobs/copy/details/{id}"}  # fmt: skip
@@ -977,10 +956,8 @@ class AwsBackupCopyJob(AwsResource):
 class AwsBackupFramework(BackupResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_backup_framework"
     _kind_display: ClassVar[str] = "AWS Backup Framework"
-    _kind_description: ClassVar[str] = (
-        "AWS Backup Frameworks are predefined sets of controls and requirements designed to help organizations align their backup operations with regulatory and compliance standards. "
-        "They provide a structured approach to managing backups, ensuring adherence to policies, and facilitating audits."
-    )
+    _kind_description: ClassVar[str] = "AWS Backup Framework is a set of tools and practices for managing data backups in Amazon Web Services. It provides centralized control for creating, scheduling, and monitoring backups across multiple AWS services. The framework helps organizations implement consistent backup policies, meet compliance requirements, and protect data from accidental deletion, system failures, or disasters."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/aws-backup/latest/devguide/aws-backup-framework.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/compliance/frameworks/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:framework:{name}"}  # fmt: skip

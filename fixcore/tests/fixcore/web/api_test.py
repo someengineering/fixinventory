@@ -398,7 +398,7 @@ async def test_cli(core_client: FixInventoryClient) -> None:
 
     # list all cli commands
     info = AccessJson(await core_client.cli_info())
-    assert len(info.commands) == 46
+    assert len(info.commands) == 47
 
 
 @pytest.mark.asyncio

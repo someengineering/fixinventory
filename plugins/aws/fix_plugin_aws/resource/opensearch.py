@@ -251,6 +251,8 @@ class AwsOpenSearchDomain(AwsResource):
     kind: ClassVar[str] = "aws_opensearch_domain"
     _kind_display: ClassVar[str] = "AWS OpenSearch Domain"
     _kind_description: ClassVar[str] = "An AWS OpenSearch Domain provides a managed environment in the AWS cloud to easily deploy, operate, and scale OpenSearch, a popular search and analytics engine."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/accounts/latest/reference/welcome.html"
+
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

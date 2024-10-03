@@ -69,6 +69,7 @@ escape_aql_parts = {
 
 allowed_first_merge_part = Part(AllTerm())
 unset_props = json.dumps(["flat"])
+edge_unset_props = json.dumps(["_rev", "hash", "refs"])
 # This list of delimiter is also used in the arango delimiter index.
 # In case the definition is changed, also the index needs to change!
 fulltext_delimiter = [" ", "_", "-", "@", ":", "/", "."]
@@ -890,26 +891,27 @@ def query_string(
             unique = "uniqueEdges: 'path'" if with_edges else "uniqueVertices: 'global'"
             dir_bound = "OUTBOUND" if direction == Direction.outbound else "INBOUND"
 
-            # the path array contains the whole path from the start node.
-            # in the case of start > 0, we need to slice the array to get the correct part
-            def slice_or_all(in_p_part: str) -> str:
-                return f"SLICE({in_path}.{in_p_part}, {start})" if start > 0 else f"{in_path}.{in_p_part}"
-
-            # Edge filter: decision to include the source element is not possible while traversing it.
+            # Edge filter: the decision to include the source element is not possible while traversing it.
             #              When the target node is reached and edge properties are available, the decision can be made.
             #              In case the filter succeeds, we need to select all vertices and edges on the path.
-            # No filter but with_edges: another nested for loop required to return the node and edge
-            # No filter and no with_edges: only the node is returned
+            # No filter but with_edges: merge the edge into the vertex
+            # No filter and not with_edges: only the node is returned
             if edge_filter:
-                # walk the path and return all vertices (and possibly edges)
+                # walk the path and return all/sliced vertices.
                 # this means intermediate nodes are returned multiple times and have to be made distinct
-                # since we return nodes first, the edges can always be resolved
-                walk_array = slice_or_all("vertices")
-                walk_array = f'APPEND({walk_array}, {slice_or_all("edges")})' if with_edges else walk_array
-                inout_result = f"FOR {in_r} in {walk_array} RETURN DISTINCT({in_r})"
+                if with_edges:
+                    pv = f"{in_path}.vertices[{in_r}]"
+                    pe = f"{in_path}.edges[{in_r}]"
+                    pv_with_pe = f"MERGE({pv}, {{_edge:UNSET({pe}, {edge_unset_props})}})"
+                    inout_result = (
+                        f"FOR {in_r} in {start}..LENGTH({in_path}.vertices)-1 "
+                        f"RETURN DISTINCT({pe}!=null ? {pv_with_pe} : {pv})"
+                    )
+                else:
+                    slice_or_all = f"SLICE({in_path}.vertices, {start})" if start > 0 else f"{in_path}.vertices"
+                    inout_result = f"FOR {in_r} in {slice_or_all} RETURN DISTINCT({in_r})"
             elif with_edges:
-                # return the node and edge via a nested for loop
-                inout_result = f"FOR {in_r} in [{in_c}, {in_edge}] FILTER {in_r}!=null RETURN DISTINCT({in_r})"
+                inout_result = f"RETURN DISTINCT(MERGE({in_c}, {{_edge:UNSET({in_edge}, {edge_unset_props})}}))"
             else:
                 # return only the node
                 inout_result = f"RETURN DISTINCT {in_c}"

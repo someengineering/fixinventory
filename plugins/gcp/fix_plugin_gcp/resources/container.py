@@ -1088,11 +1088,8 @@ class GcpContainerResourceUsageExportConfig:
 class GcpContainerCluster(BaseManagedKubernetesClusterProvider, GcpResource):
     kind: ClassVar[str] = "gcp_container_cluster"
     _kind_display: ClassVar[str] = "GCP Container Cluster"
-    _kind_description: ClassVar[str] = (
-        "Container Cluster is a managed Kubernetes cluster service provided by Google"
-        " Cloud Platform, which allows users to deploy, manage, and scale"
-        " containerized applications using Kubernetes."
-    )
+    _kind_description: ClassVar[str] = "GCP Container Cluster is a managed Kubernetes service on Google Cloud Platform. It provides a platform for deploying, managing, and scaling containerized applications. Users can create and operate clusters of virtual machines running Kubernetes, with automatic upgrades and maintenance. The service integrates with other GCP products for networking, storage, and monitoring of containerized workloads."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://cloud.google.com/kubernetes-engine/docs"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "managed_kubernetes"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -1301,10 +1298,9 @@ class GcpContainerOperationProgress:
 class GcpContainerOperation(GcpResource):
     kind: ClassVar[str] = "gcp_container_operation"
     _kind_display: ClassVar[str] = "GCP Container Operation"
-    _kind_description: ClassVar[str] = (
-        "Container Operations are management tasks performed on containers in Google"
-        " Cloud Platform, including creating, starting, stopping, and deleting"
-        " containers."
+    _kind_description: ClassVar[str] = "GCP Container Operation is a Google Cloud Platform service that manages container-based workloads. It orchestrates the deployment, scaling, and maintenance of containerized applications across clusters. The service handles tasks such as load balancing, auto-scaling, and rolling updates, ensuring application availability and performance while reducing operational overhead for developers and system administrators."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.zones.operations"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "managed_kubernetes"}

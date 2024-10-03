@@ -4,7 +4,7 @@ from typing import Type, List, Any, Optional
 
 from fix_plugin_gcp.config import GcpConfig
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources import compute, container, billing, sqladmin, storage
+from fix_plugin_gcp.resources import compute, container, billing, sqladmin, storage, aiplatform
 from fix_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import Cloud
@@ -13,7 +13,12 @@ from fixlib.graph import Graph
 
 log = logging.getLogger("fix.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
-    compute.resources + container.resources + billing.resources + sqladmin.resources + storage.resources
+    compute.resources
+    + container.resources
+    + billing.resources
+    + sqladmin.resources
+    + storage.resources
+    + aiplatform.resources
 )
 
 

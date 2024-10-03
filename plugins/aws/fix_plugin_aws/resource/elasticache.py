@@ -249,12 +249,8 @@ class AwsElastiCacheLogDeliveryConfiguration:
 class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_cache_cluster"
     _kind_display: ClassVar[str] = "AWS ElastiCache Cache Cluster"
-    _kind_description: ClassVar[str] = (
-        "ElastiCache is a web service that makes it easy to set up, manage, and scale"
-        " a distributed in-memory cache environment in the cloud. A cache cluster is a"
-        " collection of one or more cache nodes that work together to provide a highly"
-        " scalable and available cache solution."
-    )
+    _kind_description: ClassVar[str] = "AWS ElastiCache Cache Cluster is a managed service that deploys and operates in-memory cache engines Redis or Memcached in the cloud. It stores frequently accessed data in memory, reducing database load and improving application response times. Users can create, configure, and maintain cache clusters without managing the underlying infrastructure or software installation."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/WhatIs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/elasticache/home?region={region}#/{Engine}/{name}", "arn_tpl": "arn:{partition}:elasticache:{region}:{account}:cache-cluster/{name}"}  # fmt: skip
@@ -501,11 +497,8 @@ class AwsElastiCacheNodeGroup:
 class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     kind: ClassVar[str] = "aws_elasticache_replication_group"
     _kind_display: ClassVar[str] = "AWS ElastiCache Replication Group"
-    _kind_description: ClassVar[str] = (
-        "ElastiCache Replication Groups in AWS are used to store and retrieve data in"
-        " memory to improve the performance of web applications and reduce the load on"
-        " databases."
-    )
+    _kind_description: ClassVar[str] = "AWS ElastiCache Replication Group is a feature that creates multiple interconnected cache nodes. It provides redundancy and improves read performance by distributing data across nodes. The group consists of a primary node for write operations and one or more read replicas. It supports automatic failover and data synchronization between nodes, enhancing reliability and availability of cached data."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Replication.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "database"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:elasticache:{region}:{account}:replication-group/{name}"}  # fmt: skip

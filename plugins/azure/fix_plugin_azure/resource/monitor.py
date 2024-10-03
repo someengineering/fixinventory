@@ -204,6 +204,8 @@ class AzureMonitorActionGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_action_group"
     _kind_display: ClassVar[str] = "Azure Monitor Action Group"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Action Group is a configuration service for automated responses to monitoring alerts. It defines a set of actions to be executed when specific conditions are met. These actions can include sending notifications via email, SMS, or voice calls, triggering automated processes, or integrating with external systems to manage and respond to issues in Azure resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/action-groups"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -298,6 +300,8 @@ class AzureMonitorActivityLogAlert(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_activity_log_alert"
     _kind_display: ClassVar[str] = "Azure Monitor Activity Log Alert"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Activity Log Alert is a service that monitors and notifies users about specific events or changes in Azure resources. It tracks operations performed on Azure services, including resource creation, modification, or deletion. Users can set up custom alerts based on defined criteria and receive notifications through various channels when those conditions are met."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-activity-log"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AzureMonitorActionGroup.kind]},
@@ -366,6 +370,8 @@ class AzureMonitorAlertRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_alert_rule"
     _kind_display: ClassVar[str] = "Azure Monitor Alert Rule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Alert Rule is a feature in Microsoft Azure that defines conditions for monitoring resources and triggers notifications when specified thresholds are met. It evaluates metrics, logs, and activity data from Azure services, then sends alerts via various channels when predefined criteria are satisfied, helping administrators respond to issues and maintain system health."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -428,6 +434,8 @@ class AzureMonitorPrivateLinkScope(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_private_link_scope"
     _kind_display: ClassVar[str] = "Azure Monitor Private Link Scope"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Private Link Scope is a networking feature that creates a private endpoint for Azure Monitor services. It restricts access to Azure Monitor data to specific virtual networks, enhancing security by eliminating public internet exposure. This service integrates with Azure Private Link to ensure data transfer occurs over Microsoft's private network infrastructure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/logs/private-link-security"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -710,6 +718,10 @@ class AzureMonitorWorkspace(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_workspace"
     _kind_display: ClassVar[str] = "Azure Monitor Workspace"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Workspace is a centralized data storage and analysis solution for Azure resources. It collects logs, metrics, and traces from multiple sources, providing a unified view of operational data. Users can query, visualize, and analyze this data to gain insights into application performance, infrastructure health, and security events across their Azure environment."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-workspace-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -748,6 +760,10 @@ class AzureMonitorDataCollectionRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_data_collection_rule"
     _kind_display: ClassVar[str] = "Azure Monitor Data Collection Rule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Data Collection Rule is a configuration resource that defines how monitoring data is collected and processed in Azure. It specifies the data sources, collection settings, and destinations for log and metric data. Data Collection Rules help manage and organize monitoring across multiple resources, ensuring consistent data collection and routing within Azure environments."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/data-collection-rule-overview"
+    )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -809,6 +825,8 @@ class AzureMonitorLogProfile(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_log_profile"
     _kind_display: ClassVar[str] = "Azure Monitor Log Profile"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Log Profile is a configuration setting that defines how activity logs are collected and stored in Azure. It specifies which log categories to capture, the retention period for logs, and the destination for log data. This profile helps organizations manage their Azure resource monitoring and maintain compliance with data retention policies."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/activity-log"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -853,6 +871,8 @@ class AzureMetricAlert(MicrosoftResource):
     kind: ClassVar[str] = "azure_metric_alert"
     _kind_display: ClassVar[str] = "Azure Metric Alert"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Metric Alert is a monitoring service in Microsoft Azure that tracks specified metrics for resources. It evaluates data against predefined thresholds and triggers notifications when these thresholds are breached. Users can configure alerts for various metrics, set custom conditions, and define actions such as sending emails or executing automated responses when alert conditions are met."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-metric-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -1117,6 +1137,8 @@ class AzureMonitorNetworkingConfiguration:
 class AzureMonitorPipelineGroup(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_pipeline_group"
     _kind_display: ClassVar[str] = "Azure Monitor Pipeline Group"
+    _kind_description: ClassVar[str] = "Azure Monitor Pipeline Group is a feature in Azure Monitor that organizes and manages multiple data pipelines. It collects, processes, and routes telemetry data from various sources to different destinations. Users can configure, monitor, and control multiple pipelines within a single group, simplifying management and providing a unified view of data flow across Azure resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/pipeline-groups"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
@@ -1231,6 +1253,8 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_scheduled_query_rule"
     _kind_display: ClassVar[str] = "Azure Monitor Scheduled Query Rule"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Scheduled Query Rule is a feature that executes predefined queries on log data at specified intervals. It evaluates the query results against set thresholds and triggers alerts when conditions are met. This tool helps users monitor their Azure resources and applications, detect issues, and respond to potential problems based on collected telemetry data."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-scheduled-query"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -1327,6 +1351,8 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
     kind: ClassVar[str] = "azure_monitor_diagnostic_settings"
     _kind_display: ClassVar[str] = "Azure Monitor Diagnostic Settings"
     _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Monitor Diagnostic Settings is a feature that collects and routes platform logs and metrics from Azure resources to specified destinations. It supports sending data to Log Analytics workspaces, storage accounts, and event hubs. Users can configure multiple settings per resource, selecting specific log categories and metrics to capture, aiding in monitoring and analysis of Azure resources."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/diagnostic-settings"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(

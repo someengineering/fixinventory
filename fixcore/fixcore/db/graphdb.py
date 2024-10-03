@@ -1181,7 +1181,7 @@ class ArangoGraphDB(GraphDB):
                 root_kind = GraphResolver.resolved_kind(graph_to_merge.nodes[root])
                 if root_kind:
                     # noinspection PyTypeChecker
-                    log.info(f"Update subgraph: root={root} ({root_kind}, {num+1} of {len(roots)})")
+                    log.info(f"Update subgraph: root={root} ({root_kind}, {num + 1} of {len(roots)})")
                     node_query = self.query_update_nodes(root_kind), {"update_id": root}
                     edge_query = partial(merge_edges, root, root_kind)
                     change += await prepare_graph(graph, node_query, edge_query)
@@ -1191,8 +1191,11 @@ class ArangoGraphDB(GraphDB):
 
             graph_update = parent_change.to_update() + change.to_update()
             log.debug(f"Update prepared: {graph_update}. Going to persist the changes.")
-            await self._refresh_marked_update(change_id)
-            await self._persist_update(change_id, is_batch, change, update_history)
+            if change.change_count():
+                await self._refresh_marked_update(change_id)
+                await self._persist_update(change_id, is_batch, change, update_history)
+            else:
+                await self.delete_marked_update(change_id)
             return roots, graph_update
         except Exception as ex:
             await self.delete_marked_update(change_id)
