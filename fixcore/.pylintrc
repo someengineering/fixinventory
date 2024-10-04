@@ -83,7 +83,8 @@ disable=
     too-many-ancestors,
     duplicate-code,
     cyclic-import,
-    unnecessary-lambda-assignment
+    unnecessary-lambda-assignment,
+    too-many-positional-arguments
 
 [REPORTS]
 
