@@ -191,6 +191,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
     bucket_acl: Optional[AwsS3BucketAcl] = field(default=None)
     bucket_logging: Optional[AwsS3Logging] = field(default=None)
     bucket_location: Optional[str] = field(default=None)
+    bucket_lifecycle_policy: Optional[Json] = field(default=None, metadata={"description": "The bucket lifecycle policy."})  # fmt: skip
 
     def resource_policy(self, builder: GraphBuilder) -> List[Tuple[PolicySource, Dict[str, Any]]]:
         assert self.arn
@@ -243,6 +244,19 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
                     expected_errors=["NoSuchBucketPolicy", "NoSuchBucket"],
                 ):
                     bck.bucket_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
+
+        def fetch_lifecycle_policy(bck: AwsS3Bucket) -> None:
+            with builder.suppress(f"{service_name}.get-bucket-lifecycle-configuration"):
+                for policy in builder.client.list(
+                    service_name,
+                    "get-bucket-lifecycle-configuration",
+                    "Rules",
+                    Bucket=bck.name,
+                    expected_errors=["NoSuchLifecycleConfiguration"],
+                ):
+                    if not bck.bucket_lifecycle_policy:
+                        bck.bucket_lifecycle_policy = {}
+                    bck.bucket_lifecycle_policy[policy["ID"]] = policy
 
         def add_bucket_versioning(bck: AwsS3Bucket) -> None:
             with builder.suppress(f"{service_name}.get-bucket-versioning"):
@@ -323,6 +337,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
             builder.submit_work(service_name, add_public_access, bucket)
             builder.submit_work(service_name, add_acls, bucket)
             builder.submit_work(service_name, add_bucket_logging, bucket)
+            builder.submit_work(service_name, fetch_lifecycle_policy, bucket)
 
     def _set_tags(self, client: AwsClient, tags: Dict[str, str]) -> bool:
         tag_set = [{"Key": k, "Value": v} for k, v in tags.items()]

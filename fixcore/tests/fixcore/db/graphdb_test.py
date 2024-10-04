@@ -490,6 +490,8 @@ async def test_query_graph(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     await assert_result("is(foo) and reported.id==9 <-delete[0:]-", 11, 10)
     await assert_result("is(foo) and reported.id==9 <-default[0:]-", 4, 3)
     await assert_result("is(foo) and reported.id==9 -delete[0:]->", 1, 0)
+    await assert_result("is(foo) and reported.id==9 -[0:]-> is(foo, bla)", 11, 10)
+    await assert_result("is(foo) and reported.id==9 -[0:]{not_existent==null}-> is(foo, bla)", 11, 10)
 
 
 @mark.asyncio

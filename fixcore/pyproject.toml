@@ -5,7 +5,7 @@ authors = [{name="Some Engineering Inc."}]
 description = "Keeps all the things."
 license = { text="AGPLv3" }
 urls = {"Homepage" = "https://inventory.fix.security"}
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
     # Current project status
     "Development Status :: 5 - Production/Stable",
@@ -15,7 +15,7 @@ classifiers = [
     # License information
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     # Supported python versions
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     # Supported OS's
     "Operating System :: POSIX :: Linux",
     "Operating System :: Unix",

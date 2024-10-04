@@ -69,6 +69,7 @@ async def test_handle_outdated(
     # every message is retried 3 times ==> 4 times to get rid of all messages
     assert count_outstanding == 4
 
+    await asyncio.sleep(0)
     results = await asyncio.gather(*[a.callback for a in all_tasks], return_exceptions=True)
     # make sure all results are failures
     for r in results:

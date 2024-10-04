@@ -75,10 +75,11 @@ class AwsEcrRepository(AwsResource):
                 if policy := builder.client.get(
                     service_name,
                     "get-lifecycle-policy",
+                    "lifecyclePolicyText",
                     repositoryName=repository.name,
                     expected_errors=["LifecyclePolicyNotFoundException"],
                 ):
-                    repository.lifecycle_policy = sort_json(json.loads(policy["lifecyclePolicyText"]), sort_list=True)
+                    repository.lifecycle_policy = sort_json(json.loads(policy), sort_list=True)  # type: ignore
 
         def collect(visibility: str, spec: AwsApiSpec) -> None:
             try:
