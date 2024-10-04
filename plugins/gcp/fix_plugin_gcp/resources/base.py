@@ -21,6 +21,7 @@ from fixlib.baseresources import (
     BaseRegion,
     BaseZone,
     ModelReference,
+    PhantomBaseResource,
 )
 from fixlib.config import Config
 from fixlib.core.actions import CoreFeedback
@@ -494,7 +495,7 @@ class GcpLimit:
 
 
 @define(eq=False, slots=False)
-class GcpRegionQuota(GcpResource):
+class GcpRegionQuota(GcpResource, PhantomBaseResource):
     kind: ClassVar[str] = "gcp_region_quota"
     _kind_display: ClassVar[str] = "GCP Region Quota"
     _kind_description: ClassVar[str] = "GCP Region Quota is a Google Cloud Platform feature that limits resource usage within specific geographic regions. It controls the number of resources, such as virtual machines or storage capacity, that can be created in a given region. This helps manage costs, ensure resource availability, and comply with regional regulations or organizational policies."  # fmt: skip
@@ -559,6 +560,28 @@ class GcpRegion(GcpResource, BaseRegion):
         if region_quota := GcpRegionQuota.from_api(source, graph_builder):
             graph_builder.add_node(region_quota, source)
             graph_builder.add_edge(self, node=region_quota)
+
+        ignore_kinds = {
+            "gcp_subnetwork",  # There are subnetworks that are created by GCP automatically.
+        }
+
+        def ignore_for_count(resource: BaseResource) -> bool:
+            if isinstance(resource, PhantomBaseResource):
+                return True
+            if resource.kind in ignore_kinds:
+                return True
+            return False
+
+        # A region with less than 3 real resources is considered not in use.
+        # GCP is creating a couple of resources in every region automatically.
+        count = 0
+        empty_region = 3
+        for succ in graph_builder.graph.descendants(self):
+            if not ignore_for_count(succ):
+                count += 1
+                if count > empty_region:
+                    break
+        self.region_in_use = count > empty_region
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

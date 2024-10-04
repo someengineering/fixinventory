@@ -52,7 +52,7 @@ def test_remove_unconnected_nodes(random_builder: GraphBuilder) -> None:
     num_all_machine_types = len(list(collector.graph.search("kind", "gcp_machine_type")))
     num_all_skus = len(list(collector.graph.search("kind", "gcp_sku")))
 
-    collector.remove_unconnected_nodes()
+    collector.remove_unconnected_nodes(random_builder)
 
     assert len(list(collector.graph.search("kind", "gcp_machine_type"))) < num_all_machine_types
     assert len(list(collector.graph.search("kind", "gcp_sku"))) < num_all_skus

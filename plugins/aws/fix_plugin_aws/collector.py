@@ -1,5 +1,5 @@
-from collections import defaultdict
 import logging
+from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import List, Type, Optional, ClassVar, Union, cast, Dict, Any
@@ -262,7 +262,7 @@ class AwsAccountCollector:
             # wait for all futures to finish
             shared_queue.wait_for_submitted_work()
             # remove unused nodes
-            self.remove_unused()
+            self.remove_unused(global_builder)
             self.core_feedback.progress_done(self.account.dname, 1, 1, context=[self.cloud.id])
             self.error_accumulator.report_all(global_builder.core_feedback)
 
@@ -334,10 +334,9 @@ class AwsAccountCollector:
 
             builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
 
-    def remove_unused(self) -> None:
-        remove_nodes = []
-
-        def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None, check_pred: bool = True) -> None:  # type: ignore
+    def remove_unused(self, builder: GraphBuilder) -> None:
+        def rm_leaf_nodes(cls: Any, ignore_kinds: Optional[Type[Any]] = None, check_pred: bool = True) -> None:
+            remove_nodes = []
             for node in self.graph.nodes:
                 if not isinstance(node, cls):
                     continue
@@ -356,9 +355,10 @@ class AwsAccountCollector:
                     continue
                 removed.add(node)
                 self.graph.remove_node(node)
-            remove_nodes.clear()
 
-        rm_nodes(bedrock.AwsBedrockFoundationModel, check_pred=False)
+        rm_leaf_nodes(bedrock.AwsBedrockFoundationModel, check_pred=False)
+        # remove regions that are not in use
+        self.graph.remove_recursively(builder.nodes(AwsRegion, lambda r: r.region_in_use is False))
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:

@@ -27,7 +27,7 @@ def test_workspace_child_resources(
     azure_client: MicrosoftClient,
 ) -> None:
     subscription_collector = AzureSubscriptionCollector(
-        config, Cloud(id="azure"), azure_subscription, credentials, core_feedback
+        config, Cloud(id="azure"), azure_subscription, credentials, core_feedback, filter_unused_resources=False
     )
     subscription_collector.collect()
 

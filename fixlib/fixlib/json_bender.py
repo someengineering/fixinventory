@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, Any, Type, Union, Optional, Callable, List
 
@@ -418,7 +418,7 @@ class AsDate(Bender):
         if isinstance(source, str):
             return datetime.strptime(source, self._format)
         elif isinstance(source, (int, float)):
-            return datetime.utcfromtimestamp(source)
+            return datetime.fromtimestamp(source, timezone.utc)
         else:
             return source
 
@@ -435,7 +435,7 @@ class AsDateString(Bender):
 
     def execute(self, source: Any) -> Any:
         if isinstance(source, (int, float)):
-            return datetime.utcfromtimestamp(source).strftime(self._out_format)
+            return datetime.fromtimestamp(source, timezone.utc).strftime(self._out_format)
         else:
             return source
 
@@ -582,7 +582,7 @@ class EmptyToNoneBender(Bender):
 
 class SecondsFromEpochToDatetime(Bender):
     def execute(self, source: int) -> str:
-        return utc_str(datetime.utcfromtimestamp(source))
+        return utc_str(datetime.fromtimestamp(source, timezone.utc))
 
 
 EmptyToNone = EmptyToNoneBender()
