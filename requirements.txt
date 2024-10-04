@@ -100,7 +100,7 @@ pynacl==1.5.0
 pyparsing==3.1.4
 python-arango==8.1.2
 python-dateutil==2.9.0.post0
-pytz==2024.2
+pytz==2024.1
 pyvmomi==8.0.3.0.1
 pyyaml==6.0.2
 requests==2.32.3
