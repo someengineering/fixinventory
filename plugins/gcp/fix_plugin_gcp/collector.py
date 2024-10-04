@@ -8,7 +8,7 @@ from fix_plugin_gcp.resources import compute, container, billing, sqladmin, stor
 from fix_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import Cloud
-from fixlib.core.actions import CoreFeedback
+from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
 
 log = logging.getLogger("fix.plugins.gcp")
@@ -51,6 +51,7 @@ class GcpProjectCollector:
         self.cloud = cloud
         self.project = project
         self.core_feedback = core_feedback
+        self.error_accumulator = ErrorAccumulator()
         self.graph = Graph(root=self.project, max_nodes=max_resources_per_account)
         self.credentials = Credentials.get(self.project.id)
 
@@ -58,6 +59,7 @@ class GcpProjectCollector:
         with ThreadPoolExecutor(
             thread_name_prefix=f"gcp_{self.project.id}", max_workers=self.config.project_pool_size
         ) as executor:
+            self.core_feedback.progress_done(self.project.id, 0, 1, context=[self.cloud.id])
             # The shared executor is used to parallelize the collection of resources "as fast as possible"
             # It should only be used in scenarios, where it is safe to do so.
             # This executor is shared between all regions.
@@ -70,6 +72,7 @@ class GcpProjectCollector:
                 self.credentials,
                 shared_queue,
                 self.core_feedback,
+                self.error_accumulator,
                 project_global_region,
             )
             global_builder.add_node(project_global_region, {})
@@ -95,6 +98,8 @@ class GcpProjectCollector:
                 global_builder.submit_work(self.collect_region, region, global_builder.for_region(region))
             global_builder.executor.wait_for_submitted_work()
 
+            self.error_accumulator.report_all(global_builder.core_feedback)
+
             log.info(f"[GCP:{self.project.id}] Connect resources and create edges.")
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
@@ -110,6 +115,7 @@ class GcpProjectCollector:
                 if isinstance(node, GcpResource):
                     node.post_process_instance(global_builder, data.get("source", {}))
 
+            self.core_feedback.progress_done(self.project.id, 1, 1, context=[self.cloud.id])
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
     def remove_unconnected_nodes(self):

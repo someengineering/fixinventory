@@ -42,7 +42,10 @@ class AIPlatformRegionFilter:
             if spec := cls.api_spec:
                 expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set()) | {"HttpError:none:none"}
                 with GcpErrorHandler(
-                    builder.core_feedback,
+                    spec.action,
+                    builder.error_accumulator,
+                    spec.service,
+                    builder.region.safe_name if builder.region else None,
                     expected_errors,
                     f" in {builder.project.id} kind {cls.kind}",
                     expected_message_substrings,
