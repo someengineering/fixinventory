@@ -779,13 +779,7 @@ class AccessEdgeCreator:
 
         principal_arns = set([p.principal.arn for p in self.principals])
 
-        total_nodes = self.builder.graph.number_of_nodes()
-
-        one_percent = total_nodes // 100
-
-        for idx, node in enumerate(self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None)):
-            if idx % one_percent == 0:
-                log.info(f"Computing access edges: {idx} / {total_nodes}, {idx // one_percent}%")
+        for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
 
             if node.arn in principal_arns:
                 # do not create cycles
@@ -806,5 +800,3 @@ class AccessEdgeCreator:
                 reported = to_json({"permissions": permissions}, strip_nulls=True)
 
                 self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
-
-        log.info("Computing access edges: completed")
