@@ -117,6 +117,7 @@ def check_statement_match(
     action: str,
     resource: AwsResource,
     principal: Optional[AwsResource],
+    source_arn: Optional[str] = None,
 ) -> Tuple[bool, List[ResourceConstraint]]:
     """
     check if a statement matches the given effect, action, resource and principal,
@@ -167,10 +168,18 @@ def check_statement_match(
     # step 3: check if the action matches
     action_match = False
     if statement.actions:
-        for a in statement.actions:
-            if expand_wildcards_and_match(identifier=action, wildcard_string=a):
+        # shortcuts for known AWS managed policies
+        if source_arn == "arn:aws:iam::aws:policy/ReadOnlyAccess":
+            action_level = get_action_level(action)
+            if action_level in [PermissionLevel.Read or PermissionLevel.List]:
                 action_match = True
-                break
+            else:
+                action_match = False
+        else:
+            for a in statement.actions:
+                if expand_wildcards_and_match(identifier=action, wildcard_string=a):
+                    action_match = True
+                    break
     else:
         # not_action
         action_match = True
@@ -236,6 +245,7 @@ def collect_matching_statements(
     action: str,
     resource: AwsResource,
     principal: Optional[AwsResource],
+    source_arn: Optional[str] = None,
 ) -> List[Tuple[StatementDetail, List[ResourceConstraint]]]:
     """
     resoruce based policies contain principal field and need to be handled differently
@@ -248,7 +258,7 @@ def collect_matching_statements(
     for statement in policy.statements:
 
         matches, maybe_resource_constraint = check_statement_match(
-            statement, effect=effect, action=action, resource=resource, principal=principal
+            statement, effect=effect, action=action, resource=resource, principal=principal, source_arn=source_arn
         )
         if matches:
             results.append((statement, maybe_resource_constraint))
@@ -415,7 +425,7 @@ def check_identity_based_policies(
 
     for source, policy in request_context.identity_policies:
         for statement, resource_constraints in collect_matching_statements(
-            policy=policy, effect="Allow", action=action, resource=resource, principal=None
+            policy=policy, effect="Allow", action=action, resource=resource, principal=None, source_arn=source.uri
         ):
             conditions = None
             if statement.condition:
@@ -769,7 +779,14 @@ class AccessEdgeCreator:
 
         principal_arns = set([p.principal.arn for p in self.principals])
 
-        for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
+        total_nodes = self.builder.graph.number_of_nodes()
+
+        one_percent = total_nodes // 100
+
+        for idx, node in enumerate(self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None)):
+            if idx % one_percent == 0:
+                log.info(f"Computing access edges: {idx} / {total_nodes}, {idx // one_percent}%")
+
             if node.arn in principal_arns:
                 # do not create cycles
                 continue
@@ -789,3 +806,5 @@ class AccessEdgeCreator:
                 reported = to_json({"permissions": permissions}, strip_nulls=True)
 
                 self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
+
+        log.info("Computing access edges: completed")
