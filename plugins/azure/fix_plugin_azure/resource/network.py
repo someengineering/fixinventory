@@ -17,7 +17,7 @@ from fix_plugin_azure.resource.base import (
 )
 from fix_plugin_azure.resource.containerservice import AzureContainerServiceManagedCluster
 from fix_plugin_azure.resource.storage import AzureStorageAccount
-from fix_plugin_azure.utils import rgetattr
+from fix_plugin_azure.utils import rgetattr, rgetvalue
 from fixlib.baseresources import (
     BaseDNSRecordSet,
     BaseDNSZone,
@@ -90,47 +90,44 @@ class AzureApplicationGatewayIPConfiguration(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayAuthenticationCertificate(AzureSubResource):
+class AzureApplicationGatewayAuthenticationCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_application_gateway_authentication_certificate"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "data": S("properties", "data"),
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "certificate_data": S("properties", "data"),
         "etag": S("etag"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
     }
-    data: Optional[str] = field(default=None, metadata={"description": "Certificate public data."})
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'Name of the authentication certificate that is unique within an Application Gateway.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    certificate_data: Optional[str] = field(default=None, metadata={"description": "Certificate public data."})
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayTrustedRootCertificate(AzureSubResource):
+class AzureApplicationGatewayTrustedRootCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_application_gateway_trusted_root_certificate"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "data": S("properties", "data"),
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "certificate_data": S("properties", "data"),
         "etag": S("etag"),
         "key_vault_secret_id": S("properties", "keyVaultSecretId"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "type": S("type"),
     }
-    data: Optional[str] = field(default=None, metadata={"description": "Certificate public data."})
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    certificate_data: Optional[str] = field(default=None, metadata={"description": "Certificate public data."})
     key_vault_secret_id: Optional[str] = field(default=None, metadata={'description': 'Secret Id of (base-64 encoded unencrypted pfx) Secret or Certificate object stored in KeyVault.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'Name of the trusted root certificate that is unique within an Application Gateway.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayTrustedClientCertificate(AzureSubResource):
+class AzureApplicationGatewayTrustedClientCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_application_gateway_trusted_client_certificate"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
         "client_cert_issuer_dn": S("properties", "clientCertIssuerDN"),
-        "data": S("properties", "data"),
+        "certificate_data": S("properties", "data"),
         "etag": S("etag"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
@@ -138,33 +135,28 @@ class AzureApplicationGatewayTrustedClientCertificate(AzureSubResource):
         "validated_cert_data": S("properties", "validatedCertData"),
     }
     client_cert_issuer_dn: Optional[str] = field(default=None, metadata={'description': 'Distinguished name of client certificate issuer.'})  # fmt: skip
-    data: Optional[str] = field(default=None, metadata={"description": "Certificate public data."})
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'Name of the trusted client certificate that is unique within an Application Gateway.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    certificate_data: Optional[str] = field(default=None, metadata={"description": "Certificate public data."})
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
     validated_cert_data: Optional[str] = field(default=None, metadata={"description": "Validated certificate data."})
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewaySslCertificate(AzureSubResource):
+class AzureApplicationGatewaySslCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_application_gateway_ssl_certificate"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
-        "data": S("properties", "data"),
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "certificate_data": S("properties", "data"),
         "etag": S("etag"),
         "key_vault_secret_id": S("properties", "keyVaultSecretId"),
         "name": S("name"),
-        "password": S("properties", "password"),
+        "ssl_password": S("properties", "password"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_cert_data": S("properties", "publicCertData"),
         "type": S("type"),
     }
-    data: Optional[str] = field(default=None, metadata={'description': 'Base-64 encoded pfx certificate. Only applicable in PUT Request.'})  # fmt: skip
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
+    certificate_data: Optional[str] = field(default=None, metadata={'description': 'Base-64 encoded pfx certificate. Only applicable in PUT Request.'})  # fmt: skip
     key_vault_secret_id: Optional[str] = field(default=None, metadata={'description': 'Secret Id of (base-64 encoded unencrypted pfx) Secret or Certificate object stored in KeyVault.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'Name of the SSL certificate that is unique within an Application Gateway.'})  # fmt: skip
-    password: Optional[str] = field(default=None, metadata={'description': 'Password for the pfx file specified in data. Only applicable in PUT request.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
+    ssl_password: Optional[str] = field(default=None, metadata={'description': 'Password for the pfx file specified in data. Only applicable in PUT request.'})  # fmt: skip
     public_cert_data: Optional[str] = field(default=None, metadata={'description': 'Base-64 encoded Public cert data corresponding to pfx specified in data. Only applicable in GET request.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
 
@@ -979,8 +971,6 @@ class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "authentication_certificates": S("properties", "authenticationCertificates")
-        >> ForallBend(AzureApplicationGatewayAuthenticationCertificate.mapping),
         "autoscale_configuration": S("properties", "autoscaleConfiguration")
         >> Bend(AzureApplicationGatewayAutoscaleConfiguration.mapping),
         "gateway_backend_address_pools": S("properties", "backendAddressPools")
@@ -1025,19 +1015,12 @@ class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
         >> ForallBend(AzureApplicationGatewayRewriteRuleSet.mapping),
         "routing_rules": S("properties", "routingRules") >> ForallBend(AzureApplicationGatewayRoutingRule.mapping),
         "gateway_sku": S("properties", "sku") >> Bend(AzureApplicationGatewaySku.mapping),
-        "gateway_ssl_certificates": S("properties", "sslCertificates")
-        >> ForallBend(AzureApplicationGatewaySslCertificate.mapping),
         "gateway_ssl_policy": S("properties", "sslPolicy") >> Bend(AzureApplicationGatewaySslPolicy.mapping),
         "ssl_profiles": S("properties", "sslProfiles") >> ForallBend(AzureApplicationGatewaySslProfile.mapping),
-        "trusted_client_certificates": S("properties", "trustedClientCertificates")
-        >> ForallBend(AzureApplicationGatewayTrustedClientCertificate.mapping),
-        "trusted_root_certificates": S("properties", "trustedRootCertificates")
-        >> ForallBend(AzureApplicationGatewayTrustedRootCertificate.mapping),
         "url_path_maps": S("properties", "urlPathMaps") >> ForallBend(AzureApplicationGatewayUrlPathMap.mapping),
         "web_application_firewall_configuration": S("properties", "webApplicationFirewallConfiguration")
         >> Bend(AzureApplicationGatewayWebApplicationFirewallConfiguration.mapping),
     }
-    authentication_certificates: Optional[List[AzureApplicationGatewayAuthenticationCertificate]] = field(default=None, metadata={'description': 'Authentication certificates of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     autoscale_configuration: Optional[AzureApplicationGatewayAutoscaleConfiguration] = field(default=None, metadata={'description': 'Application Gateway autoscale configuration.'})  # fmt: skip
     gateway_backend_address_pools: Optional[List[AzureApplicationGatewayBackendAddressPool]] = field(default=None, metadata={'description': 'Backend address pool of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     backend_http_settings_collection: Optional[List[AzureApplicationGatewayBackendHttpSettings]] = field(default=None, metadata={'description': 'Backend http settings of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
@@ -1069,10 +1052,47 @@ class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
     gateway_ssl_certificates: Optional[List[AzureApplicationGatewaySslCertificate]] = field(default=None, metadata={'description': 'SSL certificates of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     gateway_ssl_policy: Optional[AzureApplicationGatewaySslPolicy] = field(default=None, metadata={'description': 'Application Gateway Ssl policy.'})  # fmt: skip
     ssl_profiles: Optional[List[AzureApplicationGatewaySslProfile]] = field(default=None, metadata={'description': 'SSL profiles of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
-    trusted_client_certificates: Optional[List[AzureApplicationGatewayTrustedClientCertificate]] = field(default=None, metadata={'description': 'Trusted client certificates of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
-    trusted_root_certificates: Optional[List[AzureApplicationGatewayTrustedRootCertificate]] = field(default=None, metadata={'description': 'Trusted Root certificates of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     url_path_maps: Optional[List[AzureApplicationGatewayUrlPathMap]] = field(default=None, metadata={'description': 'URL path map of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     web_application_firewall_configuration: Optional[AzureApplicationGatewayWebApplicationFirewallConfiguration] = field(default=None, metadata={'description': 'Application gateway web application firewall configuration.'})  # fmt: skip
+
+    @classmethod
+    def collect(
+        cls,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List["AzureNetworkApplicationGateway"]:
+        result: List[AzureNetworkApplicationGateway] = []
+        for js in raw:
+            # map from api
+            if instance := AzureNetworkApplicationGateway.from_api(js, builder):
+                # add to graph
+                if (added := builder.add_node(instance, js)) is not None:
+                    result.append(added)
+                    certificates = cls._collect_certificates(js, builder)
+                    for certificate in certificates:
+                        builder.add_edge(added, node=certificate)
+        return result
+
+    @classmethod
+    def _collect_certificates(cls, js: Json, builder: GraphBuilder) -> List[MicrosoftResource]:
+        result = []
+        properties = js.get("properties", {})
+        if not properties:
+            return []
+        certificates_types: List[Tuple[str, Type[MicrosoftResource]]] = [
+            ("trustedRootCertificates", AzureApplicationGatewayTrustedRootCertificate),
+            ("authenticationCertificates", AzureApplicationGatewayAuthenticationCertificate),
+            ("trustedClientCertificates", AzureApplicationGatewayTrustedClientCertificate),
+            ("sslCertificates", AzureApplicationGatewaySslCertificate),
+        ]
+        for cert_type, cert_class in certificates_types:
+            certificates = properties.get(cert_type, [])
+            for certificate in certificates:
+                if certificate_instance := cert_class.from_api(certificate, builder):  # type: ignore
+                    # add to graph
+                    if (added := builder.add_node(certificate_instance, certificate)) is not None:
+                        result.append(added)
+        return result
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if firewall_policy := self.firewall_policy:
@@ -6181,32 +6201,28 @@ class AzureVirtualNetworkGatewaySku:
 
 
 @define(eq=False, slots=False)
-class AzureVpnClientRootCertificate(AzureSubResource):
+class AzureVpnClientRootCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_vpn_client_root_certificate"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
         "etag": S("etag"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "public_cert_data": S("properties", "publicCertData"),
     }
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     public_cert_data: Optional[str] = field(default=None, metadata={"description": "The certificate public data."})
 
 
 @define(eq=False, slots=False)
-class AzureVpnClientRevokedCertificate(AzureSubResource):
+class AzureVpnClientRevokedCertificate(MicrosoftResource):
     kind: ClassVar[str] = "azure_vpn_client_revoked_certificate"
-    mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
         "etag": S("etag"),
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "thumbprint": S("properties", "thumbprint"),
     }
-    etag: Optional[str] = field(default=None, metadata={'description': 'A unique read-only string that changes whenever the resource is updated.'})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={'description': 'The name of the resource that is unique within a resource group. This name can be used to access the resource.'})  # fmt: skip
-    provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     thumbprint: Optional[str] = field(default=None, metadata={'description': 'The revoked VPN client certificate thumbprint.'})  # fmt: skip
 
 
@@ -6247,10 +6263,6 @@ class AzureVpnClientConfiguration:
         "vpn_client_address_pool": S("vpnClientAddressPool") >> Bend(AzureAddressSpace.mapping),
         "vpn_client_ipsec_policies": S("vpnClientIpsecPolicies") >> ForallBend(AzureIpsecPolicy.mapping),
         "vpn_client_protocols": S("vpnClientProtocols"),
-        "vpn_client_revoked_certificates": S("vpnClientRevokedCertificates")
-        >> ForallBend(AzureVpnClientRevokedCertificate.mapping),
-        "vpn_client_root_certificates": S("vpnClientRootCertificates")
-        >> ForallBend(AzureVpnClientRootCertificate.mapping),
     }
     aad_audience: Optional[str] = field(default=None, metadata={'description': 'The AADAudience property of the VirtualNetworkGateway resource for vpn client connection used for AAD authentication.'})  # fmt: skip
     aad_issuer: Optional[str] = field(default=None, metadata={'description': 'The AADIssuer property of the VirtualNetworkGateway resource for vpn client connection used for AAD authentication.'})  # fmt: skip
@@ -6263,8 +6275,6 @@ class AzureVpnClientConfiguration:
     vpn_client_address_pool: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
     vpn_client_ipsec_policies: Optional[List[AzureIpsecPolicy]] = field(default=None, metadata={'description': 'VpnClientIpsecPolicies for virtual network gateway P2S client.'})  # fmt: skip
     vpn_client_protocols: Optional[List[str]] = field(default=None, metadata={'description': 'VpnClientProtocols for Virtual network gateway.'})  # fmt: skip
-    vpn_client_revoked_certificates: Optional[List[AzureVpnClientRevokedCertificate]] = field(default=None, metadata={'description': 'VpnClientRevokedCertificate for Virtual network gateway.'})  # fmt: skip
-    vpn_client_root_certificates: Optional[List[AzureVpnClientRootCertificate]] = field(default=None, metadata={'description': 'VpnClientRootCertificate for virtual network gateway.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -6409,6 +6419,43 @@ class AzureNetworkVirtualNetworkGateway(MicrosoftResource, BaseGateway):
     vpn_gateway_generation: Optional[str] = field(default=None, metadata={'description': 'The generation for this VirtualNetworkGateway. Must be None if gatewayType is not VPN.'})  # fmt: skip
     vpn_type: Optional[str] = field(default=None, metadata={'description': 'The type of this virtual network gateway.'})  # fmt: skip
 
+    @classmethod
+    def collect(
+        cls,
+        raw: List[Json],
+        builder: GraphBuilder,
+    ) -> List["AzureNetworkVirtualNetworkGateway"]:
+        result: List[AzureNetworkVirtualNetworkGateway] = []
+        for js in raw:
+            # map from api
+            if instance := AzureNetworkVirtualNetworkGateway.from_api(js, builder):
+                # add to graph
+                if (added := builder.add_node(instance, js)) is not None:
+                    result.append(added)
+                    certificates = cls._collect_certificates(js, builder)
+                    for certificate in certificates:
+                        builder.add_edge(added, node=certificate)
+        return result
+
+    @classmethod
+    def _collect_certificates(cls, js: Json, builder: GraphBuilder) -> List[MicrosoftResource]:
+        result = []
+        properties = rgetvalue(js, "properties.vpnClientConfiguration", None)
+        if not properties:
+            return []
+        certificates_types: List[Tuple[str, Type[MicrosoftResource]]] = [
+            ("vpnClientRootCertificates", AzureVpnClientRootCertificate),
+            ("vpnClientRevokedCertificates", AzureVpnClientRevokedCertificate),
+        ]
+        for cert_type, cert_class in certificates_types:
+            certificates = properties.get(cert_type, [])
+            for certificate in certificates:
+                if certificate_instance := cert_class.from_api(certificate, builder):  # type: ignore
+                    # add to graph
+                    if (added := builder.add_node(certificate_instance, certificate)) is not None:
+                        result.append(added)
+        return result
+
 
 @define(eq=False, slots=False)
 class AzureNetworkLocalNetworkGateway(MicrosoftResource, BaseGateway):
@@ -6471,10 +6518,10 @@ class AzureNetworkVirtualNetworkGatewayConnection(MicrosoftResource, BaseTunnel)
         "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpn-gateway-settings"
     )
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
-    # Collect via AzureResourceGroup
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["azure_network_virtual_network_gateway", "azure_network_local_network_gateway"]},
     }
+    # Collect via AzureResourceGroup
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "tags": S("tags", default={}),
