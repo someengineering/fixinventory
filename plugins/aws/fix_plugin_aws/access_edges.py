@@ -636,8 +636,12 @@ class AccessEdgeCreator:
             if isinstance(node, AwsIamUser):
 
                 identity_based_policies = self._get_user_based_policies(node)
-                # todo: colect these resources
+
                 permission_boundaries: List[PolicyDocument] = []
+                if (pb := node.user_permissions_boundary) and (pb_arn := pb.permissions_boundary_arn):
+                    for pb_policy in self.builder.nodes(clazz=AwsIamPolicy, filter=lambda p: p.arn == pb_arn):
+                        if pdj := pb_policy.policy_document_json():
+                            permission_boundaries.append(PolicyDocument(pdj))
 
                 # todo: collect these resources
                 service_control_policy_levels: List[List[PolicyDocument]] = []
@@ -653,15 +657,13 @@ class AccessEdgeCreator:
 
             if isinstance(node, AwsIamGroup):
                 identity_based_policies = self._get_group_based_policies(node)
-                # todo: colect these resources
-                permission_boundaries = []
                 # todo: collect these resources
                 service_control_policy_levels = []
 
                 request_context = IamRequestContext(
                     principal=node,
                     identity_policies=identity_based_policies,
-                    permission_boundaries=permission_boundaries,
+                    permission_boundaries=[], # permission boundaries are not applicable to groups
                     service_control_policy_levels=service_control_policy_levels,
                 )
 
@@ -671,6 +673,10 @@ class AccessEdgeCreator:
                 identity_based_policies = self._get_role_based_policies(node)
                 # todo: colect these resources
                 permission_boundaries = []
+                if (pb := node.role_permissions_boundary) and (pb_arn := pb.permissions_boundary_arn):
+                    for pb_policy in self.builder.nodes(clazz=AwsIamPolicy, filter=lambda p: p.arn == pb_arn):
+                        if pdj := pb_policy.policy_document_json():
+                            permission_boundaries.append(PolicyDocument(pdj))
                 # todo: collect these resources
                 service_control_policy_levels = []
 
