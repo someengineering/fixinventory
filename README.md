@@ -9,12 +9,6 @@
 [![Known Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/someengineering/fixinventory/requirements.txt)](https://app.snyk.io/org/some-engineering-inc./projects)
 [![CodeCoverage](https://codecov.io/gh/someengineering/fixinventory/graph/badge.svg?token=ZEZW5JAR5J)](https://codecov.io/gh/someengineering/fixinventory)
 
-## Table of contents
-
-- [Component list](#component-list)
-  - [Contact](#contact)
-  - [License](#license)
-
 
 ## Overview
 🔍 Search Infrastructure: Fix Inventory maps out your cloud infrastructure in a [directed acyclic graph](https://inventory.fix.security/concepts/asset-inventory-graph) and provides a simple [search syntax](https://inventory.fix.security/docs/concepts/search).
@@ -24,6 +18,7 @@
 🤖 Automate Tasks: Tedious tasks like rule enforcement, resource tagging, and cleanup can be [automated using jobs](https://inventory.fix.security/docs/concepts/automation).
 
 Currently, Fix Inventory can collect [AWS](plugins/aws), [Google Cloud](plugins/gcp), [DigitalOcean](plugins/digitalocean), [VMWare Vsphere](plugins/vsphere), [OneLogin](plugins/onelogin), and [Slack](plugins/slack) resources. If the cloud you are using is not listed, it is easy to write your own collectors. An example can be found [here](plugins/example_collector).
+
 
 ## Getting started
 
