@@ -378,14 +378,14 @@ class DigitalOceanTeamCollector:
                     kwargs_no_underscore[key[1:]] = value
                 else:
                     kwargs_no_underscore[key] = value
-            resource_instance = resource_class(**kwargs_no_underscore)
-            log.debug(f"Adding {resource_instance.rtdname} to the graph")
+            ri = resource_class(**kwargs_no_underscore)
+            log.debug(f"Adding {ri.rtdname} to the graph")
             if dump_resource:
                 log.debug(f"Resource Dump: {pformat(resource_json)}")
 
             pr = kwargs.get("_region", self.graph.root)
-            log.debug(f"Parent resource for {resource_instance.rtdname} automatically set to {pr.rtdname}")
-            self.graph.add_resource(pr, resource_instance, edge_type=EdgeType.default)
+            log.debug(f"Parent resource for {ri.rtdname} automatically set to {pr.rtdname}")
+            self.graph.add_resource(pr, ri, edge_type=EdgeType.default)
 
             def add_deferred_connection(
                 search_map: Dict[str, Any],
@@ -401,28 +401,20 @@ class DigitalOceanTeamCollector:
                     if isinstance(value, List):
                         values = value
                         for value in values:
-                            resource_instance.add_deferred_connection(
-                                {attr: value},
-                                is_parent,
-                                edge_type=edge_type,
-                            )
+                            ri.add_deferred_connection({attr: value}, is_parent, edge_type=edge_type)
                     elif isinstance(value, str):
-                        resource_instance.add_deferred_connection(
-                            {attr: value},
-                            is_parent,
-                            edge_type=edge_type,
-                        )
+                        ri.add_deferred_connection({attr: value}, is_parent, edge_type=edge_type)
                     else:
-                        log.error("Unable to add deferred connection for" f" value {value} of type {type(value)}")
+                        log.error("Failed to add deferred connection for" f" value {value} of type {type(value)}")
 
             def add_edge(search_map_key: str, is_parent: bool) -> None:
                 srs = search_results[search_map_key]
                 for sr in srs:
                     if is_parent:
                         src = sr
-                        dst = resource_instance
+                        dst = ri
                     else:
-                        src = resource_instance
+                        src = ri
                         dst = sr
                     self.graph.add_edge(src, dst, edge_type=edge_type)
 
