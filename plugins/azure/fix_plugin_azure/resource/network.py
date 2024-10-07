@@ -90,8 +90,13 @@ class AzureApplicationGatewayIPConfiguration(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayAuthenticationCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_application_gateway_authentication_certificate"
+class AzureNetworkApplicationGatewayAuthenticationCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_network_application_gateway_authentication_certificate"
+    _kind_display: ClassVar[str] = "Azure Network Application Gateway Authentication Certificate"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Application Gateway Authentication Certificate is used to authenticate client certificates at the gateway, ensuring secure communication. It supports SSL certificate-based authentication for backend pools."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/application-gateway/"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "networking"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "certificate_data": S("properties", "data"),
@@ -105,8 +110,13 @@ class AzureApplicationGatewayAuthenticationCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayTrustedRootCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_application_gateway_trusted_root_certificate"
+class AzureNetworkApplicationGatewayTrustedRootCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_network_application_gateway_trusted_root_certificate"
+    _kind_display: ClassVar[str] = "Azure Network Application Gateway Trusted Root Certificate"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Application Gateway Trusted Root Certificate is used to verify the trustworthiness of certificates by establishing the root of trust in certificate chains."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/application-gateway/"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "networking"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "certificate_data": S("properties", "data"),
@@ -122,8 +132,13 @@ class AzureApplicationGatewayTrustedRootCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewayTrustedClientCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_application_gateway_trusted_client_certificate"
+class AzureNetworkApplicationGatewayTrustedClientCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_network_application_gateway_trusted_client_certificate"
+    _kind_display: ClassVar[str] = "Azure Network Application Gateway Trusted Client Certificate"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Application Gateway Trusted Client Certificate is used to authenticate client certificates and establish secure communication with trusted clients."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/application-gateway/"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "networking"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "client_cert_issuer_dn": S("properties", "clientCertIssuerDN"),
@@ -141,8 +156,13 @@ class AzureApplicationGatewayTrustedClientCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureApplicationGatewaySslCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_application_gateway_ssl_certificate"
+class AzureNetworkApplicationGatewaySslCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_network_application_gateway_ssl_certificate"
+    _kind_display: ClassVar[str] = "Azure Network Application Gateway SSL Certificate"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network Application Gateway SSL Certificate provides secure SSL communication, enabling encrypted traffic between the client and the gateway."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/application-gateway/"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "networking"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "certificate_data": S("properties", "data"),
@@ -1049,7 +1069,6 @@ class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
     rewrite_rule_sets: Optional[List[AzureApplicationGatewayRewriteRuleSet]] = field(default=None, metadata={'description': 'Rewrite rules for the application gateway resource.'})  # fmt: skip
     routing_rules: Optional[List[AzureApplicationGatewayRoutingRule]] = field(default=None, metadata={'description': 'Routing rules of the application gateway resource.'})  # fmt: skip
     gateway_sku: Optional[AzureApplicationGatewaySku] = field(default=None, metadata={'description': 'SKU of an application gateway.'})  # fmt: skip
-    gateway_ssl_certificates: Optional[List[AzureApplicationGatewaySslCertificate]] = field(default=None, metadata={'description': 'SSL certificates of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     gateway_ssl_policy: Optional[AzureApplicationGatewaySslPolicy] = field(default=None, metadata={'description': 'Application Gateway Ssl policy.'})  # fmt: skip
     ssl_profiles: Optional[List[AzureApplicationGatewaySslProfile]] = field(default=None, metadata={'description': 'SSL profiles of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
     url_path_maps: Optional[List[AzureApplicationGatewayUrlPathMap]] = field(default=None, metadata={'description': 'URL path map of the application gateway resource. For default limits, see [Application Gateway limits](https://docs.microsoft.com/azure/azure-subscription-service-limits#application-gateway-limits).'})  # fmt: skip
@@ -1080,10 +1099,10 @@ class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
         if not properties:
             return []
         certificates_types: List[Tuple[str, Type[MicrosoftResource]]] = [
-            ("trustedRootCertificates", AzureApplicationGatewayTrustedRootCertificate),
-            ("authenticationCertificates", AzureApplicationGatewayAuthenticationCertificate),
-            ("trustedClientCertificates", AzureApplicationGatewayTrustedClientCertificate),
-            ("sslCertificates", AzureApplicationGatewaySslCertificate),
+            ("trustedRootCertificates", AzureNetworkApplicationGatewayTrustedRootCertificate),
+            ("authenticationCertificates", AzureNetworkApplicationGatewayAuthenticationCertificate),
+            ("trustedClientCertificates", AzureNetworkApplicationGatewayTrustedClientCertificate),
+            ("sslCertificates", AzureNetworkApplicationGatewaySslCertificate),
         ]
         for cert_type, cert_class in certificates_types:
             certificates = properties.get(cert_type, [])
@@ -6201,8 +6220,15 @@ class AzureVirtualNetworkGatewaySku:
 
 
 @define(eq=False, slots=False)
-class AzureVpnClientRootCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_vpn_client_root_certificate"
+class AzureNetworkVpnClientRootCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_network_vpn_client_root_certificate"
+    _kind_display: ClassVar[str] = "Azure Network VPN Client Root Certificate"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network VPN Client Root Certificate is used to authenticate VPN clients by verifying the root of trust in the client certificate chain. It helps in securing VPN connections by establishing a trusted connection."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-certificates-point-to-site"
+    )
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "networking"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "etag": S("etag"),
@@ -6214,8 +6240,15 @@ class AzureVpnClientRootCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureVpnClientRevokedCertificate(MicrosoftResource):
-    kind: ClassVar[str] = "azure_vpn_client_revoked_certificate"
+class AzureNetworkVpnClientRevokedCertificate(MicrosoftResource):
+    kind: ClassVar[str] = "azure_network_vpn_client_revoked_certificate"
+    _kind_display: ClassVar[str] = "Azure Network VPN Client Revoked Certificate"
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _kind_description: ClassVar[str] = "Azure Network VPN Client Revoked Certificate is used to manage and block client certificates that have been revoked, ensuring that unauthorized clients cannot access the VPN even if they possess an old certificate."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-certificates-point-to-site"
+    )
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "certificate", "group": "networking"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
         "etag": S("etag"),
@@ -6444,8 +6477,8 @@ class AzureNetworkVirtualNetworkGateway(MicrosoftResource, BaseGateway):
         if not properties:
             return []
         certificates_types: List[Tuple[str, Type[MicrosoftResource]]] = [
-            ("vpnClientRootCertificates", AzureVpnClientRootCertificate),
-            ("vpnClientRevokedCertificates", AzureVpnClientRevokedCertificate),
+            ("vpnClientRootCertificates", AzureNetworkVpnClientRootCertificate),
+            ("vpnClientRevokedCertificates", AzureNetworkVpnClientRevokedCertificate),
         ]
         for cert_type, cert_class in certificates_types:
             certificates = properties.get(cert_type, [])
@@ -6787,6 +6820,10 @@ class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
 
 resources: List[Type[MicrosoftResource]] = [
     AzureNetworkApplicationGateway,
+    AzureNetworkApplicationGatewayTrustedRootCertificate,
+    AzureNetworkApplicationGatewayAuthenticationCertificate,
+    AzureNetworkApplicationGatewayTrustedClientCertificate,
+    AzureNetworkApplicationGatewaySslCertificate,
     AzureNetworkApplicationGatewayFirewallRuleSet,
     AzureNetworkFirewall,
     AzureNetworkBastionHost,
@@ -6832,6 +6869,8 @@ resources: List[Type[MicrosoftResource]] = [
     AzureNetworkVpnServerConfiguration,
     AzureNetworkVpnSite,
     AzureNetworkVirtualNetworkGateway,
+    AzureNetworkVpnClientRootCertificate,
+    AzureNetworkVpnClientRevokedCertificate,
     AzureNetworkLocalNetworkGateway,
     AzureNetworkVirtualNetworkGatewayConnection,
     AzureNetworkWebApplicationFirewallPolicy,
