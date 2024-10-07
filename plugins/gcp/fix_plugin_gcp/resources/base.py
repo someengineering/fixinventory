@@ -23,7 +23,7 @@ from fixlib.baseresources import (
     ModelReference,
 )
 from fixlib.config import Config
-from fixlib.core.actions import CoreFeedback
+from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph, EdgeKey
 from fixlib.json import from_json as from_js, value_in_path
 from fixlib.json_bender import bend, Bender, S, Bend, MapDict, F
@@ -78,6 +78,7 @@ class GraphBuilder:
         credentials: GoogleAuthCredentials,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
+        error_accumulator: ErrorAccumulator,
         fallback_global_region: GcpRegion,
         region: Optional[GcpRegion] = None,
         graph_nodes_access: Optional[Lock] = None,
@@ -87,12 +88,11 @@ class GraphBuilder:
         self.cloud = cloud
         self.region = region
         self.project = project
-        self.client = GcpClient(
-            credentials, project_id=project.id, region=region.name if region else None, core_feedback=core_feedback
-        )
+        self.client = GcpClient(credentials, project_id=project.id, region=region.name if region else None)
         self.executor = executor
         self.name = f"GCP:{project.name}"
         self.core_feedback = core_feedback
+        self.error_accumulator = error_accumulator
         self.fallback_global_region = fallback_global_region
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
@@ -272,6 +272,7 @@ class GraphBuilder:
             self.client.credentials,
             self.executor,
             self.core_feedback,
+            self.error_accumulator,
             self.fallback_global_region,
             region,
             self.graph_nodes_access,
@@ -381,7 +382,14 @@ class GcpResource(BaseResource):
             log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind}")
         if spec := cls.api_spec:
             expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set())
-            with GcpErrorHandler(builder.core_feedback, expected_errors, f" in {builder.project.id} kind {cls.kind}"):
+            with GcpErrorHandler(
+                spec.action,
+                builder.error_accumulator,
+                spec.service,
+                builder.region.safe_name if builder.region else None,
+                expected_errors,
+                f" in {builder.project.id} kind {cls.kind}",
+            ):
                 items = builder.client.list(spec, **kwargs)
                 resources = cls.collect(items, builder)
                 log.info(f"[GCP:{builder.project.id}] finished collecting: {cls.kind}")
@@ -610,12 +618,18 @@ GcpExpectedErrorCodes = {
 class GcpErrorHandler:
     def __init__(
         self,
-        core_feedback: CoreFeedback,
+        action: str,
+        error_accumulator: ErrorAccumulator,
+        service: str,
+        region: Optional[str],
         expected_errors: Set[str],
         extra_info: str = "",
         expected_message_substrings: Optional[Set[str]] = None,
     ) -> None:
-        self.core_feedback = core_feedback
+        self.action = action
+        self.error_accumulator = error_accumulator
+        self.service = service
+        self.region = region
         self.extra_info = extra_info
         self.expected_errors = expected_errors
         self.expected_message_substrings = expected_message_substrings
@@ -649,31 +663,39 @@ class GcpErrorHandler:
                 if self.expected_message_substrings:
                     for substring in self.expected_message_substrings:
                         if substring in error_details:
-                            log.info(f"Ignoring expected HttpError in {self.extra_info}: {error_details}.")
                             return True  # Suppress the exception
             except Exception as ex:
                 errors = {f"ParseError:unknown:{ex}"}
         error_summary = " Error Codes: " + (", ".join(errors)) if errors else ""
 
         if errors and errors.issubset(self.expected_errors):
-            log.info(
+            log.debug(
                 f"Expected Exception while collecting{self.extra_info} ({exc_type.__name__}): "
                 f"{error_details}{error_summary}. Ignore."
             )
             return True
 
         if not Config.gcp.discard_account_on_resource_error:
-            self.core_feedback.error(
-                f"Error while collecting{self.extra_info} ({exc_type.__name__}): " f"{error_details}{error_summary}",
-                log,
+            if exc_type is HttpError and isinstance(exc_value, HttpError):
+                if exc_value.resp.status == 403:
+                    self.error_accumulator.add_error(
+                        as_info=False,
+                        error_kind="AccessDenied",
+                        service=self.service,
+                        action=self.action,
+                        message=f"Access denied: {error_details}",
+                        region=None,
+                    )
+                    return True
+
+            self.error_accumulator.add_error(
+                as_info=False,
+                error_kind=exc_type.__name__,
+                service=self.service,
+                action=self.action,
+                message=f"Error while collecting{self.extra_info}: {error_details}{error_summary}",
+                region=self.region,
             )
             return True
-
-        if exc_type is HttpError and isinstance(exc_value, HttpError):
-            if exc_value.resp.status == 403:
-                self.core_feedback.error(
-                    f"Access denied{self.extra_info}: {error_details} Error Codes: {error_summary}", log
-                )
-                return True
 
         return False
