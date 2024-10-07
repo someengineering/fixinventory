@@ -1107,7 +1107,7 @@ class AzureNetworkApplicationGateway(MicrosoftResource, BaseGateway):
         for cert_type, cert_class in certificates_types:
             certificates = properties.get(cert_type, [])
             for certificate in certificates:
-                if certificate_instance := cert_class.from_api(certificate, builder):  # type: ignore
+                if certificate_instance := cert_class.from_api(certificate, builder):
                     # add to graph
                     if (added := builder.add_node(certificate_instance, certificate)) is not None:
                         result.append(added)
@@ -6483,7 +6483,7 @@ class AzureNetworkVirtualNetworkGateway(MicrosoftResource, BaseGateway):
         for cert_type, cert_class in certificates_types:
             certificates = properties.get(cert_type, [])
             for certificate in certificates:
-                if certificate_instance := cert_class.from_api(certificate, builder):  # type: ignore
+                if certificate_instance := cert_class.from_api(certificate, builder):
                     # add to graph
                     if (added := builder.add_node(certificate_instance, certificate)) is not None:
                         result.append(added)
