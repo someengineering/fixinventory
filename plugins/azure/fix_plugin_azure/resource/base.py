@@ -394,9 +394,11 @@ class AzureResourceGroup(MicrosoftResource, BaseGroup):
         "tags": S("tags", default={}),
         "name": S("name"),
         "managed_by": S("managedBy"),
+        "location": S("location"),
         "provisioning_state": S("properties", "provisioningState"),
     }
     managed_by: Optional[str] = field(default=None, metadata={'description': 'The id of the resource that manages this resource group.'})  # fmt: skip
+    location: Optional[str] = field(default=None, metadata={'description': 'The resource location.'})  # fmt: skip
     _resource_ids_in_group: Optional[List[str]] = None
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
