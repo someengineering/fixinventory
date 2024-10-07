@@ -8,7 +8,7 @@ from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatew
 
 
 def test_rest_apis() -> None:
-    api, builder = round_trip_for(AwsApiGatewayRestApi)
+    api, builder = round_trip_for(AwsApiGatewayRestApi, "api_policy")
     assert len(builder.resources_of(AwsApiGatewayRestApi)) == 1
     assert len(api.tags) == 1
     assert api.arn == "arn:aws:apigateway:eu-central-1::/restapis/2lsd9i45ub"
@@ -22,7 +22,7 @@ def test_rest_apis() -> None:
 
 
 def test_api_tagging() -> None:
-    api, builder = round_trip_for(AwsApiGatewayRestApi)
+    api, builder = round_trip_for(AwsApiGatewayRestApi, "api_policy")
 
     def validate_update_args(**kwargs: Any) -> None:
         assert kwargs["action"] == "tag-resource"
@@ -42,7 +42,7 @@ def test_api_tagging() -> None:
 
 
 def test_delete_api() -> None:
-    api, _ = round_trip_for(AwsApiGatewayRestApi)
+    api, _ = round_trip_for(AwsApiGatewayRestApi, "api_policy")
 
     def validate_delete_args(**kwargs: Any) -> Any:
         assert kwargs["action"] == "delete-rest-api"
