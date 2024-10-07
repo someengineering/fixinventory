@@ -83,7 +83,7 @@ class Credentials:
 
 def load_credentials(path: str):
     if len(path) == 0:
-        return None
+        return None  # No credentials
     file = os.path.expanduser(path)
     if os.path.isfile(file):
         return service_account.Credentials.from_service_account_file(file, scopes=SCOPES)

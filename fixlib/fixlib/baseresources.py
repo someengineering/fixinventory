@@ -1053,15 +1053,6 @@ class BaseQueue(BaseResource):
 
 
 @define(eq=False, slots=False)
-class BaseServerlessFunction(BaseResource):
-    kind: ClassVar[str] = "serverless_function"
-    _kind_display: ClassVar[str] = "Serverless Function"
-    _kind_description: ClassVar[str] = "A serverless function."
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
-    _categories: ClassVar[List[Category]] = [Category.compute]
-
-
-@define(eq=False, slots=False)
 class BaseKeyPair(BaseResource):
     kind: ClassVar[str] = "keypair"
     _kind_display: ClassVar[str] = "Key Pair"
@@ -1077,6 +1068,15 @@ class BaseBucketQuota(BaseQuota):
     _kind_display: ClassVar[str] = "Bucket Quota"
     _kind_description: ClassVar[str] = "A bucket quota."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "quota", "group": "storage"}
+
+
+@define(eq=False, slots=False)
+class BaseServerlessFunction(BaseResource):
+    kind: ClassVar[str] = "serverless_function"
+    _kind_display: ClassVar[str] = "Serverless Function"
+    _kind_description: ClassVar[str] = "A serverless function."
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
+    _categories: ClassVar[List[Category]] = [Category.compute]
 
 
 @define(eq=False, slots=False)
