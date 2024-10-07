@@ -764,7 +764,10 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "successors": {"default": [AwsS3Bucket.kind, AwsKmsKey.kind]},
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "bedrock", "list-evaluation-jobs", "jobSummaries", expected_errors=["AccessDeniedException"]
+        "bedrock",
+        "list-evaluation-jobs",
+        "jobSummaries",
+        expected_errors=["AccessDeniedException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
