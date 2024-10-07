@@ -663,7 +663,7 @@ class AccessEdgeCreator:
                 request_context = IamRequestContext(
                     principal=node,
                     identity_policies=identity_based_policies,
-                    permission_boundaries=[], # permission boundaries are not applicable to groups
+                    permission_boundaries=[],  # permission boundaries are not applicable to groups
                     service_control_policy_levels=service_control_policy_levels,
                 )
 
