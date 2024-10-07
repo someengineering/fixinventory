@@ -35,10 +35,7 @@ class AIPlatformRegionFilter:
     def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         if issubclass(cls, GcpResource):
-            if kwargs:
-                log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind} with ({kwargs})")
-            else:
-                log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind}")
+            log.info(f"[GCP:{builder.project.id}:{builder.region.safe_name}] Collecting {cls.kind}")
             if spec := cls.api_spec:
                 expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set()) | {"HttpError:none:none"}
                 with GcpErrorHandler(
