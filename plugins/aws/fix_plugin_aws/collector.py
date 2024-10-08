@@ -366,7 +366,7 @@ class AwsAccountCollector:
 
         rm_leaf_nodes(bedrock.AwsBedrockFoundationModel, check_pred=False)
         # remove regions that are not in use
-        self.graph.remove_recursively(builder.nodes(AwsRegion, lambda r: r.region_in_use is False))
+        self.graph.remove_recursively(builder.nodes(AwsRegion, lambda r: r.compute_region_in_use(builder) is False))
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
