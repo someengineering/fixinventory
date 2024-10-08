@@ -18,7 +18,7 @@ from prometheus_client import Counter, Summary
 from fixlib.json import from_json as _from_json, to_json as _to_json, to_json_str
 from fixlib.logger import log
 from fixlib.types import Json
-from fixlib.utils import make_valid_timestamp, utc_str
+from fixlib.utils import make_valid_timestamp, utc_str, utc
 from fixlib.basecategories import Category
 
 
@@ -370,7 +370,7 @@ class BaseResource(ABC):
         return _to_json(self, strip_nulls=True)
 
     def log(self, msg: str, data: Optional[Any] = None, exception: Optional[Exception] = None) -> None:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = utc()
         log_entry = {
             "timestamp": now,
             "msg": str(msg),
@@ -419,7 +419,7 @@ class BaseResource(ABC):
 
     @property
     def age(self) -> Optional[timedelta]:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = utc()
         if self.ctime is not None:
             return now - self.ctime
         else:
@@ -427,7 +427,7 @@ class BaseResource(ABC):
 
     @property
     def last_access(self) -> Optional[timedelta]:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = utc()
         if self.atime is not None:
             return now - self.atime
         else:
@@ -435,7 +435,7 @@ class BaseResource(ABC):
 
     @property
     def last_update(self) -> Optional[timedelta]:
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = utc()
         if self.mtime is not None:
             return now - self.mtime
         else:
@@ -895,6 +895,7 @@ class BaseRegion(PhantomBaseResource):
     long_name: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    region_in_use: Optional[bool] = field(default=None, metadata={"description": "Indicates if the region is in use."})
 
     def _keys(self) -> Tuple[Any, ...]:
         if self._graph is None:

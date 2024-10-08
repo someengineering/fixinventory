@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 
 
@@ -58,8 +58,8 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("QueueName"),
         "name": S("QueueName"),
-        "ctime": S("CreatedTimestamp") >> AsInt() >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
-        "mtime": S("LastModifiedTimestamp") >> AsInt() >> F(lambda x: utc_str(datetime.utcfromtimestamp(x))),
+        "ctime": S("CreatedTimestamp") >> AsInt() >> F(lambda x: utc_str(datetime.fromtimestamp(x, timezone.utc))),
+        "mtime": S("LastModifiedTimestamp") >> AsInt() >> F(lambda x: utc_str(datetime.fromtimestamp(x, timezone.utc))),
         "arn": S("QueueArn"),
         "sqs_queue_url": S("QueueUrl"),
         "sqs_approximate_number_of_messages": S("ApproximateNumberOfMessages") >> AsInt(),
