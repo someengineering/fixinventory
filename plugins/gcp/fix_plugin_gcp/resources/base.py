@@ -569,6 +569,7 @@ class GcpRegion(GcpResource, BaseRegion):
             graph_builder.add_node(region_quota, source)
             graph_builder.add_edge(self, node=region_quota)
 
+    def compute_region_in_use(self, graph_builder: GraphBuilder) -> bool:
         ignore_kinds = {
             "gcp_subnetwork",  # There are subnetworks that are created by GCP automatically.
         }
@@ -589,7 +590,10 @@ class GcpRegion(GcpResource, BaseRegion):
                 count += 1
                 if count > empty_region:
                     break
-        self.region_in_use = count > empty_region
+
+        in_use = count > empty_region
+        self.region_in_use = in_use
+        return in_use
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         super().connect_in_graph(builder, source)

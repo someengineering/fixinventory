@@ -140,7 +140,7 @@ class GcpProjectCollector:
         rm_leaf_nodes(billing.GcpSku)
         rm_leaf_nodes(billing.GcpService)
         # remove regions that are not in use
-        self.graph.remove_recursively(builder.nodes(GcpRegion, lambda r: r.region_in_use is False))
+        self.graph.remove_recursively(builder.nodes(GcpRegion, lambda r: r.compute_region_in_use(builder) is False))
 
     def collect_region(self, regional_builder: GraphBuilder) -> None:
         # fetch all region level resources

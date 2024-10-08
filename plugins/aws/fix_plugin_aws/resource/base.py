@@ -370,7 +370,7 @@ class AwsRegion(BaseRegion, AwsResource):
         self.latitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("latitude")
         self.longitude = cloud_region_data.get("aws", {}).get(self.id, {}).get("longitude")
 
-    def complete_graph(self, builder: GraphBuilder, source: Json) -> None:
+    def compute_region_in_use(self, builder: GraphBuilder) -> bool:
         count = 0
         ignore_kinds = {
             "aws_athena_work_group",
@@ -399,7 +399,9 @@ class AwsRegion(BaseRegion, AwsResource):
                 count += 1
                 if count > empty_region:
                     break
-        self.region_in_use = count > empty_region
+        in_use = count > empty_region
+        self.region_in_use = in_use
+        return in_use
 
 
 @define(eq=False, slots=False)
