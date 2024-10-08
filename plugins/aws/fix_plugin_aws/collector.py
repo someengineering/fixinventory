@@ -2,9 +2,7 @@ import logging
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Type, Optional, ClassVar, Union, cast, Dict, Any
-
-from attrs import define
+from typing import List, Type, Optional, Union, cast, Any
 
 from fix_plugin_aws.access_edges import AccessEdgeCreator
 from fix_plugin_aws.aws_client import AwsClient
@@ -51,8 +49,16 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
 )
-from fix_plugin_aws.resource.base import AwsAccount, AwsApiSpec, AwsRegion, AwsResource, GraphBuilder
-from fixlib.baseresources import Cloud, EdgeType, BaseOrganizationalRoot, BaseOrganizationalUnit
+from fix_plugin_aws.resource.base import (
+    AwsAccount,
+    AwsApiSpec,
+    AwsRegion,
+    AwsResource,
+    GraphBuilder,
+    AwsOrganizationalRoot,
+    AwsOrganizationalUnit,
+)
+from fixlib.baseresources import Cloud, EdgeType
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.core.progress import ProgressDone, ProgressTree
 from fixlib.graph import Graph, BySearchCriteria, ByNodeId
@@ -366,7 +372,7 @@ class AwsAccountCollector:
 
         rm_leaf_nodes(bedrock.AwsBedrockFoundationModel, check_pred=False)
         # remove regions that are not in use
-        self.graph.remove_recursively(builder.nodes(AwsRegion, lambda r: r.region_in_use is False))
+        self.graph.remove_recursively(builder.nodes(AwsRegion, lambda r: r.compute_region_in_use(builder) is False))
 
     # TODO: move into separate AwsAccountSettings
     def update_account(self) -> None:
@@ -463,23 +469,3 @@ class AwsAccountCollector:
                 create_org_graph()
             except Exception as e:
                 log.exception(f"Error creating organization graph: {e}")
-
-
-@define(eq=False, slots=False)
-class AwsOrganizationalRoot(BaseOrganizationalRoot, AwsResource):
-    kind: ClassVar[str] = "aws_organizational_root"
-    _kind_display: ClassVar[str] = "AWS Organizational Root"
-    _kind_description: ClassVar[str] = "AWS Organizational Root is the top-level entity in AWS Organizations. It serves as the starting point for creating and managing multiple AWS accounts within an organization. The root provides centralized control over billing, access management, and resource allocation across all member accounts, ensuring consistent policies and governance throughout the organizational structure."  # fmt: skip
-    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_root.html"
-    _kind_service = "organizations"
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
-
-
-@define(eq=False, slots=False)
-class AwsOrganizationalUnit(BaseOrganizationalUnit, AwsResource):
-    kind: ClassVar[str] = "aws_organizational_unit"
-    _kind_display: ClassVar[str] = "AWS Organizational Unit"
-    _kind_description: ClassVar[str] = "An AWS Organizational Unit is a container for AWS Accounts."
-    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_ous.html"
-    _kind_service = "organizations"
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}

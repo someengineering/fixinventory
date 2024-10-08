@@ -48,10 +48,8 @@ class AmazonQTaggable:
 class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_application"
     _kind_display: ClassVar[str] = "AWS Q Business Application"
-    _kind_description: ClassVar[str] = (
-        "Represents a Q Business application within the AWS Q Business service. Applications"
-        " define a set of tasks and configuration for processing data within the Q Business ecosystem."
-    )
+    _kind_description: ClassVar[str] = "An AWS Q Business Application is a specialized AI assistant tailored for specific business functions or roles. It integrates with an organization's data sources and systems to provide contextual responses and perform tasks within a particular domain. Q Business Applications support users in accessing information, solving problems, and completing work activities relevant to their operational area."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazonq/latest/qbusiness-ug/create-app.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {
@@ -314,10 +312,8 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
 class AwsQBusinessConversation(AwsResource):
     kind: ClassVar[str] = "aws_q_business_conversation"
     _kind_display: ClassVar[str] = "AWS Q Business Conversation"
-    _kind_description: ClassVar[str] = (
-        "Represents a conversation within the AWS Q Business service. Conversations are"
-        " interactions that involve a series of messages or data exchanges."
-    )
+    _kind_description: ClassVar[str] = "An AWS Q Business Conversation is an interaction between a user and an AWS Q Business Application. It involves a series of exchanges where the user asks questions, requests information, or issues commands, and the AI assistant responds with relevant answers, performs tasks, or provides guidance. These conversations are context-aware and draw upon the organization's connected data sources and systems."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazonq/latest/api-reference/API_Conversation.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "ai"}
     # Collected via AwsQBusinessApplication()
@@ -348,10 +344,8 @@ class AwsQBusinessConversation(AwsResource):
 class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_data_source"
     _kind_display: ClassVar[str] = "AWS Q Business Data Source"
-    _kind_description: ClassVar[str] = (
-        "Represents a data source in the AWS Q Business service. Data sources are the origins"
-        " from which data is ingested for processing or analysis within the Q Business framework."
-    )
+    _kind_description: ClassVar[str] = "An AWS Q Business Data Source is a repository of information connected to AWS Q Business Applications. It includes various types of business data, such as documents, databases, or APIs, that the AI assistant accesses to provide accurate and contextual responses. These data sources form the knowledge base that Q Business Applications use to answer queries and perform tasks within specific business domains."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazonq/latest/qbusiness-ug/data-sources.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "ai"}
     # Collected via AwsQBusinessApplication()
@@ -438,9 +432,9 @@ class AwsQBusinessDataSourceSyncJobMetrics:
 class AwsQBusinessDataSourceSyncJob(AwsResource):
     kind: ClassVar[str] = "aws_q_business_data_source_sync_job"
     _kind_display: ClassVar[str] = "AWS Q Business Data Source Sync Job"
-    _kind_description: ClassVar[str] = (
-        "Represents a data source synchronization job in the AWS Q Business service. Sync jobs"
-        " ensure that data from data sources is up-to-date and correctly integrated into the system."
+    _kind_description: ClassVar[str] = "An AWS Q Business Data Source Sync Job is a process that updates and synchronizes data between external sources and AWS Q Business Applications. It retrieves new or modified information from connected data repositories, processes it, and integrates it into the AI assistant's knowledge base. This job ensures that Q Business Applications have access to the most current and relevant data for responding to user queries."  # fmt: skip
+    _docs_url: ClassVar[str] = (
+        "https://docs.aws.amazon.com/amazonq/latest/api-reference/API_StartDataSourceSyncJob.html"
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
@@ -518,10 +512,7 @@ class AwsQBusinessDocument(AwsResource):
 class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_indice"
     _kind_display: ClassVar[str] = "AWS Q Business Indice"
-    _kind_description: ClassVar[str] = (
-        "Represents an index in the AWS Q Business service. Indices are used to organize and"
-        " facilitate efficient searching and retrieval of data within the Q Business framework."
-    )
+    _kind_description: ClassVar[str] = "An AWS Q Business Indice is a structured collection of data used by AWS Q Business Applications. It organizes and indexes information from various data sources, optimizing it for quick retrieval and analysis. This indice supports efficient searching, filtering, and querying of business data, enhancing the AI assistant's ability to provide accurate and timely responses to user inquiries within specific business contexts."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/qs/latest/userguide/business-indices-qs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "ai"}
@@ -806,7 +797,7 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
 class AwsQBusinessRetriever(AmazonQTaggable, AwsResource):
     kind: ClassVar[str] = "aws_q_business_retriever"
     _kind_display: ClassVar[str] = "AWS Q Business Retriever"
-    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS Q Business Retriever is a machine learning model for information retrieval in enterprise settings. It processes and indexes business data from various sources, then responds to user queries with relevant information and documents. The model understands context and intent, providing accurate search results and summaries to help users find and utilize business information efficiently."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/retriever.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
@@ -927,10 +918,8 @@ class AwsQAppsCategory:
 class AwsQAppsLibraryItem(AwsResource):
     kind: ClassVar[str] = "aws_q_apps_library_item"
     _kind_display: ClassVar[str] = "AWS QApps Library Item"
-    _kind_description: ClassVar[str] = (
-        "Represents a library item in the AWS QApps service. Library items include resources"
-        " such as scripts, templates, or other components that can be used in QApps applications."
-    )
+    _kind_description: ClassVar[str] = "An AWS Q Apps Library Item is a component within the AWS Q Apps ecosystem that represents a specific resource or functionality. It can be a pre-built template, module, or configuration element used to construct or enhance Q Apps. These items are stored in a centralized library, facilitating reuse and standardization across different Q Apps within an organization."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazonq/latest/api-reference/API_qapps_GetLibraryItem.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "image", "group": "ai"}
     # Collected via AwsQBusinessApplication()
@@ -1008,10 +997,8 @@ class AwsQAppsLibraryItem(AwsResource):
 class AwsQApps(AwsResource):
     kind: ClassVar[str] = "aws_q_apps"
     _kind_display: ClassVar[str] = "AWS QApps"
-    _kind_description: ClassVar[str] = (
-        "Represents an application within the AWS QApps service. QApps applications include"
-        " various components and configurations for developing and deploying apps within the AWS environment."
-    )
+    _kind_description: ClassVar[str] = "AWS Q Apps are purpose-built AI assistants tailored for specific business functions or roles. They integrate with an organization's data and systems to provide contextual responses and perform tasks. Q Apps offer personalized support for various domains such as IT, finance, and sales, helping users access information, solve problems, and complete work-related activities within their operational context."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/amazonq/"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "application", "group": "ai"}
     # Collected via AwsQBusinessApplication()

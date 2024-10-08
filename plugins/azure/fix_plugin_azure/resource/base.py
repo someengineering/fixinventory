@@ -342,7 +342,7 @@ class AzureLocation(MicrosoftResource, BaseRegion):
     regional_display_name: Optional[str] = field(default=None, metadata={'description': 'The display name of the location and its region.'})  # fmt: skip
     subscription_id: Optional[str] = field(default=None, metadata={"description": "The subscription id."})
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+    def compute_region_in_use(self, graph_builder: GraphBuilder) -> bool:
         ignore_kinds: Set[str] = {"azure_network_virtual_network", "azure_network_watcher"}
 
         def ignore_for_count(resource: BaseResource) -> bool:
@@ -361,7 +361,10 @@ class AzureLocation(MicrosoftResource, BaseRegion):
                 count += 1
                 if count > empty_region:
                     break
-        self.region_in_use = count > empty_region
+
+        in_use = count > empty_region
+        self.region_in_use = in_use
+        return in_use
 
 
 @define(eq=False, slots=False)
