@@ -1,4 +1,5 @@
 import logging
+from re import T
 import threading
 import time
 import uuid
@@ -269,8 +270,8 @@ class AwsConfig:
         metadata={"description": "Collect resource usage metrics via CloudWatch, enabled by default"},
     )
     collect_access_edges: Optional[bool] = field(
-        default=False,
-        metadata={"description": "Collect IAM access edges, disabled by default"},
+        default=True,
+        metadata={"description": "Collect IAM access edges, enabled by default"},
     )
 
     @staticmethod

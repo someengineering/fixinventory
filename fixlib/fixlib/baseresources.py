@@ -1614,9 +1614,9 @@ class UnknownLocation(BaseResource):
 
 
 class PolicySourceKind(StrEnum):
-    Principal = "principal"  # e.g. IAM user, attached policy
-    Group = "group"  # policy comes from an IAM group
-    Resource = "resource"  # e.g. s3 bucket policy
+    principal = "principal"  # e.g. IAM user, attached policy
+    group = "group"  # policy comes from an IAM group
+    resource = "resource"  # e.g. s3 bucket policy
 
 
 ResourceConstraint = str
@@ -1671,12 +1671,12 @@ class PermissionScope:
 
 
 class PermissionLevel(StrEnum):
-    List = "list"
-    Read = "read"
-    Tagging = "tagging"
-    Write = "write"
-    PermissionManagement = "permission"
-    Unknown = "unknown"  # in case a resource is not in the levels database
+    list = "list"
+    read = "read"
+    tagging = "tagging"
+    write = "write"
+    permission_management = "permission"
+    unknown = "unknown"  # in case a resource is not in the levels database
 
 
 @frozen

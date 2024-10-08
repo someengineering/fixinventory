@@ -345,7 +345,7 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource, HasResourcePolicy):
         if not self.vault_policy:
             return []
 
-        return [(PolicySource(PolicySourceKind.Resource, uri=self.arn or ""), self.vault_policy or {})]
+        return [(PolicySource(PolicySourceKind.resource, uri=self.arn or ""), self.vault_policy or {})]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

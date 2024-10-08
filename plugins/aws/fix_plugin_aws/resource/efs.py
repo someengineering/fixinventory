@@ -120,7 +120,7 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare, HasResourcePo
         if not self.file_system_policy:
             return []
 
-        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.file_system_policy or {})]
+        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.file_system_policy or {})]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

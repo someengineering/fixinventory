@@ -61,7 +61,7 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
         if not self.repository_policy:
             return []
-        return [(PolicySource(PolicySourceKind.Resource, self.repository_arn or ""), self.repository_policy or {})]
+        return [(PolicySource(PolicySourceKind.resource, self.repository_arn or ""), self.repository_policy or {})]
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:

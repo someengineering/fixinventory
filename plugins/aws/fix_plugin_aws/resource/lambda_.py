@@ -287,7 +287,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction, HasResourcePolicy):
         if not self.function_policy:
             return []
 
-        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.function_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.function_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

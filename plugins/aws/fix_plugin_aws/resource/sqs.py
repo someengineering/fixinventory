@@ -107,7 +107,7 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
         if not self.sqs_policy:
             return []
 
-        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.sqs_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.sqs_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

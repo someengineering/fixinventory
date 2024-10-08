@@ -195,7 +195,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
 
     def resource_policy(self, builder: GraphBuilder) -> List[Tuple[PolicySource, Dict[str, Any]]]:
         assert self.arn
-        return [(PolicySource(PolicySourceKind.Resource, self.arn), self.bucket_policy)] if self.bucket_policy else []
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.bucket_policy)] if self.bucket_policy else []
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

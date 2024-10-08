@@ -171,7 +171,7 @@ def check_statement_match(
         # shortcuts for known AWS managed policies
         if source_arn == "arn:aws:iam::aws:policy/ReadOnlyAccess":
             action_level = get_action_level(action)
-            if action_level in [PermissionLevel.Read or PermissionLevel.List]:
+            if action_level in [PermissionLevel.read or PermissionLevel.list]:
                 action_match = True
             else:
                 action_match = False
@@ -476,24 +476,24 @@ def get_action_level(action: str) -> PermissionLevel:
     level = ""
     action_data = get_action_data(service, action_name)
     if not action_data:
-        return PermissionLevel.Unknown
+        return PermissionLevel.unknown
     if len(action_data[service]) > 0:
         for info in action_data[service]:
             if action == info["action"]:
                 level = info["access_level"]
                 break
     if level == "List":
-        return PermissionLevel.List
+        return PermissionLevel.list
     elif level == "Read":
-        return PermissionLevel.Read
+        return PermissionLevel.read
     elif level == "Tagging":
-        return PermissionLevel.Tagging
+        return PermissionLevel.tagging
     elif level == "Write":
-        return PermissionLevel.Write
+        return PermissionLevel.write
     elif level == "Permissions management":
-        return PermissionLevel.PermissionManagement
+        return PermissionLevel.permission_management
     else:
-        return PermissionLevel.Unknown
+        return PermissionLevel.unknown
 
 
 # logic according to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
@@ -692,7 +692,7 @@ class AccessEdgeCreator:
     def _get_user_based_policies(self, principal: AwsIamUser) -> List[Tuple[PolicySource, PolicyDocument]]:
         inline_policies = [
             (
-                PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
+                PolicySource(kind=PolicySourceKind.principal, uri=principal.arn or ""),
                 PolicyDocument(policy.policy_document),
             )
             for policy in principal.user_policies
@@ -705,7 +705,7 @@ class AccessEdgeCreator:
                 if doc := to_node.policy_document_json():
                     attached_policies.append(
                         (
-                            PolicySource(kind=PolicySourceKind.Principal, uri=to_node.arn or ""),
+                            PolicySource(kind=PolicySourceKind.principal, uri=to_node.arn or ""),
                             PolicyDocument(doc),
                         )
                     )
@@ -717,7 +717,7 @@ class AccessEdgeCreator:
                     if policy.policy_document:
                         group_policies.append(
                             (
-                                PolicySource(kind=PolicySourceKind.Group, uri=group.arn or ""),
+                                PolicySource(kind=PolicySourceKind.group, uri=group.arn or ""),
                                 PolicyDocument(policy.policy_document),
                             )
                         )
@@ -727,7 +727,7 @@ class AccessEdgeCreator:
                         if doc := group_successor.policy_document_json():
                             group_policies.append(
                                 (
-                                    PolicySource(kind=PolicySourceKind.Group, uri=group_successor.arn or ""),
+                                    PolicySource(kind=PolicySourceKind.group, uri=group_successor.arn or ""),
                                     PolicyDocument(doc),
                                 )
                             )
@@ -738,7 +738,7 @@ class AccessEdgeCreator:
         # not really a principal, but could be useful to have access edges for groups
         inline_policies = [
             (
-                PolicySource(kind=PolicySourceKind.Group, uri=principal.arn or ""),
+                PolicySource(kind=PolicySourceKind.group, uri=principal.arn or ""),
                 PolicyDocument(policy.policy_document),
             )
             for policy in principal.group_policies
@@ -751,7 +751,7 @@ class AccessEdgeCreator:
                 if doc := to_node.policy_document_json():
                     attached_policies.append(
                         (
-                            PolicySource(kind=PolicySourceKind.Group, uri=to_node.arn or ""),
+                            PolicySource(kind=PolicySourceKind.group, uri=to_node.arn or ""),
                             PolicyDocument(doc),
                         )
                     )
@@ -763,7 +763,7 @@ class AccessEdgeCreator:
         for doc in [p.policy_document for p in principal.role_policies if p.policy_document]:
             inline_policies.append(
                 (
-                    PolicySource(kind=PolicySourceKind.Principal, uri=principal.arn or ""),
+                    PolicySource(kind=PolicySourceKind.principal, uri=principal.arn or ""),
                     PolicyDocument(doc),
                 )
             )
@@ -774,7 +774,7 @@ class AccessEdgeCreator:
                 if policy_doc := to_node.policy_document_json():
                     attached_policies.append(
                         (
-                            PolicySource(kind=PolicySourceKind.Principal, uri=to_node.arn or ""),
+                            PolicySource(kind=PolicySourceKind.principal, uri=to_node.arn or ""),
                             PolicyDocument(policy_doc),
                         )
                     )

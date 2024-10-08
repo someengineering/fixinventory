@@ -80,7 +80,7 @@ class AwsSecretsManagerSecret(HasResourcePolicy, AwsResource):
         if not self.policy:
             return []
 
-        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

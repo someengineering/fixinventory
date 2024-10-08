@@ -62,7 +62,7 @@ class AwsSnsTopic(AwsResource, HasResourcePolicy):
         if not self.topic_policy:
             return []
 
-        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.topic_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.topic_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
