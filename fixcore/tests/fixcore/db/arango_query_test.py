@@ -331,29 +331,29 @@ def test_load_time_series() -> None:
     q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, group_by=[])
     assert (
         q == "LET m1 = ( FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 "
-        "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
+        "LET m0 = (FLOOR((d.at + @b4) / @b3) * @b3) - @b4 "
         "COLLECT group_slot=m0, complete_group=d.group "
         "AGGREGATE slot_avg = AVG(d.v) "
         "RETURN {at: group_slot, group: complete_group, v: slot_avg} )\n "
         "FOR d in m1 COLLECT group_slot=d.at AGGREGATE agg_val=avg(d.v) "
         "SORT group_slot RETURN {at: group_slot, v: agg_val}"
     )
-    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 2800}
     # no group by defined --> group by all values
     q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour)
     assert (
         q == "FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 "
-        "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
+        "LET m0 = (FLOOR((d.at + @b4) / @b3) * @b3) - @b4 "
         "COLLECT group_slot=m0, complete_group=d.group "
         "AGGREGATE slot_avg = AVG(d.v) "
         "RETURN {at: group_slot, group: complete_group, v: slot_avg}"
     )
-    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 2800}
     # group by specific group variables
     q, bv = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, group_by=["a", "b"])
     assert (
         q == "LET m1 = ( FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 "
-        "LET m0 = (FLOOR(d.at / @b3) * @b3) + @b4 "
+        "LET m0 = (FLOOR((d.at + @b4) / @b3) * @b3) - @b4 "
         "COLLECT group_slot=m0, complete_group=d.group "
         "AGGREGATE slot_avg = AVG(d.v) "
         "RETURN {at: group_slot, group: complete_group, v: slot_avg} )\n "
@@ -362,14 +362,14 @@ def test_load_time_series() -> None:
         "AGGREGATE agg_val=avg(d.v) "
         "SORT group_slot RETURN {at: group_slot,group: { a: group_a, b: group_b }, v: agg_val}"
     )
-    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 800}
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": 3600, "b4": 2800}
     # group by specific group variables and filter by group variables
     q, bv = load_time_series(
         "ts", "foo", now - (24 * one_hour), now, one_hour, group_by=["a", "b"], group_filter=[P("a").eq("a")]
     )
     assert (
         q == "LET m1 = ( FOR d in `ts` FILTER d.ts==@b0 AND d.at>=@b1 AND d.at<@b2 FILTER d.group.a == @b3 "
-        "LET m0 = (FLOOR(d.at / @b4) * @b4) + @b5 "
+        "LET m0 = (FLOOR((d.at + @b5) / @b4) * @b4) - @b5 "
         "COLLECT group_slot=m0, complete_group=d.group "
         "AGGREGATE slot_avg = AVG(d.v) RETURN {at: group_slot, group: complete_group, v: slot_avg} )\n "
         "FOR d in m1 "
@@ -377,7 +377,7 @@ def test_load_time_series() -> None:
         "AGGREGATE agg_val=avg(d.v) "
         "SORT group_slot RETURN {at: group_slot,group: { a: group_a, b: group_b }, v: agg_val}"
     )
-    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": "a", "b4": 3600, "b5": 800}
+    assert bv == {"b0": "foo", "b1": 1699913600, "b2": 1700000000, "b3": "a", "b4": 3600, "b5": 2800}
     # use avg-factor
     q, _ = load_time_series("ts", "foo", now - (24 * one_hour), now, one_hour, avg_factor=1000)
     assert "slot_avg = AVG(d.v / @b" in q  # factor divides average
