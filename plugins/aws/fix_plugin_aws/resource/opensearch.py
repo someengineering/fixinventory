@@ -250,9 +250,8 @@ class AwsOpenSearchOffPeakWindowOptions:
 class AwsOpenSearchDomain(AwsResource):
     kind: ClassVar[str] = "aws_opensearch_domain"
     _kind_display: ClassVar[str] = "AWS OpenSearch Domain"
-    _kind_description: ClassVar[str] = "An AWS OpenSearch Domain provides a managed environment in the AWS cloud to easily deploy, operate, and scale OpenSearch, a popular search and analytics engine."  # fmt: skip
-    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/accounts/latest/reference/welcome.html"
-
+    _kind_description: ClassVar[str] = "AWS OpenSearch Domain is a managed service for deploying, operating, and scaling OpenSearch clusters. It provides a search and analytics engine for indexing, searching, and analyzing large volumes of data. OpenSearch Domain supports full-text search, log analytics, application monitoring, and security information and event management (SIEM) use cases across various data types."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/what-is.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {

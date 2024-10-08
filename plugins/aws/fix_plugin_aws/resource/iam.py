@@ -219,7 +219,7 @@ class AwsIamServerCertificate(AwsResource, BaseCertificate):
     kind: ClassVar[str] = "aws_iam_server_certificate"
     _kind_display: ClassVar[str] = "AWS IAM Server Certificate"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:iam:{region}:{account}:server-certificate/{name}"}  # fmt: skip
-    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS IAM Server Certificate is a digital credential used to secure network communications for AWS services and applications. It authenticates the identity of servers and encrypts data transmitted between clients and servers. IAM Server Certificates can be managed, rotated, and deployed across multiple AWS regions to establish secure HTTPS connections for websites and applications."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
@@ -615,10 +615,7 @@ class AwsRootUser(AwsResource, BaseUser, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_root_user"
     _kind_display: ClassVar[str] = "AWS Root User"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:None:{region}:{account}:resource/{id}"}  # fmt: skip
-    _kind_description: ClassVar[str] = (
-        "The AWS Root User is the initial user created when setting up an AWS account"
-        " and has unrestricted access to all resources in the account."
-    )
+    _kind_description: ClassVar[str] = "The AWS Root User is the primary account holder for an Amazon Web Services (AWS) account. It has full access to all AWS services and resources within the account. The Root User can create and manage other users, assign permissions, and make billing changes. It should be used sparingly for security reasons."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
@@ -637,7 +634,7 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
     kind: ClassVar[str] = "aws_iam_user"
     _kind_display: ClassVar[str] = "AWS IAM User"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/iam/home?region={region}#/users/details/{name}", "arn_tpl": "arn:{partition}:iam::{account}:user/{name}"}  # fmt: skip
-    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS IAM User is an identity within Amazon Web Services that represents a person or application. It has associated credentials and permissions that determine its access to AWS services and resources. IAM Users can be assigned to groups, given specific policies, and authenticated using passwords or access keys for programmatic access to AWS."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "get-account-authorization-details")

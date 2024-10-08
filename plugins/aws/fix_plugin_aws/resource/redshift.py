@@ -417,7 +417,7 @@ class AwsRedshiftLoggingStatus:
 class AwsRedshiftCluster(AwsResource):
     kind: ClassVar[str] = "aws_redshift_cluster"
     _kind_display: ClassVar[str] = "AWS Redshift Cluster"
-    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _kind_description: ClassVar[str] = "An Amazon Redshift Cluster is a managed data warehouse service that stores and processes large datasets. It uses columnar storage and parallel query execution to analyze data across multiple nodes. Amazon Redshift can handle structured and semi-structured data, integrates with various data analysis tools, and offers options for scaling compute and storage resources independently."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/redshift/latest/mgmt/managing-clusters-console.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "cluster", "group": "database"}
