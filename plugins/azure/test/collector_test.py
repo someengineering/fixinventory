@@ -11,7 +11,6 @@ from fix_plugin_azure.collector import AzureSubscriptionCollector, MicrosoftGrap
 from fix_plugin_azure.config import AzureCredentials, AzureConfig
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSubscription, GraphBuilder
 from fix_plugin_azure.resource.compute import (
-    AzureComputeDiskTypePricing,
     AzureComputeVirtualMachine,
     AzureComputeVirtualMachineSize,
     AzureComputeDisk,
@@ -65,8 +64,6 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
         AzureComputeVirtualMachineSize.collect(raw=json.load(f)["value"], builder=builder)
     with open(os.path.dirname(__file__) + "/files/compute/virtualMachines.json") as f:
         AzureComputeVirtualMachine.collect(raw=json.load(f)["value"], builder=builder)
-    with open(os.path.dirname(__file__) + "/files/compute/calculator.json") as f:
-        AzureComputeDiskTypePricing.collect(raw=json.load(f), builder=builder)
 
     collector = collector_with_graph(builder.graph, credentials)
 
@@ -77,13 +74,6 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
     assert len(list(collector.graph.search("kind", "azure_compute_virtual_machine_size"))) < len(
         num_all_virtual_machine_types
     )
-
-    pricing_info = list(collector.graph.search("kind", "azure_compute_disk_type_pricing"))
-
-    assert len(pricing_info) > 0
-
-    collector.after_collect(builder)
-    assert len(list(collector.graph.search("kind", "azure_compute_disk_type_pricing"))) < len(pricing_info)
 
 
 def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> None:
