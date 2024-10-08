@@ -1,5 +1,4 @@
 import logging
-from re import T
 import threading
 import time
 import uuid
