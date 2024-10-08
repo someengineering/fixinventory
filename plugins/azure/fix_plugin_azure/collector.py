@@ -276,6 +276,7 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_leaf_nodes(AzurePostgresqlServerType, AzureSubscription)
         rm_leaf_nodes(AzureCosmosDBLocation, AzureLocation, check_pred=False)
         rm_leaf_nodes(AzureLocation, check_pred=False)
+        rm_nodes(AzureComputeDiskTypePricing, AzureSubscription)
         remove_usage_zero_value()
         self.graph.remove_recursively(builder.nodes(AzureLocation, lambda r: r.compute_region_in_use(builder) is False))
 
