@@ -23,7 +23,16 @@ from fix_plugin_azure.resource.compute import (
     resources as compute_resources,
 )
 from fix_plugin_azure.resource.containerservice import resources as aks_resources
+from fix_plugin_azure.resource.cosmosdb import (
+    AzureCosmosDBLocation,
+    resources as cosmosdb_resources,
+)
 from fix_plugin_azure.resource.keyvault import resources as keyvault_resources
+from fix_plugin_azure.resource.machinelearning import (
+    AzureMachineLearningUsage,
+    AzureMachineLearningVirtualMachineSize,
+    resources as ml_resources,
+)
 from fix_plugin_azure.resource.microsoft_graph import (
     MicrosoftGraphOrganization,
     resources as graph_resources,
@@ -43,17 +52,8 @@ from fix_plugin_azure.resource.postgresql import (
 )
 from fix_plugin_azure.resource.security import resources as security_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
-from fix_plugin_azure.resource.cosmosdb import (
-    AzureCosmosDBLocation,
-    resources as cosmosdb_resources,
-)
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fix_plugin_azure.resource.web import resources as web_resources
-from fix_plugin_azure.resource.machinelearning import (
-    AzureMachineLearningUsage,
-    AzureMachineLearningVirtualMachineSize,
-    resources as ml_resources,
-)
 from fixlib.baseresources import Cloud, GraphRoot, BaseAccount, BaseRegion
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
@@ -100,6 +100,7 @@ class MicrosoftBaseCollector:
         core_feedback: CoreFeedback,
         task_data: Optional[Json] = None,
         max_resources_per_account: Optional[int] = None,
+        filter_unused_resources: bool = True,
     ):
         self.config = config
         self.cloud = cloud
@@ -108,6 +109,7 @@ class MicrosoftBaseCollector:
         self.core_feedback = core_feedback
         self.graph = Graph(root=account, max_nodes=max_resources_per_account)
         self.task_data = task_data
+        self.filter_unused_resources = filter_unused_resources
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
@@ -165,13 +167,14 @@ class MicrosoftBaseCollector:
             queue.wait_for_submitted_work()
 
             # post-process nodes
-            self.remove_unused()
+            if self.filter_unused_resources:
+                self.remove_unused(builder)
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, MicrosoftResource):
                     node.after_collect(builder, data.get("source", {}))
 
             # delete unnecessary nodes after all work is completed
-            self.after_collect()
+            self.after_collect(builder)
             # report all accumulated errors
             error_accumulator.report_all(self.core_feedback)
             self.core_feedback.progress_done(self.account.id, 1, 1, context=[self.cloud.id])
@@ -205,10 +208,10 @@ class MicrosoftBaseCollector:
     def locations(self, builder: GraphBuilder) -> Dict[str, BaseRegion]:
         pass
 
-    def remove_unused(self) -> None:
+    def remove_unused(self, builder: GraphBuilder) -> None:
         pass
 
-    def after_collect(self) -> None:
+    def after_collect(self, builder: GraphBuilder) -> None:
         pass
 
 
@@ -234,10 +237,10 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
                 self.collect_resource_list(location.safe_name, builder.with_location(location), regional_resources)
                 processed_locations.add(location.safe_name)
 
-    def remove_unused(self) -> None:
+    def remove_unused(self, builder: GraphBuilder) -> None:
         remove_nodes = []
 
-        def rm_nodes(cls, ignore_kinds: Optional[Type[Any]] = None, check_pred: bool = True) -> None:  # type: ignore
+        def rm_leaf_nodes(cls: Any, ignore_kinds: Optional[Type[Any]] = None, check_pred: bool = True) -> None:
             for node in self.graph.nodes:
                 if not isinstance(node, cls):
                     continue
@@ -263,19 +266,20 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
                     remove_nodes.append(node)
             self._delete_nodes(remove_nodes)
 
-        rm_nodes(AzureComputeVirtualMachineSize, AzureLocation)
-        rm_nodes(AzureNetworkExpressRoutePortsLocation, AzureSubscription)
-        rm_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
-        rm_nodes(AzureComputeDiskType, AzureSubscription)
-        rm_nodes(AzureMachineLearningVirtualMachineSize, AzureLocation)
-        rm_nodes(AzureStorageSku, AzureLocation)
-        rm_nodes(AzureMysqlServerType, AzureSubscription)
-        rm_nodes(AzurePostgresqlServerType, AzureSubscription)
-        rm_nodes(AzureCosmosDBLocation, AzureLocation, check_pred=False)
-        rm_nodes(AzureLocation, check_pred=False)
+        rm_leaf_nodes(AzureComputeVirtualMachineSize, AzureLocation)
+        rm_leaf_nodes(AzureNetworkExpressRoutePortsLocation, AzureSubscription)
+        rm_leaf_nodes(AzureNetworkVirtualApplianceSku, AzureSubscription)
+        rm_leaf_nodes(AzureComputeDiskType, AzureSubscription)
+        rm_leaf_nodes(AzureMachineLearningVirtualMachineSize, AzureLocation)
+        rm_leaf_nodes(AzureStorageSku, AzureLocation)
+        rm_leaf_nodes(AzureMysqlServerType, AzureSubscription)
+        rm_leaf_nodes(AzurePostgresqlServerType, AzureSubscription)
+        rm_leaf_nodes(AzureCosmosDBLocation, AzureLocation, check_pred=False)
+        rm_leaf_nodes(AzureLocation, check_pred=False)
         remove_usage_zero_value()
+        self.graph.remove_recursively(builder.nodes(AzureLocation, lambda r: r.region_in_use is False))
 
-    def after_collect(self) -> None:
+    def after_collect(self, builder: GraphBuilder) -> None:
         # Filter unnecessary nodes such as AzureComputeDiskTypePricing
         nodes_to_remove = []
         node_types = (AzureComputeDiskTypePricing,)

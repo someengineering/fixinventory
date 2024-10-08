@@ -2,24 +2,23 @@ from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import quote_plus as urlquote
 from abc import ABC
 from concurrent.futures import Future
 from datetime import datetime, timezone, timedelta
 from functools import lru_cache
 from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, Type, TypeVar, Tuple
+from urllib.parse import quote_plus as urlquote
 
-from math import ceil
-
-from attr import evolve, field
+from attr import evolve
 from attrs import define
 from boto3.exceptions import Boto3Error
+from fixinventorydata.cloud import instances as cloud_instance_data, regions as cloud_region_data
+from math import ceil
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource.pricing import AwsPricingPrice
 from fix_plugin_aws.utils import arn_partition
-from fixlib.utils import utc
 from fixlib.baseresources import (
     BaseAccount,
     BaseIamPrincipal,
@@ -40,7 +39,7 @@ from fixlib.lock import RWLock
 from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
-from fixinventorydata.cloud import instances as cloud_instance_data, regions as cloud_region_data
+from fixlib.utils import utc
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -362,7 +361,6 @@ class AwsRegion(BaseRegion, AwsResource):
             ]
         }
     }
-    region_in_use: Optional[bool] = field(default=None, metadata={"description": "Indicates if the region is in use."})
 
     def __attrs_post_init__(self) -> None:
         super().__attrs_post_init__()
@@ -374,12 +372,30 @@ class AwsRegion(BaseRegion, AwsResource):
 
     def complete_graph(self, builder: GraphBuilder, source: Json) -> None:
         count = 0
-        # A region with less than 10 real resources is considered not in use.
+        ignore_kinds = {
+            "aws_athena_work_group",
+            "aws_cloud_trail",
+            "aws_ec2_internet_gateway",
+            "aws_ec2_network_acl",
+            "aws_ec2_security_group",
+            "aws_ec2_subnet",
+            "aws_ec2_route_table",
+        }
+
+        def ignore_for_count(resource: BaseResource) -> bool:
+            if isinstance(resource, PhantomBaseResource):
+                return True
+            if resource.kind == "aws_vpc" and getattr(resource, "vpc_is_default", False):
+                return True
+            if resource.kind in ignore_kinds:
+                return True
+            return False
+
+        # A region with less than 3 real resources is considered not in use.
         # AWS is creating a couple of resources in every region automatically.
-        # The number 10 is chosen by looking into different empty regions.
-        empty_region = 10
+        empty_region = 3
         for succ in builder.graph.descendants(self):
-            if not isinstance(succ, PhantomBaseResource):
+            if not ignore_for_count(succ):
                 count += 1
                 if count > empty_region:
                     break
@@ -487,11 +503,17 @@ class GraphBuilder:
                     return n  # type: ignore
         return None
 
-    def nodes(self, clazz: Optional[Type[AwsResourceType]] = None, **node: Any) -> Iterator[AwsResourceType]:
+    def nodes(
+        self, clazz: Optional[Type[AwsResourceType]] = None, filter: Optional[Callable[[Any], bool]] = None, **node: Any
+    ) -> Iterator[AwsResourceType]:
         with self.graph_nodes_access.read_access:
             for n in self.graph:
                 is_clazz = isinstance(n, clazz) if clazz else True
-                if is_clazz and all(getattr(n, k, None) == v for k, v in node.items()):
+                if (
+                    is_clazz
+                    and (filter(n) if filter else True)
+                    and all(getattr(n, k, None) == v for k, v in node.items())
+                ):
                     yield n
 
     def add_node(

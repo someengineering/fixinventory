@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from concurrent.futures import Future
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast, Union
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast, Union, Set
 
 from attr import define, field
 from azure.identity import DefaultAzureCredential
@@ -19,6 +19,7 @@ from fixlib.baseresources import (
     BaseAccount,
     BaseRegion,
     ModelReference,
+    PhantomBaseResource,
 )
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
@@ -340,6 +341,27 @@ class AzureLocation(MicrosoftResource, BaseRegion):
     location_metadata: Optional[AzureLocationMetadata] = field(default=None, metadata={'description': 'Location metadata information.'})  # fmt: skip
     regional_display_name: Optional[str] = field(default=None, metadata={'description': 'The display name of the location and its region.'})  # fmt: skip
     subscription_id: Optional[str] = field(default=None, metadata={"description": "The subscription id."})
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        ignore_kinds: Set[str] = {"azure_network_virtual_network", "azure_network_watcher"}
+
+        def ignore_for_count(resource: BaseResource) -> bool:
+            if isinstance(resource, PhantomBaseResource):
+                return True
+            if resource.kind in ignore_kinds:
+                return True
+            return False
+
+        # A region with less than 3 real resources is considered not in use.
+        # Azure is creating a couple of resources in every region automatically.
+        count = 0
+        empty_region = 3
+        for succ in graph_builder.graph.descendants(self):
+            if not ignore_for_count(succ):
+                count += 1
+                if count > empty_region:
+                    break
+        self.region_in_use = count > empty_region
 
 
 @define(eq=False, slots=False)

@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from functools import lru_cache
 from time import time
-from typing import Dict, Iterator, List, Tuple, Optional, Union, Any, Type, TypeVar, Set
+from typing import Dict, Iterator, List, Tuple, Optional, Union, Any, Type, TypeVar, Set, Iterable
 
 import networkx
 from attr import resolve_types
@@ -166,6 +166,13 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
             # We hand a reference to ourselves to the added BaseResource
             # which stores it as a weakref.
             node_for_adding._graph = self
+
+    def remove_recursively(self, nodes: Iterable[Any]) -> None:
+        remove_nodes = set()
+        for node in nodes:
+            remove_nodes.add(node)
+            remove_nodes.update(self.successors(node))
+        self.remove_nodes_from(remove_nodes)
 
     def has_edge(
         self, src: BaseResource, dst: BaseResource, key: Optional[EdgeKey] = None, edge_type: Optional[EdgeType] = None
