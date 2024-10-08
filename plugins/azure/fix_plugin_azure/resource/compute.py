@@ -39,7 +39,6 @@ from fixlib.baseresources import (
     InstanceStatus,
     ModelReference,
     EdgeType,
-    PhantomBaseResource,
 )
 from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F
 from fixlib.types import Json
