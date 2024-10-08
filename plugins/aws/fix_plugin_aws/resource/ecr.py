@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from json import loads as json_loads
 
 from attrs import define, field
@@ -8,6 +8,7 @@ from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import ToDict
+from fixlib.baseresources import HasResourcePolicy, PolicySource, PolicySourceKind
 from fixlib.json import sort_json
 from fixlib.json_bender import Bender, S, Bend
 from fixlib.types import Json
@@ -25,7 +26,7 @@ class AwsEcrEncryptionConfiguration:
 
 
 @define(eq=False, slots=False)
-class AwsEcrRepository(AwsResource):
+class AwsEcrRepository(AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_ecr_repository"
     _kind_display: ClassVar[str] = "AWS ECR Repository"
     _kind_description: ClassVar[str] = "AWS ECR (Elastic Container Registry) is a managed Docker container registry service. It stores, manages, and deploys container images for applications. ECR integrates with other AWS services, provides secure access control, and supports image scanning for vulnerabilities. Users can push, pull, and share Docker images within their AWS environment or with external parties."  # fmt: skip
@@ -56,6 +57,11 @@ class AwsEcrRepository(AwsResource):
     repository_visibility: Optional[str] = field(default=None, metadata={"description": "The repository is either public or private."})  # fmt: skip
     lifecycle_policy: Optional[Json] = field(default=None, metadata={"description": "The repository lifecycle policy."})  # fmt: skip
     repository_policy: Optional[Json] = field(default=None, metadata={"description": "The repository policy."})  # fmt: skip
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.repository_policy:
+            return []
+        return [(PolicySource(PolicySourceKind.resource, self.repository_arn or ""), self.repository_policy or {})]
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:

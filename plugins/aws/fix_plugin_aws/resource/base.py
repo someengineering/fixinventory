@@ -580,13 +580,21 @@ class GraphBuilder:
         return node
 
     def add_edge(
-        self, from_node: BaseResource, edge_type: EdgeType = EdgeType.default, reverse: bool = False, **to_node: Any
+        self,
+        from_node: BaseResource,
+        edge_type: EdgeType = EdgeType.default,
+        reverse: bool = False,
+        reported: Optional[Json] = None,
+        **to_node: Any,
     ) -> None:
         to_n = self.node(**to_node)
         if isinstance(from_node, AwsResource) and isinstance(to_n, AwsResource):
             start, end = (to_n, from_node) if reverse else (from_node, to_n)
             with self.graph_edges_access.write_access:
-                self.graph.add_edge(start, end, edge_type=edge_type)
+                kwargs: Dict[str, Any] = {}
+                if reported:
+                    kwargs["reported"] = reported
+                self.graph.add_edge(start, end, edge_type=edge_type, **kwargs)
 
     def add_deferred_edge(
         self, from_node: BaseResource, edge_type: EdgeType, to_node: str, reverse: bool = False

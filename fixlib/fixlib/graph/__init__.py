@@ -122,7 +122,7 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
 
         try:
             self._log_edge_creation = False
-            self.update(edges=graph.edges, nodes=graph.nodes)
+            self.update(edges=graph.edges(keys=True, data=True), nodes=graph.nodes)
             self.deferred_edges.extend(graph.deferred_edges)
         finally:
             self._log_edge_creation = True
@@ -647,17 +647,18 @@ class GraphExportIterator:
             if not self.found_replace_node:
                 log.warning(f"No nodes of kind {self.graph_merge_kind.kind} found in graph")
             start_time = time()
-            for edge in self.graph.edges:
-                from_node = edge[0]
-                to_node = edge[1]
+            for from_node, to_node, key, data in self.graph.edges(keys=True, data=True):
                 if not isinstance(from_node, BaseResource) or not isinstance(to_node, BaseResource):
                     log.error(f"One of {from_node} and {to_node} is no base resource")
                     continue
                 edge_dict = {"from": from_node.chksum, "to": to_node.chksum}
-                if len(edge) == 3:
-                    key = edge[2]
+                if key:
                     if isinstance(key, EdgeKey) and key.edge_type != EdgeType.default:
                         edge_dict["edge_type"] = key.edge_type.value
+
+                if reported := data.get("reported"):
+                    edge_dict["reported"] = reported
+
                 edge_json = json.dumps(edge_dict) + "\n"
                 self.tempfile.write(edge_json.encode())
                 self.total_lines += 1

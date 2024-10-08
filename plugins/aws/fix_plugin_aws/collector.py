@@ -2,10 +2,11 @@ import logging
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from typing import List, Type, Optional, ClassVar, Union, cast, Dict, Any
+from typing import Any, Dict, List, Type, Optional, ClassVar, Union, cast, Dict, Any
 
 from attrs import define
 
+from fix_plugin_aws.access_edges import AccessEdgeCreator
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource import (
@@ -253,6 +254,13 @@ class AwsAccountCollector:
                 else:
                     log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
+
+            access_edge_collection_enabled = False
+            if access_edge_collection_enabled and global_builder.config.collect_access_edges:
+                # add access edges
+                log.info(f"[Aws:{self.account.id}] Create access edges.")
+                access_edge_creator = AccessEdgeCreator(global_builder)
+                access_edge_creator.add_access_edges()
 
             # final hook when the graph is complete
             for node, data in list(self.graph.nodes(data=True)):

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import ClassVar, Dict, List, Optional, Type, Any
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
@@ -8,7 +8,7 @@ from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_fa
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import EdgeType, MetricName, ModelReference
+from fixlib.baseresources import EdgeType, HasResourcePolicy, MetricName, ModelReference, PolicySource, PolicySourceKind
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, bend, ParseJson, Sorted
 from fixlib.types import Json
@@ -17,7 +17,7 @@ service_name = "sns"
 
 
 @define(eq=False, slots=False)
-class AwsSnsTopic(AwsResource):
+class AwsSnsTopic(AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_sns_topic"
     _kind_display: ClassVar[str] = "AWS SNS Topic"
     _kind_description: ClassVar[str] = "AWS SNS Topic is a messaging service that facilitates communication between distributed systems, applications, and microservices. It implements a publish-subscribe model, where publishers send messages to topics and subscribers receive those messages. SNS supports multiple protocols for message delivery, including HTTP, email, SMS, and mobile push notifications, making it useful for various notification scenarios."  # fmt: skip
@@ -57,6 +57,12 @@ class AwsSnsTopic(AwsResource):
     topic_kms_master_key_id: Optional[str] = field(default=None)
     topic_fifo_topic: Optional[bool] = field(default=None)
     topic_content_based_deduplication: Optional[bool] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.topic_policy or not self.arn:
+            return []
+
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.topic_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

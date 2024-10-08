@@ -1,5 +1,5 @@
 import json
-from typing import Optional, ClassVar, Dict, List, Type, Any
+from typing import Optional, ClassVar, Dict, List, Tuple, Type, Any
 
 
 import math
@@ -9,7 +9,7 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import ModelReference, BaseNetworkShare
+from fixlib.baseresources import HasResourcePolicy, ModelReference, BaseNetworkShare, PolicySource, PolicySourceKind
 from fixlib.graph import Graph
 from fixlib.json import sort_json
 from fixlib.json_bender import Bender, S, F, Bend
@@ -75,7 +75,7 @@ class AwsEfsMountTarget(AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
+class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare, HasResourcePolicy):
     kind: ClassVar[str] = "aws_efs_file_system"
     _kind_display: ClassVar[str] = "AWS EFS File System"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/efs/home?region={region}#/file-systems/{FileSystemId}", "arn_tpl": "arn:{partition}:efs:{region}:{account}:file-system/{id}"}  # fmt: skip
@@ -115,6 +115,12 @@ class AwsEfsFileSystem(EfsTaggable, AwsResource, BaseNetworkShare):
     provisioned_throughput_in_mibps: Optional[float] = field(default=None)
     availability_zone_name: Optional[str] = field(default=None)
     file_system_policy: Optional[Json] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.file_system_policy or not self.arn:
+            return []
+
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.file_system_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

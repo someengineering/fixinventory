@@ -377,6 +377,9 @@ class AwsIamPolicy(AwsResource, BasePolicy):
     def service_name(cls) -> str:
         return service_name
 
+    def policy_document_json(self) -> Optional[Json]:
+        return self.policy_document.document if self.policy_document else None
+
 
 @define(eq=False, slots=False)
 class AwsIamGroup(AwsResource, BaseGroup):
