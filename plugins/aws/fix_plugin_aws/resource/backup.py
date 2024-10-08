@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, ClassVar, Dict, Optional, List, Type
+from typing import Any, ClassVar, Dict, Optional, List, Tuple, Type
 from json import loads as json_loads
 
 from attrs import define, field
@@ -15,7 +15,7 @@ from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
 from fix_plugin_aws.resource.redshift import AwsRedshiftCluster
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import TagsValue
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -304,7 +304,7 @@ class AwsBackupPlan(BackupResourceTaggable, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsBackupVault(BackupResourceTaggable, AwsResource):
+class AwsBackupVault(BackupResourceTaggable, AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_backup_vault"
     _kind_display: ClassVar[str] = "AWS Backup Vault"
     _kind_description: ClassVar[str] = "AWS Backup Vault is a secure storage container for backup data in AWS Backup. It stores and organizes backup copies, providing encryption and access policies to protect backups. Users can create multiple vaults to separate backups by application, environment, or compliance requirements. AWS Backup Vault supports retention policies and lifecycle management for stored backups."  # fmt: skip
@@ -340,6 +340,12 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource):
     max_retention_days: Optional[int] = field(default=None, metadata={"description": "The Backup Vault Lock setting that specifies the maximum retention period that the vault retains its recovery points. If this parameter is not specified, Vault Lock does not enforce a maximum retention period on the recovery points in the vault (allowing indefinite storage). If specified, any backup or copy job to the vault must have a lifecycle policy with a retention period equal to or shorter than the maximum retention period. If the job's retention period is longer than that maximum retention period, then the vault fails the backup or copy job, and you should either modify your lifecycle settings or use a different vault. Recovery points already stored in the vault prior to Vault Lock are not affected."})  # fmt: skip
     lock_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time when Backup Vault Lock configuration becomes immutable, meaning it cannot be changed or deleted. If you applied Vault Lock to your vault without specifying a lock date, you can change your Vault Lock settings, or delete Vault Lock from the vault entirely, at any time. This value is in Unix format, Coordinated Universal Time (UTC), and accurate to milliseconds. For example, the value 1516925490.087 represents Friday, January 26, 2018 12:11:30.087 AM."})  # fmt: skip
     vault_policy: Optional[Json] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.vault_policy:
+            return []
+
+        return [(PolicySource(PolicySourceKind.Resource, uri=self.arn or ""), self.vault_policy or {})]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

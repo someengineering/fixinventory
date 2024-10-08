@@ -10,7 +10,7 @@
         "fixworker/test"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": false,
+    "python.testing.pytestEnabled": true,
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true

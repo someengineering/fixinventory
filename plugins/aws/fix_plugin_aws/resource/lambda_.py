@@ -2,70 +2,30 @@ from datetime import timedelta
 import json as json_p
 import logging
 import re
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
-from fix_plugin_aws.resource.apigateway import AwsApiGatewayRestApi, AwsApiGatewayResource
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fixlib.baseresources import (
     BaseServerlessFunction,
+    HasResourcePolicy,
     MetricName,
     ModelReference,
+    PolicySource,
+    PolicySourceKind,
 )
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F, bend
 from fixlib.types import Json
+from fixlib.json import sort_json
 
 log = logging.getLogger("fix.plugins.aws")
 
 service_name = "lambda"
-
-
-@define(eq=False, slots=False)
-class AwsLambdaPolicyStatement:
-    kind: ClassVar[str] = "aws_lambda_policy_statement"
-    kind_display: ClassVar[str] = "AWS Lambda Policy Statement"
-    kind_description: ClassVar[str] = (
-        "Lambda Policy Statements are used to define permissions for AWS Lambda"
-        " functions, specifying what actions can be performed and by whom."
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "sid": S("Sid"),
-        "effect": S("Effect"),
-        "principal": S("Principal"),
-        "action": S("Action"),
-        "resource": S("Resource"),
-        "condition": S("Condition"),
-    }
-    sid: Optional[str] = field(default=None)
-    effect: Optional[str] = field(default=None)
-    principal: Optional[Any] = field(default=None)
-    action: Optional[Any] = field(default=None)
-    resource: Optional[Any] = field(default=None)
-    condition: Optional[Any] = field(default=None)
-
-
-@define(eq=False, slots=False)
-class AwsLambdaPolicy:
-    kind: ClassVar[str] = "aws_lambda_policy"
-    kind_display: ClassVar[str] = "AWS Lambda Policy"
-    kind_description: ClassVar[str] = (
-        "AWS Lambda Policies are permissions policies that determine what actions a"
-        " Lambda function can take and what resources it can access within the AWS"
-        " environment."
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Id"),
-        "version": S("Version"),
-        "statement": S("Statement") >> ForallBend(AwsLambdaPolicyStatement.mapping),
-    }
-    id: Optional[str] = field(default=None)
-    version: Optional[str] = field(default=None)
-    statement: Optional[List[AwsLambdaPolicyStatement]] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -230,7 +190,7 @@ class AwsLambdaFunctionUrlConfig:
 
 
 @define(eq=False, slots=False)
-class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
+class AwsLambdaFunction(AwsResource, BaseServerlessFunction, HasResourcePolicy):
     kind: ClassVar[str] = "aws_lambda_function"
     _kind_display: ClassVar[str] = "AWS Lambda Function"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/lambda/home?region={region}#/functions/{FunctionName}", "arn_tpl": "arn:{partition}:lambda:{region}:{account}:function/{name}"}  # fmt: skip
@@ -320,8 +280,14 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
     function_signing_job_arn: Optional[str] = field(default=None)
     function_architectures: List[str] = field(factory=list)
     function_ephemeral_storage: Optional[int] = field(default=None)
-    function_policy: Optional[AwsLambdaPolicy] = field(default=None)
+    function_policy: Optional[Json] = field(default=None)
     function_url_config: Optional[AwsLambdaFunctionUrlConfig] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.function_policy:
+            return []
+
+        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.function_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -342,7 +308,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 function.tags = tags
 
         def get_policy(function: AwsLambdaFunction) -> None:
-            if policy := builder.client.get(
+            if raw_policy := builder.client.get(
                 service_name,
                 "get-policy",
                 expected_errors=["ResourceNotFoundException"],  # policy is optional
@@ -350,33 +316,8 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction):
                 result_name="Policy",
             ):
                 # policy is defined as string, but it is actually a json object
-                mapped = bend(AwsLambdaPolicy.mapping, json_p.loads(policy))  # type: ignore
-                if policy_instance := parse_json(mapped, AwsLambdaPolicy, builder):
-                    function.function_policy = policy_instance
-                    for statement in policy_instance.statement or []:
-                        if (
-                            statement.principal
-                            and statement.condition
-                            and isinstance(statement.principal, dict)
-                            and statement.principal.get("Service") == "apigateway.amazonaws.com"
-                            and (arn_like := statement.condition.get("ArnLike")) is not None
-                            and (source := arn_like.get("AWS:SourceArn")) is not None
-                        ):
-                            source_arn = source.rsplit(":")[-1]
-                            rest_api_id = source_arn.split("/")[0]
-                            builder.dependant_node(
-                                function,
-                                reverse=True,
-                                clazz=AwsApiGatewayRestApi,
-                                id=rest_api_id,
-                            )
-                            builder.dependant_node(
-                                function,
-                                reverse=True,
-                                clazz=AwsApiGatewayResource,
-                                api_link=rest_api_id,
-                                resource_path="/" + source_arn.split("/")[-1],
-                            )
+                json_policy = json_p.loads(raw_policy)  # type: ignore
+                function.function_policy = sort_json(json_policy, sort_list=True)
 
         def get_url_config(function: AwsLambdaFunction) -> None:
             if config := builder.client.get(

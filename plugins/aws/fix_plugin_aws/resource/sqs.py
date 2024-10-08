@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type, Any
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 
 
 from attrs import define, field
@@ -8,7 +8,14 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.kms import AwsKmsKey
-from fixlib.baseresources import BaseQueue, MetricName, ModelReference
+from fixlib.baseresources import (
+    BaseQueue,
+    HasResourcePolicy,
+    MetricName,
+    ModelReference,
+    PolicySource,
+    PolicySourceKind,
+)
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
 from fixlib.types import Json
@@ -35,7 +42,7 @@ class AwsSqsRedrivePolicy:
 
 
 @define(eq=False, slots=False)
-class AwsSqsQueue(AwsResource, BaseQueue):
+class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
     kind: ClassVar[str] = "aws_sqs_queue"
     _kind_display: ClassVar[str] = "AWS SQS Queue"
     _kind_description: ClassVar[str] = "AWS SQS Queue is a managed message queuing service that facilitates communication between distributed system components. It stores messages from producers and delivers them to consumers, ensuring reliable data transfer. SQS supports multiple messaging patterns, including point-to-point and publish-subscribe, and handles message retention, delivery, and deletion. It integrates with other AWS services for building decoupled applications."  # fmt: skip
@@ -95,6 +102,12 @@ class AwsSqsQueue(AwsResource, BaseQueue):
     sqs_delay_seconds: Optional[int] = field(default=None)
     sqs_receive_message_wait_time_seconds: Optional[int] = field(default=None)
     sqs_managed_sse_enabled: Optional[bool] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.sqs_policy:
+            return []
+
+        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.sqs_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

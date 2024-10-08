@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Type, Any
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 from attrs import define, field
 from json import loads as json_loads
 
@@ -8,7 +8,7 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, 
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
 from fixlib.graph import Graph
 from fixlib.json_bender import S, Bend, Bender, ForallBend, bend
 from fixlib.types import Json
@@ -356,7 +356,7 @@ class AwsDynamoDbContinuousBackup:
 
 
 @define(eq=False, slots=False)
-class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
+class AwsDynamoDbTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_dynamodb_table"
     _kind_display: ClassVar[str] = "AWS DynamoDB Table"
     _kind_description: ClassVar[str] = "AWS DynamoDB Table is a fully managed NoSQL database service that stores and retrieves data. It supports key-value and document data models, offering automatic scaling and low-latency performance. DynamoDB Tables handle data storage, indexing, and querying, providing consistent read and write throughput. They offer data encryption, backup, and recovery features for secure and reliable data management."  # fmt: skip
@@ -418,6 +418,11 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
     dynamodb_table_class_summary: Optional[AwsDynamoDbTableClassSummary] = field(default=None)
     dynamodb_continuous_backup: Optional[AwsDynamoDbContinuousBackup] = field(default=None)
     dynamodb_policy: Optional[Json] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.dynamodb_policy:
+            return []
+        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.dynamodb_policy or {})]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -498,7 +503,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource):
 
 
 @define(eq=False, slots=False)
-class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
+class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_dynamodb_global_table"
     _kind_display: ClassVar[str] = "AWS DynamoDB Global Table"
     _kind_description: ClassVar[str] = "AWS DynamoDB Global Table is a feature that replicates DynamoDB tables across multiple AWS regions. It provides multi-region read and write access to data, ensuring low-latency access for globally distributed applications. Global Table maintains consistency across regions, handles conflict resolution, and offers automatic failover, improving availability and disaster recovery capabilities for applications with global user bases."  # fmt: skip
@@ -524,6 +529,9 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource):
     dynamodb_replication_group: List[AwsDynamoDbReplicaDescription] = field(factory=list)
     dynamodb_global_table_status: Optional[str] = field(default=None)
     dynamodb_policy: Optional[Json] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        return [(PolicySource(PolicySourceKind.Resource, self.arn or ""), self.dynamodb_policy or {})]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
