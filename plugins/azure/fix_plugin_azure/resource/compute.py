@@ -726,7 +726,7 @@ class AzurePricingOffers:
 
 
 @define(eq=False, slots=False)
-class AzureComputeDiskTypePricing(MicrosoftResource, PhantomBaseResource):
+class AzureComputeDiskTypePricing(MicrosoftResource):
     kind: ClassVar[str] = "azure_compute_disk_type_pricing"
     _kind_display: ClassVar[str] = "Azure Compute Disk Type Pricing"
     _kind_service: ClassVar[Optional[str]] = service_name

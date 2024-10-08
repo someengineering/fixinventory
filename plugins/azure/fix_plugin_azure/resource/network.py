@@ -36,7 +36,8 @@ from fixlib.baseresources import (
     BaseSubnet,
     BaseTunnel,
     ModelReference,
-    EdgeType, PhantomBaseResource,
+    EdgeType,
+    PhantomBaseResource,
 )
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber, Upper, Lower
 from fixlib.types import Json
