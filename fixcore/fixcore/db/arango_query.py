@@ -1157,9 +1157,9 @@ def load_time_series(
     time_slot = ctx.next_crs()
     slotter = int(granularity.total_seconds())
     gran = ctx.add_bind_var(slotter)
-    offset = int(start.timestamp() - ((start.timestamp() // slotter) * slotter))
+    offset = ctx.add_bind_var(slotter - int(start.timestamp() - ((start.timestamp() // slotter) * slotter)))
     # slot the time by averaging each single group
-    query += f" LET {time_slot} = (FLOOR(d.at / @{gran}) * @{gran}) + @{ctx.add_bind_var(offset)}"
+    query += f" LET {time_slot} = (FLOOR((d.at + @{offset}) / @{gran}) * @{gran}) - @{offset}"
     query += f" COLLECT group_slot={time_slot}, complete_group=d.group"
     if avg_factor:  # Required as long as https://github.com/arangodb/arangodb/issues/21096 is not fixed
         assert avg_factor > 0, "Given average factor must be greater than 0!"

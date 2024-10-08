@@ -91,13 +91,13 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
                 "bucket": "Bucket(start=5mo25d, end=2yr, resolution=3d)",
                 "start": "2021-12-01T00:00:00Z",
                 "end": "2023-06-04T00:00:00Z",
-                "data_points": 90,  # 24 days (1d->3d) --> 0,3,6,9,12,15,18,21,24 ==> 9 with 10 entries each ==> 90
+                "data_points": 80,  # 24 days (1d->3d) --> 0,3,6,9,12,15,18,21 ==> 8 with 10 entries each ==> 80
             },
         ]
     }
-    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 450
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
     assert await timeseries_db.downsample(now) == "No changes since last downsample run"
-    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 450
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 440
     assert await timeseries_db.downsample(now=now + timedelta(days=27)) == {
         "test": [
             {
@@ -114,7 +114,7 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
             },
         ]
     }
-    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 230
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 220
     assert await timeseries_db.downsample(now=now + timedelta(days=200)) == {
         "test": [
             {
@@ -125,9 +125,9 @@ async def test_compact_time_series(timeseries_db: TimeSeriesDB, foo_model: Model
             }
         ]
     }
-    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 140
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 130
     assert await timeseries_db.downsample(now=now + timedelta(days=400)) == {}
-    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 140
+    assert timeseries_db.db.collection(timeseries_db.collection_name).count() == 130
 
 
 async def test_acquire_lock(timeseries_db: TimeSeriesDB) -> None:
