@@ -276,20 +276,9 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_leaf_nodes(AzurePostgresqlServerType, AzureSubscription)
         rm_leaf_nodes(AzureCosmosDBLocation, AzureLocation, check_pred=False)
         rm_leaf_nodes(AzureLocation, check_pred=False)
-        rm_nodes(AzureComputeDiskTypePricing, AzureSubscription)
+        rm_leaf_nodes(AzureComputeDiskTypePricing, AzureSubscription)
         remove_usage_zero_value()
         self.graph.remove_recursively(builder.nodes(AzureLocation, lambda r: r.compute_region_in_use(builder) is False))
-
-    def after_collect(self, builder: GraphBuilder) -> None:
-        # Filter unnecessary nodes such as AzureComputeDiskTypePricing
-        nodes_to_remove = []
-        node_types = (AzureComputeDiskTypePricing,)
-
-        for node in self.graph.nodes:
-            if not isinstance(node, node_types):
-                continue
-            nodes_to_remove.append(node)
-        self._delete_nodes(nodes_to_remove)
 
     def _delete_nodes(self, nodes_to_delete: Any) -> None:
         removed = set()

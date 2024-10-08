@@ -75,13 +75,6 @@ def test_filter(credentials: AzureCredentials, builder: GraphBuilder) -> None:
         num_all_virtual_machine_types
     )
 
-    pricing_info = list(collector.graph.search("kind", "azure_compute_disk_type_pricing"))
-
-    assert len(pricing_info) > 0
-
-    collector.after_collect(builder)
-    assert len(list(collector.graph.search("kind", "azure_compute_disk_type_pricing"))) < len(pricing_info)
-
 
 def test_collect_cost(credentials: AzureCredentials, builder: GraphBuilder) -> None:
     with open(os.path.dirname(__file__) + "/files/compute/vmSizes.json") as f:
