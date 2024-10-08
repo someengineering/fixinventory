@@ -59,10 +59,10 @@ class AwsSnsTopic(AwsResource, HasResourcePolicy):
     topic_content_based_deduplication: Optional[bool] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.topic_policy:
+        if not self.topic_policy or not self.arn:
             return []
 
-        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.topic_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.topic_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

@@ -284,10 +284,10 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction, HasResourcePolicy):
     function_url_config: Optional[AwsLambdaFunctionUrlConfig] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.function_policy:
+        if not self.function_policy or not self.arn:
             return []
 
-        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.function_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.function_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

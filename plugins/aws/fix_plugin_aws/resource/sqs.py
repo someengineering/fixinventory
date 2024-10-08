@@ -104,10 +104,10 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
     sqs_managed_sse_enabled: Optional[bool] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.sqs_policy:
+        if not self.sqs_policy or not self.arn:
             return []
 
-        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.sqs_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.sqs_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

@@ -420,9 +420,9 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
     dynamodb_policy: Optional[Json] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.dynamodb_policy:
+        if not self.dynamodb_policy or not self.arn:
             return []
-        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.dynamodb_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.dynamodb_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -531,10 +531,10 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
     dynamodb_policy: Optional[Json] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.dynamodb_policy:
+        if not self.dynamodb_policy or not self.arn:
             return []
 
-        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.dynamodb_policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.dynamodb_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

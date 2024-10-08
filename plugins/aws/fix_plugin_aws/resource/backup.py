@@ -342,10 +342,10 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource, HasResourcePolicy):
     vault_policy: Optional[Json] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.vault_policy:
+        if not self.vault_policy or not self.arn:
             return []
 
-        return [(PolicySource(PolicySourceKind.resource, uri=self.arn or ""), self.vault_policy or {})]
+        return [(PolicySource(PolicySourceKind.resource, uri=self.arn), self.vault_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

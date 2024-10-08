@@ -122,9 +122,9 @@ class AwsKmsKey(AwsResource, BaseAccessKey, HasResourcePolicy):
     kms_key_policy: Optional[Json] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.kms_key_policy:
+        if not self.kms_key_policy or not self.arn:
             return []
-        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.kms_key_policy or {})]
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.kms_key_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

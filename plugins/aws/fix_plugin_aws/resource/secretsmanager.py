@@ -77,10 +77,10 @@ class AwsSecretsManagerSecret(HasResourcePolicy, AwsResource):
     policy: Optional[Json] = field(default=None)
 
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
-        if not self.policy:
+        if not self.policy or not self.arn:
             return []
 
-        return [(PolicySource(PolicySourceKind.resource, self.arn or ""), self.policy)]
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
