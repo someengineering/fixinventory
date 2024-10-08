@@ -211,6 +211,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
             AwsApiSpec(service_name, "get-bucket-acl"),
             AwsApiSpec(service_name, "get-bucket-logging"),
             AwsApiSpec(service_name, "get-bucket-location"),
+            AwsApiSpec(service_name, "get-bucket-lifecycle-configuration"),
         ]
 
     @classmethod
