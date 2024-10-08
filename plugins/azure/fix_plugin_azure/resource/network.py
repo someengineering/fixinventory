@@ -19,6 +19,7 @@ from fix_plugin_azure.resource.containerservice import AzureContainerServiceMana
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.utils import rgetattr, rgetvalue
 from fixlib.baseresources import (
+    BaseCertificate,
     BaseDNSRecordSet,
     BaseDNSZone,
     BaseGateway,
@@ -90,7 +91,7 @@ class AzureApplicationGatewayIPConfiguration(AzureSubResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkApplicationGatewayAuthenticationCertificate(MicrosoftResource):
+class AzureNetworkApplicationGatewayAuthenticationCertificate(MicrosoftResource, BaseCertificate):
     kind: ClassVar[str] = "azure_network_application_gateway_authentication_certificate"
     _kind_display: ClassVar[str] = "Azure Network Application Gateway Authentication Certificate"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -110,7 +111,7 @@ class AzureNetworkApplicationGatewayAuthenticationCertificate(MicrosoftResource)
 
 
 @define(eq=False, slots=False)
-class AzureNetworkApplicationGatewayTrustedRootCertificate(MicrosoftResource):
+class AzureNetworkApplicationGatewayTrustedRootCertificate(MicrosoftResource, BaseCertificate):
     kind: ClassVar[str] = "azure_network_application_gateway_trusted_root_certificate"
     _kind_display: ClassVar[str] = "Azure Network Application Gateway Trusted Root Certificate"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -132,7 +133,7 @@ class AzureNetworkApplicationGatewayTrustedRootCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkApplicationGatewayTrustedClientCertificate(MicrosoftResource):
+class AzureNetworkApplicationGatewayTrustedClientCertificate(MicrosoftResource, BaseCertificate):
     kind: ClassVar[str] = "azure_network_application_gateway_trusted_client_certificate"
     _kind_display: ClassVar[str] = "Azure Network Application Gateway Trusted Client Certificate"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -156,7 +157,7 @@ class AzureNetworkApplicationGatewayTrustedClientCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkApplicationGatewaySslCertificate(MicrosoftResource):
+class AzureNetworkApplicationGatewaySslCertificate(MicrosoftResource, BaseCertificate):
     kind: ClassVar[str] = "azure_network_application_gateway_ssl_certificate"
     _kind_display: ClassVar[str] = "Azure Network Application Gateway SSL Certificate"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -6220,7 +6221,7 @@ class AzureVirtualNetworkGatewaySku:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkVpnClientRootCertificate(MicrosoftResource):
+class AzureNetworkVpnClientRootCertificate(MicrosoftResource, BaseCertificate):
     kind: ClassVar[str] = "azure_network_vpn_client_root_certificate"
     _kind_display: ClassVar[str] = "Azure Network VPN Client Root Certificate"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -6240,7 +6241,7 @@ class AzureNetworkVpnClientRootCertificate(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkVpnClientRevokedCertificate(MicrosoftResource):
+class AzureNetworkVpnClientRevokedCertificate(MicrosoftResource, BaseCertificate):
     kind: ClassVar[str] = "azure_network_vpn_client_revoked_certificate"
     _kind_display: ClassVar[str] = "Azure Network VPN Client Revoked Certificate"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -6255,11 +6256,14 @@ class AzureNetworkVpnClientRevokedCertificate(MicrosoftResource):
         "name": S("name"),
         "provisioning_state": S("properties", "provisioningState"),
         "thumbprint": S("properties", "thumbprint"),
+        "sha1_fingerprint": S("properties", "thumbprint"),
     }
     thumbprint: Optional[str] = field(default=None, metadata={'description': 'The revoked VPN client certificate thumbprint.'})  # fmt: skip
 
 
 define(eq=False, slots=False)
+
+
 class AzureVngClientConnectionConfiguration(AzureSubResource):
     kind: ClassVar[str] = "azure_vng_client_connection_configuration"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
