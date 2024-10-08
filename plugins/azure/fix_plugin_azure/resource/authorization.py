@@ -18,7 +18,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
     MicrosoftGraphGroup,
     MicrosoftGraphPrincipalTypes,
 )
-from fixlib.baseresources import BaseRole, ModelReference
+from fixlib.baseresources import BaseRole, ModelReference, PhantomBaseResource
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -227,7 +227,7 @@ class AzurePermission:
 
 
 @define(eq=False, slots=False)
-class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole):
+class AzureAuthorizationRoleDefinition(MicrosoftResource, BaseRole, PhantomBaseResource):
     kind: ClassVar[str] = "azure_authorization_role_definition"
     _kind_display: ClassVar[str] = "Azure Authorization Role Definition"
     _kind_service: ClassVar[Optional[str]] = service_name

@@ -29,6 +29,7 @@ from fixlib.baseresources import (
     VolumeStatus,
     BaseInstance,
     InstanceStatus,
+    PhantomBaseResource,
 )
 from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict, F, MapEnum, AsInt
 from fixlib.types import Json
@@ -3705,7 +3706,7 @@ class GcpInterconnectLocationRegionInfo:
 
 
 @define(eq=False, slots=False)
-class GcpInterconnectLocation(GcpResource):
+class GcpInterconnectLocation(GcpResource, PhantomBaseResource):
     kind: ClassVar[str] = "gcp_interconnect_location"
     _kind_display: ClassVar[str] = "GCP Interconnect Location"
     _kind_description: ClassVar[str] = "A GCP Interconnect Location is a physical facility where Google Cloud Platform connects to external networks. It serves as a point of presence for establishing direct, private network connections between an organization's on-premises infrastructure and Google's network. This connection reduces latency, enhances security, and improves data transfer performance compared to public internet connections."  # fmt: skip

@@ -5,7 +5,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import ModelReference, PhantomBaseResource
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
@@ -36,7 +36,7 @@ class AzureSecurityExtension:
 
 
 @define(eq=False, slots=False)
-class AzureSecurityPricing(MicrosoftResource):
+class AzureSecurityPricing(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_security_pricing"
     _kind_display: ClassVar[str] = "Azure Security Pricing"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -92,7 +92,7 @@ class AzureAssessmentStatus:
 
 
 @define(eq=False, slots=False)
-class AzureSecurityAssessment(MicrosoftResource):
+class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_security_assessment"
     _kind_display: ClassVar[str] = "Azure Security Assessment"
     _kind_service: ClassVar[Optional[str]] = service_name

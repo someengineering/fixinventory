@@ -39,6 +39,7 @@ from fixlib.baseresources import (
     InstanceStatus,
     ModelReference,
     EdgeType,
+    PhantomBaseResource,
 )
 from fixlib.json_bender import Bender, S, Bend, MapEnum, MapValue, ForallBend, K, F
 from fixlib.types import Json
@@ -725,7 +726,7 @@ class AzurePricingOffers:
 
 
 @define(eq=False, slots=False)
-class AzureComputeDiskTypePricing(MicrosoftResource):
+class AzureComputeDiskTypePricing(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_compute_disk_type_pricing"
     _kind_display: ClassVar[str] = "Azure Compute Disk Type Pricing"
     _kind_service: ClassVar[Optional[str]] = service_name

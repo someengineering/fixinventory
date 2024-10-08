@@ -23,7 +23,7 @@ from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrinc
 from fix_plugin_azure.resource.mysql import AzureServerDataEncryption
 from fix_plugin_azure.resource.network import AzureNetworkSubnet
 from fix_plugin_azure.utils import from_str_to_typed
-from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference, PhantomBaseResource
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
@@ -1560,7 +1560,7 @@ class AzureRestorableLocationResource:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableAccount(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableAccount(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_account"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Account"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2042,7 +2042,7 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBLocation(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBLocation(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_location"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Location"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2173,7 +2173,7 @@ class AzureRestorableDatabase:
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableGremlinDatabase(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableGremlinDatabase(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Database"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2221,7 +2221,7 @@ class AzureCosmosDBRestorableGremlinDatabase(CosmosDBLocationSetter, MicrosoftRe
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableGremlinGraph(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableGremlinGraph(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_gremlin_graph"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Gremlin Graph"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2239,7 +2239,7 @@ class AzureCosmosDBRestorableGremlinGraph(CosmosDBLocationSetter, MicrosoftResou
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongoDBCollection(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableMongoDBCollection(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_collection"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Collection"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2257,7 +2257,7 @@ class AzureCosmosDBRestorableMongoDBCollection(CosmosDBLocationSetter, Microsoft
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableMongoDBDatabase(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableMongoDBDatabase(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_mongo_db_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Mongo DB Database"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2305,7 +2305,7 @@ class AzureCosmosDBRestorableMongoDBDatabase(CosmosDBLocationSetter, MicrosoftRe
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableSqlContainer(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableSqlContainer(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_container"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Container"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2354,7 +2354,7 @@ class AzureExtendedPropertiesSqlDatabase(AzureSqlDatabaseResource):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableSqlDatabase(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableSqlDatabase(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_sql_database"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable SQL Database"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2416,7 +2416,7 @@ class AzureCosmosDBRestorableSqlDatabase(CosmosDBLocationSetter, MicrosoftResour
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBRestorableTable(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBRestorableTable(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_restorable_table"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Restorable Table"
     _kind_service: ClassVar[Optional[str]] = service_name

@@ -478,7 +478,7 @@ class AzureUsageName:
 
 
 @define(eq=False, slots=False)
-class AzureBaseUsage:
+class AzureBaseUsage(PhantomBaseResource):
     kind: ClassVar[str] = "azure_usage"
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name", "value"),  # inherited by BaseResource - name already defined there

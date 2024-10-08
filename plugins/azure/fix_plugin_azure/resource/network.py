@@ -36,7 +36,7 @@ from fixlib.baseresources import (
     BaseSubnet,
     BaseTunnel,
     ModelReference,
-    EdgeType,
+    EdgeType, PhantomBaseResource,
 )
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber, Upper, Lower
 from fixlib.types import Json
@@ -1119,7 +1119,7 @@ class AzureApplicationGatewayFirewallRuleGroup:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkApplicationGatewayFirewallRuleSet(MicrosoftResource):
+class AzureNetworkApplicationGatewayFirewallRuleSet(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_network_application_gateway_firewall_rule_set"
     _kind_display: ClassVar[str] = "Azure Network Application Gateway Firewall Rule Set"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -3465,7 +3465,7 @@ class AzureExpressRoutePortsLocationBandwidths:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkExpressRoutePortsLocation(MicrosoftResource):
+class AzureNetworkExpressRoutePortsLocation(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_network_express_route_ports_location"
     _kind_display: ClassVar[str] = "Azure Network Express Route Ports Location"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -4530,7 +4530,7 @@ class AzureNetworkVirtualApplianceSkuInstances:
 
 
 @define(eq=False, slots=False)
-class AzureNetworkVirtualApplianceSku(MicrosoftResource):
+class AzureNetworkVirtualApplianceSku(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_network_virtual_appliance_sku"
     _kind_display: ClassVar[str] = "Azure Network Virtual Appliance SKU"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -4877,7 +4877,7 @@ class AzureNetworkRouteFilter(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureNetworkSecurityPartnerProvider(MicrosoftResource):
+class AzureNetworkSecurityPartnerProvider(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_network_security_partner_provider"
     _kind_display: ClassVar[str] = "Azure Network Security Partner Provider"
     _kind_service: ClassVar[Optional[str]] = service_name
