@@ -1,14 +1,16 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import ModelReference
+from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
 from fixlib.json_bender import Bender, S, Bend
 from fixlib.types import Json
+from json import loads as json_loads
+from fixlib.json import sort_json
 
 service_name = "secretsmanager"
 
@@ -27,7 +29,7 @@ class AwsSecretsManagerRotationRulesType:
 
 
 @define(eq=False, slots=False)
-class AwsSecretsManagerSecret(AwsResource):
+class AwsSecretsManagerSecret(HasResourcePolicy, AwsResource):
     kind: ClassVar[str] = "aws_secretsmanager_secret"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "list-secrets", "SecretList")
     _kind_display: ClassVar[str] = "AWS Secrets Manager Secret"
@@ -72,6 +74,38 @@ class AwsSecretsManagerSecret(AwsResource):
     owning_service: Optional[str] = field(default=None, metadata={"description": "Returns the name of the service that created the secret."})  # fmt: skip
     created_date: Optional[datetime] = field(default=None, metadata={"description": "The date and time when a secret was created."})  # fmt: skip
     primary_region: Optional[str] = field(default=None, metadata={"description": "The Region where Secrets Manager originated the secret."})  # fmt: skip
+    policy: Optional[Json] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.policy or not self.arn:
+            return []
+
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.policy)]
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [
+            cls.api_spec,
+            AwsApiSpec(service_name, "get-resource-policy"),
+        ]
+
+    @classmethod
+    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+
+        def get_policy(secret: AwsSecretsManagerSecret) -> None:
+            if raw_policy := builder.client.get(
+                service_name,
+                "get-resource-policy",
+                expected_errors=["ResourceNotFoundException"],  # policy is optional
+                SecretId=secret.id,
+                result_name="ResourcePolicy",
+            ):
+                secret.policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
+
+        for js in json:
+            if instance := cls.from_api(js, builder):
+                builder.add_node(instance, js)
+                builder.submit_work(service_name, get_policy, instance)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if kms_key_id := source.get("KmsKeyId"):

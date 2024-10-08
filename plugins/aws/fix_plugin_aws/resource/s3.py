@@ -2,16 +2,25 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from json import loads as json_loads
-from typing import ClassVar, Dict, List, Type, Optional, cast, Any
+from typing import ClassVar, Dict, List, Tuple, Type, Optional, cast, Any
 
 from attr import field
 from attrs import define
+
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.utils import tags_as_dict
-from fixlib.baseresources import BaseBucket, MetricName, PhantomBaseResource, ModelReference
+from fixlib.baseresources import (
+    BaseBucket,
+    MetricName,
+    PhantomBaseResource,
+    ModelReference,
+    PolicySourceKind,
+    PolicySource,
+    HasResourcePolicy,
+)
 from fixlib.graph import Graph
 from fixlib.json import is_empty, sort_json
 from fixlib.json_bender import Bender, S, bend, Bend, ForallBend
@@ -163,7 +172,7 @@ class AwsS3Logging:
 
 
 @define(eq=False, slots=False)
-class AwsS3Bucket(AwsResource, BaseBucket):
+class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
     kind: ClassVar[str] = "aws_s3_bucket"
     _kind_display: ClassVar[str] = "AWS S3 Bucket"
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://s3.console.aws.amazon.com/s3/buckets/{name}?region={region_id}&bucketType=general&tab=objects", "arn_tpl": "arn:{partition}:s3:{region}:{account}:bucket/{name}"}  # fmt: skip
@@ -183,6 +192,10 @@ class AwsS3Bucket(AwsResource, BaseBucket):
     bucket_logging: Optional[AwsS3Logging] = field(default=None)
     bucket_location: Optional[str] = field(default=None)
     bucket_lifecycle_policy: Optional[Json] = field(default=None, metadata={"description": "The bucket lifecycle policy."})  # fmt: skip
+
+    def resource_policy(self, builder: GraphBuilder) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        assert self.arn
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.bucket_policy)] if self.bucket_policy else []
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

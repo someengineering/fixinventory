@@ -32,6 +32,7 @@ dependencies = [
     "retrying",
     "boto3",
     "botocore",
+    "cloudsplaining",
 ]
 
 [project.entry-points."fix.plugins"]

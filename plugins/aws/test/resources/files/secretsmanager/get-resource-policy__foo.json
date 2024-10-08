@@ -1,0 +1,5 @@
+{
+    "ARN": "foo",
+    "Name": "bar",
+    "ResourcePolicy": "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+}

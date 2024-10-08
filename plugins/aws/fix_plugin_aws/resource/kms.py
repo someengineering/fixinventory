@@ -1,12 +1,12 @@
 import json
-from typing import ClassVar, Dict, List, Optional, Type, Any
+from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
 from attrs import define, field
 
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import BaseAccessKey
+from fixlib.baseresources import BaseAccessKey, HasResourcePolicy, PolicySource, PolicySourceKind
 from fixlib.graph import Graph
 from fixlib.json import sort_json
 from fixlib.json_bender import Bend, Bender, S, ForallBend, bend
@@ -63,7 +63,7 @@ class AwsKmsMultiRegionConfig:
 
 
 @define(eq=False, slots=False)
-class AwsKmsKey(AwsResource, BaseAccessKey):
+class AwsKmsKey(AwsResource, BaseAccessKey, HasResourcePolicy):
     kind: ClassVar[str] = "aws_kms_key"
     _kind_display: ClassVar[str] = "AWS KMS Key"
     _kind_description: ClassVar[str] = "AWS KMS Key is a managed service that creates and controls cryptographic keys used to protect data in AWS services and applications. It generates, stores, and manages keys for encryption and decryption operations. KMS Keys integrate with other AWS services, providing a centralized system for key management and helping users meet compliance requirements for data security and access control."  # fmt: skip
@@ -120,6 +120,11 @@ class AwsKmsKey(AwsResource, BaseAccessKey):
     kms_mac_algorithms: List[str] = field(factory=list)
     kms_key_rotation_enabled: Optional[bool] = field(default=None)
     kms_key_policy: Optional[Json] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.kms_key_policy or not self.arn:
+            return []
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.kms_key_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:

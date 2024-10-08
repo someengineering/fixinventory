@@ -8,7 +8,7 @@ from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_fa
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import MetricName, ModelReference
+from fixlib.baseresources import HasResourcePolicy, MetricName, ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
 from fixlib.types import Json
@@ -89,7 +89,7 @@ class AwsKinesisEnhancedMetrics:
 
 
 @define(eq=False, slots=False)
-class AwsKinesisStream(AwsResource):
+class AwsKinesisStream(AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_kinesis_stream"
     _kind_display: ClassVar[str] = "AWS Kinesis Stream"
     _kind_description: ClassVar[str] = "AWS Kinesis Stream is a data streaming service that collects, processes, and analyzes real-time data at scale. It ingests data from multiple sources, stores it in shards, and makes it available for consumption by applications. Kinesis Stream supports various data types and can handle high-throughput data flows for analytics, monitoring, and machine learning purposes."  # fmt: skip
