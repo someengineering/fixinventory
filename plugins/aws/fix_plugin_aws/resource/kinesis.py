@@ -92,7 +92,7 @@ class AwsKinesisEnhancedMetrics:
 class AwsKinesisStream(AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_kinesis_stream"
     _kind_display: ClassVar[str] = "AWS Kinesis Stream"
-    _kind_description: ClassVar[str] = ""  # fmt: skip
+    _kind_description: ClassVar[str] = "AWS Kinesis Stream is a data streaming service that collects, processes, and analyzes real-time data at scale. It ingests data from multiple sources, stores it in shards, and makes it available for consumption by applications. Kinesis Stream supports various data types and can handle high-throughput data flows for analytics, monitoring, and machine learning purposes."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/streams/latest/dev/introduction.html"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "compute"}

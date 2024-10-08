@@ -29,6 +29,8 @@ from fixlib.baseresources import (
     EdgeType,
     ModelReference,
     PhantomBaseResource,
+    BaseOrganizationalRoot,
+    BaseOrganizationalUnit,
 )
 from fixlib.config import Config, current_config
 from fixlib.core.actions import CoreFeedback, SuppressWithFeedback
@@ -119,7 +121,9 @@ class AwsResource(BaseResource, ABC):
     # The display name of the kind.
     _kind_display: ClassVar[str] = "AWS Resource"
     # The description of the kind.
-    _kind_description: ClassVar[str] = "AWS Resource is a generic term used to refer to any type of resource available in Amazon Web Services cloud."  # fmt: skip
+    _kind_description: ClassVar[str] = "An AWS Resource is a component within Amazon Web Services (AWS) that represents a specific entity or service in the cloud. It can be an instance, database, storage bucket, network interface, or other element. AWS Resources are created, managed, and monitored through the AWS Management Console, APIs, or command-line tools."  # fmt: skip
+    # The URL to the documentation of this kind.
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/"
     # AWS specific metadata that hold template strings for ARN and provider link.
     _aws_metadata: ClassVar[Dict[str, Any]] = {}
     # The mapping to transform the incoming API json into the internal representation.
@@ -315,11 +319,7 @@ default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch 
 class AwsRegion(BaseRegion, AwsResource):
     kind: ClassVar[str] = "aws_region"
     _kind_display: ClassVar[str] = "AWS Region"
-    _kind_description: ClassVar[str] = (
-        "An AWS Region is a physical location where AWS has multiple data centers,"
-        " allowing users to choose the geographic area in which their resources are"
-        " located."
-    )
+    _kind_description: ClassVar[str] = "An AWS Region is a geographic area containing multiple data centers called Availability Zones. It provides a distinct set of AWS services and infrastructure. Regions are isolated from each other, enhancing fault tolerance and stability. Users can deploy resources in different Regions to reduce latency and meet data residency requirements."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/general/latest/gr/rande.html"
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
@@ -415,6 +415,26 @@ class AwsEc2VolumeType(AwsResource, BaseVolumeType):
     _kind_service = "ec2"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "storage"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": None, "arn_tpl": "arn:{partition}:ec2:{region}:{account}:volume/{id}"}  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsOrganizationalRoot(BaseOrganizationalRoot, AwsResource):
+    kind: ClassVar[str] = "aws_organizational_root"
+    _kind_display: ClassVar[str] = "AWS Organizational Root"
+    _kind_description: ClassVar[str] = "AWS Organizational Root is the top-level entity in AWS Organizations. It serves as the starting point for creating and managing multiple AWS accounts within an organization. The root provides centralized control over billing, access management, and resource allocation across all member accounts, ensuring consistent policies and governance throughout the organizational structure."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_root.html"
+    _kind_service = "organizations"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
+
+
+@define(eq=False, slots=False)
+class AwsOrganizationalUnit(BaseOrganizationalUnit, AwsResource):
+    kind: ClassVar[str] = "aws_organizational_unit"
+    _kind_display: ClassVar[str] = "AWS Organizational Unit"
+    _kind_description: ClassVar[str] = "AWS Organizational Unit is a container for AWS accounts within an organization. It groups accounts for management purposes and applies policies across multiple accounts. Organizational Units can be nested to create hierarchies, facilitating centralized control over permissions, compliance, and resource access. This structure supports governance and organizational alignment in complex AWS environments."  # fmt: skip
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_ous.html"
+    _kind_service = "organizations"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "management"}
 
 
 class GraphBuilder:
