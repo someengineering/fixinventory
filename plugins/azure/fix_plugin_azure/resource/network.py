@@ -6259,8 +6259,6 @@ class AzureNetworkVpnClientRevokedCertificate(MicrosoftResource):
 
 
 define(eq=False, slots=False)
-
-
 class AzureVngClientConnectionConfiguration(AzureSubResource):
     kind: ClassVar[str] = "azure_vng_client_connection_configuration"
     mapping: ClassVar[Dict[str, Bender]] = AzureSubResource.mapping | {
