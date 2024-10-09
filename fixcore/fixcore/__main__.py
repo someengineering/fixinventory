@@ -174,7 +174,8 @@ async def direct_tenant(deps: TenantDependencies) -> None:
     deps.add(ServiceNames.system_data, db_change.current)
     message_bus = deps.add(ServiceNames.message_bus, MessageBus())
     scheduler = deps.add(ServiceNames.scheduler, APScheduler() if not config.args.no_scheduling else NoScheduler())
-    model = deps.add(ServiceNames.model_handler, ModelHandlerDB(db, config.runtime.plantuml_server))
+    model_handler_class = ModelHandlerFromCodeAndDB if config.args.model_from_plugins else ModelHandlerDB
+    model = deps.add(ServiceNames.model_handler, model_handler_class(db, config.runtime.plantuml_server))
     worker_task_queue = deps.add(ServiceNames.worker_task_queue, WorkerTaskQueue())
     # a "real" config override deps.add, unlike the one used for core config
     config_override_service = deps.add(

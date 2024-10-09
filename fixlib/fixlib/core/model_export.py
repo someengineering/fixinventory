@@ -265,16 +265,11 @@ def dataclasses_to_fixcore_model(
             metadata["service"] = s
         if (slc := getattr(clazz, "categories", None)) and callable(slc) and (sl := slc()):
             metadata["categories"] = sl
-        if (docs_url := getattr(clazz, "_docs_url", None)) and isinstance(docs_url, str):
-            metadata["docs_url"] = docs_url
-        if (  # only export kind description on aggregate roots
-            with_kind_description
-            and (ar := aggregate_root)
-            and issubclass(clazz, ar)
-            and (s := clazz.__dict__.get("_kind_description", None))
-            and isinstance(s, str)
-        ):
-            metadata["description"] = s
+        if with_kind_description and (ar := aggregate_root) and issubclass(clazz, ar):
+            if (s := clazz.__dict__.get("_kind_description", None)) and isinstance(s, str):
+                metadata["description"] = s
+            if (docs_url := getattr(clazz, "_docs_url", None)) and isinstance(docs_url, str):
+                metadata["docs_url"] = docs_url
         if root and (source := model_source(clazz.__module__)):
             metadata["source"] = source
 
