@@ -478,8 +478,11 @@ class AzureUsageName:
 
 
 @define(eq=False, slots=False)
-class AzureBaseUsage:
+class AzureBaseUsage(PhantomBaseResource):
     kind: ClassVar[str] = "azure_usage"
+    _kind_display: ClassVar[str] = "Azure Usage"
+    _kind_service: ClassVar[Optional[str]] = "resources"
+    _kind_description: ClassVar[str] = "Azure Usage represents the usage of a resource in an Azure subscription. It provides information about the current value of the usage, the limit of usage, and the unit of measurement. Azure Usage is used to track resource consumption and enforce usage limits, helping users manage costs and optimize resource utilization."  # fmt: skip
     mapping: ClassVar[Dict[str, Bender]] = {
         "name": S("name", "value"),  # inherited by BaseResource - name already defined there
         "usage_name": S("name") >> Bend(AzureUsageName.mapping),

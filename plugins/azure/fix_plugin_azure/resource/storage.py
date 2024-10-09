@@ -25,6 +25,7 @@ from fixlib.baseresources import (
     MetricName,
     MetricUnit,
     ModelReference,
+    PhantomBaseResource,
 )
 from fixlib.json_bender import Bender, S, ForallBend, Bend
 from fixlib.types import Json
@@ -188,7 +189,7 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
 
 
 @define(eq=False, slots=False)
-class AzureStorageAccountDeleted(MicrosoftResource):
+class AzureStorageAccountDeleted(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_storage_account_deleted"
     _kind_display: ClassVar[str] = "Azure Storage Account Deleted"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -340,7 +341,7 @@ class AzureRestriction:
 
 
 @define(eq=False, slots=False)
-class AzureStorageSku(MicrosoftResource):
+class AzureStorageSku(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_storage_sku"
     _kind_display: ClassVar[str] = "Azure Storage SKU"
     _kind_service: ClassVar[Optional[str]] = service_name

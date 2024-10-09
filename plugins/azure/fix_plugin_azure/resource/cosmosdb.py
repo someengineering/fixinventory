@@ -23,7 +23,7 @@ from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrinc
 from fix_plugin_azure.resource.mysql import AzureServerDataEncryption
 from fix_plugin_azure.resource.network import AzureNetworkSubnet
 from fix_plugin_azure.utils import from_str_to_typed
-from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, EdgeType, ModelReference, PhantomBaseResource
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import F, K, Bender, S, ForallBend, Bend, MapEnum, MapValue
 from fixlib.types import Json
@@ -2042,7 +2042,7 @@ class AzureCosmosDBAccountUsage(MicrosoftResource, AzureBaseUsage):
 
 
 @define(eq=False, slots=False)
-class AzureCosmosDBLocation(CosmosDBLocationSetter, MicrosoftResource):
+class AzureCosmosDBLocation(CosmosDBLocationSetter, MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_cosmos_db_location"
     _kind_display: ClassVar[str] = "Azure Cosmos DB Location"
     _kind_service: ClassVar[Optional[str]] = service_name
