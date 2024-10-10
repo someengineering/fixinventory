@@ -25,7 +25,7 @@ from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrinc
 from fix_plugin_azure.resource.network import AzureNetworkSubnet, AzureNetworkVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.resource.web import AzureWebApp
-from fixlib.baseresources import BaseInstanceType, ModelReference, BaseAIJob, BaseAIModel
+from fixlib.baseresources import BaseInstanceType, ModelReference, BaseAIJob, BaseAIModel, PhantomBaseResource
 from fixlib.graph import BySearchCriteria
 from fixlib.json_bender import Bender, S, ForallBend, Bend, K
 from fixlib.types import Json
@@ -1005,7 +1005,7 @@ class AzureMachineLearningRegistryEnvironmentContainer(AzureMachineLearningEnvir
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningEnvironmentVersionBase(CheckVersionIsArchived, AzureProxyResource):
+class AzureMachineLearningEnvironmentVersionBase(CheckVersionIsArchived, AzureProxyResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_machine_learning_environment_version_base"
     _kind_display: ClassVar[str] = "Azure Machine Learning Environment Version Base"
     _kind_service: ClassVar[Optional[str]] = service_name
@@ -2224,7 +2224,7 @@ class AzureMachineLearningRegistry(MicrosoftResource, AzureTrackedResource):
 
 
 @define(eq=False, slots=False)
-class AzureMachineLearningQuota(MicrosoftResource):
+class AzureMachineLearningQuota(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_machine_learning_quota"
     _kind_display: ClassVar[str] = "Azure Machine Learning Quota"
     _kind_service: ClassVar[Optional[str]] = service_name

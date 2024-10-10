@@ -31,6 +31,7 @@ def collector_with_graph(
         account=AzureSubscription(id="test", subscription_id="test"),
         credentials=credentials,
         core_feedback=CoreFeedback("test", "test", "test", Queue()),
+        filter_unused_resources=False,
     )
     collector.graph = graph
     return collector
@@ -44,11 +45,11 @@ def test_collect(
     azure_client: MicrosoftClient,
 ) -> None:
     subscription_collector = AzureSubscriptionCollector(
-        config, Cloud(id="azure"), azure_subscription, credentials, core_feedback
+        config, Cloud(id="azure"), azure_subscription, credentials, core_feedback, filter_unused_resources=False
     )
     subscription_collector.collect()
-    assert len(subscription_collector.graph.nodes) == 588
-    assert len(subscription_collector.graph.edges) == 977
+    assert len(subscription_collector.graph.nodes) == 952
+    assert len(subscription_collector.graph.edges) == 1341
 
     graph_collector = MicrosoftGraphOrganizationCollector(
         config, Cloud(id="azure"), MicrosoftGraphOrganization(id="test", name="test"), credentials, core_feedback
