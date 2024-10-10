@@ -99,8 +99,8 @@ def test_not_visited(graph_access: GraphAccess) -> None:
     graph_access.node(NodeId("3"))
     not_visited = list(graph_access.not_visited_nodes())
     assert len(not_visited) == 2
-    assert not_visited[0]["hash"] == "05469946"
-    assert not_visited[1]["hash"] == "0fead7dd"
+    assert not_visited[0]["hash"] == "c5aca092"
+    assert not_visited[1]["hash"] == "3003605e"
 
 
 def test_edges(graph_access: GraphAccess) -> None:

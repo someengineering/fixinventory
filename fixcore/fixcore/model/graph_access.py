@@ -6,7 +6,7 @@ import logging
 import re
 from collections import namedtuple, defaultdict
 from functools import reduce
-from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union, Iterator, DefaultDict
+from typing import Optional, Generator, Any, Dict, List, Set, Tuple, Union, Iterator, DefaultDict, Iterable
 
 from attrs import define
 from networkx import DiGraph, MultiDiGraph, is_directed_acyclic_graph
@@ -267,13 +267,13 @@ class GraphBuilder:
         if replace:
             metadata = metadata or {}
             metadata["replace"] = True
+        # get kind hierarchy
+        kinds = kind.kind_hierarchy()
         # create content hash
-        sha = GraphBuilder.content_hash(reported, desired, metadata)
+        sha = GraphBuilder.content_hash(reported, desired, metadata, kinds)
         hist_hash = GraphBuilder.history_hash(reported, kind)
         # flat all properties into a single string for search
         flat = search if isinstance(search, str) else (GraphBuilder.flatten(reported, kind))
-        # get kind hierarchy
-        kinds = kind.kind_hierarchy()
         # set organizational root
         if "organizational_root" in kinds:
             assert self.organizational_root is None, "There can be only one organizational root!"
@@ -312,7 +312,12 @@ class GraphBuilder:
         self.deferred_edges.append(DeferredEdge(from_selector, to_selector, edge_type, reported, content_hash))
 
     @staticmethod
-    def content_hash(js: Json, desired: Optional[Json] = None, metadata: Optional[Json] = None) -> str:
+    def content_hash(
+        js: Json,
+        desired: Optional[Json] = None,
+        metadata: Optional[Json] = None,
+        kinds: Optional[Iterable[str]] = None,
+    ) -> str:
         sha256 = hashlib.sha256()
         # all content hashes will be different, when the version changes
         sha256.update(ContentHashVersion.to_bytes(2, "big"))
@@ -321,6 +326,8 @@ class GraphBuilder:
             sha256.update(json.dumps(desired, sort_keys=True).encode("utf-8"))
         if metadata:
             sha256.update(json.dumps(metadata, sort_keys=True).encode("utf-8"))
+        if kinds:
+            sha256.update(":".join(sorted(kinds)).encode("utf-8"))
         return sha256.hexdigest()[0:8]
 
     @staticmethod
@@ -502,7 +509,7 @@ class GraphAccess:
                         set_value_in_path(total, NodePath.descendant_count, node)
                         # update hash
                         node["hash"] = GraphBuilder.content_hash(
-                            node["reported"], node.get("desired"), node.get("metadata")
+                            node["reported"], node.get("desired"), node.get("metadata"), node.get("kinds")
                         )
 
     def __resolve(self, node_id: NodeId, node: Json) -> Json:
@@ -577,10 +584,11 @@ class GraphAccess:
         reported = node[Section.reported]
         desired: Optional[Json] = node.get(Section.desired, None)
         metadata: Optional[Json] = node.get(Section.metadata, None)
+        kinds: Optional[List[str]] = node.get("kinds", None)
         if "id" not in node:
             node["id"] = node_id
         if recompute or "hash" not in node:
-            node["hash"] = GraphBuilder.content_hash(reported, desired, metadata)
+            node["hash"] = GraphBuilder.content_hash(reported, desired, metadata, kinds)
         if recompute or "flat" not in node:
             node["flat"] = GraphBuilder.flatten(reported, kind)
         if "kinds" not in node:
