@@ -2962,30 +2962,60 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                 if not instance_status_set:
                     self.instance_status = InstanceStatus.UNKNOWN
 
-        if location := self.location:
-
-            def collect_vm_sizes() -> None:
-                api_spec = AzureResourceSpec(
-                    service="compute",
-                    version="2023-03-01",
-                    path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/"
-                    + f"{location}/vmSizes",
-                    path_parameters=["subscriptionId"],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                )
-                items = graph_builder.client.list(api_spec)
-                if not items:
-                    return
-                # Set location for further connect_in_graph method
-                for item in items:
-                    item["location"] = location
-                AzureComputeVirtualMachineSize.collect(items, graph_builder)
-
-            graph_builder.submit_work(service_name, collect_vm_sizes)
-
         graph_builder.submit_work(service_name, collect_instance_status)
+
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureComputeVirtualMachineBase"]:
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
+
+        if not issubclass(cls, MicrosoftResource):
+            return []
+
+        if spec := cls.api_spec:
+            items = builder.client.list(spec, **kwargs)
+            collected = cls.collect(items, builder)
+
+            unique_locations = set(getattr(vm, "location") for vm in collected if getattr(vm, "location"))
+
+            for location in unique_locations:
+                log.debug(f"Processing virtual machines in location: {location}")
+
+                # Collect VM sizes for the VM in this location
+                AzureComputeVirtualMachineBase._collect_vm_sizes(builder, location)
+
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder, collected)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+
+            return collected
+
+        return []
+
+    @staticmethod
+    def _collect_vm_sizes(graph_builder: GraphBuilder, location: str) -> None:
+        def collect_vm_sizes() -> None:
+            api_spec = AzureResourceSpec(
+                service="compute",
+                version="2023-03-01",
+                path=f"/subscriptions/{{subscriptionId}}/providers/Microsoft.Compute/locations/{location}/vmSizes",
+                path_parameters=["subscriptionId"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            if not items:
+                return
+
+            # Set location for further connect_in_graph method
+            for item in items:
+                item["location"] = location
+
+            AzureComputeVirtualMachineSize.collect(items, graph_builder)
+
+        graph_builder.submit_work(service_name, collect_vm_sizes)
 
     @classmethod
     def collect_usage_metrics(

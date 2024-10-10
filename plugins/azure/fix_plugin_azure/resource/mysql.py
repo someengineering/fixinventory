@@ -1,4 +1,3 @@
-from collections import defaultdict
 import logging
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Any, Type

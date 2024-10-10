@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import logging
 from datetime import datetime
 from typing import Any, ClassVar, Dict, Optional, List, Tuple, Type
@@ -553,32 +554,78 @@ class AzureMachineLearningCompute(MicrosoftResource):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={'description': 'The geo-location where the resource lives'})  # fmt: skip
 
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureMachineLearningCompute"]:
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
+
+        if not issubclass(cls, MicrosoftResource):
+            return []
+
+        if spec := cls.api_spec:
+            items = builder.client.list(spec, **kwargs)
+            collected = cls.collect(items, builder)
+
+            resources_by_location = defaultdict(list)
+
+            for compute_resource in collected:
+                location = getattr(compute_resource, "location", None)
+                if location:
+                    resources_by_location[location].append(compute_resource)
+
+            # Process each unique location
+            for location, compute_resources in resources_by_location.items():
+                log.debug(f"Processing compute resources in location: {location}")
+
+                # Collect VM sizes for the compute resources in this location
+                cls._collect_vm_sizes(builder, location, compute_resources)
+
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder, collected)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+
+            return collected
+
+        return []
+
+    @staticmethod
+    def _collect_vm_sizes(
+        graph_builder: GraphBuilder, location: str, compute_resources: List["AzureMachineLearningCompute"]
+    ) -> None:
+        def collect_vm_sizes() -> None:
+            api_spec = AzureResourceSpec(
+                service="machinelearningservices",
+                version="2024-04-01",
+                path=f"/subscriptions/{{subscriptionId}}/providers/Microsoft.MachineLearningServices/locations/{location}/vmSizes",
+                path_parameters=["subscriptionId"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+
+            if not items:
+                return
+
+            # Set location for further connect_in_graph method
+            for item in items:
+                item["location"] = location
+
+            # Collect the virtual machine sizes
+            collected_vm_sizes = AzureMachineLearningVirtualMachineSize.collect(items, graph_builder)
+
+            for compute_resource in compute_resources:
+                vm_size = compute_resource.properties.get("vmSize")
+                if vm_size:
+                    for _ in collected_vm_sizes:
+                        graph_builder.add_edge(
+                            compute_resource, clazz=AzureMachineLearningVirtualMachineSize, name=vm_size
+                        )
+
+        graph_builder.submit_work(service_name, collect_vm_sizes)
+
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if location := self.location:
-
-            def collect_vm_sizes() -> None:
-                api_spec = AzureResourceSpec(
-                    service="machinelearningservices",
-                    version="2024-04-01",
-                    path="/subscriptions/{subscriptionId}/providers/Microsoft.MachineLearningServices/locations/"
-                    + f"{location}/vmSizes",
-                    path_parameters=["subscriptionId"],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                )
-                items = graph_builder.client.list(api_spec)
-                if not items:
-                    return
-                for item in items:
-                    item["location"] = location
-                collected = AzureMachineLearningVirtualMachineSize.collect(items, graph_builder)
-                for _ in collected:
-                    if (properties := self.properties) and (vm_size := properties.get("vmSize")):
-                        graph_builder.add_edge(self, clazz=AzureMachineLearningVirtualMachineSize, name=vm_size)
-
-            graph_builder.submit_work(service_name, collect_vm_sizes)
-
         if resource_id := self.id:
 
             def collect_nodes() -> None:

@@ -272,8 +272,8 @@ class AzureSubscriptionCollector(MicrosoftBaseCollector):
         rm_leaf_nodes(AzureComputeDiskType, (AzureSubscription, AzureLocation))  # type: ignore
         rm_leaf_nodes(AzureMachineLearningVirtualMachineSize, AzureLocation)
         rm_leaf_nodes(AzureStorageSku, AzureLocation)
-        rm_leaf_nodes(AzureMysqlServerType, (AzureSubscription, AzureLocation))  # type: ignore
-        rm_leaf_nodes(AzurePostgresqlServerType, (AzureSubscription, AzureLocation))  # type: ignore
+        rm_leaf_nodes(AzureMysqlServerType, AzureLocation)
+        rm_leaf_nodes(AzurePostgresqlServerType, AzureLocation)
         rm_leaf_nodes(AzureCosmosDBLocation, AzureLocation, check_pred=False)
         rm_leaf_nodes(AzureLocation, check_pred=False)
         rm_leaf_nodes(AzureComputeDiskTypePricing, AzureSubscription)
