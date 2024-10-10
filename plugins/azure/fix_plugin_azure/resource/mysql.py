@@ -723,32 +723,71 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         else:
             self.volume_encrypted = False
 
-        if (location := self.location) and (sku := self.server_sku) and (version := self.version):
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureMysqlServer"]:
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
 
-            def collect_capabilities() -> None:
-                api_spec = AzureResourceSpec(
-                    service="mysql",
-                    version="2023-12-30",
-                    path="/subscriptions/{subscriptionId}/providers/Microsoft.DBforMySQL/locations/"
-                    + f"{location}/capabilities",
-                    path_parameters=["subscriptionId"],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
+        if not issubclass(cls, MicrosoftResource):
+            return []
+
+        if spec := cls.api_spec:
+            items = builder.client.list(spec, **kwargs)
+            collected = cls.collect(items, builder)
+
+            # Group the collected resources by location, sku, and version
+            unique_servers = set()
+            for server in collected:
+                location = getattr(server, "location", None)
+                sku = getattr(server, "server_sku", None)
+                version = getattr(server, "version", None)
+                if location and sku and version:
+                    sku_name = sku.name
+                    sku_tier = sku.tier
+                    unique_servers.add((location, sku_name, sku_tier, version))
+
+            for location, sku_name, sku_tier, version in unique_servers:
+                log.debug(
+                    f"Processing servers in location: {location}, SKU: {sku_name}, Tier: {sku_tier}, Version: {version}"
                 )
-                items = graph_builder.client.list(api_spec)
-                if not items:
-                    return
-                for item in items:
-                    # Set location for further connect_in_graph method
-                    item["location"] = location
-                    # Set sku name and tier for SKUs filtering
-                    item["expected_sku_name"] = sku.name
-                    item["expected_sku_tier"] = sku.tier
-                    item["expected_version"] = version
-                AzureMysqlServerType.collect(items, graph_builder)
 
-            graph_builder.submit_work(service_name, collect_capabilities)
+                # Collect MySQL server types for the servers in this group
+                AzureMysqlServer._collect_mysql_server_types(builder, location, sku_name, sku_tier, version)
+
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder, collected)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__} in {location}: {e}")
+
+            return collected
+
+        return []
+
+    @staticmethod
+    def _collect_mysql_server_types(
+        builder: GraphBuilder, location: str, sku_name: str, sku_tier: str, version: str
+    ) -> None:
+        def collect_capabilities() -> None:
+            api_spec = AzureResourceSpec(
+                service="mysql",
+                version="2023-12-30",
+                path=f"/subscriptions/{{subscriptionId}}/providers/Microsoft.DBforMySQL/locations/{location}/capabilities",
+                path_parameters=["subscriptionId"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = builder.client.list(api_spec)
+            if not items:
+                return
+            for item in items:
+                item["location"] = location
+                item["expected_sku_name"] = sku_name
+                item["expected_sku_tier"] = sku_tier
+                item["expected_version"] = version
+            AzureMysqlServerType.collect(items, builder)
+
+        builder.submit_work(service_name, collect_capabilities)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
