@@ -616,12 +616,12 @@ class AzureMachineLearningCompute(MicrosoftResource):
             collected_vm_sizes = AzureMachineLearningVirtualMachineSize.collect(items, graph_builder)
 
             for compute_resource in compute_resources:
-                vm_size = compute_resource.properties.get("vmSize")
+                vm_size = (compute_resource.properties or {}).get("vmSize")
                 if vm_size:
-                    for _ in collected_vm_sizes:
-                        graph_builder.add_edge(
-                            compute_resource, clazz=AzureMachineLearningVirtualMachineSize, name=vm_size
-                        )
+                    for size in collected_vm_sizes:
+                        if size.name == vm_size:
+                            graph_builder.add_edge(compute_resource, node=size)
+                        break
 
         graph_builder.submit_work(service_name, collect_vm_sizes)
 
