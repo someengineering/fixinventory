@@ -229,6 +229,8 @@ aws:
         choices=AllowedRoleNames,
         help="Assign this role to the service. Only takes effect when no PSK / UserManagement is used.",
     )
+    # only valid in non-multi-tenant setup: generate model from plugins, instead of loading it from the database
+    parser.add_argument("--model-from-plugins", default=False, action="store_true", help=argparse.SUPPRESS)
 
     parsed: Namespace = parser.parse_args(args if args else [])
 
