@@ -731,9 +731,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
         if not issubclass(cls, MicrosoftResource):
             return []
 
-        # Ensure we have the API specification to collect the items
         if spec := cls.api_spec:
-            # Collect resources based on the API spec
             items = builder.client.list(spec, **kwargs)
             collected = cls.collect(items, builder)
 
@@ -784,15 +782,13 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
             if not items:
                 return
             for item in items:
-                # Set location for further connect_in_graph method
                 item["location"] = location
                 item["expected_sku_name"] = sku_name
                 item["expected_sku_tier"] = sku_tier
                 item["expected_version"] = version
             AzureMysqlServerType.collect(items, builder)
 
-        # Submit the collection task for this location, sku, and version
-        builder.submit_work("AzureMysqlServerType", collect_capabilities)
+        builder.submit_work(service_name, collect_capabilities)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (
