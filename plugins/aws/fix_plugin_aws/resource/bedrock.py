@@ -207,7 +207,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
                 service_name,
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceARN=job.arn,
             )
             if tags:
@@ -490,7 +490,7 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
                 service_name,
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceARN=job.arn,
             )
             if tags:
@@ -623,7 +623,7 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
                 service_name,
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceARN=job.arn,
             )
             if tags:
@@ -767,7 +767,8 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "bedrock",
         "list-evaluation-jobs",
         "jobSummaries",
-        expected_errors=["AccessDeniedException"],
+        # `InternalServerException` is ignored because some AWS regions may not support retrieving evaluation jobs
+        expected_errors=["AccessDeniedException", "InternalServerException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
@@ -823,7 +824,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
                 service_name,
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceARN=job.arn,
             )
             if tags:
@@ -1022,7 +1023,7 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
                 "bedrock-agent",
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceArn=agent.arn,
             )
             if tags:
@@ -1419,7 +1420,7 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
                 "bedrock-agent",
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceArn=knowledge_base.arn,
             )
             if tags:
@@ -1586,7 +1587,7 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
                 "bedrock-agent",
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceArn=prompt.arn,
             )
             if tags:
@@ -1914,7 +1915,7 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
                 "bedrock-agent",
                 "list-tags-for-resource",
                 "tags",
-                expected_errors=["ResourceNotFoundException"],
+                expected_errors=["ResourceNotFoundException", "AccessDenied"],
                 resourceArn=flow.arn,
             )
             if tags:
