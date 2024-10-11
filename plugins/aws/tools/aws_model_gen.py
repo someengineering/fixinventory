@@ -239,6 +239,8 @@ def clazz_model(
     elif isinstance(shape, StringShape):
         return []
     elif isinstance(shape, ListShape):
+        if isinstance(shape.member, StringShape):
+            return []
         process_shape_items(shape.member.members.items(), prop_prefix, clazz_name)
     else:
         if getattr(shape, "members", None) is None:
@@ -983,12 +985,48 @@ models: Dict[str, List[AwsFixModel]] = {
         #     prefix="Bedrock",
         # )
     ],
+    "inspector2": [
+        # Findings
+        AwsFixModel(
+            api_action="list-findings",  # Boto3 API action for listing findings
+            result_property="findings",  # The property in the API response that holds the findings
+            result_shape="ListFindingsResponse",  # Optional, shape of the result
+            prefix="InspectorV2",  # Prefix for Inspector v2 resources
+        ),
+        # # CIS Scans
+        AwsFixModel(
+            api_action="list-cis-scans",  # API action for listing CIS scans
+            result_property="scans",  # Property holding the CIS scans
+            result_shape="ListCisScansResponse",  # Shape of the result
+            prefix="InspectorV2",
+        ),
+        AwsFixModel(
+            api_action="list-cis-scan-results-aggregated-by-target-resource",  # API action for scan results aggregated by resources
+            result_property="targetResourceAggregations",  # Property holding aggregated results by resources
+            result_shape="ListCisScanResultsAggregatedByTargetResourceResponse",  # Shape of the result
+            prefix="InspectorV2",
+        ),
+        # Coverage
+        AwsFixModel(
+            api_action="list-coverage",  # API action for listing resource coverage
+            result_property="coveredResources",  # Property holding the coverage data
+            result_shape="ListCoverageResponse",  # Shape of the result
+            prefix="InspectorV2",
+        ),
+        # Filters
+        AwsFixModel(
+            api_action="list-filters",  # API action for listing suppression rules and filters
+            result_property="filters",  # Property holding the list of filters
+            result_shape="ListFiltersResponse",  # Shape of the result
+            prefix="InspectorV2",
+        ),
+    ],
 }
 
 
 if __name__ == "__main__":
-    """print some test data"""
-    print(json.dumps(create_test_response("bedrock-agent", "get-knowledge-base"), indent=2))
+    # """print some test data"""
+    # print(json.dumps(create_test_response("bedrock-agent", "get-knowledge-base"), indent=2))
 
     """print the class models"""
     # print(default_imports())

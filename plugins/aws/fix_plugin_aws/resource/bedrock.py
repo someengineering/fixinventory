@@ -14,7 +14,7 @@ from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
 from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -141,7 +141,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock", "list-custom-models", "modelSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("modelArn"),
+        "id": S("modelArn") >> F(AwsResource.id_from_arn),
         "name": S("modelName"),
         "ctime": S("creationTime"),
         "arn": S("modelArn"),
@@ -241,7 +241,7 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, AwsResource):
         "bedrock", "list-provisioned-model-throughputs", "provisionedModelSummaries"
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("provisionedModelArn"),
+        "id": S("provisionedModelArn") >> F(AwsResource.id_from_arn),
         "name": S("provisionedModelName"),
         "ctime": S("creationTime"),
         "mtime": S("lastModifiedTime"),
@@ -542,7 +542,7 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
         expected_errors=["ValidationException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("jobArn"),
+        "id": S("jobArn") >> F(AwsResource.id_from_arn),
         "name": S("jobName"),
         "arn": S("jobArn"),
         "ctime": S("creationTime"),
@@ -771,7 +771,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
         expected_errors=["AccessDeniedException", "InternalServerException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("jobArn"),
+        "id": S("jobArn") >> F(AwsResource.id_from_arn),
         "name": S("jobName"),
         "arn": S("jobArn"),
         "ctime": S("creationTime"),

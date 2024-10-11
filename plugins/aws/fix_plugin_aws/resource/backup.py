@@ -175,7 +175,7 @@ class AwsBackupProtectedResource(AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ResourceArn") >> F(lambda arn: arn.rsplit("/")[1]),
+        "id": S("ResourceArn") >> F(AwsResource.id_from_arn),
         "name": S("ResourceName"),
         "resource_arn": S("ResourceArn"),
         "resource_type": S("ResourceType"),
@@ -314,7 +314,7 @@ class AwsBackupVault(BackupResourceTaggable, AwsResource, HasResourcePolicy):
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/backupplan/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:backup-vault:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-backup-vaults", "BackupVaultList")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("BackupVaultArn"),
+        "id": S("BackupVaultArn") >> F(AwsResource.id_from_arn),
         "name": S("BackupVaultName"),
         "ctime": S("CreationDate"),
         "backup_vault_name": S("BackupVaultName"),
@@ -453,7 +453,7 @@ class AwsBackupRecoveryPoint(AwsResource):
     }
     # Resource will be collect by AwsBackupVault
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("RecoveryPointArn"),
+        "id": S("RecoveryPointArn") >> F(AwsResource.id_from_arn),
         "name": S("Tags", default=[]) >> TagsValue("Name"),
         "ctime": S("CreationDate"),
         "recovery_point_arn": S("RecoveryPointArn"),
@@ -606,7 +606,7 @@ class AwsBackupReportPlan(BackupResourceTaggable, AwsResource):
         "backup", "list-report-plans", "ReportPlans", expected_errors=["AccessDeniedException"]
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ReportPlanArn"),
+        "id": S("ReportPlanArn") >> F(AwsResource.id_from_arn),
         "name": S("ReportPlanName"),
         "ctime": S("CreationTime"),
         "report_plan_arn": S("ReportPlanArn"),
@@ -689,7 +689,7 @@ class AwsBackupRestoreTestingPlan(BackupResourceTaggable, AwsResource):
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/backup/home?region={region_id}#/restoretesting/details/{name}", "arn_tpl": "arn:{partition}:backup:{region}:{account}:restore-testing-plan:{name}"}  # fmt: skip
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-restore-testing-plans", "RestoreTestingPlans")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("RestoreTestingPlanArn"),
+        "id": S("RestoreTestingPlanArn") >> F(AwsResource.id_from_arn),
         "name": S("RestoreTestingPlanName"),
         "ctime": S("CreationTime"),
         "mtime": S("LastUpdateTime"),
@@ -971,7 +971,7 @@ class AwsBackupFramework(BackupResourceTaggable, AwsResource):
         "backup", "list-frameworks", "Frameworks", expected_errors=["AccessDeniedException"]
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("FrameworkArn"),
+        "id": S("FrameworkArn") >> F(AwsResource.id_from_arn),
         "name": S("FrameworkName"),
         "ctime": S("CreationTime"),
         "framework_name": S("FrameworkName"),
