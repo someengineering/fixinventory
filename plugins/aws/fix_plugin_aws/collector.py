@@ -473,8 +473,7 @@ class AwsAccountCollector:
 
         scp_access_role = self.task_data.get("metadata", {}).get("scp_access_role", None)
         if not scp_access_role:
-            # no scp role -> return early
-            return
+            scp_access_role = self.client.role
 
         # fetch scps
         scp_clent = AwsClient(
@@ -522,11 +521,16 @@ class AwsAccountCollector:
                     "organizations", "list_organizational_units_for_parent", "OrganizationalUnits", ParentId=parent_id
                 )
                 for child_ou in child_ous:
+                    # copy the list to avoid modifying the parent list
+                    parent_scps = list(parent_scps)
+                    org_scps = get_scps(child_ou["Id"], client)
+                    if org_scps:
+                        parent_scps.append(org_scps)
                     accounts = self.client.list(
                         "organizations",
                         "list_accounts_for_parent",
                         "Accounts",
-                        ParentId=parent_id,
+                        ParentId=child_ou["Id"],
                         expected_errors=expected_errors,
                     )
                     for account in accounts:
@@ -534,7 +538,7 @@ class AwsAccountCollector:
                             account_scps = get_scps(self.account.id, client)
                             if account_scps:
                                 parent_scps.append(account_scps)
-                                return parent_scps
+                            return parent_scps
 
                     if result := process_children(child_ou["Id"], list(parent_scps)):
                         return result
@@ -543,31 +547,52 @@ class AwsAccountCollector:
 
             roots = self.client.list("organizations", "list_roots", "Roots", expected_errors=expected_errors)
             for root in roots:
-                root_scps = get_scps(root.id, client)
+                root_id = root["Id"]
+                parent_scps = []
+                root_scps = get_scps(root_id, client)
+                if root_scps:
+                    parent_scps.append(root_scps)
                 accounts = self.client.list(
                     "organizations",
                     "list_accounts_for_parent",
                     "Accounts",
-                    ParentId=root.id,
+                    ParentId=root_id,
                     expected_errors=expected_errors,
                 )
                 # if an account is attached to the root, return early
                 for account in accounts:
                     if account["Id"] == self.account.id:
                         account_scps = get_scps(self.account.id, client)
-                        scp_levels = []
-                        if root_scps:
-                            scp_levels.append(root_scps)
                         if account_scps:
-                            scp_levels.append(account_scps)
-                        return scp_levels
+                            parent_scps.append(account_scps)
+                        return parent_scps
 
-                if result := process_children(root["Id"], []):
+                if result := process_children(root["Id"], list(parent_scps)):
                     return result
 
             return []
 
         account_scps = find_account_scps(scp_clent)
+
+        def is_allow_all_scp(scp: Json) -> bool:
+            for statement in scp.get("Statement", []):
+                if all(
+                    [
+                        statement.get("Effect") == "Allow",
+                        statement.get("Action") == "*",
+                        statement.get("Resource") == "*",
+                    ]
+                ):
+                    return True
+
+            return False
+
+        # optimization: filter out allow action * resource * scps
+        def filter_allow_all(levels: List[List[Json]]) -> List[List[Json]]:
+            return [[scp for scp in level if not is_allow_all_scp(scp)] for level in levels]
+
+        account_scps = filter_allow_all(account_scps)
+        account_scps = [level for level in account_scps if level]
 
         if not account_scps:
             return

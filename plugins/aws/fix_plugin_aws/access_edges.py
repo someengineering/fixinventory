@@ -632,6 +632,15 @@ class AccessEdgeCreator:
         self._init_principals()
 
     def _init_principals(self) -> None:
+
+        account_id = self.builder.account.id
+        service_control_policy_levels: List[List[PolicyDocument]] = []
+        account = next(self.builder.nodes(clazz=AwsAccount, filter=lambda a: a.id == account_id), None)
+        if account and account.service_control_policies:
+            service_control_policy_levels = [
+                [PolicyDocument(json) for json in level] for level in account.service_control_policies
+            ]
+
         for node in self.builder.nodes(clazz=AwsResource):
             if isinstance(node, AwsIamUser):
 
@@ -642,16 +651,6 @@ class AccessEdgeCreator:
                     for pb_policy in self.builder.nodes(clazz=AwsIamPolicy, filter=lambda p: p.arn == pb_arn):
                         if pdj := pb_policy.policy_document_json():
                             permission_boundaries.append(PolicyDocument(pdj))
-
-                # todo: collect these resources
-                service_control_policy_levels: List[List[PolicyDocument]] = []
-                assert node.arn
-                account_id = node.arn.split(":")[4]
-                account = next(self.builder.nodes(clazz=AwsAccount, filter=lambda a: a.id == account_id), None)
-                if account and account.service_control_policies:
-                    service_control_policy_levels = [
-                        [PolicyDocument(json) for json in level] for level in account.service_control_policies
-                    ]
 
                 request_context = IamRequestContext(
                     principal=node,
@@ -664,8 +663,6 @@ class AccessEdgeCreator:
 
             if isinstance(node, AwsIamGroup):
                 identity_based_policies = self._get_group_based_policies(node)
-                # todo: collect these resources
-                service_control_policy_levels = []
 
                 request_context = IamRequestContext(
                     principal=node,
@@ -684,8 +681,6 @@ class AccessEdgeCreator:
                     for pb_policy in self.builder.nodes(clazz=AwsIamPolicy, filter=lambda p: p.arn == pb_arn):
                         if pdj := pb_policy.policy_document_json():
                             permission_boundaries.append(PolicyDocument(pdj))
-                # todo: collect these resources
-                service_control_policy_levels = []
 
                 request_context = IamRequestContext(
                     principal=node,
