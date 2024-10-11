@@ -471,24 +471,5 @@ class AwsAccountCollector:
             except Exception as e:
                 log.exception(f"Error creating organization graph: {e}")
 
-        if not self.config.scrape_org_role_arn:
-            scp_client = self.client
-        else:
-            scp_client = AwsClient(
-                self.client.config,
-                self.client.account_id,
-                role=self.config.scrape_org_role_arn,
-                profile=self.client.profile,
-                region=self.client.region,
-                partition=self.client.partition,
-                error_accumulator=self.error_accumulator,
-            )
-
-        account_scps = scp.find_account_scps(scp_client, self.account.id)
-        account_scps = scp.filter_allow_all(account_scps)
-        account_scps = [level for level in account_scps if level]
-
-        if not account_scps:
-            return
-
-        self.account._service_control_policies = account_scps
+        if account_scps := scp.collect_account_scps(self.account.id, self.config.scrape_org_role_arn, self.client):
+            self.account._service_control_policies = account_scps

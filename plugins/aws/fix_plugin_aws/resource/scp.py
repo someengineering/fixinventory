@@ -109,3 +109,25 @@ def is_allow_all_scp(scp: Json) -> bool:
 
 def filter_allow_all(levels: List[List[Json]]) -> List[List[Json]]:
     return [[scp for scp in level if not is_allow_all_scp(scp)] for level in levels]
+
+
+def collect_account_scps(account_id: str, scrape_org_role_arn: Optional[str], client: AwsClient) -> List[List[Json]]:
+
+    if scrape_org_role_arn:
+        scp_client = AwsClient(
+            client.config,
+            client.account_id,
+            role=scrape_org_role_arn,
+            profile=client.profile,
+            region=client.region,
+            partition=client.partition,
+            error_accumulator=client.error_accumulator,
+        )
+    else:
+        scp_client = client
+
+    account_scps = find_account_scps(scp_client, account_id)
+    account_scps = filter_allow_all(account_scps)
+    account_scps = [level for level in account_scps if level]
+
+    return account_scps
