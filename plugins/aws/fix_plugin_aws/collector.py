@@ -48,6 +48,7 @@ from fix_plugin_aws.resource import (
     waf,
     backup,
     bedrock,
+    scp,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -469,3 +470,6 @@ class AwsAccountCollector:
                 create_org_graph()
             except Exception as e:
                 log.exception(f"Error creating organization graph: {e}")
+
+        if account_scps := scp.collect_account_scps(self.account.id, self.config.scrape_org_role_arn, self.client):
+            self.account._service_control_policies = account_scps
