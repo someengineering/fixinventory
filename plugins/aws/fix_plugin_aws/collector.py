@@ -67,6 +67,7 @@ from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
 from .utils import global_region_by_partition
+from json import loads as json_loads
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -469,3 +470,106 @@ class AwsAccountCollector:
                 create_org_graph()
             except Exception as e:
                 log.exception(f"Error creating organization graph: {e}")
+
+        scp_access_role = self.task_data.get("metadata", {}).get("scp_access_role", None)
+        if not scp_access_role:
+            # no scp role -> return early
+            return
+
+        # fetch scps
+        scp_clent = AwsClient(
+            self.client.config,
+            self.client.account_id,
+            role=scp_access_role,
+            profile=self.client.profile,
+            region=self.client.region,
+            partition=self.client.partition,
+            error_accumulator=self.error_accumulator,
+        )
+
+        expected_errors = ["AccessDeniedException", "AWSOrganizationsNotInUseException"]
+
+        def get_scps(target_id: str, client: AwsClient) -> Optional[List[Json]]:
+            policies: List[Json] = client.list(
+                "organizations",
+                "list_policies_for_target",
+                "Policies",
+                TargetId=target_id,
+                Filter="SERVICE_CONTROL_POLICY",
+                expected_errors=expected_errors,
+            )
+
+            if not policies:
+                return None
+
+            policy_documents = []
+
+            for policy in policies:
+                policy_details = client.get(
+                    "organizations", "describe_policy", "Policy", PolicyId=policy["Id"], expected_errors=expected_errors
+                )
+                if not policy_details:
+                    continue
+                policy_document = json_loads(policy_details["Content"])
+                policy_documents.append(policy_document)
+
+            return policy_documents
+
+        def find_account_scps(client: AwsClient) -> List[List[Json]]:
+
+            def process_children(parent_id: str, parent_scps: List[List[Json]]) -> List[List[Json]]:
+                child_ous = self.client.list(
+                    "organizations", "list_organizational_units_for_parent", "OrganizationalUnits", ParentId=parent_id
+                )
+                for child_ou in child_ous:
+                    accounts = self.client.list(
+                        "organizations",
+                        "list_accounts_for_parent",
+                        "Accounts",
+                        ParentId=parent_id,
+                        expected_errors=expected_errors,
+                    )
+                    for account in accounts:
+                        if account["Id"] == self.account.id:
+                            account_scps = get_scps(self.account.id, client)
+                            if account_scps:
+                                parent_scps.append(account_scps)
+                                return parent_scps
+
+                    if result := process_children(child_ou["Id"], list(parent_scps)):
+                        return result
+
+                return []
+
+            roots = self.client.list("organizations", "list_roots", "Roots", expected_errors=expected_errors)
+            for root in roots:
+                root_scps = get_scps(root.id, client)
+                accounts = self.client.list(
+                    "organizations",
+                    "list_accounts_for_parent",
+                    "Accounts",
+                    ParentId=root.id,
+                    expected_errors=expected_errors,
+                )
+                # if an account is attached to the root, return early
+                for account in accounts:
+                    if account["Id"] == self.account.id:
+                        account_scps = get_scps(self.account.id, client)
+                        scp_levels = []
+                        if root_scps:
+                            scp_levels.append(root_scps)
+                        if account_scps:
+                            scp_levels.append(account_scps)
+                        return scp_levels
+
+                if result := process_children(root["Id"], []):
+                    return result
+
+            return []
+
+        account_scps = find_account_scps(scp_clent)
+
+        if not account_scps:
+            return
+
+        self.account.service_control_policies = account_scps

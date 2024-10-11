@@ -1,6 +1,6 @@
 from functools import lru_cache
 from attr import frozen, define
-from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
+from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
 
 from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
 
@@ -645,6 +645,13 @@ class AccessEdgeCreator:
 
                 # todo: collect these resources
                 service_control_policy_levels: List[List[PolicyDocument]] = []
+                assert node.arn
+                account_id = node.arn.split(":")[4]
+                account = next(self.builder.nodes(clazz=AwsAccount, filter=lambda a: a.id == account_id), None)
+                if account and account.service_control_policies:
+                    service_control_policy_levels = [
+                        [PolicyDocument(json) for json in level] for level in account.service_control_policies
+                    ]
 
                 request_context = IamRequestContext(
                     principal=node,

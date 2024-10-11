@@ -310,6 +310,7 @@ class AwsAccount(BaseAccount, AwsResource, BaseIamPrincipal):
     is_organization_master: bool = False
     organization_id: Optional[str] = None
     organization_arn: Optional[str] = None
+    service_control_policies: Optional[List[List[Json]]] = None
 
 
 default_ctime = datetime(2006, 3, 19, tzinfo=timezone.utc)  # AWS public launch date
