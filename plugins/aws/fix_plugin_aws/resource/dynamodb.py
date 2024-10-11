@@ -443,6 +443,7 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
                     "get-resource-policy",
                     "Policy",
                     ResourceArn=table.arn,
+                    expected_errors=["PolicyNotFoundException"],
                 ):
                     table.dynamodb_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
 
