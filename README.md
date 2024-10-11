@@ -32,6 +32,10 @@ Continue reading [the Quick Start Guide](https://inventory.fix.security/docs/get
 - [`fixmetrics`](fixmetrics) is a [Prometheus](https://prometheus.io/) [exporter](https://prometheus.io/docs/instrumenting/exporters/).
 - [`plugins`](plugins) are a collection of worker plugins like [AWS](plugins/aws)
 
+# Contributing
+
+You have a bugfix or want to provide a cool new feature? Awesome!
+Please follow our [contribution guidelines](https://inventory.fix.security/development) to get started.
 
 ## Contact
 If you have any questions, feel free to [join our Discord](https://discord.gg/fixsecurity) or [open a GitHub issue](https://github.com/someengineering/fixinventory/issues/new).
