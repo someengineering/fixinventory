@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any
 
-from boto3.exceptions import Boto3Error
 from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
