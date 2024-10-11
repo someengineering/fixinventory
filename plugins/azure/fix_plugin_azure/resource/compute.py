@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Any, Type
@@ -899,7 +900,9 @@ class AzureComputeDiskType(MicrosoftResource, BaseVolumeType):
         return premium_ssd_v2_object
 
     @staticmethod
-    def create_unique_disk_sizes(collected_disks: List[MicrosoftResourceType], builder: GraphBuilder) -> None:
+    def create_unique_disk_sizes(
+        collected_disks: List[MicrosoftResourceType], builder: GraphBuilder, location: str
+    ) -> None:
         disk_sizes: List[Json] = []
         seen_hashes = set()  # Set to keep track of unique hashes
         for disk in collected_disks:
@@ -907,7 +910,6 @@ class AzureComputeDiskType(MicrosoftResource, BaseVolumeType):
                 continue
             if (
                 (volume_type := disk.volume_type)
-                and (location := disk.location)
                 and (size := disk.volume_size)
                 and (iops := disk.volume_iops)
                 and (throughput := disk.volume_throughput)
@@ -1046,15 +1048,22 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
     tier_name: Optional[str] = field(default=None, metadata={"description": "The sku tier."})
 
     @classmethod
-    def collect_resources(
-        cls: Type[MicrosoftResourceType], builder: GraphBuilder, **kwargs: Any
-    ) -> List[MicrosoftResourceType]:
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureComputeDisk"]:
         log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
+        if not issubclass(cls, MicrosoftResource):
+            return []
         if spec := cls.api_spec:
             items = builder.client.list(spec, **kwargs)
             collected = cls.collect(items, builder)
-            # Create additional custom disk sizes for disks with Ultra SSD or Premium SSD v2 types
-            AzureComputeDiskType.create_unique_disk_sizes(collected, builder)
+            disks_by_location = defaultdict(list)
+            for disk in collected:
+                if disk_location := getattr(disk, "location", None):
+                    disks_by_location[disk_location].append(disk)
+            for d_loc, disks in disks_by_location.items():
+                # Collect disk types for the disks in this location
+                AzureComputeDisk._collect_disk_types(builder, d_loc)
+                # Create additional custom disk sizes for disks with Ultra SSD or Premium SSD v2 types
+                AzureComputeDiskType.create_unique_disk_sizes(disks, builder, d_loc)
             if builder.config.collect_usage_metrics:
                 try:
                     cls.collect_usage_metrics(builder, collected)
@@ -1063,33 +1072,32 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
             return collected
         return []
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        if location := self.location:
+    @staticmethod
+    def _collect_disk_types(graph_builder: GraphBuilder, location: str) -> None:
+        def collect_disk_types() -> None:
+            log.debug(f"[Azure:{graph_builder.account.id}] Collecting AzureComputeDiskType")
+            product_names = {
+                "Standard SSD Managed Disks",
+                "Premium SSD Managed Disks",
+                "Standard HDD Managed Disks",
+            }
+            sku_items = []
+            for product_name in product_names:
+                api_spec = AzureResourceSpec(
+                    service="compute",
+                    version="2023-01-01-preview",
+                    path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq '{location}' and unitOfMeasure eq '1/Month' and serviceFamily eq 'Storage' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
+                    path_parameters=[],
+                    query_parameters=["api-version"],
+                    access_path="Items",
+                    expect_array=True,
+                )
 
-            def collect_disk_types() -> None:
-                log.debug(f"[Azure:{graph_builder.account.id}] Collecting AzureComputeDiskType")
-                product_names = {
-                    "Standard SSD Managed Disks",
-                    "Premium SSD Managed Disks",
-                    "Standard HDD Managed Disks",
-                }
-                sku_items = []
-                for product_name in product_names:
-                    api_spec = AzureResourceSpec(
-                        service="compute",
-                        version="2023-01-01-preview",
-                        path=f"https://prices.azure.com/api/retail/prices?$filter=productName eq '{product_name}' and armRegionName eq '{location}' and unitOfMeasure eq '1/Month' and serviceFamily eq 'Storage' and type eq 'Consumption' and isPrimaryMeterRegion eq true",
-                        path_parameters=[],
-                        query_parameters=["api-version"],
-                        access_path="Items",
-                        expect_array=True,
-                    )
+                items = graph_builder.client.list(api_spec)
+                sku_items.extend(items)
+            AzureComputeDiskType.collect(sku_items, graph_builder)
 
-                    items = graph_builder.client.list(api_spec)
-                    sku_items.extend(items)
-                AzureComputeDiskType.collect(sku_items, graph_builder)
-
-            graph_builder.submit_work(service_name, collect_disk_types)
+        graph_builder.submit_work(service_name, collect_disk_types)
 
     @classmethod
     def collect_usage_metrics(
@@ -2954,30 +2962,60 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                 if not instance_status_set:
                     self.instance_status = InstanceStatus.UNKNOWN
 
-        if location := self.location:
-
-            def collect_vm_sizes() -> None:
-                api_spec = AzureResourceSpec(
-                    service="compute",
-                    version="2023-03-01",
-                    path="/subscriptions/{subscriptionId}/providers/Microsoft.Compute/locations/"
-                    + f"{location}/vmSizes",
-                    path_parameters=["subscriptionId"],
-                    query_parameters=["api-version"],
-                    access_path="value",
-                    expect_array=True,
-                )
-                items = graph_builder.client.list(api_spec)
-                if not items:
-                    return
-                # Set location for further connect_in_graph method
-                for item in items:
-                    item["location"] = location
-                AzureComputeVirtualMachineSize.collect(items, graph_builder)
-
-            graph_builder.submit_work(service_name, collect_vm_sizes)
-
         graph_builder.submit_work(service_name, collect_instance_status)
+
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureComputeVirtualMachineBase"]:
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
+
+        if not issubclass(cls, MicrosoftResource):
+            return []
+
+        if spec := cls.api_spec:
+            items = builder.client.list(spec, **kwargs)
+            collected = cls.collect(items, builder)
+
+            unique_locations = set(getattr(vm, "location") for vm in collected if getattr(vm, "location"))
+
+            for location in unique_locations:
+                log.debug(f"Processing virtual machines in location: {location}")
+
+                # Collect VM sizes for the VM in this location
+                AzureComputeVirtualMachineBase._collect_vm_sizes(builder, location)
+
+            if builder.config.collect_usage_metrics:
+                try:
+                    cls.collect_usage_metrics(builder, collected)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
+
+            return collected
+
+        return []
+
+    @staticmethod
+    def _collect_vm_sizes(graph_builder: GraphBuilder, location: str) -> None:
+        def collect_vm_sizes() -> None:
+            api_spec = AzureResourceSpec(
+                service="compute",
+                version="2023-03-01",
+                path=f"/subscriptions/{{subscriptionId}}/providers/Microsoft.Compute/locations/{location}/vmSizes",
+                path_parameters=["subscriptionId"],
+                query_parameters=["api-version"],
+                access_path="value",
+                expect_array=True,
+            )
+            items = graph_builder.client.list(api_spec)
+            if not items:
+                return
+
+            # Set location for further connect_in_graph method
+            for item in items:
+                item["location"] = location
+
+            AzureComputeVirtualMachineSize.collect(items, graph_builder)
+
+        graph_builder.submit_work(service_name, collect_vm_sizes)
 
     @classmethod
     def collect_usage_metrics(
