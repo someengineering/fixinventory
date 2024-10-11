@@ -768,7 +768,8 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "bedrock",
         "list-evaluation-jobs",
         "jobSummaries",
-        expected_errors=["AccessDeniedException"],
+        # `InternalServerException` is ignored because some AWS regions may not support retrieving evaluation jobs
+        expected_errors=["AccessDeniedException", "InternalServerException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("jobArn"),
@@ -816,34 +817,6 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
         return super().called_collect_apis() + [cls.api_spec, AwsApiSpec(service_name, "get-evaluation-job")]
-
-    @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
-        if spec := cls.api_spec:
-            try:
-                kwargs = spec.parameter or {}
-                expected_errors = spec.expected_errors or []
-                # In case if region `ap-northeast-2` we ignore server exception
-                if builder.region.name == "ap-northeast-2":
-                    expected_errors.append("InternalServerException")
-                items = builder.client.list(
-                    aws_service=spec.service,
-                    action=spec.api_action,
-                    result_name=spec.result_property,
-                    expected_errors=expected_errors,
-                    **kwargs,
-                )
-                cls.collect(items, builder)
-            except Boto3Error as e:
-                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
-                builder.core_feedback.error(msg, log)
-                raise
-            except Exception as e:
-                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
-                builder.core_feedback.info(msg, log)
-                raise
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
