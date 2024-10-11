@@ -636,9 +636,9 @@ class AccessEdgeCreator:
         account_id = self.builder.account.id
         service_control_policy_levels: List[List[PolicyDocument]] = []
         account = next(self.builder.nodes(clazz=AwsAccount, filter=lambda a: a.id == account_id), None)
-        if account and account.service_control_policies:
+        if account and account._service_control_policies:
             service_control_policy_levels = [
-                [PolicyDocument(json) for json in level] for level in account.service_control_policies
+                [PolicyDocument(json) for json in level] for level in account._service_control_policies
             ]
 
         for node in self.builder.nodes(clazz=AwsResource):

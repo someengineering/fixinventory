@@ -471,20 +471,18 @@ class AwsAccountCollector:
             except Exception as e:
                 log.exception(f"Error creating organization graph: {e}")
 
-        scp_access_role = self.task_data.get("metadata", {}).get("scp_access_role", None)
-        if not scp_access_role:
-            scp_access_role = self.client.role
-
-        # fetch scps
-        scp_clent = AwsClient(
-            self.client.config,
-            self.client.account_id,
-            role=scp_access_role,
-            profile=self.client.profile,
-            region=self.client.region,
-            partition=self.client.partition,
-            error_accumulator=self.error_accumulator,
-        )
+        if not self.config.scrape_org_role_arn:
+            scp_client = self.client
+        else:
+            scp_client = AwsClient(
+                self.client.config,
+                self.client.account_id,
+                role=self.config.scrape_org_role_arn,
+                profile=self.client.profile,
+                region=self.client.region,
+                partition=self.client.partition,
+                error_accumulator=self.error_accumulator,
+            )
 
         expected_errors = ["AccessDeniedException", "AWSOrganizationsNotInUseException"]
 
@@ -572,7 +570,7 @@ class AwsAccountCollector:
 
             return []
 
-        account_scps = find_account_scps(scp_clent)
+        account_scps = find_account_scps(scp_client)
 
         def is_allow_all_scp(scp: Json) -> bool:
             for statement in scp.get("Statement", []):
@@ -597,4 +595,4 @@ class AwsAccountCollector:
         if not account_scps:
             return
 
-        self.account.service_control_policies = account_scps
+        self.account._service_control_policies = account_scps
