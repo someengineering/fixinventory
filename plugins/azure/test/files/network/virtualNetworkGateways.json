@@ -83,7 +83,22 @@
                 "disableIPSecReplayProtection": false,
                 "vpnClientConfiguration": {
                     "vpnClientProtocols": [],
-                    "vpnClientRootCertificates": [],
+                    "vpnClientRootCertificates": [
+                        {
+                            "id": "/subscriptions/{subscription-id}/resourceGroups/{resource-group-name}/providers/Microsoft.Network/virtualNetworkGateways/{gateway-name}/vpnClientRootCertificates/RootCert1",
+                            "name": "RootCert1",
+                            "properties": {
+                              "publicCertData": "MIIDzTCCArWgAwIBAgIQDDTI..."
+                            }
+                          },
+                          {
+                            "id": "/subscriptions/{subscription-id}/resourceGroups/{resource-group-name}/providers/Microsoft.Network/virtualNetworkGateways/{gateway-name}/vpnClientRootCertificates/RootCert2",
+                            "name": "RootCert2",
+                            "properties": {
+                              "publicCertData": "MIIDzTCCArWgAwIBAgIQDXYZ..."
+                            }
+                        }
+                    ],
                     "vpnClientRevokedCertificates": []
                 },
                 "bgpSettings": {
