@@ -17,7 +17,7 @@ from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import TagsValue
 from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import F, Bender, S, ForallBend, Bend
 from fixlib.types import Json
 from fixlib.json import sort_json
 
@@ -175,7 +175,7 @@ class AwsBackupProtectedResource(AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ResourceArn"),
+        "id": S("ResourceArn") >> F(AwsResource.id_from_arn),
         "name": S("ResourceName"),
         "resource_arn": S("ResourceArn"),
         "resource_type": S("ResourceType"),
