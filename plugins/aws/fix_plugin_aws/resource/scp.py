@@ -8,6 +8,7 @@ _expected_errors = ["AccessDeniedException", "AWSOrganizationsNotInUseException"
 
 logger = getLogger(__name__)
 
+
 def get_scps(target_id: str, client: AwsClient) -> Optional[List[Json]]:
     policies: List[Json] = client.list(
         "organizations",
