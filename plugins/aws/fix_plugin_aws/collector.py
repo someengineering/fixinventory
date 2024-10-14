@@ -49,6 +49,7 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
     scp,
+    inspector,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -82,41 +83,42 @@ global_resources: List[Type[AwsResource]] = (
     + waf.resources
 )
 regional_resources: List[Type[AwsResource]] = (
-    sagemaker.resources  # start with sagemaker, because it is very slow
-    + acm.resources
-    + apigateway.resources
-    + autoscaling.resources
-    + athena.resources
-    + config.resources
-    + cloudformation.resources
-    + cloudtrail.resources
-    + cloudwatch.resources
-    + cognito.resources
-    + dynamodb.resources
-    + ec2.resources
-    + efs.resources
-    + ecs.resources
-    + ecr.resources
-    + eks.resources
-    + elasticbeanstalk.resources
-    + elasticache.resources
-    + elb.resources
-    + elbv2.resources
-    + glacier.resources
-    + kinesis.resources
-    + kms.resources
+    # sagemaker.resources  # start with sagemaker, because it is very slow
+    # + acm.resources
+    # + apigateway.resources
+    # + autoscaling.resources
+    # + athena.resources
+    # + config.resources
+    # + cloudformation.resources
+    # + cloudtrail.resources
+    # + cloudwatch.resources
+    # + cognito.resources
+    # + dynamodb.resources
+    ec2.resources
+    # + efs.resources
+    # + ecs.resources
+    # + ecr.resources
+    # + eks.resources
+    # + elasticbeanstalk.resources
+    # + elasticache.resources
+    # + elb.resources
+    # + elbv2.resources
+    # + glacier.resources
+    # + kinesis.resources
+    # + kms.resources
     + lambda_.resources
-    + opensearch.resources
-    + rds.resources
-    + secretsmanager.resources
-    + service_quotas.resources
-    + sns.resources
-    + ssm.resources
-    + sqs.resources
-    + redshift.resources
-    + backup.resources
-    + amazonq.resources
-    + bedrock.resources
+    # + opensearch.resources
+    # + rds.resources
+    # + secretsmanager.resources
+    # + service_quotas.resources
+    # + sns.resources
+    # + ssm.resources
+    # + sqs.resources
+    # + redshift.resources
+    # + backup.resources
+    # + amazonq.resources
+    # + bedrock.resources
+    + inspector.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 

@@ -6,12 +6,6 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup
-from fix_plugin_aws.resource.iam import AwsIamRole
-from fix_plugin_aws.resource.kms import AwsKmsKey
-from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from fix_plugin_aws.resource.s3 import AwsS3Bucket
-from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
 from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
@@ -343,7 +337,9 @@ class AwsInspectorV2Resource:
 @define(eq=False, slots=False)
 class AwsInspectorV2Finding(AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_finding"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("inspector2", "list-findings", "findings")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "inspector2", "list-findings", "findings", expected_errors=["AccessDeniedException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("findingArn") >> F(AwsResource.id_from_arn),
         "name": S("title"),
@@ -367,8 +363,8 @@ class AwsInspectorV2Finding(AwsResource):
         "package_vulnerability_details": S("packageVulnerabilityDetails")
         >> Bend(AwsInspectorV2PackageVulnerabilityDetails.mapping),
         "remediation": S("remediation") >> Bend(AwsInspectorV2Remediation.mapping),
-        "resources": S("resources", default=[]) >> ForallBend(AwsInspectorV2Resource.mapping),
-        "severity": S("severity"),
+        "finding_resources": S("resources", default=[]) >> ForallBend(AwsInspectorV2Resource.mapping),
+        "finding_severity": S("severity"),
         "status": S("status"),
         "title": S("title"),
         "type": S("type"),
@@ -389,8 +385,8 @@ class AwsInspectorV2Finding(AwsResource):
     network_reachability_details: Optional[AwsInspectorV2NetworkReachabilityDetails] = field(default=None, metadata={"description": "An object that contains the details of a network reachability finding."})  # fmt: skip
     package_vulnerability_details: Optional[AwsInspectorV2PackageVulnerabilityDetails] = field(default=None, metadata={"description": "An object that contains the details of a package vulnerability finding."})  # fmt: skip
     remediation: Optional[AwsInspectorV2Remediation] = field(default=None, metadata={"description": "An object that contains the details about how to remediate a finding."})  # fmt: skip
-    resources: Optional[List[AwsInspectorV2Resource]] = field(factory=list, metadata={"description": "Contains information on the resources involved in a finding. The resource value determines the valid values for type in your request. For more information, see Finding types in the Amazon Inspector user guide."})  # fmt: skip
-    severity: Optional[str] = field(default=None, metadata={"description": "The severity of the finding. UNTRIAGED applies to PACKAGE_VULNERABILITY type findings that the vendor has not assigned a severity yet. For more information, see Severity levels for findings in the Amazon Inspector user guide."})  # fmt: skip
+    finding_resources: Optional[List[AwsInspectorV2Resource]] = field(factory=list, metadata={"description": "Contains information on the resources involved in a finding. The resource value determines the valid values for type in your request. For more information, see Finding types in the Amazon Inspector user guide."})  # fmt: skip
+    finding_severity: Optional[str] = field(default=None, metadata={"description": "The severity of the finding. UNTRIAGED applies to PACKAGE_VULNERABILITY type findings that the vendor has not assigned a severity yet. For more information, see Severity levels for findings in the Amazon Inspector user guide."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the finding."})  # fmt: skip
     title: Optional[str] = field(default=None, metadata={"description": "The title of the finding."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of the finding. The type value determines the valid values for resource in your request. For more information, see Finding types in the Amazon Inspector user guide."})  # fmt: skip
@@ -411,7 +407,9 @@ class AwsInspectorV2CisTargets:
 @define(eq=False, slots=False)
 class AwsInspectorV2CisScan(AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_cis_scan"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("inspector2", "list-cis-scans", "scans")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "inspector2", "list-cis-scans", "scans", expected_errors=["AccessDeniedException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("scanArn") >> F(AwsResource.id_from_arn),
         "name": S("scanName"),
@@ -449,10 +447,13 @@ class AwsInspectorV2StatusCounts:
 
 
 @define(eq=False, slots=False)
-class AwsInspectorV2CisScanResultsAggregatedByTargetResource(AwsResource):
+class AwsInspectorV2CisScanResultByTarget(AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_cis_scan_results_aggregated_by_target_resource"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "inspector2", "list-cis-scan-results-aggregated-by-target-resource", "targetResourceAggregations"
+        "inspector2",
+        "list-cis-scan-results-aggregated-by-target-resource",
+        "targetResourceAggregations",
+        expected_errors=["AccessDeniedException"],
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("scanArn") >> F(AwsResource.id_from_arn),
@@ -541,7 +542,9 @@ class AwsInspectorV2ScanStatus:
 @define(eq=False, slots=False)
 class AwsInspectorV2Coverage(AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_coverage"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("inspector2", "list-coverage", "coveredResources")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "inspector2", "list-coverage", "coveredResources", expected_errors=["AccessDeniedException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("resourceId"),
         "name": S("resourceId"),
@@ -735,7 +738,9 @@ class AwsInspectorV2FilterCriteria:
 @define(eq=False, slots=False)
 class AwsInspectorV2Filter(AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_filter"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("inspector2", "list-filters", "filters")
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "inspector2", "list-filters", "filters", expected_errors=["AccessDeniedException"]
+    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("arn") >> F(AwsResource.id_from_arn),
         "name": S("name"),
@@ -743,18 +748,16 @@ class AwsInspectorV2Filter(AwsResource):
         "action": S("action"),
         "arn": S("arn"),
         "created_at": S("createdAt"),
-        "criteria": S("criteria") >> Bend(AwsInspectorV2FilterCriteria.mapping),
+        "filter_criteria": S("criteria") >> Bend(AwsInspectorV2FilterCriteria.mapping),
         "description": S("description"),
         "owner_id": S("ownerId"),
         "reason": S("reason"),
         "updated_at": S("updatedAt"),
     }
     action: Optional[str] = field(default=None, metadata={"description": "The action that is to be applied to the findings that match the filter."})  # fmt: skip
-    arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Number (ARN) associated with this filter."})  # fmt: skip
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time this filter was created at."})  # fmt: skip
-    criteria: Optional[AwsInspectorV2FilterCriteria] = field(default=None, metadata={"description": "Details on the filter criteria associated with this filter."})  # fmt: skip
+    filter_criteria: Optional[AwsInspectorV2FilterCriteria] = field(default=None, metadata={"description": "Details on the filter criteria associated with this filter."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "A description of the filter."})  # fmt: skip
-    name: Optional[str] = field(default=None, metadata={"description": "The name of the filter."})  # fmt: skip
     owner_id: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services account ID of the account that created the filter."})  # fmt: skip
     reason: Optional[str] = field(default=None, metadata={"description": "The reason for the filter."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the filter was last updated at."})  # fmt: skip
@@ -763,7 +766,7 @@ class AwsInspectorV2Filter(AwsResource):
 resources: List[Type[AwsResource]] = [
     AwsInspectorV2Finding,
     AwsInspectorV2CisScan,
-    AwsInspectorV2CisScanResultsAggregatedByTargetResource,
+    # AwsInspectorV2CisScanResultByTarget,
     AwsInspectorV2Coverage,
     AwsInspectorV2Filter,
 ]
