@@ -553,7 +553,7 @@ class AwsInspectorV2Schedule:
 class AwsInspectorV2CisScanConfiguration(InspectorResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_cis_scan_configuration"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "inspector2", "list-cis-scan-configurations", "scans", expected_errors=["AccessDeniedException"]
+        "inspector2", "list-cis-scan-configurations", "scanConfigurations", expected_errors=["AccessDeniedException"]
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("scanConfigurationArn") >> F(AwsResource.id_from_arn),

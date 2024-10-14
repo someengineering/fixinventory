@@ -1,0 +1,67 @@
+{
+    "nextToken": "foo",
+    "scanConfigurations": [
+      {
+        "ownerId": "foo",
+        "scanConfigurationArn": "foo",
+        "scanName": "foo",
+        "schedule": {
+          "daily": {
+            "startTime": {
+              "timeOfDay": "foo",
+              "timezone": "foo"
+            }
+          },
+          "monthly": {
+            "day": "MON",
+            "startTime": {
+              "timeOfDay": "foo",
+              "timezone": "foo"
+            }
+          },
+          "oneTime": {},
+          "weekly": {
+            "days": [
+              "MON",
+              "MON",
+              "MON"
+            ],
+            "startTime": {
+              "timeOfDay": "foo",
+              "timezone": "foo"
+            }
+          }
+        },
+        "securityLevel": "LEVEL_2",
+        "tags": {
+          "0": "foo",
+          "1": "foo",
+          "2": "foo"
+        },
+        "targets": {
+          "accountIds": [
+            "foo",
+            "foo",
+            "foo"
+          ],
+          "targetResourceTags": {
+            "0": [
+              "foo",
+              "foo",
+              "foo"
+            ],
+            "1": [
+              "foo",
+              "foo",
+              "foo"
+            ],
+            "2": [
+              "foo",
+              "foo",
+              "foo"
+            ]
+          }
+        }
+      }
+    ]
+  }

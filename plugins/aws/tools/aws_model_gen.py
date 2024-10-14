@@ -282,7 +282,7 @@ def create_test_response(service: str, function: str, is_pascal: bool = False) -
 
     def sample(shape: Shape) -> JsonElement:
         if isinstance(shape, StringShape) and shape.enum:
-            return shape.enum[1]
+            return shape.enum[-1]
         elif isinstance(shape, StringShape) and "8601" in shape.documentation:
             return utc_str()
         elif isinstance(shape, StringShape) and "URL" in shape.documentation:
@@ -998,8 +998,8 @@ models: Dict[str, List[AwsFixModel]] = {
 
 
 if __name__ == "__main__":
-    # """print some test data"""
-    # print(json.dumps(create_test_response("bedrock-agent", "get-knowledge-base"), indent=2))
+    """print some test data"""
+    # print(json.dumps(create_test_response("inspector2", "list-coverage"), indent=2))
 
     """print the class models"""
     # print(default_imports())
