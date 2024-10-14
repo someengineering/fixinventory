@@ -3,7 +3,6 @@ from typing import ClassVar, Dict, Optional, Type, List, Any
 
 
 from attr import define, field as attrs_field, field
-from importlib_metadata import metadata
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource, parse_json

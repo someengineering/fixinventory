@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Union, Any
 
 from attrs import define, field
-from sqlalchemy.testing.suite.test_reflection import metadata
 
 from fix_plugin_aws.aws_client import AwsClient
 

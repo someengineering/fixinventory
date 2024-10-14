@@ -407,8 +407,8 @@ class AwsRedshiftLoggingStatus:
     bucket_name: Optional[str] = field(default=None, metadata={"description": "The name of the S3 bucket where the log files are stored."})  # fmt: skip
     s3_key_prefix: Optional[str] = field(default=None, metadata={"description": "The prefix applied to the log file names."})  # fmt: skip
     last_successful_delivery_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The last time that logs were delivered."})  # fmt: skip
-    last_failure_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True,"description": "The last time when logs failed to be delivered."})  # fmt: skip
-    last_failure_message: Optional[str] = field(default=None, metadata={"ignore_history": True,"description": "The message indicating that logs failed to be delivered."})  # fmt: skip
+    last_failure_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The last time when logs failed to be delivered."})  # fmt: skip
+    last_failure_message: Optional[str] = field(default=None, metadata={"ignore_history": True, "description": "The message indicating that logs failed to be delivered."})  # fmt: skip
     log_destination_type: Optional[str] = field(default=None, metadata={"description": "The log destination type. An enum with possible values of s3 and cloudwatch."})  # fmt: skip
     log_exports: Optional[List[str]] = field(factory=list, metadata={"description": "The collection of exported log types. Possible values are connectionlog, useractivitylog, and userlog."})  # fmt: skip
 

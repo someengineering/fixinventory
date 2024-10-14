@@ -4,7 +4,6 @@ from typing import Any, ClassVar, Dict, Literal, Optional, List, Type, cast
 
 
 from attrs import define, field
-from sqlalchemy.testing.suite.test_reflection import metadata
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder

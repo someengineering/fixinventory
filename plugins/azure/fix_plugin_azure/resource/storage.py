@@ -169,7 +169,9 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     default_encryption_scope: Optional[str] = field(default=None, metadata={'description': 'Default the container to use specified encryption scope for all writes.'})  # fmt: skip
     deleted: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the blob container was deleted.'})  # fmt: skip
-    deleted_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Blob container deletion time."})
+    deleted_time: Optional[datetime] = field(
+        default=None, metadata={"ignore_history": True, "description": "Blob container deletion time."}
+    )
     deny_encryption_scope_override: Optional[bool] = field(default=None, metadata={'description': 'Block override of encryption scope from the container default.'})  # fmt: skip
     enable_nfs_v3_all_squash: Optional[bool] = field(default=None, metadata={'description': 'Enable NFSv3 all squash on blob container.'})  # fmt: skip
     enable_nfs_v3_root_squash: Optional[bool] = field(default=None, metadata={'description': 'Enable NFSv3 root squash on blob container.'})  # fmt: skip
@@ -232,9 +234,13 @@ class AzureAccessPolicy:
         "permission": S("permission"),
         "start_time": S("startTime"),
     }
-    expiry_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Expiry time of the access policy"})
+    expiry_time: Optional[datetime] = field(
+        default=None, metadata={"ignore_history": True, "description": "Expiry time of the access policy"}
+    )
     permission: Optional[str] = field(default=None, metadata={"description": "List of abbreviated permissions."})
-    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Start time of the access policy"})
+    start_time: Optional[datetime] = field(
+        default=None, metadata={"ignore_history": True, "description": "Start time of the access policy"}
+    )
 
 
 @define(eq=False, slots=False)
@@ -838,7 +844,7 @@ class AzureStorageAccount(MicrosoftResource):
     key_expiration_period_in_days: Optional[int] = field(default=None, metadata={'description': 'KeyPolicy assigned to the storage account.'})  # fmt: skip
     resource_kind: Optional[str] = field(default=None, metadata={"description": "Gets the Kind."})
     large_file_shares_state: Optional[str] = field(default=None, metadata={'description': 'Allow large file shares if sets to Enabled. It cannot be disabled once it is enabled.'})  # fmt: skip
-    last_geo_failover_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 3'description': 'Gets the timestamp of the most recent instance of a failover to the secondary location. Only the most recent timestamp is retained. This element is not returned if there has never been a failover instance. Only available if the accountType is Standard_GRS or Standard_RAGRS.'})  # fmt: skip
+    last_geo_failover_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets the timestamp of the most recent instance of a failover to the secondary location. Only the most recent timestamp is retained. This element is not returned if there has never been a failover instance. Only available if the accountType is Standard_GRS or Standard_RAGRS.'})  # fmt: skip
     minimum_tls_version: Optional[str] = field(default=None, metadata={'description': 'Set the minimum TLS version to be permitted on requests to storage. The default interpretation is TLS 1.0 for this property.'})  # fmt: skip
     storage_network_acls: Optional[AzureNetworkRuleSet] = field(
         default=None, metadata={"description": "Network rule set"}
