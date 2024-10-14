@@ -17,7 +17,7 @@ from test.resources import BotoFileBasedSession
 
 @fixture
 def aws_config() -> AwsConfig:
-    config = AwsConfig(discard_account_on_resource_error=True)
+    config = AwsConfig(discard_account_on_resource_error=True, collect_access_edges=False)
     config.sessions().session_class_factory = BotoFileBasedSession
     return config
 
