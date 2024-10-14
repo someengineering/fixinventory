@@ -56,6 +56,7 @@ RUN . /build/jupyterlite-venv-python3/bin/activate && python -m jupyter lite bui
 WORKDIR /usr/src
 RUN . /usr/local/fix-venv-python3/bin/activate && pip install -r requirements-extra.txt
 RUN . /usr/local/fix-venv-python3/bin/activate && find plugins/ -maxdepth 1 -mindepth 1 -type d -print0 | xargs -0 python -m pip install ./fixlib ./fixcore ./fixworker ./fixmetrics ./fixshell
+RUN . /usr/local/fix-venv-python3/bin/activate && python -m pip install fixinventory-plugin-vsphere
 
 # Install AWS CLI
 WORKDIR /usr/src
