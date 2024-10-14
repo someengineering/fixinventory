@@ -9,7 +9,7 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.ecr import AwsEcrRepository
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
+from fixlib.baseresources import ModelReference
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 from fixlib.types import Json
@@ -349,6 +349,7 @@ class AwsInspectorV2Finding(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("findingArn") >> F(AwsResource.id_from_arn),
         "name": S("title"),
+        "tags": S("tags"),
         "mtime": S("updatedAt"),
         "arn": S("findingArn"),
         "aws_account_id": S("awsAccountId"),
@@ -426,6 +427,9 @@ class AwsInspectorV2CisScan(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "inspector2", "list-cis-scans", "scans", expected_errors=["AccessDeniedException"]
     )
+    _reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": ["aws_inspector_v2_cis_scan_configuration"]}
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("scanArn") >> F(AwsResource.id_from_arn),
         "name": S("scanName"),
@@ -438,7 +442,7 @@ class AwsInspectorV2CisScan(AwsResource):
         "scheduled_by": S("scheduledBy"),
         "security_level": S("securityLevel"),
         "status": S("status"),
-        "targets": S("targets") >> Bend(AwsInspectorV2CisTargets.mapping),
+        "cis_targets": S("targets") >> Bend(AwsInspectorV2CisTargets.mapping),
         "total_checks": S("totalChecks"),
     }
     failed_checks: Optional[int] = field(default=None, metadata={"description": "The CIS scan's failed checks."})  # fmt: skip
@@ -449,8 +453,97 @@ class AwsInspectorV2CisScan(AwsResource):
     scheduled_by: Optional[str] = field(default=None, metadata={"description": "The account or organization that schedules the CIS scan."})  # fmt: skip
     security_level: Optional[str] = field(default=None, metadata={"description": "The security level for the CIS scan. Security level refers to the Benchmark levels that CIS assigns to a profile."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The CIS scan's status."})  # fmt: skip
-    targets: Optional[AwsInspectorV2CisTargets] = field(default=None, metadata={"description": "The CIS scan's targets."})  # fmt: skip
+    cis_targets: Optional[AwsInspectorV2CisTargets] = field(default=None, metadata={"description": "The CIS scan's targets."})  # fmt: skip
     total_checks: Optional[int] = field(default=None, metadata={"description": "The CIS scan's total checks."})  # fmt: skip
+
+    def post_process(self, builder: GraphBuilder, source: Json) -> None:
+        if (targets := self.cis_targets) and (tags := targets.target_resource_tags):
+            tags_map: Dict[str, str] = {}
+            for key, value in tags.items():
+                tags_map[key] = value[0]
+            self.tags = tags_map  # type: ignore
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if conf_arn := self.scan_configuration_arn:
+            builder.add_edge(self, clazz=AwsInspectorV2CisScanConfiguration, arn=conf_arn)
+
+
+@define(eq=False, slots=False)
+class AwsInspectorV2Time:
+    kind: ClassVar[str] = "aws_inspector_v2_time"
+    mapping: ClassVar[Dict[str, Bender]] = {"time_of_day": S("timeOfDay"), "timezone": S("timezone")}
+    time_of_day: Optional[str] = field(default=None, metadata={"description": "The time of day in 24-hour format (00:00)."})  # fmt: skip
+    timezone: Optional[str] = field(default=None, metadata={"description": "The timezone."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsInspectorV2DailySchedule:
+    kind: ClassVar[str] = "aws_inspector_v2_daily_schedule"
+    mapping: ClassVar[Dict[str, Bender]] = {"start_time": S("startTime") >> Bend(AwsInspectorV2Time.mapping)}
+    start_time: Optional[AwsInspectorV2Time] = field(default=None, metadata={"description": "The schedule start time."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsInspectorV2MonthlySchedule:
+    kind: ClassVar[str] = "aws_inspector_v2_monthly_schedule"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "day": S("day"),
+        "start_time": S("startTime") >> Bend(AwsInspectorV2Time.mapping),
+    }
+    day: Optional[str] = field(default=None, metadata={"description": "The monthly schedule's day."})  # fmt: skip
+    start_time: Optional[AwsInspectorV2Time] = field(default=None, metadata={"description": "The monthly schedule's start time."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsInspectorV2WeeklySchedule:
+    kind: ClassVar[str] = "aws_inspector_v2_weekly_schedule"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "days": S("days", default=[]),
+        "start_time": S("startTime") >> Bend(AwsInspectorV2Time.mapping),
+    }
+    days: Optional[List[str]] = field(factory=list, metadata={"description": "The weekly schedule's days."})  # fmt: skip
+    start_time: Optional[AwsInspectorV2Time] = field(default=None, metadata={"description": "The weekly schedule's start time."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsInspectorV2Schedule:
+    kind: ClassVar[str] = "aws_inspector_v2_schedule"
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "daily": S("daily") >> Bend(AwsInspectorV2DailySchedule.mapping),
+        "monthly": S("monthly") >> Bend(AwsInspectorV2MonthlySchedule.mapping),
+        "weekly": S("weekly") >> Bend(AwsInspectorV2WeeklySchedule.mapping),
+        "one_time": S("oneTime"),
+    }
+    daily: Optional[AwsInspectorV2DailySchedule] = field(default=None, metadata={"description": "The schedule's daily."})  # fmt: skip
+    one_time: Optional[Dict[str, Any]] = field(default=None, metadata={"description": "The schedule's one time."})  # fmt: skip
+    monthly: Optional[AwsInspectorV2MonthlySchedule] = field(default=None, metadata={"description": "The schedule's monthly."})  # fmt: skip
+    weekly: Optional[AwsInspectorV2WeeklySchedule] = field(default=None, metadata={"description": "The schedule's weekly."})  # fmt: skip
+
+
+@define(eq=False, slots=False)
+class AwsInspectorV2CisScanConfiguration(AwsResource):
+    kind: ClassVar[str] = "aws_inspector_v2_cis_scan_configuration"
+    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
+        "inspector2", "list-cis-scan-configurations", "scans", expected_errors=["AccessDeniedException"]
+    )
+    mapping: ClassVar[Dict[str, Bender]] = {
+        "id": S("id"),
+        "tags": S("tags"),
+        "name": S("scanName"),
+        "arn": S("scanConfigurationArn"),
+        "owner_id": S("ownerId"),
+        "scan_configuration_arn": S("scanConfigurationArn"),
+        "scan_name": S("scanName"),
+        "cis_schedule": S("schedule") >> Bend(AwsInspectorV2Schedule.mapping),
+        "security_level": S("securityLevel"),
+        "cis_targets": S("targets") >> Bend(AwsInspectorV2CisTargets.mapping),
+    }
+    owner_id: Optional[str] = field(default=None, metadata={"description": "The CIS scan configuration's owner ID."})  # fmt: skip
+    scan_configuration_arn: Optional[str] = field(default=None, metadata={"description": "The CIS scan configuration's scan configuration ARN."})  # fmt: skip
+    scan_name: Optional[str] = field(default=None, metadata={"description": "The name of the CIS scan configuration."})  # fmt: skip
+    cis_schedule: Optional[AwsInspectorV2Schedule] = field(default=None, metadata={"description": "The CIS scan configuration's schedule."})  # fmt: skip
+    security_level: Optional[str] = field(default=None, metadata={"description": "The CIS scan configuration's security level."})  # fmt: skip
+    cis_targets: Optional[AwsInspectorV2CisTargets] = field(default=None, metadata={"description": "The CIS scan configuration's targets."})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -743,6 +836,7 @@ class AwsInspectorV2Filter(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("arn") >> F(AwsResource.id_from_arn),
         "name": S("name"),
+        "tags": S("tags"),
         "mtime": S("updatedAt"),
         "action": S("action"),
         "arn": S("arn"),
@@ -765,6 +859,7 @@ class AwsInspectorV2Filter(AwsResource):
 resources: List[Type[AwsResource]] = [
     AwsInspectorV2Finding,
     AwsInspectorV2CisScan,
+    AwsInspectorV2CisScanConfiguration,
     AwsInspectorV2Coverage,
     AwsInspectorV2Filter,
 ]
