@@ -173,7 +173,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
     output_data_config: Optional[str] = field(default=None, metadata={"description": "Output data configuration associated with this custom model."})  # fmt: skip
     training_metrics: Optional[float] = field(default=None, metadata={"description": "Contains training metrics from the job creation."})  # fmt: skip
     validation_metrics: Optional[List[float]] = field(factory=list, metadata={"description": "The validation metrics from the job creation."})  # fmt: skip
-    creation_time: Optional[datetime] = field(default=None, metadata={"description": "Creation time of the model."})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Creation time of the model."})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if job_arn := self.job_arn:
@@ -268,8 +268,8 @@ class AwsBedrockProvisionedModelThroughput(BedrockTaggable, AwsResource):
     status: Optional[str] = field(default=None, metadata={"description": "The status of the Provisioned Throughput."})  # fmt: skip
     commitment_duration: Optional[str] = field(default=None, metadata={"description": "The duration for which the Provisioned Throughput was committed."})  # fmt: skip
     commitment_expiration_time: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the commitment term of the Provisioned Throughput expires."})  # fmt: skip
-    creation_time: Optional[datetime] = field(default=None, metadata={"description": "The time that the Provisioned Throughput was created."})  # fmt: skip
-    last_modified_time: Optional[datetime] = field(default=None, metadata={"description": "The time that the Provisioned Throughput was last modified."})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time that the Provisioned Throughput was created."})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time that the Provisioned Throughput was last modified."})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model_arn := self.model_arn:
@@ -454,8 +454,8 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
     word_policy: Optional[AwsBedrockGuardrailWordPolicy] = field(default=None, metadata={"description": "The word policy that was configured for the guardrail."})  # fmt: skip
     sensitive_information_policy: Optional[AwsBedrockGuardrailSensitiveInformationPolicy] = field(default=None, metadata={"description": "The sensitive information policy that was configured for the guardrail."})  # fmt: skip
     contextual_grounding_policy: Optional[AwsBedrockGuardrailContextualGroundingPolicy] = field(default=None, metadata={"description": "The contextual grounding policy used in the guardrail."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time at which the guardrail was created."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time at which the guardrail was updated."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The date and time at which the guardrail was created."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The date and time at which the guardrail was updated."})  # fmt: skip
     status_reasons: Optional[List[str]] = field(factory=list, metadata={"description": "Appears if the status is FAILED. A list of reasons for why the guardrail failed to be created, updated, versioned, or deleted."})  # fmt: skip
     failure_recommendations: Optional[List[str]] = field(factory=list, metadata={"description": "Appears if the status of the guardrail is FAILED. A list of recommendations to carry out before retrying the request."})  # fmt: skip
     blocked_input_messaging: Optional[str] = field(default=None, metadata={"description": "The message that the guardrail returns when it blocks a prompt."})  # fmt: skip
@@ -577,8 +577,8 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
     role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the IAM role."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the job. A successful job transitions from in-progress to completed when the output model is ready to use. If the job failed, the failure message contains information about why the job failed."})  # fmt: skip
     failure_message: Optional[str] = field(default=None, metadata={"description": "Information about why the job failed."})  # fmt: skip
-    creation_time: Optional[datetime] = field(default=None, metadata={"description": "Time that the resource was created."})  # fmt: skip
-    last_modified_time: Optional[datetime] = field(default=None, metadata={"description": "Time that the resource was last modified."})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time that the resource was created."})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Time that the resource was last modified."})  # fmt: skip
     end_time: Optional[datetime] = field(default=None, metadata={"description": "Time that the resource transitioned to terminal state."})  # fmt: skip
     base_model_arn: Optional[str] = field(default=None, metadata={"description": "Amazon Resource Name (ARN) of the base model."})  # fmt: skip
     hyper_parameters: Optional[Dict[str, str]] = field(default=None, metadata={"description": "The hyperparameter values for the job. For details on the format for different models, see Custom model hyperparameters."})  # fmt: skip
@@ -800,8 +800,8 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
     evaluation_config: Optional[AwsBedrockEvaluationConfig] = field(default=None, metadata={"description": "Contains details about the type of model evaluation job, the metrics used, the task type selected, the datasets used, and any custom metrics you defined."})  # fmt: skip
     job_inference_config: Optional[AwsBedrockEvaluationInferenceConfig] = field(default=None, metadata={"description": "Details about the models you specified in your model evaluation job."})  # fmt: skip
     output_data_config: Optional[str] = field(default=None, metadata={"description": "Amazon S3 location for where output data is saved."})  # fmt: skip
-    creation_time: Optional[datetime] = field(default=None, metadata={"description": "When the model evaluation job was created."})  # fmt: skip
-    last_modified_time: Optional[datetime] = field(default=None, metadata={"description": "When the model evaluation job was last modified."})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "When the model evaluation job was created."})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "When the model evaluation job was last modified."})  # fmt: skip
     failure_messages: Optional[List[str]] = field(factory=list, metadata={"description": "An array of strings the specify why the model evaluation job has failed."})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -980,10 +980,10 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
     idle_session_ttl_in_seconds: Optional[int] = field(default=None, metadata={"description": "The number of seconds for which Amazon Bedrock keeps information about a user's conversation with the agent. A user interaction remains active for the amount of time specified. If no conversation occurs during this time, the session expires and Amazon Bedrock deletes any data provided before the timeout."})  # fmt: skip
     instruction: Optional[str] = field(default=None, metadata={"description": "Instructions that tell the agent what it should do and how it should interact with users."})  # fmt: skip
     memory_configuration: Optional[AwsBedrockMemoryConfiguration] = field(default=None, metadata={"description": "Contains memory configuration for the agent."})  # fmt: skip
-    prepared_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the agent was last prepared."})  # fmt: skip
+    prepared_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the agent was last prepared."})  # fmt: skip
     prompt_override_configuration: Optional[AwsBedrockPromptOverrideConfiguration] = field(default=None, metadata={"description": "Contains configurations to override prompt templates in different parts of an agent sequence. For more information, see Advanced prompts."})  # fmt: skip
     agent_recommended_actions: Optional[List[str]] = field(factory=list, metadata={"description": "Contains recommended actions to take for the agent-related API that you invoked to succeed."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the agent was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the agent was last updated."})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role_arn := self.agent_resource_role_arn:
@@ -1103,7 +1103,7 @@ class AwsBedrockAgentVersion(BedrockTaggable, AwsResource):
     agent_name: Optional[str] = field(default=None, metadata={"description": "The name of the agent that the version belongs to."})  # fmt: skip
     agent_resource_role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the IAM role with permissions to invoke API operations on the agent."})  # fmt: skip
     agent_status: Optional[str] = field(default=None, metadata={"description": "The status of the agent that the version belongs to."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the version was created."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the version was created."})  # fmt: skip
     customer_encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the KMS key that encrypts the agent."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the version."})  # fmt: skip
     failure_reasons: Optional[List[str]] = field(factory=list, metadata={"description": "A list of reasons that the API operation on the version failed."})  # fmt: skip
@@ -1114,7 +1114,7 @@ class AwsBedrockAgentVersion(BedrockTaggable, AwsResource):
     memory_configuration: Optional[AwsBedrockMemoryConfiguration] = field(default=None, metadata={"description": "Contains details of the memory configuration on the version of the agent."})  # fmt: skip
     prompt_override_configuration: Optional[AwsBedrockPromptOverrideConfiguration] = field(default=None, metadata={"description": "Contains configurations to override prompt templates in different parts of an agent sequence. For more information, see Advanced prompts."})  # fmt: skip
     agent_recommended_actions: Optional[List[str]] = field(factory=list, metadata={"description": "A list of recommended actions to take for the failed API operation on the version to succeed."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the version was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the version was last updated."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version number."})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -1388,7 +1388,7 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
         >> Bend(AwsBedrockStorageConfiguration.mapping),
         "updated_at": S("knowledgeBase", "updatedAt"),
     }
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the knowledge base was created."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the knowledge base was created."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the knowledge base."})  # fmt: skip
     failure_reasons: Optional[List[str]] = field(factory=list, metadata={"description": "A list of reasons that the API operation on the knowledge base failed."})  # fmt: skip
     knowledge_base_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the knowledge base."})  # fmt: skip
@@ -1397,7 +1397,7 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
     role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the IAM role with permissions to invoke API operations on the knowledge base."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the knowledge base. The following statuses are possible:   CREATING – The knowledge base is being created.   ACTIVE – The knowledge base is ready to be queried.   DELETING – The knowledge base is being deleted.   UPDATING – The knowledge base is being updated.   FAILED – The knowledge base API operation failed."})  # fmt: skip
     storage_configuration: Optional[AwsBedrockStorageConfiguration] = field(default=None, metadata={"description": "Contains details about the storage configuration of the knowledge base."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the knowledge base was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the knowledge base was last updated."})  # fmt: skip
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if role_arn := self.role_arn:
@@ -1544,11 +1544,11 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
         "prompt_variants": S("variants", default=[]) >> ForallBend(AwsBedrockPromptVariant.mapping),
         "version": S("version"),
     }
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the prompt was created."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the prompt was created."})  # fmt: skip
     customer_encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the KMS key that the prompt is encrypted with."})  # fmt: skip
     default_variant: Optional[str] = field(default=None, metadata={"description": "The name of the default variant for the prompt. This value must match the name field in the relevant PromptVariant object."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The descriptino of the prompt."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the prompt was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the prompt was last updated."})  # fmt: skip
     prompt_variants: Optional[List[AwsBedrockPromptVariant]] = field(factory=list, metadata={"description": "A list of objects, each containing details about a variant of the prompt."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the prompt."})  # fmt: skip
 
@@ -1858,13 +1858,13 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
         "validations": S("validations", default=[]) >> ForallBend(AwsBedrockFlowValidation.mapping),
         "version": S("version"),
     }
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the flow was created."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the flow was created."})  # fmt: skip
     customer_encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the KMS key that the flow is encrypted with."})  # fmt: skip
     definition: Optional[AwsBedrockFlowDefinition] = field(default=None, metadata={"description": "The definition of the nodes and connections between the nodes in the flow."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the flow."})  # fmt: skip
     execution_role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the service role with permissions to create a flow. For more information, see Create a service row for flows in the Amazon Bedrock User Guide."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the flow. The following statuses are possible:   NotPrepared – The flow has been created or updated, but hasn't been prepared. If you just created the flow, you can't test it. If you updated the flow, the DRAFT version won't contain the latest changes for testing. Send a PrepareFlow request to package the latest changes into the DRAFT version.   Preparing – The flow is being prepared so that the DRAFT version contains the latest changes for testing.   Prepared – The flow is prepared and the DRAFT version contains the latest changes for testing.   Failed – The last API operation that you invoked on the flow failed. Send a GetFlow request and check the error message in the validations field."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the flow was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the flow was last updated."})  # fmt: skip
     validations: Optional[List[AwsBedrockFlowValidation]] = field(factory=list, metadata={"description": "A list of validation error messages related to the last failed operation on the flow."})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the flow for which information was retrieved."})  # fmt: skip
 
@@ -1977,7 +1977,7 @@ class AwsBedrockAgentFlowVersion(BedrockTaggable, AwsResource):
         "status": S("status"),
         "version": S("version"),
     }
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the flow was created."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the flow was created."})  # fmt: skip
     customer_encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the KMS key that the version of the flow is encrypted with."})  # fmt: skip
     definition: Optional[AwsBedrockFlowDefinition] = field(default=None, metadata={"description": "The definition of the nodes and connections between nodes in the flow."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the flow."})  # fmt: skip

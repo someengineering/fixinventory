@@ -89,9 +89,9 @@ class AwsDynamoDbProvisionedThroughputDescription:
         "read_capacity_units": S("ReadCapacityUnits"),
         "write_capacity_units": S("WriteCapacityUnits"),
     }
-    last_increase_date_time: Optional[datetime] = field(default=None)
-    last_decrease_date_time: Optional[datetime] = field(default=None)
-    number_of_decreases_today: Optional[int] = field(default=None)
+    last_increase_date_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_decrease_date_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    number_of_decreases_today: Optional[int] = field(default=None, metadata={"ignore_history": True})
     read_capacity_units: Optional[int] = field(default=None)
     write_capacity_units: Optional[int] = field(default=None)
 
@@ -110,7 +110,7 @@ class AwsDynamoDbBillingModeSummary:
         "last_update_to_pay_per_request_date_time": S("LastUpdateToPayPerRequestDateTime"),
     }
     billing_mode: Optional[str] = field(default=None)
-    last_update_to_pay_per_request_date_time: Optional[datetime] = field(default=None)
+    last_update_to_pay_per_request_date_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -235,7 +235,7 @@ class AwsDynamoDbTableClassSummary:
         "last_update_date_time": S("LastUpdateDateTime"),
     }
     table_class: Optional[str] = field(default=None)
-    last_update_date_time: Optional[datetime] = field(default=None)
+    last_update_date_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)

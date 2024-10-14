@@ -200,7 +200,7 @@ class AwsElastiCacheCacheNode:
     }
     cache_node_id: Optional[str] = field(default=None)
     cache_node_status: Optional[str] = field(default=None)
-    cache_node_create_time: Optional[datetime] = field(default=None)
+    cache_node_create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     endpoint: Optional[AwsElastiCacheEndpoint] = field(default=None)
     parameter_group_status: Optional[str] = field(default=None)
     source_cache_node_id: Optional[str] = field(default=None)
@@ -325,7 +325,7 @@ class AwsElastiCacheCacheCluster(ElastiCacheTaggable, AwsResource):
     cluster_snapshot_retention_limit: Optional[int] = field(default=None)
     cluster_snapshot_window: Optional[str] = field(default=None)
     cluster_auth_token_enabled: Optional[bool] = field(default=None)
-    cluster_auth_token_last_modified_date: Optional[datetime] = field(default=None)
+    cluster_auth_token_last_modified_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     cluster_transit_encryption_enabled: Optional[bool] = field(default=None)
     cluster_at_rest_encryption_enabled: Optional[bool] = field(default=None)
     cluster_replication_group_log_delivery_enabled: Optional[bool] = field(default=None)
@@ -561,7 +561,7 @@ class AwsElastiCacheReplicationGroup(ElastiCacheTaggable, AwsResource):
     replication_group_cluster_enabled: Optional[bool] = field(default=None)
     replication_group_cache_node_type: Optional[str] = field(default=None)
     replication_group_auth_token_enabled: Optional[bool] = field(default=None)
-    replication_group_auth_token_last_modified_date: Optional[datetime] = field(default=None)
+    replication_group_auth_token_last_modified_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True})  # fmt: skip
     replication_group_transit_encryption_enabled: Optional[bool] = field(default=None)
     replication_group_at_rest_encryption_enabled: Optional[bool] = field(default=None)
     replication_group_member_clusters_outpost_arns: List[str] = field(factory=list)

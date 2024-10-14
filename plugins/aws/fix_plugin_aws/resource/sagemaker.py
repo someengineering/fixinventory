@@ -1025,8 +1025,8 @@ class AwsSagemakerApp(AwsResource):
     app_domain_id: Optional[str] = field(default=None)
     app_user_profile_name: Optional[str] = field(default=None)
     app_status: Optional[str] = field(default=None)
-    app_last_health_check_timestamp: Optional[datetime] = field(default=None)
-    app_failure_reason: Optional[str] = field(default=None)
+    app_last_health_check_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    app_failure_reason: Optional[str] = field(default=None, metadata={"ignore_history": True})
     app_resource_spec: Optional[AwsSagemakerResourceSpec] = field(default=None)
     app_space_name: Optional[str] = field(default=None)
 
@@ -3036,7 +3036,7 @@ class AwsSagemakerAutoMLCandidate:
     inference_containers: List[AwsSagemakerAutoMLContainerDefinition] = field(factory=list)
     creation_time: Optional[datetime] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    last_modified_time: Optional[datetime] = field(default=None)
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     failure_reason: Optional[str] = field(default=None)
     candidate_properties: Optional[AwsSagemakerCandidateProperties] = field(default=None)
 
@@ -3150,7 +3150,7 @@ class AwsSagemakerAutoMLJob(AwsSagemakerJob):
     auto_ml_job_objective: Optional[str] = field(default=None)
     auto_ml_job_problem_type: Optional[str] = field(default=None)
     auto_ml_job_config: Optional[AwsSagemakerAutoMLJobConfig] = field(default=None)
-    auto_ml_job_end_time: Optional[datetime] = field(default=None)
+    auto_ml_job_end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     auto_ml_job_failure_reason: Optional[str] = field(default=None)
     auto_ml_job_partial_failure_reasons: List[str] = field(factory=list)
     auto_ml_job_best_candidate: Optional[AwsSagemakerAutoMLCandidate] = field(default=None)
@@ -3341,8 +3341,8 @@ class AwsSagemakerCompilationJob(AwsSagemakerJob):
         "compilation_job_vpc_config": S("VpcConfig") >> Bend(AwsSagemakerNeoVpcConfig.mapping),
     }
     compilation_job_status: Optional[str] = field(default=None)
-    compilation_job_start_time: Optional[datetime] = field(default=None)
-    compilation_job_end_time: Optional[datetime] = field(default=None)
+    compilation_job_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    compilation_job_end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     compilation_job_stopping_condition: Optional[AwsSagemakerStoppingCondition] = field(default=None)
     compilation_job_inference_image: Optional[str] = field(default=None)
     compilation_job_model_package_version_arn: Optional[str] = field(default=None)
@@ -3741,10 +3741,10 @@ class AwsSagemakerHyperParameterTrainingJobSummary:
     training_job_name: Optional[str] = field(default=None)
     training_job_arn: Optional[str] = field(default=None)
     tuning_job_name: Optional[str] = field(default=None)
-    creation_time: Optional[datetime] = field(default=None)
-    training_start_time: Optional[datetime] = field(default=None)
-    training_end_time: Optional[datetime] = field(default=None)
-    training_job_status: Optional[str] = field(default=None)
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    training_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    training_end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    training_job_status: Optional[str] = field(default=None, metadata={"ignore_history": True})
     tuned_hyper_parameters: Optional[Dict[str, str]] = field(default=None)
     failure_reason: Optional[str] = field(default=None)
     final_hyper_parameter_tuning_job_objective_metric: Optional[
@@ -3823,22 +3823,12 @@ class AwsSagemakerHyperParameterTuningJob(SagemakerTaggable, AwsSagemakerJob):
         factory=list
     )
     hyper_parameter_tuning_job_status: Optional[str] = field(default=None)
-    hyper_parameter_tuning_job_hyper_parameter_tuning_end_time: Optional[datetime] = field(default=None)
-    hyper_parameter_tuning_job_training_job_status_counters: Optional[AwsSagemakerTrainingJobStatusCounters] = field(
-        default=None
-    )
-    hyper_parameter_tuning_job_objective_status_counters: Optional[AwsSagemakerObjectiveStatusCounters] = field(
-        default=None
-    )
-    hyper_parameter_tuning_job_best_training_job: Optional[AwsSagemakerHyperParameterTrainingJobSummary] = field(
-        default=None
-    )
-    hyper_parameter_tuning_job_overall_best_training_job: Optional[AwsSagemakerHyperParameterTrainingJobSummary] = (
-        field(default=None)
-    )
-    hyper_parameter_tuning_job_warm_start_config: Optional[AwsSagemakerHyperParameterTuningJobWarmStartConfig] = field(
-        default=None
-    )
+    hyper_parameter_tuning_job_hyper_parameter_tuning_end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})  # fmt: skip
+    hyper_parameter_tuning_job_training_job_status_counters: Optional[AwsSagemakerTrainingJobStatusCounters] = field(default=None)  # fmt: skip
+    hyper_parameter_tuning_job_objective_status_counters: Optional[AwsSagemakerObjectiveStatusCounters] = field(default=None)  # fmt: skip
+    hyper_parameter_tuning_job_best_training_job: Optional[AwsSagemakerHyperParameterTrainingJobSummary] = field(default=None)  # fmt: skip
+    hyper_parameter_tuning_job_overall_best_training_job: Optional[AwsSagemakerHyperParameterTrainingJobSummary] = (field(default=None))  # fmt: skip
+    hyper_parameter_tuning_job_warm_start_config: Optional[AwsSagemakerHyperParameterTuningJobWarmStartConfig] = field(default=None)  # fmt: skip
     hyper_parameter_tuning_job_failure_reason: Optional[str] = field(default=None)
 
     @classmethod
@@ -4281,7 +4271,7 @@ class AwsSagemakerInferenceRecommendationsJob(AwsSagemakerJob):
     inference_recommendations_job_description: Optional[str] = field(default=None)
     inference_recommendations_job_type: Optional[str] = field(default=None)
     inference_recommendations_job_status: Optional[str] = field(default=None)
-    inference_recommendations_job_completion_time: Optional[datetime] = field(default=None)
+    inference_recommendations_job_completion_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})  # fmt: skip
     inference_recommendations_job_failure_reason: Optional[str] = field(default=None)
     inference_recommendations_job_input_config: Optional[AwsSagemakerRecommendationJobInputConfig] = field(default=None)
     inference_recommendations_job_stopping_conditions: Optional[AwsSagemakerRecommendationJobStoppingConditions] = (
@@ -5040,8 +5030,8 @@ class AwsSagemakerProcessingJob(AwsSagemakerJob):
     processing_job_status: Optional[str] = field(default=None)
     processing_job_exit_message: Optional[str] = field(default=None)
     processing_job_failure_reason: Optional[str] = field(default=None)
-    processing_job_processing_end_time: Optional[datetime] = field(default=None)
-    processing_job_processing_start_time: Optional[datetime] = field(default=None)
+    processing_job_processing_end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    processing_job_processing_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     processing_job_monitoring_schedule_arn: Optional[str] = field(default=None)
     processing_job_auto_ml_job_arn: Optional[str] = field(default=None)
 
@@ -5165,8 +5155,8 @@ class AwsSagemakerSecondaryStatusTransition:
         "status_message": S("StatusMessage"),
     }
     status: Optional[str] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
-    end_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     status_message: Optional[str] = field(default=None)
 
 
@@ -5186,7 +5176,7 @@ class AwsSagemakerMetricData:
     }
     metric_name: Optional[str] = field(default=None)
     value: Optional[float] = field(default=None)
-    timestamp: Optional[datetime] = field(default=None)
+    timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -5288,7 +5278,7 @@ class AwsSagemakerDebugRuleEvaluationStatus:
     rule_evaluation_job_arn: Optional[str] = field(default=None)
     rule_evaluation_status: Optional[str] = field(default=None)
     status_details: Optional[str] = field(default=None)
-    last_modified_time: Optional[datetime] = field(default=None)
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -5357,7 +5347,7 @@ class AwsSagemakerProfilerRuleEvaluationStatus:
     rule_evaluation_job_arn: Optional[str] = field(default=None)
     rule_evaluation_status: Optional[str] = field(default=None)
     status_details: Optional[str] = field(default=None)
-    last_modified_time: Optional[datetime] = field(default=None)
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -5467,8 +5457,8 @@ class AwsSagemakerTrainingJob(SagemakerTaggable, AwsSagemakerJob):
     training_job_resource_config: Optional[AwsSagemakerResourceConfig] = field(default=None)
     training_job_vpc_config: Optional[AwsSagemakerVpcConfig] = field(default=None)
     training_job_stopping_condition: Optional[AwsSagemakerStoppingCondition] = field(default=None)
-    training_job_training_start_time: Optional[datetime] = field(default=None)
-    training_job_training_end_time: Optional[datetime] = field(default=None)
+    training_job_training_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    training_job_training_end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     training_job_secondary_status_transitions: List[AwsSagemakerSecondaryStatusTransition] = field(factory=list)
     training_job_final_metric_data_list: List[AwsSagemakerMetricData] = field(factory=list)
     training_job_enable_network_isolation: Optional[bool] = field(default=None)
@@ -5680,8 +5670,8 @@ class AwsSagemakerTransformJob(SagemakerTaggable, AwsSagemakerJob):
     transform_job_transform_output: Optional[AwsSagemakerTransformOutput] = field(default=None)
     transform_job_data_capture_config: Optional[AwsSagemakerBatchDataCaptureConfig] = field(default=None)
     transform_job_transform_resources: Optional[AwsSagemakerTransformResources] = field(default=None)
-    transform_job_transform_start_time: Optional[datetime] = field(default=None)
-    transform_job_transform_end_time: Optional[datetime] = field(default=None)
+    transform_job_transform_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    transform_job_transform_end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     transform_job_labeling_job_arn: Optional[str] = field(default=None)
     transform_job_auto_ml_job_arn: Optional[str] = field(default=None)
     transform_job_data_processing: Optional[AwsSagemakerDataProcessing] = field(default=None)

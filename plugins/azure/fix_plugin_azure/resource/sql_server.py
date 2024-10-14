@@ -196,13 +196,13 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
     catalog_collation: Optional[str] = field(default=None, metadata={'description': 'Collation of the metadata catalog.'})  # fmt: skip
     collation: Optional[str] = field(default=None, metadata={"description": "The collation of the database."})
     create_mode: Optional[str] = field(default=None, metadata={'description': 'Specifies the mode of database creation. Default: regular database creation. Copy: creates a database as a copy of an existing database. sourceDatabaseId must be specified as the resource ID of the source database. Secondary: creates a database as a secondary replica of an existing database. sourceDatabaseId must be specified as the resource ID of the existing primary database. PointInTimeRestore: Creates a database by restoring a point in time backup of an existing database. sourceDatabaseId must be specified as the resource ID of the existing database, and restorePointInTime must be specified. Recovery: Creates a database by restoring a geo-replicated backup. sourceDatabaseId must be specified as the recoverable database resource ID to restore. Restore: Creates a database by restoring a backup of a deleted database. sourceDatabaseId must be specified. If sourceDatabaseId is the database s original resource ID, then sourceDatabaseDeletionDate must be specified. Otherwise sourceDatabaseId must be the restorable dropped database resource ID and sourceDatabaseDeletionDate is ignored. restorePointInTime may also be specified to restore from an earlier point in time. RestoreLongTermRetentionBackup: Creates a database by restoring from a long term retention vault. recoveryServicesRecoveryPointResourceId must be specified as the recovery point resource ID. Copy, Secondary, and RestoreLongTermRetentionBackup are not supported for DataWarehouse edition.'})  # fmt: skip
-    creation_date: Optional[datetime] = field(default=None, metadata={'description': 'The creation date of the database (ISO8601 format).'})  # fmt: skip
+    creation_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The creation date of the database (ISO8601 format).'})  # fmt: skip
     current_backup_storage_redundancy: Optional[str] = field(default=None, metadata={'description': 'The storage account type used to store backups for this database.'})  # fmt: skip
     current_service_objective_name: Optional[str] = field(default=None, metadata={'description': 'The current service level objective name of the database.'})  # fmt: skip
     current_sku: Optional[AzureSku] = field(default=None, metadata={"description": "An ARM Resource SKU."})
     database_id: Optional[str] = field(default=None, metadata={"description": "The ID of the database."})
     default_secondary_location: Optional[str] = field(default=None, metadata={'description': 'The default secondary region for this database.'})  # fmt: skip
-    earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'This records the earliest start date and time that restore is available for this database (ISO8601 format).'})  # fmt: skip
+    earliest_restore_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'This records the earliest start date and time that restore is available for this database (ISO8601 format).'})  # fmt: skip
     elastic_pool_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the elastic pool containing this database.'})  # fmt: skip
     failover_group_id: Optional[str] = field(default=None, metadata={'description': 'Failover Group resource identifier that this database belongs to.'})  # fmt: skip
     federated_client_id: Optional[str] = field(default=None, metadata={'description': 'The Client id used for cross tenant per database CMK scenario'})  # fmt: skip
@@ -225,7 +225,7 @@ class AzureSqlServerDatabase(MicrosoftResource, BaseDatabase):
     requested_backup_storage_redundancy: Optional[str] = field(default=None, metadata={'description': 'The storage account type to be used to store backups for this database.'})  # fmt: skip
     requested_service_objective_name: Optional[str] = field(default=None, metadata={'description': 'The requested service level objective name of the database.'})  # fmt: skip
     restorable_dropped_database_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the restorable dropped database associated with create operation of this database.'})  # fmt: skip
-    restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.'})  # fmt: skip
+    restore_point_in_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.'})  # fmt: skip
     resumed_date: Optional[datetime] = field(default=None, metadata={'description': 'The date when database was resumed by user action or database login (ISO8601 format). Null if the database is paused.'})  # fmt: skip
     sample_name: Optional[str] = field(default=None, metadata={'description': 'The name of the sample schema to apply when creating this database.'})  # fmt: skip
     secondary_type: Optional[str] = field(default=None, metadata={'description': 'The secondary type of the database if it is a secondary. Valid values are Geo and Named.'})  # fmt: skip
@@ -354,7 +354,7 @@ class AzureSqlServerElasticPool(MicrosoftResource):
         "state": S("properties", "state"),
         "zone_redundant": S("properties", "zoneRedundant"),
     }
-    creation_date: Optional[datetime] = field(default=None, metadata={'description': 'The creation date of the elastic pool (ISO8601 format).'})  # fmt: skip
+    creation_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The creation date of the elastic pool (ISO8601 format).'})  # fmt: skip
     high_availability_replica_count: Optional[int] = field(default=None, metadata={'description': 'The number of secondary replicas associated with the elastic pool that are used to provide high availability. Applicable only to Hyperscale elastic pools.'})  # fmt: skip
     elastic_pool_kind: Optional[str] = field(default=None, metadata={'description': 'Kind of elastic pool. This is metadata used for the Azure portal experience.'})  # fmt: skip
     license_type: Optional[str] = field(default=None, metadata={'description': 'The license type to apply for this elastic pool.'})  # fmt: skip
@@ -741,15 +741,17 @@ class AzureSqlServerManagedInstanceDatabase(MicrosoftResource, BaseDatabase):
     catalog_collation: Optional[str] = field(default=None, metadata={'description': 'Collation of the metadata catalog.'})  # fmt: skip
     collation: Optional[str] = field(default=None, metadata={"description": "Collation of the managed database."})
     create_mode: Optional[str] = field(default=None, metadata={'description': 'Managed database create mode. PointInTimeRestore: Create a database by restoring a point in time backup of an existing database. SourceDatabaseName, SourceManagedInstanceName and PointInTime must be specified. RestoreExternalBackup: Create a database by restoring from external backup files. Collation, StorageContainerUri and StorageContainerSasToken must be specified. Recovery: Creates a database by restoring a geo-replicated backup. RecoverableDatabaseId must be specified as the recoverable database resource ID to restore. RestoreLongTermRetentionBackup: Create a database by restoring from a long term retention backup (longTermRetentionBackupResourceId required).'})  # fmt: skip
-    creation_date: Optional[datetime] = field(default=None, metadata={"description": "Creation date of the database."})
+    creation_date: Optional[datetime] = field(
+        default=None, metadata={"ignore_history": True, "description": "Creation date of the database."}
+    )
     default_secondary_location: Optional[str] = field(default=None, metadata={"description": "Geo paired region."})
-    earliest_restore_point: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore point in time for point in time restore.'})  # fmt: skip
+    earliest_restore_point: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Earliest restore point in time for point in time restore.'})  # fmt: skip
     failover_group_id: Optional[str] = field(default=None, metadata={'description': 'Instance Failover Group resource identifier that this managed database belongs to.'})  # fmt: skip
     last_backup_name: Optional[str] = field(default=None, metadata={'description': 'Last backup file name for restore of this managed database.'})  # fmt: skip
     long_term_retention_backup_resource_id: Optional[str] = field(default=None, metadata={'description': 'The name of the Long Term Retention backup to be used for restore of this managed database.'})  # fmt: skip
     recoverable_database_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the recoverable database associated with create operation of this database.'})  # fmt: skip
     restorable_dropped_database_id: Optional[str] = field(default=None, metadata={'description': 'The restorable dropped database resource id to restore when creating this database.'})  # fmt: skip
-    restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Conditional. If createMode is PointInTimeRestore, this value is required. Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.'})  # fmt: skip
+    restore_point_in_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Conditional. If createMode is PointInTimeRestore, this value is required. Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.'})  # fmt: skip
     source_database_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the source database associated with create operation of this database.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "Status of the database."})
     storage_container_sas_token: Optional[str] = field(default=None, metadata={'description': 'Conditional. If createMode is RestoreExternalBackup, this value is required. Specifies the storage container sas token.'})  # fmt: skip
@@ -937,7 +939,7 @@ class AzureSqlServerManagedInstance(MicrosoftResource):
     proxy_override: Optional[str] = field(default=None, metadata={'description': 'Connection type used for connecting to the instance.'})  # fmt: skip
     public_data_endpoint_enabled: Optional[bool] = field(default=None, metadata={'description': 'Whether or not the public data endpoint is enabled.'})  # fmt: skip
     requested_backup_storage_redundancy: Optional[str] = field(default=None, metadata={'description': 'The storage account type to be used to store backups for this instance. The options are Local (LocallyRedundantStorage), Zone (ZoneRedundantStorage), Geo (GeoRedundantStorage) and GeoZone(GeoZoneRedundantStorage)'})  # fmt: skip
-    restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.'})  # fmt: skip
+    restore_point_in_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Specifies the point in time (ISO8601 format) of the source database that will be restored to create the new database.'})  # fmt: skip
     service_principal: Optional[AzureServicePrincipal] = field(default=None, metadata={'description': 'The managed instance s service principal configuration for a resource.'})  # fmt: skip
     managed_instance_sku: Optional[AzureSku] = field(default=None, metadata={"description": "An ARM Resource SKU."})
     source_managed_instance_id: Optional[str] = field(default=None, metadata={'description': 'The resource identifier of the source managed instance associated with create operation of this instance.'})  # fmt: skip
@@ -1204,7 +1206,7 @@ class AzureRecommendedActionStateInfo:
     }
     action_initiated_by: Optional[str] = field(default=None, metadata={'description': 'Gets who initiated the execution of this recommended action. Possible Value are: User -> When user explicity notified system to apply the recommended action. System -> When auto-execute status of this advisor was set to Enabled , in which case the system applied it.'})  # fmt: skip
     current_value: Optional[str] = field(default=None, metadata={'description': 'Current state the recommended action is in. Some commonly used states are: Active -> recommended action is active and no action has been taken yet. Pending -> recommended action is approved for and is awaiting execution. Executing -> recommended action is being applied on the user database. Verifying -> recommended action was applied and is being verified of its usefulness by the system. Success -> recommended action was applied and improvement found during verification. Pending Revert -> verification found little or no improvement so recommended action is queued for revert or user has manually reverted. Reverting -> changes made while applying recommended action are being reverted on the user database. Reverted -> successfully reverted the changes made by recommended action on user database. Ignored -> user explicitly ignored/discarded the recommended action. '})  # fmt: skip
-    last_modified: Optional[datetime] = field(default=None, metadata={'description': 'Gets the time when the state was last modified'})  # fmt: skip
+    last_modified: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets the time when the state was last modified'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1251,7 +1253,7 @@ class AzureRecommendedActionMetricInfo:
         "value": S("value"),
     }
     metric_name: Optional[str] = field(default=None, metadata={'description': 'Gets the name of the metric. e.g., CPU, Number of Queries.'})  # fmt: skip
-    start_time: Optional[datetime] = field(default=None, metadata={'description': 'Gets the start time of time interval given by this MetricInfo.'})  # fmt: skip
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets the start time of time interval given by this MetricInfo.'})  # fmt: skip
     time_grain: Optional[str] = field(default=None, metadata={'description': 'Gets the duration of time interval for the value given by this MetricInfo. e.g., PT1H (1 hour)'})  # fmt: skip
     unit: Optional[str] = field(default=None, metadata={'description': 'Gets the unit in which metric is measured. e.g., DTU, Frequency'})  # fmt: skip
     value: Optional[float] = field(default=None, metadata={'description': 'Gets the value of the metric in the time interval given by this MetricInfo.'})  # fmt: skip
@@ -1303,7 +1305,7 @@ class AzureRecommendedAction:
     is_executable_action: Optional[bool] = field(default=None, metadata={'description': 'Gets if this recommended action is actionable by user'})  # fmt: skip
     is_revertable_action: Optional[bool] = field(default=None, metadata={'description': 'Gets if changes applied by this recommended action can be reverted by user'})  # fmt: skip
     recommended_action_kind: Optional[str] = field(default=None, metadata={"description": "Resource kind."})
-    last_refresh: Optional[datetime] = field(default=None, metadata={'description': 'Gets time when this recommended action was last refreshed.'})  # fmt: skip
+    last_refresh: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets time when this recommended action was last refreshed.'})  # fmt: skip
     linked_objects: Optional[List[str]] = field(default=None, metadata={"description": "Gets the linked objects, if any."})  # fmt: skip
     observed_impact: Optional[List[AzureRecommendedActionImpactRecord]] = field(default=None, metadata={'description': 'Gets the observed/actual impact info for this recommended action e.g., Actual CPU gain, Actual Disk Space change'})  # fmt: skip
     recommendation_reason: Optional[str] = field(default=None, metadata={'description': 'Gets the reason for recommending this action. e.g., DuplicateIndex'})  # fmt: skip
@@ -1346,7 +1348,7 @@ class AzureSqlServerAdvisor(MicrosoftResource):
     auto_execute_status: Optional[str] = field(default=None, metadata={'description': 'Gets the auto-execute status (whether to let the system execute the recommendations) of this advisor. Possible values are Enabled and Disabled '})  # fmt: skip
     auto_execute_status_inherited_from: Optional[str] = field(default=None, metadata={'description': 'Gets the resource from which current value of auto-execute status is inherited. Auto-execute status can be set on (and inherited from) different levels in the resource hierarchy. Possible values are Subscription , Server , ElasticPool , Database and Default (when status is not explicitly set on any level).'})  # fmt: skip
     advisor_kind: Optional[str] = field(default=None, metadata={"description": "Resource kind."})
-    last_checked: Optional[datetime] = field(default=None, metadata={'description': 'Gets the time when the current resource was analyzed for recommendations by this advisor.'})  # fmt: skip
+    last_checked: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets the time when the current resource was analyzed for recommendations by this advisor.'})  # fmt: skip
     recommendations_status: Optional[str] = field(default=None, metadata={'description': 'Gets that status of recommendations for this advisor and reason for not having any recommendations. Possible values include, but are not limited to, Ok (Recommendations available),LowActivity (not enough workload to analyze), DbSeemsTuned (Database is doing well), etc.'})  # fmt: skip
     recommended_actions: Optional[List[AzureRecommendedAction]] = field(default=None, metadata={'description': 'Gets the recommended actions for this advisor.'})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "Resource type."})

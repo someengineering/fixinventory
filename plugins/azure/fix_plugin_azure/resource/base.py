@@ -646,10 +646,10 @@ class AzureSystemData:
         "last_modified_by": S("lastModifiedBy"),
         "last_modified_by_type": S("lastModifiedByType"),
     }
-    created_at: Optional[datetime] = field(default=None, metadata={'description': 'The timestamp of resource creation (utc).'})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The timestamp of resource creation (utc).'})  # fmt: skip
     created_by: Optional[str] = field(default=None, metadata={'description': 'The identity that created the resource.'})  # fmt: skip
     created_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that created the resource.'})  # fmt: skip
-    last_modified_at: Optional[datetime] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
+    last_modified_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The type of identity that last modified the resource.'})  # fmt: skip
     last_modified_by: Optional[str] = field(default=None, metadata={'description': 'The identity that last modified the resource.'})  # fmt: skip
     last_modified_by_type: Optional[str] = field(default=None, metadata={'description': 'The type of identity that last modified the resource.'})  # fmt: skip
 

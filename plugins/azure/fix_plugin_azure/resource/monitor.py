@@ -400,7 +400,7 @@ class AzureMonitorAlertRule(MicrosoftResource):
     rule_condition: Optional[AzureMonitorRuleCondition] = field(default=None, metadata={'description': 'The condition that results in the alert rule being activated.'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={'description': 'the description of the alert rule that will be included in the alert email.'})  # fmt: skip
     is_enabled: Optional[bool] = field(default=None, metadata={'description': 'the flag that indicates whether the alert rule is enabled.'})  # fmt: skip
-    last_updated_time: Optional[datetime] = field(default=None, metadata={'description': 'Last time the rule was updated in ISO8601 format.'})  # fmt: skip
+    last_updated_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Last time the rule was updated in ISO8601 format.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -908,7 +908,7 @@ class AzureMetricAlert(MicrosoftResource):
     enabled: Optional[bool] = field(default=None, metadata={'description': 'the flag that indicates whether the metric alert is enabled.'})  # fmt: skip
     evaluation_frequency: Optional[str] = field(default=None, metadata={'description': 'how often the metric alert is evaluated represented in ISO 8601 duration format.'})  # fmt: skip
     is_migrated: Optional[bool] = field(default=None, metadata={'description': 'the value indicating whether this alert rule is migrated.'})  # fmt: skip
-    last_updated_time: Optional[datetime] = field(default=None, metadata={'description': 'Last time the rule was updated in ISO8601 format.'})  # fmt: skip
+    last_updated_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Last time the rule was updated in ISO8601 format.'})  # fmt: skip
     scopes: Optional[List[str]] = field(default=None, metadata={'description': 'the list of resource id s that this metric alert is scoped to.'})  # fmt: skip
     severity: Optional[int] = field(default=None, metadata={"description": "Alert severity {0, 1, 2, 3, 4}"})
     target_resource_region: Optional[str] = field(default=None, metadata={'description': 'the region of the target resource(s) on which the alert is created/updated. Mandatory if the scope contains a subscription, resource group, or more than one resource.'})  # fmt: skip

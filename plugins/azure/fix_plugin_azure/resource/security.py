@@ -65,7 +65,7 @@ class AzureSecurityPricing(MicrosoftResource, PhantomBaseResource):
         "sub_plan": S("properties", "subPlan"),
     }
     deprecated: Optional[bool] = field(default=None, metadata={'description': 'Optional. True if the plan is deprecated. If there are replacing plans they will appear in `replacedBy` property'})  # fmt: skip
-    enablement_time: Optional[datetime] = field(default=None, metadata={'description': 'Optional. If `pricingTier` is `Standard` then this property holds the date of the last time the `pricingTier` was set to `Standard`, when available (e.g 2023-03-01T12:42:42.1921106Z).'})  # fmt: skip
+    enablement_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Optional. If `pricingTier` is `Standard` then this property holds the date of the last time the `pricingTier` was set to `Standard`, when available (e.g 2023-03-01T12:42:42.1921106Z).'})  # fmt: skip
     extensions: Optional[List[AzureSecurityExtension]] = field(default=None, metadata={'description': 'Optional. List of extensions offered under a plan.'})  # fmt: skip
     free_trial_remaining_time: Optional[str] = field(default=None, metadata={'description': 'The duration left for the subscriptions free trial period - in ISO 8601 format (e.g. P3Y6M4DT12H30M5S).'})  # fmt: skip
     pricing_tier: Optional[str] = field(default=None, metadata={'description': 'The pricing tier value. Microsoft Defender for Cloud is provided in two pricing tiers: free and standard. The standard tier offers advanced security capabilities, while the free tier offers basic security features.'})  # fmt: skip
@@ -87,8 +87,8 @@ class AzureAssessmentStatus:
     cause: Optional[str] = field(default=None, metadata={'description': 'Programmatic code for the cause of the assessment status'})  # fmt: skip
     code: Optional[str] = field(default=None, metadata={'description': 'Programmatic code for the status of the assessment'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={'description': 'Human readable description of the assessment status'})  # fmt: skip
-    first_evaluation_date: Optional[datetime] = field(default=None, metadata={'description': 'The time that the assessment was created and first evaluated. Returned as UTC time in ISO 8601 format'})  # fmt: skip
-    status_change_date: Optional[datetime] = field(default=None, metadata={'description': 'The time that the status of the assessment last changed. Returned as UTC time in ISO 8601 format'})  # fmt: skip
+    first_evaluation_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time that the assessment was created and first evaluated. Returned as UTC time in ISO 8601 format'})  # fmt: skip
+    status_change_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time that the status of the assessment last changed. Returned as UTC time in ISO 8601 format'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

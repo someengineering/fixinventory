@@ -4,6 +4,7 @@ from typing import Any, ClassVar, Dict, Literal, Optional, List, Type, cast
 
 
 from attrs import define, field
+from sqlalchemy.testing.suite.test_reflection import metadata
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
@@ -84,7 +85,7 @@ class AwsCloudFormationStackDriftInformation:
         "last_check_timestamp": S("LastCheckTimestamp"),
     }
     stack_drift_status: Optional[str] = field(default=None)
-    last_check_timestamp: Optional[datetime] = field(default=None)
+    last_check_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -278,7 +279,7 @@ class AwsCloudFormationStackSet(AwsResource):
     stack_set_auto_deployment: Optional[AwsCloudFormationAutoDeployment] = field(default=None)
     stack_set_permission_model: Optional[str] = field(default=None)
     stack_set_drift_status: Optional[str] = field(default=None)
-    stack_set_last_drift_check_timestamp: Optional[datetime] = field(default=None)
+    stack_set_last_drift_check_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     stack_set_managed_execution: Optional[bool] = field(default=None)
     stack_set_parameters: Optional[Dict[str, Any]] = None
 
@@ -400,7 +401,7 @@ class AwsCloudFormationStackInstanceSummary(AwsResource):
     stack_instance_stack_instance_status: Optional[str] = field(default=None)
     stack_instance_organizational_unit_id: Optional[str] = field(default=None)
     stack_instance_drift_status: Optional[str] = field(default=None)
-    stack_instance_last_drift_check_timestamp: Optional[datetime] = field(default=None)
+    stack_instance_last_drift_check_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})  # fmt: skip
     stack_instance_last_operation_id: Optional[str] = field(default=None)
 
     @classmethod

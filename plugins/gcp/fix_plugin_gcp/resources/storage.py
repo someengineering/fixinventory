@@ -74,7 +74,7 @@ class GcpAutoclass:
     )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "toggle_time": S("toggleTime")}
     enabled: Optional[bool] = field(default=None)
-    toggle_time: Optional[datetime] = field(default=None)
+    toggle_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -145,7 +145,7 @@ class GcpBucketpolicyonly:
     )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
     enabled: Optional[bool] = field(default=None)
-    locked_time: Optional[datetime] = field(default=None)
+    locked_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -158,7 +158,7 @@ class GcpUniformbucketlevelaccess:
     )
     mapping: ClassVar[Dict[str, Bender]] = {"enabled": S("enabled"), "locked_time": S("lockedTime")}
     enabled: Optional[bool] = field(default=None)
-    locked_time: Optional[datetime] = field(default=None)
+    locked_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -220,8 +220,10 @@ class GcpCondition:
     age: Optional[int] = field(default=None)
     created_before: Optional[str] = field(default=None)
     custom_time_before: Optional[str] = field(default=None)
-    days_since_custom_time: Optional[datetime] = field(default=None)  # should be int
-    days_since_noncurrent_time: Optional[datetime] = field(default=None)  # should be int
+    days_since_custom_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})  # should be int
+    days_since_noncurrent_time: Optional[datetime] = field(
+        default=None, metadata={"ignore_history": True}
+    )  # should be int
     is_live: Optional[bool] = field(default=None)
     matches_pattern: Optional[str] = field(default=None)
     matches_prefix: Optional[List[str]] = field(default=None)
@@ -289,7 +291,7 @@ class GcpRetentionpolicy:
         "is_locked": S("isLocked"),
         "retention_period": S("retentionPeriod"),
     }
-    effective_time: Optional[datetime] = field(default=None)
+    effective_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     is_locked: Optional[bool] = field(default=None)
     retention_period: Optional[str] = field(default=None)
 
@@ -411,8 +413,8 @@ class GcpBucket(GcpResource, BaseBucket):
     rpo: Optional[str] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
     storage_class: Optional[str] = field(default=None)
-    time_created: Optional[datetime] = field(default=None)
-    updated: Optional[datetime] = field(default=None)
+    time_created: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    updated: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     bucket_website: Optional[GcpWebsite] = field(default=None)
     requester_pays: Optional[bool] = field(default=None)
     versioning_enabled: Optional[bool] = field(default=None)

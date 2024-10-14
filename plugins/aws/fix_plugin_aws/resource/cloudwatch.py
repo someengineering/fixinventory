@@ -284,7 +284,7 @@ class AwsCloudwatchAlarm(CloudwatchTaggable, AwsResource):
     cloudwatch_state_value: Optional[str] = field(default=None)
     cloudwatch_state_reason: Optional[str] = field(default=None)
     cloudwatch_state_reason_data: Optional[str] = field(default=None)
-    cloudwatch_state_updated_timestamp: Optional[datetime] = field(default=None)
+    cloudwatch_state_updated_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     cloudwatch_metric_name: Optional[str] = field(default=None)
     cloudwatch_namespace: Optional[str] = field(default=None)
     cloudwatch_statistic: Optional[str] = field(default=None)

@@ -229,7 +229,7 @@ class AwsEksNodegroup(EKSTaggable, AwsResource):
     group_nodegroup_arn: Optional[str] = field(default=None)
     group_version: Optional[str] = field(default=None)
     group_release_version: Optional[str] = field(default=None)
-    group_modified_at: Optional[datetime] = field(default=None)
+    group_modified_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     group_status: Optional[str] = field(default=None)
     group_capacity_type: Optional[str] = field(default=None)
     group_scaling_config: Optional[AwsEksNodegroupScalingConfig] = field(default=None)
@@ -393,7 +393,7 @@ class AwsEksConnectorConfig:
     }
     activation_id: Optional[str] = field(default=None)
     activation_code: Optional[str] = field(default=None)
-    activation_expiry: Optional[datetime] = field(default=None)
+    activation_expiry: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     provider: Optional[str] = field(default=None)
     role_arn: Optional[str] = field(default=None)
 

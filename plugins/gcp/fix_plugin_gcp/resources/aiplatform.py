@@ -537,7 +537,7 @@ class GcpVertexAIBatchPredictionJob(AIPlatformRegionFilter, BaseAIJob, GcpResour
         "update_time": S("updateTime"),
     }
     completion_stats: Optional[GcpVertexAICompletionStats] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     dedicated_resources: Optional[GcpVertexAIBatchDedicatedResources] = field(default=None)
     disable_container_logging: Optional[bool] = field(default=None)
     display_name: Optional[str] = field(default=None)
@@ -557,10 +557,10 @@ class GcpVertexAIBatchPredictionJob(AIPlatformRegionFilter, BaseAIJob, GcpResour
     partial_failures: Optional[List[GcpGoogleRpcStatus]] = field(default=None)
     resources_consumed: Optional[float] = field(default=None)
     service_account: Optional[str] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     state: Optional[str] = field(default=None)
     unmanaged_container_model: Optional[GcpVertexAIUnmanagedContainerModel] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model := self.model:
@@ -729,15 +729,15 @@ class GcpVertexAICustomJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
         "update_time": S("updateTime"),
         "web_access_uris": S("webAccessUris"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     custom_job_spec: Optional[GcpVertexAICustomJobSpec] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     state: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     web_access_uris: Optional[Dict[str, str]] = field(default=None)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -763,13 +763,13 @@ class GcpVertexAISavedQuery:
     }
     annotation_filter: Optional[str] = field(default=None)
     annotation_spec_count: Optional[int] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
     problem_type: Optional[str] = field(default=None)
     support_automl_training: Optional[bool] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -816,7 +816,7 @@ class GcpVertexAIDataset(AIPlatformRegionFilter, GcpResource):
         "saved_queries": S("savedQueries", default=[]) >> ForallBend(GcpVertexAISavedQuery.mapping),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     data_item_count: Optional[str] = field(default=None)
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
@@ -825,7 +825,7 @@ class GcpVertexAIDataset(AIPlatformRegionFilter, GcpResource):
     metadata_schema_uri: Optional[str] = field(default=None)
     model_reference: Optional[str] = field(default=None)
     saved_queries: Optional[List[GcpVertexAISavedQuery]] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model := self.model_reference:
@@ -886,11 +886,11 @@ class GcpVertexAIDatasetVersion(AIPlatformRegionFilter, GcpResource):
         "update_time": S("updateTime"),
     }
     big_query_dataset_name: Optional[str] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     model_reference: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model := self.model_reference:
@@ -970,7 +970,7 @@ class GcpVertexAIDeployedModel:
         "shared_resources": S("sharedResources"),
     }
     automatic_resources: Optional[GcpVertexAIAutomaticResources] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     dedicated_resources: Optional[GcpVertexAIDedicatedResources] = field(default=None)
     disable_container_logging: Optional[bool] = field(default=None)
     disable_explanations: Optional[bool] = field(default=None)
@@ -1065,7 +1065,7 @@ class GcpVertexAIEndpoint(AIPlatformRegionFilter, GcpResource):
         "traffic_split": S("trafficSplit", default={}) >> Bend(GcpTrafficsplit.mapping),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     endpoint_deployed_models: Optional[List[GcpVertexAIDeployedModel]] = field(default=None)
     display_name: Optional[str] = field(default=None)
     enable_private_service_connect: Optional[bool] = field(default=None)
@@ -1078,7 +1078,7 @@ class GcpVertexAIEndpoint(AIPlatformRegionFilter, GcpResource):
     )
     private_service_connect_config: Optional[GcpVertexAIPrivateServiceConnectConfig] = field(default=None)
     traffic_split: Optional[GcpTrafficsplit] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model_deployment_monitoring_job := self.model_deployment_monitoring_job:
@@ -1137,9 +1137,9 @@ class GcpVertexAIFeatureGroup(AIPlatformRegionFilter, GcpResource):
         "update_time": S("updateTime"),
     }
     big_query: Optional[GcpVertexAIFeatureGroupBigQuery] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     etag: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
@@ -1229,12 +1229,12 @@ class GcpVertexAIFeature(AIPlatformRegionFilter, GcpResource):
         "value_type": S("valueType"),
         "version_column_name": S("versionColumnName"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     disable_monitoring: Optional[bool] = field(default=None)
     etag: Optional[str] = field(default=None)
     monitoring_stats_anomalies: Optional[List[GcpVertexAIFeatureMonitoringStatsAnomaly]] = field(default=None)
     point_of_contact: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     value_type: Optional[str] = field(default=None)
     version_column_name: Optional[str] = field(default=None)
 
@@ -1308,13 +1308,13 @@ class GcpVertexAIFeaturestore(AIPlatformRegionFilter, GcpResource):
         "state": S("state"),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     encryption_spec: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     online_serving_config: Optional[GcpVertexAIFeaturestoreOnlineServingConfig] = field(default=None)
     online_storage_ttl_days: Optional[int] = field(default=None)
     state: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -1589,7 +1589,7 @@ class GcpVertexAITrial:
     measurements: Optional[List[GcpVertexAIMeasurement]] = field(default=None)
     name: Optional[str] = field(default=None)
     parameters: Optional[List[GcpVertexAITrialParameter]] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     state: Optional[str] = field(default=None)
     web_access_uris: Optional[Dict[str, str]] = field(default=None)
 
@@ -1641,7 +1641,7 @@ class GcpVertexAIHyperparameterTuningJob(AIPlatformRegionFilter, BaseAIJob, GcpR
         "trials": S("trials", default=[]) >> ForallBend(GcpVertexAITrial.mapping),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
@@ -1649,12 +1649,12 @@ class GcpVertexAIHyperparameterTuningJob(AIPlatformRegionFilter, BaseAIJob, GcpR
     max_failed_trial_count: Optional[int] = field(default=None)
     max_trial_count: Optional[int] = field(default=None)
     parallel_trial_count: Optional[int] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     state: Optional[str] = field(default=None)
     study_spec: Optional[GcpVertexAIStudySpec] = field(default=None)
     trial_job_spec: Optional[GcpVertexAICustomJobSpec] = field(default=None)
     trials: Optional[List[GcpVertexAITrial]] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if (job_spec := self.trial_job_spec) and (models := job_spec.models):
@@ -1728,7 +1728,7 @@ class GcpVertexAIDeployedIndex:
         "reserved_ip_ranges": S("reservedIpRanges", default=[]),
     }
     automatic_resources: Optional[GcpVertexAIAutomaticResources] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     dedicated_resources: Optional[GcpVertexAIDedicatedResources] = field(default=None)
     deployed_index_auth_config: Optional[GcpVertexAIDeployedIndexAuthConfig] = field(default=None)
     deployment_group: Optional[str] = field(default=None)
@@ -1736,7 +1736,7 @@ class GcpVertexAIDeployedIndex:
     enable_access_logging: Optional[bool] = field(default=None)
     id: Optional[str] = field(default=None)
     index: Optional[str] = field(default=None)
-    index_sync_time: Optional[datetime] = field(default=None)
+    index_sync_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     private_endpoints: Optional[GcpVertexAIIndexPrivateEndpoints] = field(default=None)
     reserved_ip_ranges: Optional[List[str]] = field(default=None)
 
@@ -1784,7 +1784,7 @@ class GcpVertexAIIndexEndpoint(AIPlatformRegionFilter, GcpResource):
         "public_endpoint_enabled": S("publicEndpointEnabled"),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     endpoint_deployed_indexes: Optional[List[GcpVertexAIDeployedIndex]] = field(default=None)
     display_name: Optional[str] = field(default=None)
     enable_private_service_connect: Optional[bool] = field(default=None)
@@ -1794,7 +1794,7 @@ class GcpVertexAIIndexEndpoint(AIPlatformRegionFilter, GcpResource):
     private_service_connect_config: Optional[GcpVertexAIPrivateServiceConnectConfig] = field(default=None)
     public_endpoint_domain_name: Optional[str] = field(default=None)
     public_endpoint_enabled: Optional[bool] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -1866,7 +1866,7 @@ class GcpVertexAIIndex(AIPlatformRegionFilter, GcpResource):
         "metadata_schema_uri": S("metadataSchemaUri"),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     deployed_indexes: Optional[List[GcpVertexAIDeployedIndexRef]] = field(default=None)
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
@@ -1874,7 +1874,7 @@ class GcpVertexAIIndex(AIPlatformRegionFilter, GcpResource):
     index_stats: Optional[GcpVertexAIIndexStats] = field(default=None)
     index_update_method: Optional[str] = field(default=None)
     metadata_schema_uri: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if deployed_indexes := self.deployed_indexes:
@@ -1917,13 +1917,13 @@ class GcpVertexAIArtifact:
         "update_time": S("updateTime"),
         "uri": S("uri"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     schema_title: Optional[str] = field(default=None)
     schema_version: Optional[str] = field(default=None)
     state: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     uri: Optional[str] = field(default=None)
 
 
@@ -2171,7 +2171,7 @@ class GcpVertexAIModelDeploymentMonitoringJob(AIPlatformRegionFilter, BaseAIJob,
     }
     analysis_instance_schema_uri: Optional[str] = field(default=None)
     bigquery_tables: Optional[List[GcpVertexAIModelDeploymentMonitoringBigQueryTable]] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     enable_monitoring_pipeline_logs: Optional[bool] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
@@ -2189,13 +2189,13 @@ class GcpVertexAIModelDeploymentMonitoringJob(AIPlatformRegionFilter, BaseAIJob,
         default=None
     )
     model_monitoring_alert_config: Optional[GcpVertexAIModelMonitoringAlertConfig] = field(default=None)
-    next_schedule_time: Optional[datetime] = field(default=None)
+    next_schedule_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     predict_instance_schema_uri: Optional[str] = field(default=None)
     sample_predict_instance: Optional[Any] = field(default=None)
     schedule_state: Optional[str] = field(default=None)
     state: Optional[str] = field(default=None)
     stats_anomalies_base_directory: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -2319,7 +2319,7 @@ class GcpVertexAIModel(AIPlatformRegionFilter, BaseAIModel, GcpResource):
     artifact_uri: Optional[str] = field(default=None)
     base_model_source: Optional[GcpVertexAIModelBaseModelSource] = field(default=None)
     container_spec: Optional[GcpVertexAIModelContainerSpec] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     data_stats: Optional[GcpVertexAIModelDataStats] = field(default=None)
     endpoint_deployed_model_refs: Optional[List[GcpVertexAIDeployedModelRef]] = field(default=None)
     display_name: Optional[str] = field(default=None)
@@ -2339,12 +2339,12 @@ class GcpVertexAIModel(AIPlatformRegionFilter, BaseAIModel, GcpResource):
     supported_input_storage_formats: Optional[List[str]] = field(default=None)
     supported_output_storage_formats: Optional[List[str]] = field(default=None)
     training_pipeline: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     version_aliases: Optional[List[str]] = field(default=None)
-    version_create_time: Optional[datetime] = field(default=None)
+    version_create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     version_description: Optional[str] = field(default=None)
     version_id: Optional[str] = field(default=None)
-    version_update_time: Optional[datetime] = field(default=None)
+    version_update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
@@ -2443,7 +2443,7 @@ class GcpVertexAIModelEvaluation(AIPlatformRegionFilter, GcpResource):
         "slice_dimensions": S("sliceDimensions", default=[]),
     }
     annotation_schema_uri: Optional[str] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     data_item_schema_uri: Optional[str] = field(default=None)
     display_name: Optional[str] = field(default=None)
     explanation_specs: Optional[List[GcpVertexAIModelEvaluationModelEvaluationExplanationSpec]] = field(default=None)
@@ -2513,7 +2513,7 @@ class GcpVertexAIPipelineTaskDetailPipelineTaskStatus:
     }
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     state: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -2549,13 +2549,13 @@ class GcpVertexAIExecution:
         "state": S("state"),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     schema_title: Optional[str] = field(default=None)
     schema_version: Optional[str] = field(default=None)
     state: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -2579,7 +2579,7 @@ class GcpVertexAIPipelineTaskDetail:
         "task_id": S("taskId"),
         "task_name": S("taskName"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     end_time: Optional[datetime] = field(default=None)
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     execution: Optional[GcpVertexAIExecution] = field(default=None)
@@ -2627,13 +2627,13 @@ class GcpVertexAIContext:
         "schema_version": S("schemaVersion"),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
     parent_contexts: Optional[List[str]] = field(default=None)
     schema_title: Optional[str] = field(default=None)
     schema_version: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -2749,7 +2749,7 @@ class GcpVertexAIPipelineJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
         "template_uri": S("templateUri"),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
@@ -2766,7 +2766,7 @@ class GcpVertexAIPipelineJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     state: Optional[str] = field(default=None)
     template_metadata: Optional[str] = field(default=None)
     template_uri: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -2846,20 +2846,20 @@ class GcpVertexAISchedule(AIPlatformRegionFilter, GcpResource):
     allow_queueing: Optional[bool] = field(default=None)
     catch_up: Optional[bool] = field(default=None)
     create_pipeline_job_request: Optional[GcpVertexAICreatePipelineJobRequest] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     cron: Optional[str] = field(default=None)
     display_name: Optional[str] = field(default=None)
     end_time: Optional[datetime] = field(default=None)
-    last_pause_time: Optional[datetime] = field(default=None)
-    last_resume_time: Optional[datetime] = field(default=None)
+    last_pause_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_resume_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     last_scheduled_run_response: Optional[GcpVertexAIScheduleRunResponse] = field(default=None)
     max_concurrent_run_count: Optional[str] = field(default=None)
     max_run_count: Optional[str] = field(default=None)
-    next_run_time: Optional[datetime] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    next_run_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     started_run_count: Optional[str] = field(default=None)
     state: Optional[str] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -2905,7 +2905,7 @@ class GcpVertexAITensorboard(AIPlatformRegionFilter, GcpResource):
         "update_time": S("updateTime"),
     }
     blob_storage_path_prefix: Optional[str] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
     etag: Optional[str] = field(default=None)
@@ -2913,7 +2913,7 @@ class GcpVertexAITensorboard(AIPlatformRegionFilter, GcpResource):
     run_count: Optional[int] = field(default=None)
     satisfies_pzi: Optional[bool] = field(default=None)
     satisfies_pzs: Optional[bool] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 define(eq=False, slots=False)
@@ -3053,21 +3053,21 @@ class GcpVertexAITrainingPipeline(AIPlatformRegionFilter, GcpResource):
         "training_task_metadata": S("trainingTaskMetadata"),
         "update_time": S("updateTime"),
     }
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     display_name: Optional[str] = field(default=None)
     encryption_spec: Optional[str] = field(default=None)
-    end_time: Optional[datetime] = field(default=None)
+    end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     input_data_config: Optional[GcpVertexAIInputDataConfig] = field(default=None)
     model_id: Optional[str] = field(default=None)
     model_to_upload: Optional[str] = field(default=None)
     parent_model: Optional[str] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     state: Optional[str] = field(default=None)
     training_task_definition: Optional[str] = field(default=None)
     training_task_inputs: Optional[Any] = field(default=None)
     training_task_metadata: Optional[Any] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if model := self.model_to_upload:
@@ -3308,18 +3308,18 @@ class GcpVertexAITuningJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
         "update_time": S("updateTime"),
     }
     base_model: Optional[str] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     encryption_spec: Optional[str] = field(default=None)
-    end_time: Optional[datetime] = field(default=None)
+    end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     experiment: Optional[str] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     state: Optional[str] = field(default=None)
     supervised_tuning_spec: Optional[GcpVertexAISupervisedTuningSpec] = field(default=None)
     tuned_model: Optional[GcpVertexAITunedModel] = field(default=None)
     tuned_model_display_name: Optional[str] = field(default=None)
     tuning_data_stats: Optional[GcpVertexAITuningDataStats] = field(default=None)
-    update_time: Optional[datetime] = field(default=None)
+    update_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if tuned_model := self.tuned_model:

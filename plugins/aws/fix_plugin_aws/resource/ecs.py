@@ -274,10 +274,10 @@ class AwsEcsManagedAgent:
         "reason": S("reason"),
         "last_status": S("lastStatus"),
     }
-    last_started_at: Optional[datetime] = field(default=None)
+    last_started_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     name: Optional[str] = field(default=None)
     reason: Optional[str] = field(default=None)
-    last_status: Optional[str] = field(default=None)
+    last_status: Optional[str] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -494,7 +494,7 @@ class AwsEcsTask(EcsTaggable, AwsResource):
     task_cpu: Optional[str] = field(default=None)
     task_desired_status: Optional[str] = field(default=None)
     task_enable_execute_command: Optional[bool] = field(default=None)
-    task_execution_stopped_at: Optional[datetime] = field(default=None)
+    task_execution_stopped_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     task_group: Optional[str] = field(default=None)
     task_health_status: Optional[str] = field(default=None)
     task_inference_accelerators: List[AwsEcsInferenceAccelerator] = field(factory=list)
@@ -1384,8 +1384,8 @@ class AwsEcsTaskSet:
     computed_desired_count: Optional[int] = field(default=None)
     pending_count: Optional[int] = field(default=None)
     running_count: Optional[int] = field(default=None)
-    created_at: Optional[datetime] = field(default=None)
-    updated_at: Optional[datetime] = field(default=None)
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     launch_type: Optional[str] = field(default=None)
     capacity_provider_strategy: List[AwsEcsCapacityProviderStrategyItem] = field(factory=list)
     platform_version: Optional[str] = field(default=None)
@@ -1433,8 +1433,8 @@ class AwsEcsDeployment:
     pending_count: Optional[int] = field(default=None)
     running_count: Optional[int] = field(default=None)
     failed_tasks: Optional[int] = field(default=None)
-    created_at: Optional[datetime] = field(default=None)
-    updated_at: Optional[datetime] = field(default=None)
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     capacity_provider_strategy: List[AwsEcsCapacityProviderStrategyItem] = field(factory=list)
     launch_type: Optional[str] = field(default=None)
     platform_version: Optional[str] = field(default=None)
@@ -1455,7 +1455,7 @@ class AwsEcsServiceEvent:
     )
     mapping: ClassVar[Dict[str, Bender]] = {"id": S("id"), "created_at": S("createdAt"), "message": S("message")}
     id: Optional[str] = field(default=None)
-    created_at: Optional[datetime] = field(default=None)
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     message: Optional[str] = field(default=None)
 
 
@@ -1754,8 +1754,8 @@ class AwsEcsInstanceHealthCheckResult:
     }
     type: Optional[str] = field(default=None)
     status: Optional[str] = field(default=None)
-    last_updated: Optional[datetime] = field(default=None)
-    last_status_change: Optional[datetime] = field(default=None)
+    last_updated: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_status_change: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)

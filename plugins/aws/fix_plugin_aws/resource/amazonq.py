@@ -87,8 +87,8 @@ class AwsQBusinessApplication(AmazonQTaggable, AwsResource):
     }
     display_name: Optional[str] = field(default=None, metadata={"description": "The name of the Amazon Q Business application."})  # fmt: skip
     application_id: Optional[str] = field(default=None, metadata={"description": "The identifier for the Amazon Q Business application."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business application was created."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business application was last updated."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the Amazon Q Business application was created."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the Amazon Q Business application was last updated."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the Amazon Q Business application. The application is ready to use when the status is ACTIVE."})  # fmt: skip
 
     @classmethod
@@ -372,8 +372,8 @@ class AwsQBusinessDataSource(AmazonQTaggable, AwsResource):
     display_name: Optional[str] = field(default=None, metadata={"description": "The name of the Amazon Q Business data source."})  # fmt: skip
     data_source_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business data source."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of the Amazon Q Business data source."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business data source was created."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business data source was last updated."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the Amazon Q Business data source was created."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the Amazon Q Business data source was last updated."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the Amazon Q Business data source."})  # fmt: skip
 
     @classmethod
@@ -494,8 +494,8 @@ class AwsQBusinessDocument(AwsResource):
     document_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the document."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The current status of the document."})  # fmt: skip
     document_error: Optional[AwsQBusinessErrorDetail] = field(default=None, metadata={"description": "An error message associated with the document."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the document was created."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the document was last updated."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The timestamp for when the document was created."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The timestamp for when the document was last updated."})  # fmt: skip
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -536,8 +536,8 @@ class AwsQBusinessIndice(AmazonQTaggable, AwsResource):
     application_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business application."})  # fmt: skip
     display_name: Optional[str] = field(default=None, metadata={"description": "The name of the index."})  # fmt: skip
     index_id: Optional[str] = field(default=None, metadata={"description": "The identifier for the index."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the index was created."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the index was last updated."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the index was created."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the index was last updated."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The current status of the index. When the status is ACTIVE, the index is ready."})  # fmt: skip
 
     @classmethod
@@ -607,7 +607,7 @@ class AwsQBusinessSourceAttribution:
     snippet: Optional[str] = field(default=None, metadata={"description": "The content extract from the document on which the generated response is based."})  # fmt: skip
     url: Optional[str] = field(default=None, metadata={"description": "The URL of the document which is the source for the Amazon Q Business generated response."})  # fmt: skip
     citation_number: Optional[int] = field(default=None, metadata={"description": "The number attached to a citation in an Amazon Q Business generated response."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business application was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the Amazon Q Business application was last updated."})  # fmt: skip
     text_message_segments: Optional[List[AwsQBusinessTextSegment]] = field(factory=list, metadata={"description": "A text extract from a source document that is used for source attribution."})  # fmt: skip
 
 
@@ -711,7 +711,7 @@ class AwsQBusinessMessage(AwsResource):
     }
     message_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business web experience message."})  # fmt: skip
     body: Optional[str] = field(default=None, metadata={"description": "The content of the Amazon Q Business web experience message."})  # fmt: skip
-    time: Optional[datetime] = field(default=None, metadata={"description": "The timestamp of the first Amazon Q Business web experience message."})  # fmt: skip
+    time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The timestamp of the first Amazon Q Business web experience message."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of Amazon Q Business message, whether HUMAN or AI generated."})  # fmt: skip
     message_attachments: Optional[List[AwsQBusinessAttachmentOutput]] = field(factory=list, metadata={"description": "A file directly uploaded into an Amazon Q Business web experience chat."})  # fmt: skip
     source_attribution: Optional[List[AwsQBusinessSourceAttribution]] = field(factory=list, metadata={"description": "The source documents used to generate Amazon Q Business web experience message."})  # fmt: skip
@@ -764,8 +764,8 @@ class AwsQBusinessPlugin(AmazonQTaggable, AwsResource):
     server_url: Optional[str] = field(default=None, metadata={"description": "The plugin server URL used for configuration."})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={"description": "The current status of the plugin."})  # fmt: skip
     build_status: Optional[str] = field(default=None, metadata={"description": "The status of the plugin."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the plugin was created."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp for when the plugin was last updated."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The timestamp for when the plugin was created."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The timestamp for when the plugin was last updated."})  # fmt: skip
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
@@ -875,8 +875,8 @@ class AwsQBusinessWebExperience(AmazonQTaggable, AwsResource):
     }
     application_id: Optional[str] = field(default=None, metadata={"description": "The identifier of the Amazon Q Business application."})  # fmt: skip
     web_experience_id: Optional[str] = field(default=None, metadata={"description": "The identifier of your Amazon Q Business web experience."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when the Amazon Q Business application was last updated."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The Unix timestamp when your Amazon Q Business web experience was updated."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when the Amazon Q Business application was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The Unix timestamp when your Amazon Q Business web experience was updated."})  # fmt: skip
     default_endpoint: Optional[str] = field(default=None, metadata={"description": "The endpoint URLs for your Amazon Q Business web experience. The URLs are unique and fully hosted by Amazon Web Services."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of your Amazon Q Business web experience."})  # fmt: skip
 
@@ -951,9 +951,9 @@ class AwsQAppsLibraryItem(AwsResource):
     app_version: Optional[int] = field(default=None, metadata={"description": "The version of the Q App associated with the library item."})  # fmt: skip
     library_categories: Optional[List[AwsQAppsCategory]] = field(factory=list, metadata={"description": "The categories associated with the library item."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the library item."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the library item was created."})  # fmt: skip
+    created_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The date and time the library item was created."})  # fmt: skip
     created_by: Optional[str] = field(default=None, metadata={"description": "The user who created the library item."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the library item was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The date and time the library item was last updated."})  # fmt: skip
     updated_by: Optional[str] = field(default=None, metadata={"description": "The user who last updated the library item."})  # fmt: skip
     rating_count: Optional[int] = field(default=None, metadata={"description": "The number of ratings the library item has received."})  # fmt: skip
     is_rated_by_user: Optional[bool] = field(default=None, metadata={"description": "Whether the current user has rated the library item."})  # fmt: skip

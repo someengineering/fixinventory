@@ -1186,7 +1186,7 @@ class GcpContainerCluster(BaseManagedKubernetesClusterProvider, GcpResource):
     conditions: Optional[List[GcpContainerStatusCondition]] = field(default=None)
     confidential_nodes: Optional[bool] = field(default=None)
     cost_management_config: Optional[bool] = field(default=None)
-    create_time: Optional[datetime] = field(default=None)
+    create_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     current_master_version: Optional[str] = field(default=None)
     current_node_count: Optional[int] = field(default=None)
     current_node_version: Optional[str] = field(default=None)

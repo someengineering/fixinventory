@@ -117,13 +117,13 @@ class AzureKeyVaultAttributes:
         "recovery_level": S("recoveryLevel"),
         "updated": S("updated") >> TimestampToIso,
     }
-    created: Optional[datetime] = field(default=None, metadata={'description': 'Creation time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
+    created: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Creation time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
     enabled: Optional[bool] = field(default=None, metadata={'description': 'Determines whether or not the object is enabled.'})  # fmt: skip
-    expire: Optional[datetime] = field(default=None, metadata={'description': 'Expiry date in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
+    expire: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Expiry date in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
     exportable: Optional[bool] = field(default=None, metadata={'description': 'Indicates if the private key can be exported.'})  # fmt: skip
     nbf: Optional[int] = field(default=None, metadata={'description': 'Not before date in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
     recovery_level: Optional[str] = field(default=None, metadata={'description': 'The deletion recovery level currently in effect for the object. If it contains Purgeable , then the object can be permanently deleted by a privileged user; otherwise, only the system can purge the object at the end of the retention interval.'})  # fmt: skip
-    updated: Optional[datetime] = field(default=None, metadata={'description': 'Last updated time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
+    updated: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Last updated time in seconds since 1970-01-01T00:00:00Z.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)

@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Union, Any
 
 from attrs import define, field
+from sqlalchemy.testing.suite.test_reflection import metadata
+
 from fix_plugin_aws.aws_client import AwsClient
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
@@ -655,7 +657,7 @@ class AwsApiGatewayDomainName(ApiGatewayTaggable, AwsResource):
     }
     domain_certificate_name: Optional[str] = field(default=None)
     domain_certificate_arn: Optional[str] = field(default=None)
-    domain_certificate_upload_date: Optional[datetime] = field(default=None)
+    domain_certificate_upload_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     domain_regional_domain_name: Optional[str] = field(default=None)
     domain_regional_hosted_zone_id: Optional[str] = field(default=None)
     domain_regional_certificate_name: Optional[str] = field(default=None)

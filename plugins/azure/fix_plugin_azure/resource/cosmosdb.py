@@ -710,7 +710,7 @@ class AzureRestoreParametersBase:
         "restore_timestamp_in_utc": S("restoreTimestampInUtc"),
     }
     restore_source: Optional[str] = field(default=None, metadata={'description': 'The id of the restorable database account from which the restore has to be initiated. For example: /subscriptions/{subscriptionId}/providers/Microsoft.DocumentDB/locations/{location}/restorableDatabaseAccounts/{restorableDatabaseAccountName}'})  # fmt: skip
-    restore_timestamp_in_utc: Optional[datetime] = field(default=None, metadata={'description': 'Time to which the account has to be restored (ISO-8601 format).'})  # fmt: skip
+    restore_timestamp_in_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Time to which the account has to be restored (ISO-8601 format).'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -756,7 +756,7 @@ class AzureBackupPolicyMigrationState:
         "status": S("status"),
         "target_type": S("targetType"),
     }
-    start_time: Optional[datetime] = field(default=None, metadata={'description': 'Time at which the backup policy migration started (ISO-8601 format).'})  # fmt: skip
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Time at which the backup policy migration started (ISO-8601 format).'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'Describes the status of migration between backup policy types.'})  # fmt: skip
     target_type: Optional[str] = field(default=None, metadata={"description": "Describes the mode of backups."})
 
@@ -1553,8 +1553,8 @@ class AzureRestorableLocationResource:
         "location_name": S("locationName"),
         "regional_database_account_instance_id": S("regionalDatabaseAccountInstanceId"),
     }
-    creation_time: Optional[datetime] = field(default=None, metadata={'description': 'The creation time of the regional restorable database account (ISO-8601 format).'})  # fmt: skip
-    deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the regional restorable database account has been deleted (ISO-8601 format).'})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The creation time of the regional restorable database account (ISO-8601 format).'})  # fmt: skip
+    deletion_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time at which the regional restorable database account has been deleted (ISO-8601 format).'})  # fmt: skip
     location_name: Optional[str] = field(default=None, metadata={'description': 'The location of the regional restorable account.'})  # fmt: skip
     regional_database_account_instance_id: Optional[str] = field(default=None, metadata={'description': 'The instance id of the regional restorable account.'})  # fmt: skip
 
@@ -1606,8 +1606,8 @@ class AzureCosmosDBRestorableAccount(CosmosDBLocationSetter, MicrosoftResource):
     }
     account_name: Optional[str] = field(default=None, metadata={'description': 'The name of the global database account'})  # fmt: skip
     api_type: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate the API type of the restorable database account.'})  # fmt: skip
-    creation_time: Optional[datetime] = field(default=None, metadata={'description': 'The creation time of the restorable database account (ISO-8601 format).'})  # fmt: skip
-    deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the restorable database account has been deleted (ISO-8601 format).'})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The creation time of the restorable database account (ISO-8601 format).'})  # fmt: skip
+    deletion_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time at which the restorable database account has been deleted (ISO-8601 format).'})  # fmt: skip
     oldest_restorable_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The least recent time at which the database account can be restored to (ISO-8601 format).'})  # fmt: skip
     restorable_locations: Optional[List[AzureRestorableLocationResource]] = field(default=None, metadata={'description': 'List of regions where the of the database account can be restored from.'})  # fmt: skip
 
@@ -2086,7 +2086,7 @@ class AzureMongoClusterRestoreParameters:
         "point_in_time_utc": S("pointInTimeUTC"),
         "source_resource_id": S("sourceResourceId"),
     }
-    point_in_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'UTC point in time to restore a mongo cluster'})  # fmt: skip
+    point_in_time_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'UTC point in time to restore a mongo cluster'})  # fmt: skip
     source_resource_id: Optional[str] = field(default=None, metadata={'description': 'Resource ID to locate the source cluster to restore'})  # fmt: skip
 
 
@@ -2145,7 +2145,7 @@ class AzureCosmosDBMongoDBCluster(MicrosoftResource, AzureTrackedResource):
     cluster_status: Optional[str] = field(default=None, metadata={'description': 'The status of the resource at the time the operation was called.'})  # fmt: skip
     connection_string: Optional[str] = field(default=None, metadata={'description': 'The default mongo connection string for the cluster.'})  # fmt: skip
     create_mode: Optional[str] = field(default=None, metadata={"description": "The mode to create a mongo cluster."})
-    earliest_restore_time: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore timestamp in UTC ISO8601 format.'})  # fmt: skip
+    earliest_restore_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Earliest restore timestamp in UTC ISO8601 format.'})  # fmt: skip
     node_group_specs: Optional[List[AzureNodeGroupSpec]] = field(default=None, metadata={'description': 'The list of node group specifications for the cluster. Must include one node group spec with kind = Shard .'})  # fmt: skip
     cluster_restore_parameters: Optional[AzureMongoClusterRestoreParameters] = field(default=None, metadata={'description': 'Parameters used for restore operations'})  # fmt: skip
     server_version: Optional[str] = field(default=None, metadata={'description': 'The Mongo DB server version. Defaults to the latest available version if not specified.'})  # fmt: skip
@@ -2535,7 +2535,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
     coordinator_server_edition: Optional[str] = field(default=None, metadata={'description': 'The edition of a coordinator server (default: GeneralPurpose). Required for creation.'})  # fmt: skip
     coordinator_storage_quota_in_mb: Optional[int] = field(default=None, metadata={'description': 'The storage of a server in MB. Required for creation. See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
     coordinator_v_cores: Optional[int] = field(default=None, metadata={'description': 'The vCores count of a server (max: 96). Required for creation. See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
-    earliest_restore_time: Optional[datetime] = field(default=None, metadata={'description': 'The earliest restore point time (ISO8601 format) for the cluster.'})  # fmt: skip
+    earliest_restore_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The earliest restore point time (ISO8601 format) for the cluster.'})  # fmt: skip
     enable_ha: Optional[bool] = field(default=None, metadata={'description': 'If high availability (HA) is enabled or not for the cluster.'})  # fmt: skip
     enable_shards_on_coordinator: Optional[bool] = field(default=None, metadata={'description': 'If distributed tables are placed on coordinator or not. Should be set to true on single node clusters. Requires shard rebalancing after value is changed.'})  # fmt: skip
     cluster_maintenance_window: Optional[AzureMaintenanceWindow] = field(default=None, metadata={'description': 'Schedule settings for regular cluster updates.'})  # fmt: skip
@@ -2544,7 +2544,7 @@ class AzureCosmosDBPostgresqlCluster(MicrosoftResource):
     node_server_edition: Optional[str] = field(default=None, metadata={'description': 'The edition of a node server (default: MemoryOptimized).'})  # fmt: skip
     node_storage_quota_in_mb: Optional[int] = field(default=None, metadata={'description': 'The storage in MB on each worker node. See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
     node_v_cores: Optional[int] = field(default=None, metadata={'description': 'The compute in vCores on each worker node (max: 104). See https://learn.microsoft.com/azure/cosmos-db/postgresql/resources-compute for more information.'})  # fmt: skip
-    point_in_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Date and time in UTC (ISO8601 format) for cluster restore.'})  # fmt: skip
+    point_in_time_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Date and time in UTC (ISO8601 format) for cluster restore.'})  # fmt: skip
     postgresql_version: Optional[str] = field(default=None, metadata={'description': 'The major PostgreSQL version on all cluster servers.'})  # fmt: skip
     preferred_primary_zone: Optional[str] = field(default=None, metadata={'description': 'Preferred primary availability zone (AZ) for all cluster servers.'})  # fmt: skip
     private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'The private endpoint connections for a cluster.'})  # fmt: skip

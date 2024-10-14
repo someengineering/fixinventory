@@ -55,7 +55,7 @@ class AwsAcmRenewalSummary:
     renewal_status: Optional[str] = field(default=None, metadata={"description": "The status of ACM's managed renewal of the certificate."})  # fmt: skip
     domain_validation_options: Optional[List[AwsAcmDomainValidation]] = field(factory=list, metadata={"description": "Contains information about the validation of each domain name in the certificate, as it pertains to ACM's managed renewal. This is different from the initial validation that occurs as a result of the RequestCertificate request. This field exists only when the certificate type is AMAZON_ISSUED."})  # fmt: skip
     renewal_status_reason: Optional[str] = field(default=None, metadata={"description": "The reason that a renewal request was unsuccessful."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the renewal summary was last updated."})  # fmt: skip
+    updated_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the renewal summary was last updated."})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -113,8 +113,8 @@ class AwsAcmCertificate(AwsResource, BaseCertificate):
     serial: Optional[str] = field(default=None, metadata={"description": "The serial number of the certificate."})  # fmt: skip
     subject: Optional[str] = field(default=None, metadata={"description": "The name of the entity that is associated with the public key contained in the certificate."})  # fmt: skip
     issuer: Optional[str] = field(default=None, metadata={"description": "The name of the certificate authority that issued and signed the certificate."})  # fmt: skip
-    issued_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the certificate was issued. This value exists only when the certificate type is AMAZON_ISSUED."})  # fmt: skip
-    imported_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time when the certificate was imported. This value exists only when the certificate type is IMPORTED."})  # fmt: skip
+    issued_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The time at which the certificate was issued. This value exists only when the certificate type is AMAZON_ISSUED."})  # fmt: skip
+    imported_at: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "The date and time when the certificate was imported. This value exists only when the certificate type is IMPORTED."})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "The status of the certificate. A certificate enters status PENDING_VALIDATION upon being requested, unless it fails for any of the reasons given in the troubleshooting topic Certificate request fails. ACM makes repeated attempts to validate a certificate for 72 hours and then times out. If a certificate shows status FAILED or VALIDATION_TIMED_OUT, delete the request, correct the issue with DNS validation or Email validation, and try again. If validation succeeds, the certificate enters status ISSUED."})  # fmt: skip
     revoked_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the certificate was revoked. This value exists only when the certificate status is REVOKED."})  # fmt: skip
     revocation_reason: Optional[str] = field(default=None, metadata={"description": "The reason the certificate was revoked. This value exists only when the certificate status is REVOKED."})  # fmt: skip

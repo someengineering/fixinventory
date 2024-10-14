@@ -32,13 +32,13 @@ class AwsConfigRecorderStatus:
         "last_error_message": S("lastErrorMessage"),
         "last_status_change_time": S("lastStatusChangeTime"),
     }
-    last_start_time: Optional[datetime] = field(default=None)
-    last_stop_time: Optional[datetime] = field(default=None)
+    last_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_stop_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     recording: Optional[bool] = field(default=None)
     last_status: Optional[str] = field(default=None)
     last_error_code: Optional[str] = field(default=None)
     last_error_message: Optional[str] = field(default=None)
-    last_status_change_time: Optional[datetime] = field(default=None)
+    last_status_change_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)

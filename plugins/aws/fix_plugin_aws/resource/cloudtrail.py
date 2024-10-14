@@ -3,6 +3,7 @@ from typing import ClassVar, Dict, Optional, Type, List, Any
 
 
 from attr import define, field as attrs_field, field
+from importlib_metadata import metadata
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, GraphBuilder, AwsResource, parse_json
@@ -117,20 +118,20 @@ class AwsCloudTrailStatus:
     is_logging: Optional[bool] = attrs_field(default=None)
     latest_delivery_error: Optional[str] = attrs_field(default=None)
     latest_notification_error: Optional[str] = attrs_field(default=None)
-    latest_delivery_time: Optional[datetime] = attrs_field(default=None)
-    latest_notification_time: Optional[datetime] = attrs_field(default=None)
-    start_logging_time: Optional[datetime] = attrs_field(default=None)
-    stop_logging_time: Optional[datetime] = attrs_field(default=None)
+    latest_delivery_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
+    latest_notification_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
+    start_logging_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
+    stop_logging_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
     latest_cloud_watch_logs_delivery_error: Optional[str] = attrs_field(default=None)
-    latest_cloud_watch_logs_delivery_time: Optional[datetime] = attrs_field(default=None)
-    latest_digest_delivery_time: Optional[datetime] = attrs_field(default=None)
+    latest_cloud_watch_logs_delivery_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})  # fmt: skip
+    latest_digest_delivery_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
     latest_digest_delivery_error: Optional[str] = attrs_field(default=None)
-    latest_delivery_attempt_time: Optional[datetime] = attrs_field(default=None)
-    latest_notification_attempt_time: Optional[datetime] = attrs_field(default=None)
-    latest_notification_attempt_succeeded: Optional[datetime] = attrs_field(default=None)
-    latest_delivery_attempt_succeeded: Optional[datetime] = attrs_field(default=None)
-    time_logging_started: Optional[datetime] = attrs_field(default=None)
-    time_logging_stopped: Optional[datetime] = attrs_field(default=None)
+    latest_delivery_attempt_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
+    latest_notification_attempt_time: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
+    latest_notification_attempt_succeeded: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})  # fmt: skip
+    latest_delivery_attempt_succeeded: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
+    time_logging_started: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
+    time_logging_stopped: Optional[datetime] = attrs_field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)

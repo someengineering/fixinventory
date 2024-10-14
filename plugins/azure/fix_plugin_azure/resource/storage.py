@@ -52,7 +52,7 @@ class AzureUpdateHistoryProperty:
     immutability_period_since_creation_in_days: Optional[int] = field(default=None, metadata={'description': 'The immutability period for the blobs in the container since the policy creation, in days.'})  # fmt: skip
     object_identifier: Optional[str] = field(default=None, metadata={'description': 'Returns the Object ID of the user who updated the ImmutabilityPolicy.'})  # fmt: skip
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'Returns the Tenant ID that issued the token for the user who updated the ImmutabilityPolicy.'})  # fmt: skip
-    timestamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the ImmutabilityPolicy was updated.'})  # fmt: skip
+    timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Returns the date and time the ImmutabilityPolicy was updated.'})  # fmt: skip
     update: Optional[str] = field(default=None, metadata={'description': 'The ImmutabilityPolicy update type of a blob container, possible values include: put, lock and extend.'})  # fmt: skip
     upn: Optional[str] = field(default=None, metadata={'description': 'Returns the User Principal Name of the user who updated the ImmutabilityPolicy.'})  # fmt: skip
 
@@ -89,7 +89,7 @@ class AzureTagProperty:
     object_identifier: Optional[str] = field(default=None, metadata={'description': 'Returns the Object ID of the user who added the tag.'})  # fmt: skip
     tag: Optional[str] = field(default=None, metadata={"description": "The tag value."})
     tenant_id: Optional[str] = field(default=None, metadata={'description': 'Returns the Tenant ID that issued the token for the user who added the tag.'})  # fmt: skip
-    timestamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the tag was added.'})  # fmt: skip
+    timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Returns the date and time the tag was added.'})  # fmt: skip
     upn: Optional[str] = field(default=None, metadata={'description': 'Returns the User Principal Name of the user who added the tag.'})  # fmt: skip
 
 
@@ -101,7 +101,7 @@ class AzureProtectedAppendWritesHistory:
         "timestamp": S("timestamp"),
     }
     allow_protected_append_writes_all: Optional[bool] = field(default=None, metadata={'description': 'When enabled, new blocks can be written to both Append and Bock Blobs while maintaining legal hold protection and compliance. Only new blocks can be added and any existing blocks cannot be modified or deleted.'})  # fmt: skip
-    timestamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the tag was added.'})  # fmt: skip
+    timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Returns the date and time the tag was added.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -128,7 +128,7 @@ class AzureImmutableStorageWithVersioning:
     }
     enabled: Optional[bool] = field(default=None, metadata={'description': 'This is an immutable property, when set to true it enables object level immutability at the container level.'})  # fmt: skip
     migration_state: Optional[str] = field(default=None, metadata={'description': 'This property denotes the container level immutability to object level immutability migration state.'})  # fmt: skip
-    time_stamp: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the object level immutability was enabled.'})  # fmt: skip
+    time_stamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Returns the date and time the object level immutability was enabled.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -169,7 +169,7 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     default_encryption_scope: Optional[str] = field(default=None, metadata={'description': 'Default the container to use specified encryption scope for all writes.'})  # fmt: skip
     deleted: Optional[bool] = field(default=None, metadata={'description': 'Indicates whether the blob container was deleted.'})  # fmt: skip
-    deleted_time: Optional[datetime] = field(default=None, metadata={"description": "Blob container deletion time."})
+    deleted_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Blob container deletion time."})
     deny_encryption_scope_override: Optional[bool] = field(default=None, metadata={'description': 'Block override of encryption scope from the container default.'})  # fmt: skip
     enable_nfs_v3_all_squash: Optional[bool] = field(default=None, metadata={'description': 'Enable NFSv3 all squash on blob container.'})  # fmt: skip
     enable_nfs_v3_root_squash: Optional[bool] = field(default=None, metadata={'description': 'Enable NFSv3 root squash on blob container.'})  # fmt: skip
@@ -177,7 +177,7 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
     has_legal_hold: Optional[bool] = field(default=None, metadata={'description': 'The hasLegalHold public property is set to true by SRP if there are at least one existing tag. The hasLegalHold public property is set to false by SRP if all existing legal hold tags are cleared out. There can be a maximum of 1000 blob containers with hasLegalHold=true for a given account.'})  # fmt: skip
     immutability_policy: Optional[AzureImmutabilityPolicyProperties] = field(default=None, metadata={'description': 'The properties of an ImmutabilityPolicy of a blob container.'})  # fmt: skip
     blob_immutable_storage_with_versioning: Optional[AzureImmutableStorageWithVersioning] = field(default=None, metadata={'description': 'Object level immutability properties of the container.'})  # fmt: skip
-    last_modified_time: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the container was last modified.'})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Returns the date and time the container was last modified.'})  # fmt: skip
     lease_duration: Optional[str] = field(default=None, metadata={'description': 'Specifies whether the lease on a container is of infinite or fixed duration, only when the container is leased.'})  # fmt: skip
     lease_state: Optional[str] = field(default=None, metadata={"description": "Lease state of the container."})
     lease_status: Optional[str] = field(default=None, metadata={"description": "The lease status of the container."})
@@ -218,8 +218,8 @@ class AzureStorageAccountDeleted(MicrosoftResource, PhantomBaseResource):
         "storage_account_resource_id": S("properties", "storageAccountResourceId"),
     }
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
-    creation_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of the deleted account.'})  # fmt: skip
-    deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'Deletion time of the deleted account.'})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Creation time of the deleted account.'})  # fmt: skip
+    deletion_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Deletion time of the deleted account.'})  # fmt: skip
     restore_reference: Optional[str] = field(default=None, metadata={'description': 'Can be used to attempt recovering this deleted account via PutStorageAccount API.'})  # fmt: skip
     storage_account_resource_id: Optional[str] = field(default=None, metadata={'description': 'Full resource id of the original storage account.'})  # fmt: skip
 
@@ -232,9 +232,9 @@ class AzureAccessPolicy:
         "permission": S("permission"),
         "start_time": S("startTime"),
     }
-    expiry_time: Optional[datetime] = field(default=None, metadata={"description": "Expiry time of the access policy"})
+    expiry_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Expiry time of the access policy"})
     permission: Optional[str] = field(default=None, metadata={"description": "List of abbreviated permissions."})
-    start_time: Optional[datetime] = field(default=None, metadata={"description": "Start time of the access policy"})
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": "Start time of the access policy"})
 
 
 @define(eq=False, slots=False)
@@ -285,12 +285,12 @@ class AzureStorageFileShare(MicrosoftResource, BaseNetworkShare):
     }
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     access_tier: Optional[str] = field(default=None, metadata={'description': 'Access tier for specific share. GpV2 account can choose between TransactionOptimized (default), Hot, and Cool. FileStorage account can choose Premium.'})  # fmt: skip
-    access_tier_change_time: Optional[datetime] = field(default=None, metadata={'description': 'Indicates the last modification time for share access tier.'})  # fmt: skip
+    access_tier_change_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Indicates the last modification time for share access tier.'})  # fmt: skip
     access_tier_status: Optional[str] = field(default=None, metadata={'description': 'Indicates if there is a pending transition for access tier.'})  # fmt: skip
     deleted: Optional[bool] = field(default=None, metadata={"description": "Indicates whether the share was deleted."})
-    deleted_time: Optional[datetime] = field(default=None, metadata={'description': 'The deleted time if the share was deleted.'})  # fmt: skip
+    deleted_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The deleted time if the share was deleted.'})  # fmt: skip
     enabled_protocols: Optional[str] = field(default=None, metadata={'description': 'The authentication protocol that is used for the file share. Can only be specified when creating a share.'})  # fmt: skip
-    last_modified_time: Optional[datetime] = field(default=None, metadata={'description': 'Returns the date and time the share was last modified.'})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Returns the date and time the share was last modified.'})  # fmt: skip
     lease_duration: Optional[str] = field(default=None, metadata={'description': 'Specifies whether the lease on a share is of infinite or fixed duration, only when the share is leased.'})  # fmt: skip
     lease_state: Optional[str] = field(default=None, metadata={"description": "Lease state of the share."})
     lease_status: Optional[str] = field(default=None, metadata={"description": "The lease status of the share."})
@@ -300,7 +300,7 @@ class AzureStorageFileShare(MicrosoftResource, BaseNetworkShare):
     share_quota: Optional[int] = field(default=None, metadata={'description': 'The maximum size of the share, in gigabytes. Must be greater than 0, and less than or equal to 5TB (5120). For Large File Shares, the maximum size is 102400.'})  # fmt: skip
     share_usage_bytes: Optional[int] = field(default=None, metadata={'description': 'The approximate size of the data stored on the share. Note that this value may not include all recently created or recently resized files.'})  # fmt: skip
     file_signed_identifiers: Optional[List[AzureSignedIdentifier]] = field(default=None, metadata={'description': 'List of stored access policies specified on the share.'})  # fmt: skip
-    snapshot_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation time of share snapshot returned in the response of list shares with expand param snapshots .'})  # fmt: skip
+    snapshot_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Creation time of share snapshot returned in the response of list shares with expand param snapshots .'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={"description": "The version of the share."})
 
 
@@ -456,8 +456,8 @@ class AzureSasPolicy:
 class AzureKeyCreationTime:
     kind: ClassVar[str] = "azure_key_creation_time"
     mapping: ClassVar[Dict[str, Bender]] = {"key1": S("key1"), "key2": S("key2")}
-    key1: Optional[datetime] = field(default=None, metadata={"description": ""})
-    key2: Optional[datetime] = field(default=None, metadata={"description": ""})
+    key1: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": ""})
+    key2: Optional[datetime] = field(default=None, metadata={"ignore_history": True, "description": ""})
 
 
 @define(eq=False, slots=False)
@@ -470,7 +470,7 @@ class AzureEncryptionService:
     }
     enabled: Optional[bool] = field(default=None, metadata={'description': 'A boolean indicating whether or not the service encrypts the data as it is stored. Encryption at rest is enabled by default today and cannot be disabled.'})  # fmt: skip
     key_type: Optional[str] = field(default=None, metadata={'description': 'Encryption key type to be used for the encryption service. Account key type implies that an account-scoped encryption key will be used. Service key type implies that a default service key is used.'})  # fmt: skip
-    last_enabled_time: Optional[datetime] = field(default=None, metadata={'description': 'Gets a rough estimate of the date/time when the encryption was last enabled by the user. Data is encrypted at rest by default today and cannot be disabled.'})  # fmt: skip
+    last_enabled_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets a rough estimate of the date/time when the encryption was last enabled by the user. Data is encrypted at rest by default today and cannot be disabled.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -504,7 +504,7 @@ class AzureKeyVaultProperties:
     keyname: Optional[str] = field(default=None, metadata={"description": "The name of KeyVault key."})
     keyvaulturi: Optional[str] = field(default=None, metadata={"description": "The Uri of KeyVault."})
     keyversion: Optional[str] = field(default=None, metadata={"description": "The version of KeyVault key."})
-    last_key_rotation_timestamp: Optional[datetime] = field(default=None, metadata={'description': 'Timestamp of last rotation of the Key Vault Key.'})  # fmt: skip
+    last_key_rotation_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Timestamp of last rotation of the Key Vault Key.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -626,7 +626,7 @@ class AzureGeoReplicationStats:
     }
     can_failover: Optional[bool] = field(default=None, metadata={'description': 'A boolean flag which indicates whether or not account failover is supported for the account.'})  # fmt: skip
     can_planned_failover: Optional[bool] = field(default=None, metadata={'description': 'A boolean flag which indicates whether or not planned account failover is supported for the account.'})  # fmt: skip
-    last_sync_time: Optional[datetime] = field(default=None, metadata={'description': 'All primary writes preceding this UTC date/time value are guaranteed to be available for read operations. Primary writes following this point in time may or may not be available for reads. Element may be default value if value of LastSyncTime is not available, this can happen if secondary is offline or we are in bootstrap.'})  # fmt: skip
+    last_sync_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'All primary writes preceding this UTC date/time value are guaranteed to be available for read operations. Primary writes following this point in time may or may not be available for reads. Element may be default value if value of LastSyncTime is not available, this can happen if secondary is offline or we are in bootstrap.'})  # fmt: skip
     post_failover_redundancy: Optional[str] = field(default=None, metadata={'description': 'The redundancy type of the account after an account failover is performed.'})  # fmt: skip
     post_planned_failover_redundancy: Optional[str] = field(default=None, metadata={'description': 'The redundancy type of the account after a planned account failover is performed.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'The status of the secondary location. Possible values are: - Live: Indicates that the secondary location is active and operational. - Bootstrap: Indicates initial synchronization from the primary location to the secondary location is in progress.This typically occurs when replication is first enabled. - Unavailable: Indicates that the secondary location is temporarily unavailable.'})  # fmt: skip
@@ -817,7 +817,7 @@ class AzureStorageAccount(MicrosoftResource):
     allowed_copy_scope: Optional[str] = field(default=None, metadata={'description': 'Restrict copy to and from Storage Accounts within an AAD tenant or with Private Links to the same VNet.'})  # fmt: skip
     azure_files_identity_based_authentication: Optional[AzureFilesIdentityBasedAuthentication] = field(default=None, metadata={'description': 'Settings for Azure Files identity based authentication.'})  # fmt: skip
     blob_restore_status: Optional[AzureBlobRestoreStatus] = field(default=None, metadata={'description': 'Blob restore status.'})  # fmt: skip
-    creation_time: Optional[datetime] = field(default=None, metadata={'description': 'Gets the creation date and time of the storage account in UTC.'})  # fmt: skip
+    creation_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets the creation date and time of the storage account in UTC.'})  # fmt: skip
     storage_custom_domain: Optional[AzureCustomDomain] = field(default=None, metadata={'description': 'The custom domain assigned to this storage account. This can be set via Update.'})  # fmt: skip
     default_to_oauth_authentication: Optional[bool] = field(default=None, metadata={'description': 'A boolean flag which indicates whether the default authentication is OAuth or not. The default interpretation is false for this property.'})  # fmt: skip
     dns_endpoint_type: Optional[str] = field(default=None, metadata={'description': 'Allows you to specify the type of endpoint. Set this to AzureNetworkDNSZone to create a large number of accounts in a single subscription, which creates accounts in an Azure DNS Zone and the endpoint URL will have an alphanumeric DNS Zone identifier.'})  # fmt: skip
@@ -838,7 +838,7 @@ class AzureStorageAccount(MicrosoftResource):
     key_expiration_period_in_days: Optional[int] = field(default=None, metadata={'description': 'KeyPolicy assigned to the storage account.'})  # fmt: skip
     resource_kind: Optional[str] = field(default=None, metadata={"description": "Gets the Kind."})
     large_file_shares_state: Optional[str] = field(default=None, metadata={'description': 'Allow large file shares if sets to Enabled. It cannot be disabled once it is enabled.'})  # fmt: skip
-    last_geo_failover_time: Optional[datetime] = field(default=None, metadata={'description': 'Gets the timestamp of the most recent instance of a failover to the secondary location. Only the most recent timestamp is retained. This element is not returned if there has never been a failover instance. Only available if the accountType is Standard_GRS or Standard_RAGRS.'})  # fmt: skip
+    last_geo_failover_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 3'description': 'Gets the timestamp of the most recent instance of a failover to the secondary location. Only the most recent timestamp is retained. This element is not returned if there has never been a failover instance. Only available if the accountType is Standard_GRS or Standard_RAGRS.'})  # fmt: skip
     minimum_tls_version: Optional[str] = field(default=None, metadata={'description': 'Set the minimum TLS version to be permitted on requests to storage. The default interpretation is TLS 1.0 for this property.'})  # fmt: skip
     storage_network_acls: Optional[AzureNetworkRuleSet] = field(
         default=None, metadata={"description": "Network rule set"}

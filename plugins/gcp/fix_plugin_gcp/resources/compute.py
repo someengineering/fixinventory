@@ -302,8 +302,8 @@ class GcpScalingScheduleStatus:
         "next_start_time": S("nextStartTime"),
         "scaling_schedule_status_state": S("state"),
     }
-    last_start_time: Optional[datetime] = field(default=None)
-    next_start_time: Optional[datetime] = field(default=None)
+    last_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    next_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     scaling_schedule_status_state: Optional[str] = field(default=None)
 
 
@@ -1172,8 +1172,8 @@ class GcpDisk(GcpResource, BaseVolume):
     architecture: Optional[str] = field(default=None)
     disk_encryption_key: Optional[GcpCustomerEncryptionKey] = field(default=None)
     guest_os_features: Optional[List[str]] = field(default=None)
-    last_attach_timestamp: Optional[datetime] = field(default=None)
-    last_detach_timestamp: Optional[datetime] = field(default=None)
+    last_attach_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_detach_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     license_codes: Optional[List[str]] = field(default=None)
     licenses: Optional[List[str]] = field(default=None)
     location_hint: Optional[str] = field(default=None)
@@ -2029,15 +2029,15 @@ class GcpOperation(GcpResource):
         "warnings": S("warnings", default=[]) >> ForallBend(GcpWarnings.mapping),
     }
     client_operation_id: Optional[str] = field(default=None)
-    end_time: Optional[datetime] = field(default=None)
+    end_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     error: Optional[GcpError] = field(default=None)
     http_error_message: Optional[str] = field(default=None)
     http_error_status_code: Optional[int] = field(default=None)
-    insert_time: Optional[datetime] = field(default=None)
+    insert_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     operation_group_id: Optional[str] = field(default=None)
     operation_type: Optional[str] = field(default=None)
     progress: Optional[int] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     status: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
     target_id: Optional[str] = field(default=None)
@@ -3501,9 +3501,9 @@ class GcpInstance(GcpResource, BaseInstance):
     guest_accelerators: Optional[List[GcpAcceleratorConfig]] = field(default=None)
     hostname: Optional[str] = field(default=None)
     key_revocation_action_type: Optional[str] = field(default=None)
-    last_start_timestamp: Optional[datetime] = field(default=None)
-    last_stop_timestamp: Optional[datetime] = field(default=None)
-    last_suspended_timestamp: Optional[datetime] = field(default=None)
+    last_start_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_stop_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_suspended_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     machine_type: Optional[str] = field(default=None)
     instance_metadata: Optional[GcpMetadata] = field(default=None)
     min_cpu_platform: Optional[str] = field(default=None)
@@ -5004,7 +5004,7 @@ class GcpReservation:
         "zone": S("zone"),
     }
     commitment: Optional[str] = field(default=None)
-    creation_timestamp: Optional[datetime] = field(default=None)
+    creation_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     description: Optional[str] = field(default=None)
     id: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)
@@ -5081,14 +5081,14 @@ class GcpCommitment(GcpResource):
     }
     auto_renew: Optional[bool] = field(default=None)
     commitment_category: Optional[str] = field(default=None)
-    end_timestamp: Optional[datetime] = field(default=None)
+    end_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     license_resource: Optional[GcpLicenseResourceCommitment] = field(default=None)
     merge_source_commitments: Optional[List[str]] = field(default=None)
     plan: Optional[str] = field(default=None)
     reservations: Optional[List[GcpReservation]] = field(default=None)
     resources: Optional[List[GcpResourceCommitment]] = field(default=None)
     split_source_commitment: Optional[str] = field(default=None)
-    start_timestamp: Optional[datetime] = field(default=None)
+    start_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     status: Optional[str] = field(default=None)
     status_message: Optional[str] = field(default=None)
     type: Optional[str] = field(default=None)
@@ -5544,7 +5544,7 @@ class GcpSslCertificate(GcpResource, BaseCertificate):
         "expires": S("expireTime"),
     }
     certificate: Optional[str] = field(default=None)
-    expire_time: Optional[datetime] = field(default=None)
+    expire_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     certificate_managed: Optional[GcpSslCertificateManagedSslCertificate] = field(default=None)
     private_key: Optional[str] = field(default=None)
     self_managed: Optional[GcpSslCertificateSelfManagedSslCertificate] = field(default=None)
@@ -6281,8 +6281,8 @@ class GcpResourcePolicyInstanceSchedulePolicy:
         "vm_start_schedule": S("vmStartSchedule", "schedule"),
         "vm_stop_schedule": S("vmStopSchedule", "schedule"),
     }
-    expiration_time: Optional[datetime] = field(default=None)
-    start_time: Optional[datetime] = field(default=None)
+    expiration_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     time_zone: Optional[str] = field(default=None)
     vm_start_schedule: Optional[str] = field(default=None)
     vm_stop_schedule: Optional[str] = field(default=None)
@@ -6300,8 +6300,8 @@ class GcpResourcePolicyResourceStatusInstanceSchedulePolicyStatus:
         "last_run_start_time": S("lastRunStartTime"),
         "next_run_start_time": S("nextRunStartTime"),
     }
-    last_run_start_time: Optional[datetime] = field(default=None)
-    next_run_start_time: Optional[datetime] = field(default=None)
+    last_run_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    next_run_start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)

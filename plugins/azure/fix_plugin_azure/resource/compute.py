@@ -62,7 +62,9 @@ class AzureInstanceViewStatus:
     display_status: Optional[str] = field(default=None, metadata={'description': 'The short localizable label for the status.'})  # fmt: skip
     level: Optional[str] = field(default=None, metadata={"description": "The level code."})
     message: Optional[str] = field(default=None, metadata={'description': 'The detailed status message, including for alerts and error messages.'})  # fmt: skip
-    time: Optional[datetime] = field(default=None, metadata={"description": "The time of the status."})
+    time: Optional[datetime] = field(
+        default=None, metadata={"ignore_history": True, "description": "The time of the status."}
+    )
 
 
 @define(eq=False, slots=False)
@@ -1042,7 +1044,7 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
     supported_capabilities: Optional[AzureSupportedCapabilities] = field(default=None, metadata={'description': 'List of supported capabilities persisted on the disk resource for vm use.'})  # fmt: skip
     supports_hibernation: Optional[bool] = field(default=None, metadata={'description': 'Indicates the os on a disk supports hibernation.'})  # fmt: skip
     tier: Optional[str] = field(default=None, metadata={'description': 'Performance tier of the disk (e. G, p4, s10) as described here: https://azure. Microsoft. Com/en-us/pricing/details/managed-disks/. Does not apply to ultra disks.'})  # fmt: skip
-    time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk was created.'})  # fmt: skip
+    time_created: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time when the disk was created.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
     location: Optional[str] = field(default=None, metadata={"description": "Resource location"})
     tier_name: Optional[str] = field(default=None, metadata={"description": "The sku tier."})
@@ -1232,7 +1234,7 @@ class AzureComputeDiskAccess(MicrosoftResource):
     }
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'The complex type of the extended location.'})  # fmt: skip
     private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'A readonly collection of private endpoint connections created on the disk. Currently only one endpoint connection is supported.'})  # fmt: skip
-    time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the disk access was created.'})  # fmt: skip
+    time_created: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time when the disk access was created.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -1328,7 +1330,7 @@ class AzureComputeDiskEncryptionSet(MicrosoftResource):
     encryption_type: Optional[str] = field(default=None, metadata={'description': 'The type of key used to encrypt the data of the disk.'})  # fmt: skip
     federated_client_id: Optional[str] = field(default=None, metadata={'description': 'Multi-tenant application client id to access key vault in a different tenant. Setting the value to none will clear the property.'})  # fmt: skip
     encryption_set_identity: Optional[AzureEncryptionSetIdentity] = field(default=None, metadata={'description': 'The managed identity for the disk encryption set. It should be given permission on the key vault before it can be used to encrypt disks.'})  # fmt: skip
-    last_key_rotation_timestamp: Optional[datetime] = field(default=None, metadata={'description': 'The time when the active key of this disk encryption set was updated.'})  # fmt: skip
+    last_key_rotation_timestamp: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time when the active key of this disk encryption set was updated.'})  # fmt: skip
     previous_keys: Optional[List[AzureKeyForDiskEncryptionSet]] = field(default=None, metadata={'description': 'A readonly collection of key vault keys previously used by this disk encryption set while a key rotation is in progress. It will be empty if there is no ongoing key rotation.'})  # fmt: skip
     rotation_to_latest_key_version_enabled: Optional[bool] = field(default=None, metadata={'description': 'Set this flag to true to enable auto-updating of this disk encryption set to the latest key version.'})  # fmt: skip
 
@@ -2040,7 +2042,7 @@ class AzureRestorePoint(AzureProxyResource):
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'Gets the provisioning state of the restore point.'})  # fmt: skip
     source_metadata: Optional[AzureRestorePointSourceMetadata] = field(default=None, metadata={'description': 'Describes the properties of the virtual machine for which the restore point was created. The properties provided are a subset and the snapshot of the overall virtual machine properties captured at the time of the restore point creation.'})  # fmt: skip
     source_restore_point: Optional[str] = field(default=None, metadata={"description": "The api entity reference."})
-    time_created: Optional[datetime] = field(default=None, metadata={'description': 'Gets the creation time of the restore point.'})  # fmt: skip
+    time_created: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Gets the creation time of the restore point.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2181,7 +2183,7 @@ class AzureComputeVirtualMachineSnapshot(MicrosoftResource, BaseSnapshot):
     snapshot_sku: Optional[AzureSnapshotSku] = field(default=None, metadata={'description': 'The snapshots sku name. Can be standard_lrs, premium_lrs, or standard_zrs. This is an optional parameter for incremental snapshot and the default behavior is the sku will be set to the same sku as the previous snapshot.'})  # fmt: skip
     supported_capabilities: Optional[AzureSupportedCapabilities] = field(default=None, metadata={'description': 'List of supported capabilities persisted on the disk resource for vm use.'})  # fmt: skip
     supports_hibernation: Optional[bool] = field(default=None, metadata={'description': 'Indicates the os on a snapshot supports hibernation.'})  # fmt: skip
-    time_created: Optional[datetime] = field(default=None, metadata={'description': 'The time when the snapshot was created.'})  # fmt: skip
+    time_created: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time when the snapshot was created.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={"description": "Unique guid identifying the resource."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
@@ -2605,10 +2607,10 @@ class AzureAvailablePatchSummary:
     assessment_activity_id: Optional[str] = field(default=None, metadata={'description': 'The activity id of the operation that produced this result. It is used to correlate across crp and extension logs.'})  # fmt: skip
     critical_and_security_patch_count: Optional[int] = field(default=None, metadata={'description': 'The number of critical or security patches that have been detected as available and not yet installed.'})  # fmt: skip
     error: Optional[AzureApiError] = field(default=None, metadata={"description": "Api error."})
-    last_modified_time: Optional[datetime] = field(default=None, metadata={'description': 'The utc timestamp when the operation began.'})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The utc timestamp when the operation began.'})  # fmt: skip
     other_patch_count: Optional[int] = field(default=None, metadata={'description': 'The number of all available patches excluding critical and security.'})  # fmt: skip
     reboot_pending: Optional[bool] = field(default=None, metadata={'description': 'The overall reboot status of the vm. It will be true when partially installed patches require a reboot to complete installation but the reboot has not yet occurred.'})  # fmt: skip
-    start_time: Optional[datetime] = field(default=None, metadata={'description': 'The utc timestamp when the operation began.'})  # fmt: skip
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The utc timestamp when the operation began.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={'description': 'The overall success or failure status of the operation. It remains inprogress until the operation completes. At that point it will become unknown , failed , succeeded , or completedwithwarnings.'})  # fmt: skip
 
 
@@ -2633,12 +2635,12 @@ class AzureLastPatchInstallationSummary:
     failed_patch_count: Optional[int] = field(default=None, metadata={'description': 'The count of patches that failed installation.'})  # fmt: skip
     installation_activity_id: Optional[str] = field(default=None, metadata={'description': 'The activity id of the operation that produced this result. It is used to correlate across crp and extension logs.'})  # fmt: skip
     installed_patch_count: Optional[int] = field(default=None, metadata={'description': 'The count of patches that successfully installed.'})  # fmt: skip
-    last_modified_time: Optional[datetime] = field(default=None, metadata={'description': 'The utc timestamp when the operation began.'})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The utc timestamp when the operation began.'})  # fmt: skip
     maintenance_window_exceeded: Optional[bool] = field(default=None, metadata={'description': 'Describes whether the operation ran out of time before it completed all its intended actions.'})  # fmt: skip
     not_selected_patch_count: Optional[int] = field(default=None, metadata={'description': 'The number of all available patches but not going to be installed because it didn t match a classification or inclusion list entry.'})  # fmt: skip
     pending_patch_count: Optional[int] = field(default=None, metadata={'description': 'The number of all available patches expected to be installed over the course of the patch installation operation.'})  # fmt: skip
-    start_time: Optional[datetime] = field(default=None, metadata={'description': 'The utc timestamp when the operation began.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={'description': 'The overall success or failure status of the operation. It remains inprogress until the operation completes. At that point it will become unknown , failed , succeeded , or completedwithwarnings.'})  # fmt: skip
+    start_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The utc timestamp when the operation began.'})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"ignore_history": True, 'description': 'The overall success or failure status of the operation. It remains inprogress until the operation completes. At that point it will become unknown , failed , succeeded , or completedwithwarnings.'})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -2928,7 +2930,7 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
     scheduled_events_profile: Optional[AzureScheduledEventsProfile] = field(default=None, metadata={"description": ""})
     virtual_machine_security_profile: Optional[AzureSecurityProfile] = field(default=None, metadata={'description': 'Specifies the security profile settings for the virtual machine or virtual machine scale set.'})  # fmt: skip
     virtual_machine_storage_profile: Optional[AzureStorageProfile] = field(default=None, metadata={'description': 'Specifies the storage settings for the virtual machine disks.'})  # fmt: skip
-    time_created: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time at which the virtual machine resource was created. Minimum api-version: 2021-11-01.'})  # fmt: skip
+    time_created: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Specifies the time at which the virtual machine resource was created. Minimum api-version: 2021-11-01.'})  # fmt: skip
     user_data: Optional[str] = field(default=None, metadata={'description': 'Userdata for the vm, which must be base-64 encoded. Customer should not pass any secrets in here. Minimum api-version: 2021-03-01.'})  # fmt: skip
     virtual_machine_scale_set: Optional[str] = field(default=None, metadata={"description": ""})
     vm_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the vm unique id which is a 128-bits identifier that is encoded and stored in all azure iaas vms smbios and can be read using platform bios commands.'})  # fmt: skip
@@ -3685,7 +3687,7 @@ class AzureComputeVirtualMachineScaleSet(MicrosoftResource, BaseAutoScalingGroup
     single_placement_group: Optional[bool] = field(default=None, metadata={'description': 'When true this limits the scale set to a single placement group, of max size 100 virtual machines. Note: if singleplacementgroup is true, it may be modified to false. However, if singleplacementgroup is false, it may not be modified to true.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Describes a virtual machine scale set sku. Note: if the new vm sku is not supported on the hardware the scale set is currently on, you need to deallocate the vms in the scale set before you modify the sku name.'})  # fmt: skip
     spot_restore_policy: Optional[AzureSpotRestorePolicy] = field(default=None, metadata={'description': 'Specifies the spot-try-restore properties for the virtual machine scale set. With this property customer can enable or disable automatic restore of the evicted spot vmss vm instances opportunistically based on capacity availability and pricing constraint.'})  # fmt: skip
-    time_created: Optional[datetime] = field(default=None, metadata={'description': 'Specifies the time at which the virtual machine scale set resource was created. Minimum api-version: 2021-11-01.'})  # fmt: skip
+    time_created: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Specifies the time at which the virtual machine scale set resource was created. Minimum api-version: 2021-11-01.'})  # fmt: skip
     unique_id: Optional[str] = field(default=None, metadata={'description': 'Specifies the id which uniquely identifies a virtual machine scale set.'})  # fmt: skip
     upgrade_policy: Optional[AzureUpgradePolicy] = field(default=None, metadata={'description': 'Describes an upgrade policy - automatic, manual, or rolling.'})  # fmt: skip
     virtual_machine_profile: Optional[AzureVirtualMachineScaleSetVMProfile] = field(default=None, metadata={'description': 'Describes a virtual machine scale set virtual machine profile.'})  # fmt: skip

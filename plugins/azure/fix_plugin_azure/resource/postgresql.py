@@ -528,7 +528,7 @@ class AzurePostgresqlServer(MicrosoftResource, AzureTrackedResource, BaseDatabas
     server_network: Optional[AzureServerNetwork] = field(
         default=None, metadata={"description": "Network properties of a server."}
     )
-    point_in_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from. It s required when createMode is PointInTimeRestore or GeoRestore .'})  # fmt: skip
+    point_in_time_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from. It s required when createMode is PointInTimeRestore or GeoRestore .'})  # fmt: skip
     replica_capacity: Optional[int] = field(default=None, metadata={"description": "Replicas allowed for a server."})
     replication_role: Optional[str] = field(default=None, metadata={'description': 'Used to indicate role of the server in replication set.'})  # fmt: skip
     server_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Sku information related properties of a server.'})  # fmt: skip
@@ -732,7 +732,7 @@ class AzurePostgresqlServerBackup(MicrosoftResource, AzureProxyResource):
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
     backup_type: Optional[str] = field(default=None, metadata={"description": "Backup type."})
-    completed_time: Optional[datetime] = field(default=None, metadata={'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
+    completed_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
     backup_source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 

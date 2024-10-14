@@ -100,7 +100,7 @@ class AwsIamRoleLastUsed:
         " resources."
     )
     mapping: ClassVar[Dict[str, Bender]] = {"last_used": S("LastUsedDate"), "region": S("Region")}
-    last_used: Optional[datetime] = field(default=None)
+    last_used: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     region: Optional[str] = field(default=None)
 
 
@@ -291,7 +291,7 @@ class AwsIamPolicyVersion:
     document: Optional[Json] = field(default=None)
     version_id: Optional[str] = field(default=None)
     is_default_version: Optional[bool] = field(default=None)
-    create_date: Optional[datetime] = field(default=None)
+    create_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 def default_policy_document(policy: Json) -> Optional[AwsIamPolicyVersion]:
@@ -474,8 +474,8 @@ class AwsIamAccessKeyLastUsed:
         "service_name": S("ServiceName"),
         "region": S("Region"),
     }
-    last_used: Optional[datetime] = field(default=None)
-    last_rotated: Optional[datetime] = field(default=None)
+    last_used: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    last_rotated: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     service_name: Optional[str] = field(default=None)
     region: Optional[str] = field(default=None)
 
@@ -610,7 +610,7 @@ class AwsIamVirtualMfaDevice:
         "enable_date": S("EnableDate"),
     }
     serial_number: Optional[str] = field(default=None)
-    enable_date: Optional[datetime] = field(default=None)
+    enable_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
 
 
 @define(eq=False, slots=False)
@@ -625,9 +625,9 @@ class AwsRootUser(AwsResource, BaseUser, BaseIamPrincipal):
         "predecessors": {"default": ["aws_account"]},
     }
     password_enabled: Optional[bool] = field(default=None)
-    password_last_used: Optional[datetime] = field(default=None)
-    password_last_changed: Optional[datetime] = field(default=None)
-    password_next_rotation: Optional[datetime] = field(default=None)
+    password_last_used: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    password_last_changed: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    password_next_rotation: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     mfa_active: Optional[bool] = field(default=None)
     user_virtual_mfa_devices: Optional[List[AwsIamVirtualMfaDevice]] = field(default=None)
 
@@ -659,9 +659,9 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
     user_policies: List[AwsIamPolicyDetail] = field(factory=list)
     user_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
     password_enabled: Optional[bool] = field(default=None)
-    password_last_used: Optional[datetime] = field(default=None, metadata=dict(ignore_history=True))
-    password_last_changed: Optional[datetime] = field(default=None)
-    password_next_rotation: Optional[datetime] = field(default=None)
+    password_last_used: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    password_last_changed: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
+    password_next_rotation: Optional[datetime] = field(default=None, metadata={"ignore_history": True})
     mfa_active: Optional[bool] = field(default=None)
     user_virtual_mfa_devices: Optional[List[AwsIamVirtualMfaDevice]] = field(default=None)
 

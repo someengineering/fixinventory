@@ -542,11 +542,11 @@ class AzureMachineLearningCompute(MicrosoftResource):
     properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'Property dictionary. Properties can be added, but not removed or altered.'})  # fmt: skip
     compute_location: Optional[str] = field(default=None, metadata={'description': 'Location for the underlying compute'})  # fmt: skip
     compute_type: Optional[str] = field(default=None, metadata={"description": "The type of compute"})
-    created_on: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the compute was created.'})  # fmt: skip
+    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time at which the compute was created.'})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={'description': 'The description of the Machine Learning compute.'})  # fmt: skip
     disable_local_auth: Optional[bool] = field(default=None, metadata={'description': 'Opt-out of local authentication and ensure customers can use only MSI and AAD exclusively for authentication.'})  # fmt: skip
     is_attached_compute: Optional[bool] = field(default=None, metadata={'description': 'Indicating whether the compute was provisioned by user and brought from outside if true, or machine learning service provisioned it if false.'})  # fmt: skip
-    modified_on: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the compute was last modified.'})  # fmt: skip
+    modified_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time at which the compute was last modified.'})  # fmt: skip
     provisioning_errors: Optional[List[AzureErrorResponse]] = field(default=None, metadata={'description': 'Errors during provisioning'})  # fmt: skip
     resource_id: Optional[str] = field(default=None, metadata={'description': 'ARM resource id of the underlying compute'})  # fmt: skip
     identity: Optional[AzureManagedServiceIdentity] = field(default=None, metadata={'description': 'Managed service identity (system assigned and/or user assigned identities)'})  # fmt: skip
@@ -695,7 +695,7 @@ class AzureMachineLearningDataContainerBase(AzureProxyResource):
     latest_version: Optional[str] = field(
         default=None, metadata={"description": "The latest version inside this container."}
     )
-    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    next_version: Optional[str] = field(default=None, metadata={"ignore_history": True, "description": "The next auto incremental version."})  # fmt: skip
     properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
 
 
@@ -1615,7 +1615,7 @@ class AzureProgressMetrics:
         "total_datapoint_count": S("totalDatapointCount"),
     }
     completed_datapoint_count: Optional[int] = field(default=None, metadata={'description': 'The completed datapoint count.'})  # fmt: skip
-    incremental_dataset_last_refresh_time: Optional[datetime] = field(default=None, metadata={'description': 'The time of last successful incremental dataset refresh in UTC.'})  # fmt: skip
+    incremental_dataset_last_refresh_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time of last successful incremental dataset refresh in UTC.'})  # fmt: skip
     skipped_datapoint_count: Optional[int] = field(default=None, metadata={'description': 'The skipped datapoint count.'})  # fmt: skip
     total_datapoint_count: Optional[int] = field(default=None, metadata={"description": "The total datapoint count."})
 
@@ -1630,7 +1630,7 @@ class AzureStatusMessage:
         "message": S("message"),
     }
     code: Optional[str] = field(default=None, metadata={"description": "Service-defined message code."})
-    created_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Time in UTC at which the message was created.'})  # fmt: skip
+    created_time_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Time in UTC at which the message was created.'})  # fmt: skip
     level: Optional[str] = field(default=None, metadata={"description": "Severity level of the status message."})
     message: Optional[str] = field(default=None, metadata={'description': 'A human-readable representation of the message code.'})  # fmt: skip
 
@@ -1666,7 +1666,7 @@ class AzureMachineLearningLabelingJob(BaseAIJob, MicrosoftResource):
         "status_messages": S("properties", "statusMessages") >> ForallBend(AzureStatusMessage.mapping),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
-    created_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Created time of the job in UTC timezone.'})  # fmt: skip
+    created_time_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Created time of the job in UTC timezone.'})  # fmt: skip
     dataset_configuration: Optional[AzureLabelingDatasetConfiguration] = field(default=None, metadata={'description': 'Represents configuration of dataset used in a labeling job.'})  # fmt: skip
     job_instructions: Optional[str] = field(default=None, metadata={"description": "Instructions for a labeling job."})
     label_categories: Optional[Dict[str, AzureLabelCategory]] = field(default=None, metadata={'description': 'Label categories of the job.'})  # fmt: skip

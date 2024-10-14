@@ -57,7 +57,7 @@ class AzureServerBackup:
     }
     backup_interval_hours: Optional[int] = field(default=None, metadata={'description': 'Backup interval hours for the server.'})  # fmt: skip
     backup_retention_days: Optional[int] = field(default=None, metadata={'description': 'Backup retention days for the server.'})  # fmt: skip
-    earliest_restore_date: Optional[datetime] = field(default=None, metadata={'description': 'Earliest restore point creation time (ISO8601 format)'})  # fmt: skip
+    earliest_restore_date: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Earliest restore point creation time (ISO8601 format)'})  # fmt: skip
     geo_redundant_backup: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate whether value is Enabled or Disabled '})  # fmt: skip
 
 
@@ -441,8 +441,8 @@ class AzureMysqlServerLogFile(MicrosoftResource):
         "size_in_kb": S("properties", "sizeInKB"),
         "url": S("properties", "url"),
     }
-    created_time: Optional[datetime] = field(default=None, metadata={'description': 'Creation timestamp of the log file.'})  # fmt: skip
-    last_modified_time: Optional[datetime] = field(default=None, metadata={'description': 'Last modified timestamp of the log file.'})  # fmt: skip
+    created_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Creation timestamp of the log file.'})  # fmt: skip
+    last_modified_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Last modified timestamp of the log file.'})  # fmt: skip
     size_in_kb: Optional[int] = field(default=None, metadata={"description": "The size in kb of the logFile."})
     url: Optional[str] = field(default=None, metadata={"description": "The url to download the log file from."})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
@@ -649,7 +649,7 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
     mysql_server_private_endpoint_connections: Optional[List[AzurePrivateEndpointConnection]] = field(default=None, metadata={'description': 'PrivateEndpointConnections related properties of a server.'})  # fmt: skip
     replica_capacity: Optional[int] = field(default=None, metadata={'description': 'The maximum number of replicas that a primary server can have.'})  # fmt: skip
     replication_role: Optional[str] = field(default=None, metadata={"description": "The replication role."})
-    restore_point_in_time: Optional[datetime] = field(default=None, metadata={'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from.'})  # fmt: skip
+    restore_point_in_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Restore point creation time (ISO8601 format), specifying the time to restore from.'})  # fmt: skip
     server_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Billing information related properties of a server.'})  # fmt: skip
     source_server_resource_id: Optional[str] = field(default=None, metadata={'description': 'The source MySQL server id.'})  # fmt: skip
     state: Optional[str] = field(default=None, metadata={"description": "The state of a server."})
@@ -848,7 +848,7 @@ class AzureMysqlServerBackup(MicrosoftResource):
     }
     backup_name_v2: Optional[str] = field(default=None, metadata={"description": "Backup name"})
     backup_type: Optional[str] = field(default=None, metadata={"description": ""})
-    completed_time: Optional[datetime] = field(default=None, metadata={'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
+    completed_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Backup completed time (ISO8601 format).'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The current provisioning state.'})  # fmt: skip
     backup_source: Optional[str] = field(default=None, metadata={"description": "Backup source"})
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip

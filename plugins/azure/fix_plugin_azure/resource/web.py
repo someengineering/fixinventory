@@ -119,7 +119,7 @@ class AzureWebAppServicePlan(MicrosoftResource):
     }
     elastic_scale_enabled: Optional[bool] = field(default=None, metadata={'description': 'ServerFarm supports ElasticScale. Apps in this plan will scale as if the ServerFarm was ElasticPremium sku'})  # fmt: skip
     extended_location: Optional[AzureExtendedLocation] = field(default=None, metadata={'description': 'Extended Location.'})  # fmt: skip
-    free_offer_expiration_time: Optional[datetime] = field(default=None, metadata={'description': 'The time when the server farm free offer expires.'})  # fmt: skip
+    free_offer_expiration_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time when the server farm free offer expires.'})  # fmt: skip
     geo_region: Optional[str] = field(default=None, metadata={'description': 'Geographical location for the App Service plan.'})  # fmt: skip
     hosting_environment_profile: Optional[AzureHostingEnvironmentProfile] = field(default=None, metadata={'description': 'Specification for an App Service Environment to use for this resource.'})  # fmt: skip
     hyper_v: Optional[bool] = field(default=None, metadata={'description': 'If Hyper-V container app service plan <code>true</code>, <code>false</code> otherwise.'})  # fmt: skip
@@ -135,7 +135,7 @@ class AzureWebAppServicePlan(MicrosoftResource):
     reserved: Optional[bool] = field(default=None, metadata={'description': 'If Linux app service plan <code>true</code>, <code>false</code> otherwise.'})  # fmt: skip
     resource_group: Optional[str] = field(default=None, metadata={'description': 'Resource group of the App Service plan.'})  # fmt: skip
     azure_sku: Optional[AzureSku] = field(default=None, metadata={'description': 'Description of a SKU for a scalable resource.'})  # fmt: skip
-    spot_expiration_time: Optional[datetime] = field(default=None, metadata={'description': 'The time when the server farm expires. Valid only if it is a spot server farm.'})  # fmt: skip
+    spot_expiration_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time when the server farm expires. Valid only if it is a spot server farm.'})  # fmt: skip
     status: Optional[str] = field(default=None, metadata={"description": "App Service plan status."})
     subscription: Optional[str] = field(default=None, metadata={"description": "App Service plan subscription."})
     target_worker_count: Optional[int] = field(default=None, metadata={"description": "Scaling worker count."})
@@ -1361,7 +1361,7 @@ class AzureSlotSwapStatus:
     }
     destination_slot_name: Optional[str] = field(default=None, metadata={'description': 'The destination slot of the last swap operation.'})  # fmt: skip
     source_slot_name: Optional[str] = field(default=None, metadata={'description': 'The source slot of the last swap operation.'})  # fmt: skip
-    timestamp_utc: Optional[datetime] = field(default=None, metadata={'description': 'The time the last successful slot swap completed.'})  # fmt: skip
+    timestamp_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The time the last successful slot swap completed.'})  # fmt: skip
 
 
 @define(eq=False, slots=True)
@@ -1512,7 +1512,7 @@ class AzureWebApp(MicrosoftResource, BaseServerlessFunction):
     is_xenon: Optional[bool] = field(default=None, metadata={"description": "Obsolete: Hyper-V sandbox."})
     key_vault_reference_identity: Optional[str] = field(default=None, metadata={'description': 'Identity to use for Key Vault Reference authentication.'})  # fmt: skip
     azure_kind: Optional[str] = field(default=None, metadata={"description": "Kind of resource."})
-    last_modified_time_utc: Optional[datetime] = field(default=None, metadata={'description': 'Last time the app was modified, in UTC. Read-only.'})  # fmt: skip
+    last_modified_time_utc: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'Last time the app was modified, in UTC. Read-only.'})  # fmt: skip
     managed_environment_id: Optional[str] = field(default=None, metadata={'description': 'Azure Resource Manager ID of the customer s selected Managed Environment on which to host this app. This must be of the form /subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.App/managedEnvironments/{managedEnvironmentName}'})  # fmt: skip
     max_number_of_workers: Optional[int] = field(default=None, metadata={'description': 'Maximum number of workers. This only applies to Functions container.'})  # fmt: skip
     outbound_ip_addresses: Optional[str] = field(default=None, metadata={'description': 'List of IP addresses that the app uses for outbound connections (e.g. database access). Includes VIPs from tenants that site can be hosted with current settings. Read-only.'})  # fmt: skip
@@ -1611,7 +1611,7 @@ class AzureStaticSiteUserProvidedFunctionApp(AzureProxyOnlyResource):
         "function_app_region": S("properties", "functionAppRegion"),
         "function_app_resource_id": S("properties", "functionAppResourceId"),
     }
-    created_on: Optional[datetime] = field(default=None, metadata={'description': 'The date and time on which the function app was registered with the static site.'})  # fmt: skip
+    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The date and time on which the function app was registered with the static site.'})  # fmt: skip
     function_app_region: Optional[str] = field(default=None, metadata={'description': 'The region of the function app registered with the static site'})  # fmt: skip
     function_app_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of the function app registered with the static site'})  # fmt: skip
 
@@ -1626,7 +1626,7 @@ class AzureStaticSiteLinkedBackend:
         "region": S("region"),
     }
     backend_resource_id: Optional[str] = field(default=None, metadata={'description': 'The resource id of the backend linked to the static site'})  # fmt: skip
-    created_on: Optional[datetime] = field(default=None, metadata={'description': 'The date and time on which the backend was linked to the static site.'})  # fmt: skip
+    created_on: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The date and time on which the backend was linked to the static site.'})  # fmt: skip
     provisioning_state: Optional[str] = field(default=None, metadata={'description': 'The provisioning state of the linking process.'})  # fmt: skip
     region: Optional[str] = field(default=None, metadata={'description': 'The region of the backend linked to the static site'})  # fmt: skip
 
