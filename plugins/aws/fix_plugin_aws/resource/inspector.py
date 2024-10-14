@@ -18,6 +18,36 @@ log = logging.getLogger("fix.plugins.aws")
 service_name = "inspector2"
 
 
+class InspectorResourceTaggable:
+    def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service=service_name,
+                action="tag-resource",
+                result_name=None,
+                resourceArn=self.arn,
+                tags={key: value},
+            )
+            return True
+        return False
+
+    def delete_resource_tag(self, client: AwsClient, key: str) -> bool:
+        if isinstance(self, AwsResource):
+            client.call(
+                aws_service=service_name,
+                action="untag-resource",
+                result_name=None,
+                resourceArn=self.arn,
+                tagKeys=[key],
+            )
+            return True
+        return False
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec(service_name, "tag-resource"), AwsApiSpec(service_name, "untag-resource")]
+
+
 @define(eq=False, slots=False)
 class AwsInspectorV2CodeFilePath:
     kind: ClassVar[str] = "aws_inspector_v2_code_file_path"
@@ -349,7 +379,6 @@ class AwsInspectorV2Finding(AwsResource):
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("findingArn") >> F(AwsResource.id_from_arn),
         "name": S("title"),
-        "tags": S("tags"),
         "mtime": S("updatedAt"),
         "arn": S("findingArn"),
         "aws_account_id": S("awsAccountId"),
@@ -521,13 +550,13 @@ class AwsInspectorV2Schedule:
 
 
 @define(eq=False, slots=False)
-class AwsInspectorV2CisScanConfiguration(AwsResource):
+class AwsInspectorV2CisScanConfiguration(InspectorResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_cis_scan_configuration"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "inspector2", "list-cis-scan-configurations", "scans", expected_errors=["AccessDeniedException"]
     )
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
+        "id": S("scanConfigurationArn") >> F(AwsResource.id_from_arn),
         "tags": S("tags"),
         "name": S("scanName"),
         "arn": S("scanConfigurationArn"),
@@ -544,6 +573,19 @@ class AwsInspectorV2CisScanConfiguration(AwsResource):
     cis_schedule: Optional[AwsInspectorV2Schedule] = field(default=None, metadata={"description": "The CIS scan configuration's schedule."})  # fmt: skip
     security_level: Optional[str] = field(default=None, metadata={"description": "The CIS scan configuration's security level."})  # fmt: skip
     cis_targets: Optional[AwsInspectorV2CisTargets] = field(default=None, metadata={"description": "The CIS scan configuration's targets."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(
+            aws_service=self.api_spec.service,
+            action="delete-cis-scan-configuration",
+            result_name=None,
+            scanConfigurationArn=self.arn,
+        )
+        return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-cis-scan-configuration")]
 
 
 @define(eq=False, slots=False)
@@ -828,7 +870,7 @@ class AwsInspectorV2FilterCriteria:
 
 
 @define(eq=False, slots=False)
-class AwsInspectorV2Filter(AwsResource):
+class AwsInspectorV2Filter(InspectorResourceTaggable, AwsResource):
     kind: ClassVar[str] = "aws_inspector_v2_filter"
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "inspector2", "list-filters", "filters", expected_errors=["AccessDeniedException"]
@@ -854,6 +896,14 @@ class AwsInspectorV2Filter(AwsResource):
     owner_id: Optional[str] = field(default=None, metadata={"description": "The Amazon Web Services account ID of the account that created the filter."})  # fmt: skip
     reason: Optional[str] = field(default=None, metadata={"description": "The reason for the filter."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the filter was last updated at."})  # fmt: skip
+
+    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
+        client.call(aws_service=self.api_spec.service, action="delete-filter", result_name=None, arn=self.arn)
+        return True
+
+    @classmethod
+    def called_mutator_apis(cls) -> List[AwsApiSpec]:
+        return super().called_mutator_apis() + [AwsApiSpec(service_name, "delete-filter")]
 
 
 resources: List[Type[AwsResource]] = [
