@@ -6,6 +6,9 @@ from attrs import define, field
 
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance
+from fix_plugin_aws.resource.ecr import AwsEcrRepository
+from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
@@ -340,6 +343,9 @@ class AwsInspectorV2Finding(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "inspector2", "list-findings", "findings", expected_errors=["AccessDeniedException"]
     )
+    _reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [AwsResource.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("findingArn") >> F(AwsResource.id_from_arn),
         "name": S("title"),
@@ -392,6 +398,16 @@ class AwsInspectorV2Finding(AwsResource):
     type: Optional[str] = field(default=None, metadata={"description": "The type of the finding. The type value determines the valid values for resource in your request. For more information, see Finding types in the Amazon Inspector user guide."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the finding was last updated at."})  # fmt: skip
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if finding_resources := self.finding_resources:
+            for finding_resource in finding_resources:
+                if rid := finding_resource.id:
+                    builder.add_edge(
+                        self,
+                        clazz=AwsResource,
+                        id=rid,
+                    )
+
 
 @define(eq=False, slots=False)
 class AwsInspectorV2CisTargets:
@@ -435,47 +451,6 @@ class AwsInspectorV2CisScan(AwsResource):
     status: Optional[str] = field(default=None, metadata={"description": "The CIS scan's status."})  # fmt: skip
     targets: Optional[AwsInspectorV2CisTargets] = field(default=None, metadata={"description": "The CIS scan's targets."})  # fmt: skip
     total_checks: Optional[int] = field(default=None, metadata={"description": "The CIS scan's total checks."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsInspectorV2StatusCounts:
-    kind: ClassVar[str] = "aws_inspector_v2_status_counts"
-    mapping: ClassVar[Dict[str, Bender]] = {"failed": S("failed"), "passed": S("passed"), "skipped": S("skipped")}
-    failed: Optional[int] = field(default=None, metadata={"description": "The number of checks that failed."})  # fmt: skip
-    passed: Optional[int] = field(default=None, metadata={"description": "The number of checks that passed."})  # fmt: skip
-    skipped: Optional[int] = field(default=None, metadata={"description": "The number of checks that were skipped."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsInspectorV2CisScanResultByTarget(AwsResource):
-    kind: ClassVar[str] = "aws_inspector_v2_cis_scan_results_aggregated_by_target_resource"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "inspector2",
-        "list-cis-scan-results-aggregated-by-target-resource",
-        "targetResourceAggregations",
-        expected_errors=["AccessDeniedException"],
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("scanArn") >> F(AwsResource.id_from_arn),
-        "name": S("targetResourceId"),
-        "arn": S("scanArn"),
-        "account_id": S("accountId"),
-        "platform": S("platform"),
-        "scan_arn": S("scanArn"),
-        "status_counts": S("statusCounts") >> Bend(AwsInspectorV2StatusCounts.mapping),
-        "target_resource_id": S("targetResourceId"),
-        "target_resource_tags": S("targetResourceTags"),
-        "target_status": S("targetStatus"),
-        "target_status_reason": S("targetStatusReason"),
-    }
-    account_id: Optional[str] = field(default=None, metadata={"description": "The account ID for the CIS target resource."})  # fmt: skip
-    platform: Optional[str] = field(default=None, metadata={"description": "The platform for the CIS target resource."})  # fmt: skip
-    scan_arn: Optional[str] = field(default=None, metadata={"description": "The scan ARN for the CIS target resource."})  # fmt: skip
-    status_counts: Optional[AwsInspectorV2StatusCounts] = field(default=None, metadata={"description": "The target resource status counts."})  # fmt: skip
-    target_resource_id: Optional[str] = field(default=None, metadata={"description": "The ID of the target resource."})  # fmt: skip
-    target_resource_tags: Optional[Dict[str, List[str]]] = field(default=None, metadata={"description": "The tag for the target resource."})  # fmt: skip
-    target_status: Optional[str] = field(default=None, metadata={"description": "The status of the target resource."})  # fmt: skip
-    target_status_reason: Optional[str] = field(default=None, metadata={"description": "The reason for the target resource."})  # fmt: skip
 
 
 @define(eq=False, slots=False)
@@ -545,6 +520,9 @@ class AwsInspectorV2Coverage(AwsResource):
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         "inspector2", "list-coverage", "coveredResources", expected_errors=["AccessDeniedException"]
     )
+    _reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [AwsLambdaFunction.kind, AwsEcrRepository.kind, AwsLambdaFunction.kind]},
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("resourceId"),
         "name": S("resourceId"),
@@ -566,6 +544,27 @@ class AwsInspectorV2Coverage(AwsResource):
     scan_mode: Optional[str] = field(default=None, metadata={"description": "The scan method that is applied to the instance."})  # fmt: skip
     scan_status: Optional[AwsInspectorV2ScanStatus] = field(default=None, metadata={"description": "The status of the scan covering the resource."})  # fmt: skip
     scan_type: Optional[str] = field(default=None, metadata={"description": "The Amazon Inspector scan type covering the resource."})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if self.id:
+            builder.add_edge(
+                self,
+                clazz=AwsEc2Instance,
+                id=self.id,
+            )
+        if resource_metadata := self.resource_metadata:
+            if lambda_metadata := resource_metadata.lambda_function:
+                builder.add_edge(
+                    self,
+                    clazz=AwsLambdaFunction,
+                    id=lambda_metadata.function_name,
+                )
+            if ecr_metadata := resource_metadata.ecr_repository:
+                builder.add_edge(
+                    self,
+                    clazz=AwsEcrRepository,
+                    id=ecr_metadata.name,
+                )
 
 
 @define(eq=False, slots=False)
@@ -766,7 +765,6 @@ class AwsInspectorV2Filter(AwsResource):
 resources: List[Type[AwsResource]] = [
     AwsInspectorV2Finding,
     AwsInspectorV2CisScan,
-    # AwsInspectorV2CisScanResultByTarget,
     AwsInspectorV2Coverage,
     AwsInspectorV2Filter,
 ]
