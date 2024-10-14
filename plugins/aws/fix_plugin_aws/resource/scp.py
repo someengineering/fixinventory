@@ -2,9 +2,11 @@ from fix_plugin_aws.aws_client import AwsClient
 from typing import List, Optional
 from json import loads as json_loads
 from fixlib.types import Json
-
+from logging import getLogger
 
 _expected_errors = ["AccessDeniedException", "AWSOrganizationsNotInUseException"]
+
+logger = getLogger(__name__)
 
 
 def get_scps(target_id: str, client: AwsClient) -> Optional[List[Json]]:
@@ -113,21 +115,27 @@ def filter_allow_all(levels: List[List[Json]]) -> List[List[Json]]:
 
 def collect_account_scps(account_id: str, scrape_org_role_arn: Optional[str], client: AwsClient) -> List[List[Json]]:
 
-    if scrape_org_role_arn:
-        scp_client = AwsClient(
-            client.config,
-            client.account_id,
-            role=scrape_org_role_arn,
-            profile=client.profile,
-            region=client.region,
-            partition=client.partition,
-            error_accumulator=client.error_accumulator,
-        )
-    else:
-        scp_client = client
+    try:
 
-    account_scps = find_account_scps(scp_client, account_id)
-    account_scps = filter_allow_all(account_scps)
-    account_scps = [level for level in account_scps if level]
+        if scrape_org_role_arn:
+            scp_client = AwsClient(
+                client.config,
+                client.account_id,
+                role=scrape_org_role_arn,
+                profile=client.profile,
+                region=client.region,
+                partition=client.partition,
+                error_accumulator=client.error_accumulator,
+            )
+        else:
+            scp_client = client
 
-    return account_scps
+        account_scps = find_account_scps(scp_client, account_id)
+        account_scps = filter_allow_all(account_scps)
+        account_scps = [level for level in account_scps if level]
+
+        return account_scps
+
+    except Exception as e:
+        logger.info(f"Error collecting SCPs for account {account_id}", exc_info=e)
+        return []
