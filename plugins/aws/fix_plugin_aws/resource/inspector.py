@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attrs import define, field
+from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fixlib.baseresources import ModelReference, PhantomBaseResource
@@ -395,6 +396,29 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     title: Optional[str] = field(default=None, metadata={"description": "The title of the finding."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of the finding. The type value determines the valid values for resource in your request. For more information, see Finding types in the Amazon Inspector user guide."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the finding was last updated at."})  # fmt: skip
+
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        if spec := cls.api_spec:
+            try:
+                items = builder.client.list(
+                    aws_service=spec.service,
+                    action=spec.api_action,
+                    result_name=spec.result_property,
+                    expected_errors=spec.expected_errors,
+                    filterCriteria={"awsAccountId": [{"comparison": "EQUALS", "value": f"{builder.account.id}"}]},
+                )
+                cls.collect(items, builder)
+            except Boto3Error as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
+                raise
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if finding_resources := self.finding_resources:
