@@ -42,7 +42,7 @@ detect-secrets==1.5.0
 durationpy==0.9
 fastjsonschema==2.19.1
 filelock==3.16.1
-fixcompliance==0.4.34
+fixcompliance==0.4.35
 fixdatalink[extra]==2.0.2
 fixinventoryclient==2.0.1
 fixinventorydata==0.2.6
