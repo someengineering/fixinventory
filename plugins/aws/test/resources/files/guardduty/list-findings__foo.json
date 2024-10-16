@@ -1,0 +1,8 @@
+{
+    "FindingIds": [
+        "foo",
+        "foo",
+        "foo"
+    ],
+    "NextToken": "foo"
+}
