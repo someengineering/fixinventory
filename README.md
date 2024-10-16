@@ -165,4 +165,5 @@ Feel free to [open a GitHub issue](https://github.com/someengineering/fixinvento
 Please follow our [contribution guidelines](https://inventory.fix.security/development) to get started.
 
 ## 🎟 License
+
 See [LICENSE](LICENSE) for details.
