@@ -1,6 +1,4 @@
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="/misc/fixinventory_200-darkmode.png"><source media="(prefers-color-scheme: light)" srcset="/misc/fixinventory_200-lightmode.png"><img alt="Fix Inventory" src="/misc/fixinventory_200-lightmode.png"></picture></p>
-
-<p align="center"><img src="/misc/fixinventory_banner.png"/></p>
+![Fix Shell](https://cdn.fix.security/assets/fixinventory/fixinventory-search-multiple.gif)
 
 [![Version](https://img.shields.io/github/v/tag/someengineering/fixinventory?label=latest)](https://github.com/someengineering/fixinventory/tags/)
 [![Build](https://img.shields.io/github/actions/workflow/status/someengineering/fixinventory/docker-build.yml)](https://github.com/someengineering/fixinventory/commits/main)
@@ -9,7 +7,9 @@
 [![Known Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/someengineering/fixinventory/requirements.txt)](https://app.snyk.io/org/some-engineering-inc./projects)
 [![CodeCoverage](https://codecov.io/gh/someengineering/fixinventory/graph/badge.svg?token=ZEZW5JAR5J)](https://codecov.io/gh/someengineering/fixinventory)
 
-Fix Inventory detects compliance and security risks in cloud infrastructure accounts. Fix Inventory is open source and was built for cloud and security engineers.
+Fix Inventory detects compliance and security risks in cloud infrastructure accounts. 
+
+We biult Fix Inventory for cloud and security enginers as an open source alternative to proprietary cloud security tools like Orca Security, Prisma Cloud or Wiz.
 
 Check out our [Quick Start Guide](https://inventory.fix.security/docs/getting-started/) for step-by-step instructions on getting started. 
 
@@ -57,7 +57,7 @@ We believe that the only effective approach is to use a graph-based data model t
 
 ## 🛠️ Use cases
 
-Fix Inventory supports common cloud security use cases, and is an open source alternative to proprietary cloud security tools like Orca Security, Prisma Cloud or Wiz. 
+Fix Inventory supports common cloud security use cases.
 
 - **Cloud Security Posture Management (CSPM)**: Monitor and enforce security policies across your cloud infrastructure, Identify and remediate misconfigurations.
   
@@ -143,6 +143,8 @@ For example, suppose I want to understand which S3 buckets in my infrastructure 
 ```bash
  > search --with-edges is(aws_iam_user) and name=matthias -iam[0:]{permissions[*].level==write}-> is(aws_iam_user, aws_s3_bucket) | format --dot
 ```
+
+![Fix Graph](https://cdn.fix.security/assets/fixinventory/fixinventory-security-graph.png)
 
 Read more about [traversing the graph](https://inventory.fix.security/concepts/asset-inventory-graph#traversal) in our docs. Fix Security, our hosted SaaS product, offers these visualizations out of the box.
 
