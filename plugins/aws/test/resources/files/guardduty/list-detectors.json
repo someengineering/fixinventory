@@ -1,0 +1,6 @@
+{
+    "DetectorIds": [
+        "foo"
+    ],
+    "NextToken": "foo"
+}

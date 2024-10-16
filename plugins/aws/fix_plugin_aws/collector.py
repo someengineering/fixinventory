@@ -49,6 +49,7 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
     scp,
+    guardduty,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -103,6 +104,7 @@ regional_resources: List[Type[AwsResource]] = (
     + elb.resources
     + elbv2.resources
     + glacier.resources
+    + guardduty.resources
     + kinesis.resources
     + kms.resources
     + lambda_.resources
