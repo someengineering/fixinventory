@@ -49,6 +49,7 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
     scp,
+    inspector,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -117,6 +118,7 @@ regional_resources: List[Type[AwsResource]] = (
     + backup.resources
     + amazonq.resources
     + bedrock.resources
+    + inspector.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
