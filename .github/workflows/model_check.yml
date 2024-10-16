@@ -53,6 +53,7 @@ jobs:
           python -m pip install -r requirements-all.txt
           pip install fixlib/ plugins/aws/ plugins/azure/ plugins/digitalocean/ plugins/dockerhub/ plugins/example_collector/ plugins/gcp/ plugins/github/ plugins/k8s/ plugins/onelogin/ plugins/posthog/ plugins/random/ plugins/scarf/ plugins/slack/
           pip install fixinventory-plugin-vsphere
+          pip install fixinventory-plugin-onprem
 
       - name: Run tests
         working-directory: ./fixlib
