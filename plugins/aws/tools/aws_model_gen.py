@@ -985,6 +985,14 @@ models: Dict[str, List[AwsFixModel]] = {
         #     prefix="Bedrock",
         # )
     ],
+    "guardduty": [
+        AwsFixModel(
+            api_action="get-findings",
+            result_property="Findings",
+            result_shape="GetFindingsResponse",
+            prefix="GuardDuty",
+        ),
+    ],
     "inspector2": [
         # AwsFixModel(
         #     api_action="list-findings",
