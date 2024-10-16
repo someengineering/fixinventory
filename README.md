@@ -51,7 +51,7 @@ We believe that the only effective approach is to use a graph-based data model t
 
 - **Dependency and access graph**: Fix Inventory stores dependency and access metadata in a graph database and makes it queryable for users. For risk analysis, you can traverse the graph and weave together interconnected risks in a fraction of a second.
 
-- **Multi-cloud abstractions**: Our unified data model uses over 40 “[base kinds](https://inventory.fix.security/reference/unified-data-model/base-kinds)” to describe common resources such as ‘database’ or ‘ip_address’, to implement a single set of policies (e.g. “no unencrypted storage volumes”) that works across all clouds.
+- **Multi-cloud abstractions**: Our unified data model uses over 40 “[base kinds](https://inventory.fix.security/reference/unified-data-model/base)” to describe common resources such as ‘database’ or ‘ip_address’, to implement a single set of policies (e.g. “no unencrypted storage volumes”) that works across all clouds.
 
 - **Resource lifecycle tracking:** By default, Fix takes an hourly snapshot of your inventory and tracks configuration changes for each resource. Each snapshot is stored, which creates a timeline and diff view for every resource and its changes.
 
