@@ -5,7 +5,7 @@ from fix_plugin_azure.resource.monitor import (
     AzureMonitorActivityLogAlert,
     AzureMonitorAlertRule,
     AzureMonitorLogProfile,
-    AzureMetricAlert,
+    AzureMonitorMetricAlert,
     AzureMonitorPrivateLinkScope,
     AzureMonitorWorkspace,
     AzureMonitorDataCollectionRule,
@@ -41,7 +41,7 @@ def test_log_profile(builder: GraphBuilder) -> None:
 
 
 def test_alert(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureMetricAlert, builder)
+    collected = roundtrip_check(AzureMonitorMetricAlert, builder)
     assert len(collected) == 2
 
 
