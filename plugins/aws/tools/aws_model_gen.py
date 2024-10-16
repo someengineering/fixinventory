@@ -996,7 +996,7 @@ models: Dict[str, List[AwsFixModel]] = {
 
 if __name__ == "__main__":
     """print some test data"""
-    # print(json.dumps(create_test_response("guardduty", "list-findings"), indent=2))
+    print(json.dumps(create_test_response("guardduty", "list-findings"), indent=2))
 
     """print the class models"""
     # print(default_imports())

@@ -1,16 +1,18 @@
-from datetime import datetime
-from typing import ClassVar, Dict, List, Optional, Tuple, Type, Any
-from attrs import define, field
+from datetime import datetime, timezone
+from typing import ClassVar, Dict, List, Optional, Type, Any
+import logging
 
-from fix_plugin_aws.aws_client import AwsClient
+from attrs import define, field
+from boto3.exceptions import Boto3Error
+
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import ModelReference, PhantomBaseResource
 from fixlib.graph import Graph
-from fixlib.json_bender import S, Bend, Bender, ForallBend, bend
+from fixlib.json_bender import F, S, AsInt, Bend, Bender, ForallBend, bend
 from fixlib.types import Json
+from fixlib.utils import chunks, utc_str
 
-
+log = logging.getLogger("fix.plugins.aws")
 service_name = "guardduty"
 
 
@@ -1207,178 +1209,69 @@ class AwsGuardDutyService:
 
 
 @define(eq=False, slots=False)
-class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
+class AwsGuardDutyFinding(AwsResource):
     kind: ClassVar[str] = "aws_guard_duty_finding"
     # Collected via AwsGuardDutyDetector()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Title"),
-        "mtime": S("UpdatedAt"),
-        "ctime": S("CreatedAt"),
+        "mtime": S("UpdatedAt") >> AsInt() >> F(lambda x: utc_str(datetime.fromtimestamp(x, timezone.utc))),
+        "ctime": S("CreatedAt") >> AsInt() >> F(lambda x: utc_str(datetime.fromtimestamp(x, timezone.utc))),
         "account_id": S("AccountId"),
         "arn": S("Arn"),
         "confidence": S("Confidence"),
-        "created_at": S("CreatedAt"),
         "description": S("Description"),
         "partition": S("Partition"),
         "finding_region": S("Region"),
         "finding_resource": S("Resource") >> Bend(AwsGuardDutyResource.mapping),
         "schema_version": S("SchemaVersion"),
         "finding_service": S("Service") >> Bend(AwsGuardDutyService.mapping),
-        "severity": S("Severity"),
+        "finding_severity": S("Severity"),
         "title": S("Title"),
         "type": S("Type"),
-        "updated_at": S("UpdatedAt"),
-        "detector_id": S("DetectorID"),
     }
     account_id: Optional[str] = field(default=None, metadata={"description": "The ID of the account in which the finding was generated."})  # fmt: skip
     confidence: Optional[float] = field(default=None, metadata={"description": "The confidence score for the finding."})  # fmt: skip
-    created_at: Optional[str] = field(default=None, metadata={"description": "The time and date when the finding was created."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the finding."})  # fmt: skip
     partition: Optional[str] = field(default=None, metadata={"description": "The partition associated with the finding."})  # fmt: skip
     finding_region: Optional[str] = field(default=None, metadata={"description": "The Region where the finding was generated."})  # fmt: skip
     finding_resource: Optional[AwsGuardDutyResource] = field(default=None, metadata={"description": "Contains information about the Amazon Web Services resource associated with the activity that prompted GuardDuty to generate a finding."})  # fmt: skip
     schema_version: Optional[str] = field(default=None, metadata={"description": "The version of the schema used for the finding."})  # fmt: skip
     finding_service: Optional[AwsGuardDutyService] = field(default=None, metadata={"description": "Contains additional information about the generated finding."})  # fmt: skip
-    severity: Optional[float] = field(default=None, metadata={"description": "The severity of the finding."})  # fmt: skip
+    finding_severity: Optional[float] = field(default=None, metadata={"description": "The severity of the finding."})  # fmt: skip
     title: Optional[str] = field(default=None, metadata={"description": "The title of the finding."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of finding."})  # fmt: skip
-    updated_at: Optional[str] = field(default=None, metadata={"description": "The time and date when the finding was last updated."})  # fmt: skip
-    detector_id: Optional[str] = field(default=None, metadata={"description": "The ID of the Guard Duty detector."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyKubernetesConfigurationResult:
-    kind: ClassVar[str] = "aws_guard_duty_kubernetes_configuration_result"
-    mapping: ClassVar[Dict[str, Bender]] = {"audit_logs": S("AuditLogs", "Status")}
-    audit_logs: Optional[str] = field(default=None, metadata={"description": "Describes whether Kubernetes audit logs are enabled as a data source."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyEbsVolumesResult:
-    kind: ClassVar[str] = "aws_guard_duty_ebs_volumes_result"
-    mapping: ClassVar[Dict[str, Bender]] = {"status": S("Status"), "reason": S("Reason")}
-    status: Optional[str] = field(default=None, metadata={"description": "Describes whether scanning EBS volumes is enabled as a data source."})  # fmt: skip
-    reason: Optional[str] = field(default=None, metadata={"description": "Specifies the reason why scanning EBS volumes (Malware Protection) was not enabled as a data source."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyScanEc2InstanceWithFindingsResult:
-    kind: ClassVar[str] = "aws_guard_duty_scan_ec2_instance_with_findings_result"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "ebs_volumes": S("EbsVolumes") >> Bend(AwsGuardDutyEbsVolumesResult.mapping)
-    }
-    ebs_volumes: Optional[AwsGuardDutyEbsVolumesResult] = field(default=None, metadata={"description": "Describes the configuration of scanning EBS volumes as a data source."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyMalwareProtectionConfigurationResult:
-    kind: ClassVar[str] = "aws_guard_duty_malware_protection_configuration_result"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "scan_ec2_instance_with_findings": S("ScanEc2InstanceWithFindings")
-        >> Bend(AwsGuardDutyScanEc2InstanceWithFindingsResult.mapping),
-        "service_role": S("ServiceRole"),
-    }
-    scan_ec2_instance_with_findings: Optional[AwsGuardDutyScanEc2InstanceWithFindingsResult] = field(default=None, metadata={"description": "Describes the configuration of Malware Protection for EC2 instances with findings."})  # fmt: skip
-    service_role: Optional[str] = field(default=None, metadata={"description": "The GuardDuty Malware Protection service role."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyDataSourceConfigurationsResult:
-    kind: ClassVar[str] = "aws_guard_duty_data_source_configurations_result"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "cloud_trail": S("CloudTrail", "Status"),
-        "dns_logs": S("DNSLogs", "Status"),
-        "flow_logs": S("FlowLogs", "Status"),
-        "s3_logs": S("S3Logs", "Status"),
-        "kubernetes": S("Kubernetes") >> Bend(AwsGuardDutyKubernetesConfigurationResult.mapping),
-        "malware_protection": S("MalwareProtection") >> Bend(AwsGuardDutyMalwareProtectionConfigurationResult.mapping),
-    }
-    cloud_trail: Optional[str] = field(default=None, metadata={"description": "An object that contains information on the status of CloudTrail as a data source."})  # fmt: skip
-    dns_logs: Optional[str] = field(default=None, metadata={"description": "An object that contains information on the status of DNS logs as a data source."})  # fmt: skip
-    flow_logs: Optional[str] = field(default=None, metadata={"description": "An object that contains information on the status of VPC flow logs as a data source."})  # fmt: skip
-    s3_logs: Optional[str] = field(default=None, metadata={"description": "An object that contains information on the status of S3 Data event logs as a data source."})  # fmt: skip
-    kubernetes: Optional[AwsGuardDutyKubernetesConfigurationResult] = field(default=None, metadata={"description": "An object that contains information on the status of all Kubernetes data sources."})  # fmt: skip
-    malware_protection: Optional[AwsGuardDutyMalwareProtectionConfigurationResult] = field(default=None, metadata={"description": "Describes the configuration of Malware Protection data sources."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyDetectorAdditionalConfigurationResult:
-    kind: ClassVar[str] = "aws_guard_duty_detector_additional_configuration_result"
-    mapping: ClassVar[Dict[str, Bender]] = {"name": S("Name"), "status": S("Status"), "updated_at": S("UpdatedAt")}
-    name: Optional[str] = field(default=None, metadata={"description": "Name of the additional configuration."})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "Status of the additional configuration."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp at which the additional configuration was last updated. This is in UTC format."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyDetectorFeatureConfigurationResult:
-    kind: ClassVar[str] = "aws_guard_duty_detector_feature_configuration_result"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "name": S("Name"),
-        "status": S("Status"),
-        "updated_at": S("UpdatedAt"),
-        "additional_configuration": S("AdditionalConfiguration", default=[])
-        >> ForallBend(AwsGuardDutyDetectorAdditionalConfigurationResult.mapping),
-    }
-    name: Optional[str] = field(default=None, metadata={"description": "Indicates the name of the feature that can be enabled for the detector."})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "Indicates the status of the feature that is enabled for the detector."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The timestamp at which the feature object was updated."})  # fmt: skip
-    additional_configuration: Optional[List[AwsGuardDutyDetectorAdditionalConfigurationResult]] = field(factory=list, metadata={"description": "Additional configuration for a resource."})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AwsGuardDutyDetector(AwsResource):
-    kind: ClassVar[str] = "aws_guard_duty_detector"
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("guardduty", "list-detectors", "DetectorIds")
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("Id"),
-        "tags": S("Tags"),
-        "name": S("Id"),
-        "ctime": S("CreatedAt"),
-        "mtime": S("UpdatedAt"),
-        "created_at": S("CreatedAt"),
-        "finding_publishing_frequency": S("FindingPublishingFrequency"),
-        "service_role": S("ServiceRole"),
-        "status": S("Status"),
-        "updated_at": S("UpdatedAt"),
-        "data_sources": S("DataSources") >> Bend(AwsGuardDutyDataSourceConfigurationsResult.mapping),
-        "features": S("Features", default=[]) >> ForallBend(AwsGuardDutyDetectorFeatureConfigurationResult.mapping),
-    }
-    created_at: Optional[str] = field(default=None, metadata={"description": "The timestamp of when the detector was created."})  # fmt: skip
-    finding_publishing_frequency: Optional[str] = field(default=None, metadata={"description": "The publishing frequency of the finding."})  # fmt: skip
-    service_role: Optional[str] = field(default=None, metadata={"description": "The GuardDuty service role."})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The detector status."})  # fmt: skip
-    updated_at: Optional[str] = field(default=None, metadata={"description": "The last-updated timestamp for the detector."})  # fmt: skip
-    data_sources: Optional[AwsGuardDutyDataSourceConfigurationsResult] = field(default=None, metadata={"description": "Describes which data sources are enabled for the detector."})  # fmt: skip
-    features: Optional[List[AwsGuardDutyDetectorFeatureConfigurationResult]] = field(factory=list, metadata={"description": "Describes the features that have been enabled for the detector."})  # fmt: skip
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
-        def collect_findings(detector: AwsGuardDutyDetector) -> None:
-            if finding_ids := builder.client.list(
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        try:
+            detector_ids = builder.client.list(
                 service_name,
-                "list-findings",
-                "FindingIds",
-                DetectorId=detector.id,
-            ):
-                for finding in builder.client.list(
-                    service_name, "get-findings", "Findings", DetectorId=detector.id, FindingIds=finding_ids
-                ):
-                    if finding.get("AccountId", None) == builder.account.id:
-                        if instance := AwsGuardDutyFinding.from_api(finding, builder):
-                            builder.add_node(instance, result)
+                "list-detectors",
+                "DetectorIds",
+            )
+            for detector_id in detector_ids:
+                finding_ids = builder.client.list(
+                    service_name,
+                    "list-findings",
+                    "FindingIds",
+                    DetectorId=detector_id,
+                )
+                for chunk_ids in chunks(finding_ids, 50):
+                    for finding in builder.client.list(
+                        service_name, "get-findings", "Findings", DetectorId=detector_id, FindingIds=chunk_ids
+                    ):
+                        if finding.get("AccountId", None) == builder.account.id:
+                            if instance := AwsGuardDutyFinding.from_api(finding, builder):
+                                builder.add_node(instance, finding)
+        except Boto3Error as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.error(msg, log)
+            raise
+        except Exception as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.info(msg, log)
+            raise
 
-        for detector_id in json:
-            for result in builder.client.list(
-                service_name,
-                "get-detector",
-                DetectorId=detector_id,
-            ):
-                result["Id"] = detector_id
-                if instance := AwsGuardDutyDetector.from_api(result, builder):
-                    builder.add_node(instance, result)
-                    builder.submit_work(service_name, collect_findings, instance)
 
-
-resources: List[Type[AwsResource]] = [AwsGuardDutyFinding, AwsGuardDutyDetector]
+resources: List[Type[AwsResource]] = [AwsGuardDutyFinding]
