@@ -983,12 +983,20 @@ models: Dict[str, List[AwsFixModel]] = {
         #     prefix="Bedrock",
         # )
     ],
+    "guardduty": [
+        AwsFixModel(
+            api_action="get-findings",
+            result_property="Findings",
+            result_shape="GetFindingsResponse",
+            prefix="GuardDuty",
+        ),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("bedrock-agent", "get-knowledge-base"), indent=2))
+    # print(json.dumps(create_test_response("guardduty", "list-findings"), indent=2))
 
     """print the class models"""
     # print(default_imports())
