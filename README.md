@@ -9,7 +9,7 @@
 
 Fix Inventory detects compliance and security risks in cloud infrastructure accounts. 
 
-We biult Fix Inventory for cloud and security enginers as an open source alternative to proprietary cloud security tools like Orca Security, Prisma Cloud or Wiz.
+We built Fix Inventory for cloud and security engineers as an open source alternative to proprietary cloud security tools like Orca Security, Prisma Cloud or Wiz.
 
 Check out our [Quick Start Guide](https://inventory.fix.security/docs/getting-started/) for step-by-step instructions on getting started. 
 
