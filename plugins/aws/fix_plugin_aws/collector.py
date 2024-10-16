@@ -262,7 +262,7 @@ class AwsAccountCollector:
                     log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
-            access_edge_collection_enabled = True
+            access_edge_collection_enabled = False
             if access_edge_collection_enabled and global_builder.config.collect_access_edges:
                 # add access edges
                 log.info(f"[Aws:{self.account.id}] Create access edges.")
