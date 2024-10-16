@@ -91,7 +91,6 @@ onelogin==2.0.4
 orderly-set==5.2.2
 orjson==3.10.7
 packaging==24.1
-paramiko==3.5.0
 parsy==2.1
 pint==0.24.3
 plantuml==0.3.0
