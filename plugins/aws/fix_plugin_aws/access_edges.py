@@ -1,8 +1,11 @@
 from functools import lru_cache
 from attr import frozen, define
+import networkx
 from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
 
-from typing import List, Literal, Set, Optional, Tuple, Union, Pattern, Dict
+from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
+
+from networkx.algorithms.dag import is_directed_acyclic_graph
 
 from fixlib.baseresources import (
     PermissionCondition,
@@ -21,6 +24,7 @@ from cloudsplaining.scan.statement_detail import StatementDetail
 from policy_sentry.querying.actions import get_action_data, get_actions_matching_arn
 from policy_sentry.querying.all import get_all_actions
 from policy_sentry.util.arns import ARN, get_service_from_arn
+from fixlib.graph import EdgeKey
 import re
 import logging
 
@@ -64,13 +68,16 @@ def find_allowed_action(policy_document: PolicyDocument, service_prefix: str) ->
 
 
 def find_non_service_actions(resource_arn: str) -> Set[IamAction]:
-    splitted = resource_arn.split(":")
-    service_prefix = splitted[2]
-    if service_prefix == "iam":
-        resource_type = splitted[5]
-        resource = resource_type.split("/")[0]
-        if resource == "role":
-            return {"sts:AssumeRole"}
+    try:
+        splitted = resource_arn.split(":")
+        service_prefix = splitted[2]
+        if service_prefix == "iam":
+            resource_type = splitted[5]
+            resource = resource_type.split("/")[0]
+            if resource == "role":
+                return {"sts:AssumeRole"}
+    except Exception:
+        pass
     return set()
 
 
@@ -799,22 +806,12 @@ class AccessEdgeCreator:
 
     def add_access_edges(self) -> None:
 
-        visited = set()
-
         for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
 
             for context in self.principals:
                 if context.principal.arn == node.arn:
                     # small graph cycles avoidance optimization
                     continue
-
-                # a bit more sophisticated check to avoid graph cycles
-                if context.principal.arn and node.arn:
-                    sorted_pair = tuple(sorted([context.principal.arn, node.arn]))
-                    if sorted_pair in visited:
-                        # skip if this principal-resource pair has already been processed
-                        continue
-                    visited.add(sorted_pair)
 
                 resource_policies: List[Tuple[PolicySource, PolicyDocument]] = []
                 if isinstance(node, HasResourcePolicy):
@@ -829,3 +826,20 @@ class AccessEdgeCreator:
                 reported = to_json({"permissions": permissions}, strip_nulls=True)
 
                 self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
+
+        iam_edges = []
+        for edge in self.builder.graph.edges(keys=True):
+            if len(edge) == 3:
+                key: EdgeKey = edge[2]
+                if key.edge_type == EdgeType.iam:
+                    iam_edges.append(edge)
+
+        # get rid off all the cycles in the IAM access edges
+        while True:
+            subgraph = self.builder.graph.edge_subgraph(iam_edges)
+            if is_directed_acyclic_graph(subgraph):
+                break
+
+            for _, _, edge_key in networkx.algorithms.cycles.find_cycle(subgraph):
+                log.info(f"Removing edge from {edge_key.src} to {edge_key.dst}")
+                self.builder.graph.remove_edge(edge_key.src, edge_key.dst, key=edge_key)
