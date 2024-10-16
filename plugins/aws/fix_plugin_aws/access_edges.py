@@ -2,7 +2,7 @@ from functools import lru_cache
 from attr import frozen, define
 from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
 
-from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
+from typing import List, Literal, Set, Optional, Tuple, Union, Pattern, Dict
 
 from fixlib.baseresources import (
     PermissionCondition,
@@ -63,12 +63,26 @@ def find_allowed_action(policy_document: PolicyDocument, service_prefix: str) ->
     return allowed_actions
 
 
+def find_non_service_actions(resource_arn: str) -> Set[IamAction]:
+    splitted = resource_arn.split(":")
+    service_prefix = splitted[2]
+    if service_prefix == "iam":
+        resource_type = splitted[5]
+        resource = resource_type.split("/")[0]
+        if resource == "role":
+            return {"sts:AssumeRole"}
+    return set()
+
+
 def find_all_allowed_actions(all_involved_policies: List[PolicyDocument], resource_arn: str) -> Set[IamAction]:
     resource_actions = set()
     try:
         resource_actions = set(get_actions_matching_arn(resource_arn))
     except Exception as e:
         log.debug(f"Error when trying to get actions matching ARN {resource_arn}: {e}")
+
+    if additinal_actions := find_non_service_actions(resource_arn):
+        resource_actions.update(additinal_actions)
 
     service_prefix = ""
     try:
@@ -785,15 +799,22 @@ class AccessEdgeCreator:
 
     def add_access_edges(self) -> None:
 
-        principal_arns = set([p.principal.arn for p in self.principals])
+        visited = set()
 
         for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
 
-            if node.arn in principal_arns:
-                # do not create cycles
-                continue
-
             for context in self.principals:
+                if context.principal.arn == node.arn:
+                    # small graph cycles avoidance optimization
+                    continue
+
+                # a bit more sophisticated check to avoid graph cycles
+                if context.principal.arn and node.arn:
+                    sorted_pair = tuple(sorted([context.principal.arn, node.arn]))
+                    if sorted_pair in visited:
+                        # skip if this principal-resource pair has already been processed
+                        continue
+                    visited.add(sorted_pair)
 
                 resource_policies: List[Tuple[PolicySource, PolicyDocument]] = []
                 if isinstance(node, HasResourcePolicy):
