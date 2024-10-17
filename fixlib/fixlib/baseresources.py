@@ -1677,7 +1677,8 @@ class PermissionLevel(StrEnum):
     read = "read"
     tagging = "tagging"
     write = "write"
-    permission_management = "permission"
+    permission = "permission"
+    can_become = "can_become"  # aka assume role
     unknown = "unknown"  # in case a resource is not in the levels database
 
 
