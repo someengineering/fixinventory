@@ -334,7 +334,7 @@ class GraphBuilder:
     def history_hash(js: Json, kind: Kind) -> str:
         sha256 = hashlib.sha256()
 
-        def walk_element(el: JsonElement, el_kind: Kind) -> None:
+        def walk_element(el: JsonElement, el_kind: Kind, maybe_prop: Optional[Property]) -> None:
             if el is None:
                 pass
             elif isinstance(el_kind, ComplexKind):
@@ -342,11 +342,14 @@ class GraphBuilder:
             elif isinstance(el_kind, ArrayKind):
                 if isinstance(el, list):
                     for elem in el:
-                        walk_element(elem, el_kind.inner)
+                        walk_element(elem, el_kind.inner, maybe_prop)
             elif isinstance(el_kind, DictionaryKind):
                 if isinstance(el, dict):
                     for _, v in sorted(el.items()):
-                        walk_element(v, el_kind.value_kind)
+                        walk_element(v, el_kind.value_kind, maybe_prop)
+            elif isinstance(el_kind, (DateKind, DateTimeKind)):  # default: ignore, opt-in to keep
+                if maybe_prop and maybe_prop.meta_get("keep_history", bool, False):
+                    sha256.update(str(el).encode("utf-8"))
             elif isinstance(el_kind, SimpleKind):
                 sha256.update(str(el).encode("utf-8"))
 
@@ -358,12 +361,12 @@ class GraphBuilder:
                         and (prop.name not in PropsToIgnoreForHistory)
                         and (prop_val := el.get(prop.name))
                     ):
-                        walk_element(prop_val, prop_kind)
+                        walk_element(prop_val, prop_kind, prop)
                 if not el_kind.metadata.get("ignore_history"):  # if defined on type, do not walk the hierarchy
                     for base in el_kind.resolved_bases().values():
                         walk_complex(el, base)
 
-        walk_element(js, kind)
+        walk_element(js, kind, None)
         return sha256.hexdigest()[0:8]
 
     @staticmethod
