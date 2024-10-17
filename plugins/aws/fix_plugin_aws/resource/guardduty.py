@@ -12,7 +12,7 @@ from fix_plugin_aws.resource.eks import AwsEksCluster
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
-from fixlib.baseresources import PhantomBaseResource
+from fixlib.baseresources import ModelReference, PhantomBaseResource
 from fixlib.json_bender import F, S, AsInt, Bend, Bender, ForallBend
 from fixlib.types import Json
 from fixlib.utils import chunks, utc_str
@@ -1214,9 +1214,36 @@ class AwsGuardDutyService:
 
 
 @define(eq=False, slots=False)
-class AwsGuardDutyFinding(AwsResource):
+class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
     kind: ClassVar[str] = "aws_guard_duty_finding"
-    # Collected via AwsGuardDutyDetector()
+    _kind_display: ClassVar[str] = "AWS GuardDuty Finding"
+    _kind_description: ClassVar[str] = (
+        "AWS GuardDuty Finding represents a potential security issue identified by Amazon GuardDuty. "
+        "GuardDuty uses machine learning, anomaly detection, and integrated threat intelligence to detect and "
+        "alert on suspicious activity in your AWS environment. Findings highlight possible attacks or vulnerabilities "
+        "that may require further investigation."
+    )
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
+    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_findings.html"
+    _reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                AwsS3Bucket.kind,
+                AwsEc2Instance.kind,
+                AwsEksCluster.kind,
+                AwsEc2Volume.kind,
+                AwsEcsCluster.kind,
+                AwsRdsInstance.kind,
+                AwsRdsCluster.kind,
+                AwsLambdaFunction.kind,
+            ]
+        }
+    }
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
+        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/guardduty/home?region={region}#/findings?fId={id}&macros=current",
+    }
+    # api spec defined in `collect_resources`
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
         "name": S("Title"),
@@ -1246,6 +1273,10 @@ class AwsGuardDutyFinding(AwsResource):
     finding_severity: Optional[float] = field(default=None, metadata={"description": "The severity of the finding."})  # fmt: skip
     title: Optional[str] = field(default=None, metadata={"description": "The title of the finding."})  # fmt: skip
     type: Optional[str] = field(default=None, metadata={"description": "The type of finding."})  # fmt: skip
+
+    @classmethod
+    def service_name(cls) -> str:
+        return service_name
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
