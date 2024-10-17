@@ -85,6 +85,8 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
                 for subclass in clazz.__subclasses__():
                     check(subclass)
             for field in attrs.fields(clazz):
+                if field.name.startswith("_"):  # ignore private properties
+                    continue
                 check(field.type)
         elif is_enum(clazz):
             all_classes.add(clazz)
