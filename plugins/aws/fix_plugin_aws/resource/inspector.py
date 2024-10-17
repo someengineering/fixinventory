@@ -6,6 +6,9 @@ from attrs import define, field
 from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance
+from fix_plugin_aws.resource.ecr import AwsEcrRepository
+from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from fixlib.baseresources import ModelReference, PhantomBaseResource
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 from fixlib.types import Json
@@ -343,7 +346,7 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/inspector/latest/user/findings-understanding.html"
     _reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": [AwsResource.kind]},
+        "successors": {"default": [AwsEc2Instance.kind, AwsEcrRepository.kind, AwsLambdaFunction.kind]},
     }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("findingArn") >> F(AwsResource.id_from_arn),
@@ -424,11 +427,20 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         if finding_resources := self.finding_resources:
             for finding_resource in finding_resources:
                 if rid := finding_resource.id:
-                    builder.add_edge(
-                        self,
-                        clazz=AwsResource,
-                        id=rid,
-                    )
+                    if "arn:aws:lambda" in rid:
+                        # remove lambda's version from arn to connect by arn
+                        lambda_arn = rid.rsplit(":", 1)[0]
+                        builder.add_edge(
+                            self,
+                            clazz=AwsLambdaFunction,
+                            arn=lambda_arn,
+                        )
+                    else:
+                        builder.add_edge(
+                            self,
+                            clazz=(AwsEc2Instance, AwsEcrRepository),
+                            id=rid,
+                        )
 
 
 resources: List[Type[AwsResource]] = [AwsInspectorFinding]

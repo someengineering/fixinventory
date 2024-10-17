@@ -986,13 +986,12 @@ models: Dict[str, List[AwsFixModel]] = {
         # )
     ],
     "inspector2": [
-        # Findings
-        AwsFixModel(
-            api_action="list-findings",
-            result_property="findings",
-            result_shape="ListFindingsResponse",
-            prefix="InspectorV2",
-        ),
+        # AwsFixModel(
+        #     api_action="list-findings",
+        #     result_property="findings",
+        #     result_shape="ListFindingsResponse",
+        #     prefix="InspectorV2",
+        # ),
     ],
 }
 
