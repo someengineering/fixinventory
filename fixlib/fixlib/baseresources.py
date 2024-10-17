@@ -4,23 +4,22 @@ import base64
 import hashlib
 import weakref
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from copy import deepcopy
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from enum import Enum, StrEnum, unique
 from functools import wraps, cached_property
 from typing import Dict, Iterator, List, ClassVar, Optional, TypedDict, Any, TypeVar, Type, Callable, Set, Tuple
-from collections import defaultdict
 
 from attr import resolve_types
 from attrs import define, field, Factory, frozen, evolve
 from prometheus_client import Counter, Summary
 
+from fixlib.basecategories import Category
 from fixlib.json import from_json as _from_json, to_json as _to_json, to_json_str
 from fixlib.logger import log
 from fixlib.types import Json
 from fixlib.utils import make_valid_timestamp, utc_str, utc
-from fixlib.basecategories import Category
-
 
 metrics_resource_pre_cleanup_exceptions = Counter(
     "resource_pre_cleanup_exceptions_total",
@@ -246,6 +245,32 @@ class StatName(str, Enum):
 MetricNameWithUnit = str
 
 
+class Severity(StrEnum):
+    info = "info"
+    low = "low"
+    medium = "medium"
+    high = "high"
+    critical = "critical"
+
+
+@define(slots=True)
+class Finding:
+    title: str
+    severity: Severity = Severity.medium
+    description: Optional[str] = None
+    remediation: Optional[str] = None
+    created_at: Optional[datetime] = None
+    details: Optional[Json] = None
+
+
+@define(slots=True)
+class Assessment:
+    # The provider of the security assessment
+    provider: str
+    # All findings of the security provider to this resource
+    findings: List[Finding] = field(factory=list)
+
+
 @define(eq=False, slots=False, kw_only=True)
 class BaseResource(ABC):
     """
@@ -305,6 +330,8 @@ class BaseResource(ABC):
     _resource_usage: Dict[MetricNameWithUnit, Dict[str, float]] = field(factory=lambda: defaultdict(dict))
     # Deep link into the cloud provider's console
     _provider_link: Optional[str] = None
+    # Assessment details for this resource: multiple providers can append their findings
+    _assessments: List[Assessment] = field(factory=list)
 
     ctime: Optional[datetime] = field(
         default=None,
