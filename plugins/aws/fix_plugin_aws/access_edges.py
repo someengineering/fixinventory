@@ -101,6 +101,7 @@ def find_all_allowed_actions(all_involved_policies: List[PolicyDocument], resour
         policy_actions.update(find_allowed_action(p, service_prefix))
     return policy_actions.intersection(resource_actions)
 
+
 @lru_cache(maxsize=1024)
 def expand(action: str, service_prefix: str) -> list[str]:
     if action == "*":
