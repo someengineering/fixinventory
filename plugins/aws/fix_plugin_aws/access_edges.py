@@ -2,9 +2,9 @@ from functools import lru_cache
 from attr import frozen, define
 import networkx
 from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
-
+from policy_sentry.querying.actions import get_actions_for_service
 from typing import Dict, List, Literal, Set, Optional, Tuple, Union, Pattern
-
+import fnmatch
 from networkx.algorithms.dag import is_directed_acyclic_graph
 
 from fixlib.baseresources import (
@@ -101,18 +101,60 @@ def find_all_allowed_actions(all_involved_policies: List[PolicyDocument], resour
         policy_actions.update(find_allowed_action(p, service_prefix))
     return policy_actions.intersection(resource_actions)
 
+@lru_cache(maxsize=1024)
+def expand(action: str, service_prefix: str) -> list[str]:
+    if action == "*":
+        return get_actions_for_service(service_prefix=service_prefix)
+    elif "*" in action:
+        prefix = action.split(":", maxsplit=1)[0]
+        if prefix != service_prefix:
+            return []
+        service_actions = get_actions_for_service(service_prefix=prefix)
+        expanded = [
+            expanded_action
+            for expanded_action in service_actions
+            if fnmatch.fnmatchcase(expanded_action.lower(), action.lower())
+        ]
 
-def get_expanded_action(statement: StatementDetail, service_prefix: str) -> Set[str]:
-    actions = set()
-    expanded: List[str] = statement.expanded_actions or []
-    for action in expanded:
-        if action.startswith(f"{service_prefix}:"):
-            actions.add(action)
+        if not expanded:
+            return [action]
 
-    return actions
+        return expanded
+    return [action]
+
+
+def determine_actions_to_expand(action_list: list[str], service_prefix: str) -> list[str]:
+    new_action_list = []
+    for action in action_list:
+        if "*" in action:
+            expanded_action = expand(action, service_prefix)
+            new_action_list.extend(expanded_action)
+        elif action.startswith(service_prefix):
+            new_action_list.append(action)
+    new_action_list.sort()
+    return new_action_list
+
+
+@lru_cache(maxsize=4096)
+def statement_expanded_actions(statement: StatementDetail, service_prefix: str) -> List[str]:
+    if statement.actions:
+        expanded: list[str] = determine_actions_to_expand(statement.actions, service_prefix)
+        return expanded
+    elif statement.not_action:
+        not_actions = statement.not_action_effective_actions or []
+        return [na for na in not_actions if na.startswith(service_prefix)]
+    else:
+        log.warning("Statement has neither Actions nor NotActions")
+        return []
 
 
 @lru_cache(maxsize=1024)
+def get_expanded_action(statement: StatementDetail, service_prefix: str) -> List[str]:
+    expanded: List[str] = statement_expanded_actions(statement, service_prefix)
+    return expanded
+
+
+@lru_cache(maxsize=10000)
 def make_resoruce_regex(aws_resorce_wildcard: str) -> Pattern[str]:
     # step 1: translate aws wildcard to python regex
     python_regex = aws_resorce_wildcard.replace("*", ".*").replace("?", ".")
