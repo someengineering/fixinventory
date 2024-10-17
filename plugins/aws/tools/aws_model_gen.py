@@ -984,12 +984,12 @@ models: Dict[str, List[AwsFixModel]] = {
         # )
     ],
     "guardduty": [
-        AwsFixModel(
-            api_action="get-findings",
-            result_property="Findings",
-            result_shape="GetFindingsResponse",
-            prefix="GuardDuty",
-        ),
+        # AwsFixModel(
+        #     api_action="get-findings",
+        #     result_property="Findings",
+        #     result_shape="GetFindingsResponse",
+        #     prefix="GuardDuty",
+        # ),
     ],
 }
 
