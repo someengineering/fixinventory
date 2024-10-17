@@ -348,6 +348,9 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {"default": [AwsEc2Instance.kind, AwsEcrRepository.kind, AwsLambdaFunction.kind]},
     }
+    _aws_metadata: ClassVar[Dict[str, Any]] = {
+        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/inspector/v2/home?region={region_id}#/findings/all",
+    }
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("findingArn") >> F(AwsResource.id_from_arn),
         "name": S("title"),
