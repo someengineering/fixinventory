@@ -12,7 +12,7 @@ from attr import resolve_types
 from attrs import Attribute
 
 from fixlib.baseresources import BaseResource
-from fixlib.json import from_json
+from fixlib.json import from_json, to_json
 from fixlib.types import Json
 from fixlib.utils import type_str
 
@@ -354,6 +354,8 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
         node_dict["metadata"] = metadata
         if usage := node._resource_usage:
             node_dict["usage"] = usage
+        if assessments := node._assessments:
+            node_dict["assessments"] = to_json(assessments)
         if node.clean:
             node_dict.update({"desired": {"clean": node.clean}})
     if include_revision and node._fixcore_revision:
