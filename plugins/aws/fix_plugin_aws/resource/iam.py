@@ -659,7 +659,7 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
     user_policies: List[AwsIamPolicyDetail] = field(factory=list)
     user_permissions_boundary: Optional[AwsIamAttachedPermissionsBoundary] = field(default=None)
     password_enabled: Optional[bool] = field(default=None)
-    password_last_used: Optional[datetime] = field(default=None, metadata=dict(ignore_history=True))
+    password_last_used: Optional[datetime] = field(default=None)
     password_last_changed: Optional[datetime] = field(default=None)
     password_next_rotation: Optional[datetime] = field(default=None)
     mfa_active: Optional[bool] = field(default=None)
