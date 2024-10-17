@@ -76,8 +76,8 @@ def find_non_service_actions(resource_arn: str) -> Set[IamAction]:
             resource = resource_type.split("/")[0]
             if resource == "role":
                 return {"sts:AssumeRole"}
-    except Exception:
-        pass
+    except Exception as e:
+        log.info(f"Error when trying to get non-service actions for ARN {resource_arn}: {e}")
     return set()
 
 
@@ -840,19 +840,28 @@ class AccessEdgeCreator:
 
                 self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
 
-        iam_edges = []
+        all_principal_arns = {p.principal.arn for p in self.principals if p.principal.arn}
+
+        # check that there are no cycles in the IAM edges besides the principal -> principal edges
+        iam_edges_no_double_principal = []
         for edge in self.builder.graph.edges(keys=True):
-            if len(edge) == 3:
-                key: EdgeKey = edge[2]
-                if key.edge_type == EdgeType.iam:
-                    iam_edges.append(edge)
+            if len(edge) != 3:
+                continue
 
-        # get rid off all the cycles in the IAM access edges
-        while True:
-            subgraph = self.builder.graph.edge_subgraph(iam_edges)
-            if is_directed_acyclic_graph(subgraph):
-                break
+            # skip non-iam edges
+            key: EdgeKey = edge[2]
+            if key.edge_type != EdgeType.iam:
+                continue
 
-            for _, _, edge_key in networkx.algorithms.cycles.find_cycle(subgraph):
-                log.info(f"Removing edge from {edge_key.src} to {edge_key.dst}")
-                self.builder.graph.remove_edge(edge_key.src, edge_key.dst, key=edge_key)
+            # skip the principal -> principal edges
+            if key.src.arn in all_principal_arns and key.dst.arn in all_principal_arns:
+                continue
+
+            iam_edges_no_double_principal.append(edge)
+
+        # check for loops:
+        subgraph = self.builder.graph.edge_subgraph(iam_edges_no_double_principal)
+        if not is_directed_acyclic_graph(subgraph):
+            cycle = [edge[2] for edge in networkx.algorithms.cycles.find_cycle(subgraph)]
+            desc = ", ".join(f"{key.edge_type}: {key.src.kdname}-->{key.dst.kdname}" for key in cycle)
+            log.error(f"IAM graph of account {self.builder.account.arn} is not acyclic! Cycle {desc}")
