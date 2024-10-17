@@ -5,10 +5,15 @@ import logging
 from attrs import define, field
 from boto3.exceptions import Boto3Error
 
-from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
-from fixlib.baseresources import ModelReference, PhantomBaseResource
-from fixlib.graph import Graph
-from fixlib.json_bender import F, S, AsInt, Bend, Bender, ForallBend, bend
+from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2Volume
+from fix_plugin_aws.resource.ecs import AwsEcsCluster
+from fix_plugin_aws.resource.eks import AwsEksCluster
+from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
+from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
+from fix_plugin_aws.resource.s3 import AwsS3Bucket
+from fixlib.baseresources import PhantomBaseResource
+from fixlib.json_bender import F, S, AsInt, Bend, Bender, ForallBend
 from fixlib.types import Json
 from fixlib.utils import chunks, utc_str
 
@@ -1255,11 +1260,17 @@ class AwsGuardDutyFinding(AwsResource):
                     service_name,
                     "list-findings",
                     "FindingIds",
+                    expected_errors=["BadRequestException"],
                     DetectorId=detector_id,
                 )
-                for chunk_ids in chunks(finding_ids, 50):
+                for chunk_ids in chunks(finding_ids, 49):
                     for finding in builder.client.list(
-                        service_name, "get-findings", "Findings", DetectorId=detector_id, FindingIds=chunk_ids
+                        service_name,
+                        "get-findings",
+                        "Findings",
+                        expected_errors=["BadRequestException"],
+                        DetectorId=detector_id,
+                        FindingIds=chunk_ids,
                     ):
                         if finding.get("AccountId", None) == builder.account.id:
                             if instance := AwsGuardDutyFinding.from_api(finding, builder):
@@ -1272,6 +1283,61 @@ class AwsGuardDutyFinding(AwsResource):
             msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
             builder.core_feedback.info(msg, log)
             raise
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        resource = self.finding_resource
+        if resource:
+            for s3_bucket_detail in resource.s3_bucket_details or []:
+                if s3_bucket_detail.name:
+                    builder.add_edge(self, clazz=AwsS3Bucket, name=s3_bucket_detail.name)
+            if resource.instance_details and resource.instance_details.instance_id:
+                builder.add_edge(
+                    self,
+                    clazz=AwsEc2Instance,
+                    id=resource.instance_details.instance_id,
+                )
+            if resource.eks_cluster_details and resource.eks_cluster_details.arn:
+                builder.add_edge(
+                    self,
+                    clazz=AwsEksCluster,
+                    arn=resource.eks_cluster_details.arn,
+                )
+
+            if resource.ebs_volume_details:
+                for vol_detail in resource.ebs_volume_details.scanned_volume_details or []:
+                    if vol_detail.volume_arn:
+                        builder.add_edge(self, clazz=AwsEc2Volume, arn=vol_detail.volume_arn)
+                for vol_detail in resource.ebs_volume_details.skipped_volume_details or []:
+                    if vol_detail.volume_arn:
+                        builder.add_edge(self, clazz=AwsEc2Volume, arn=vol_detail.volume_arn)
+
+            if resource.ecs_cluster_details and resource.ecs_cluster_details.arn:
+                builder.add_edge(
+                    self,
+                    clazz=AwsEcsCluster,
+                    arn=resource.ecs_cluster_details.arn,
+                )
+
+            if resource.rds_db_instance_details:
+                if resource.rds_db_instance_details.db_instance_arn:
+                    builder.add_edge(
+                        self,
+                        clazz=AwsRdsInstance,
+                        arn=resource.rds_db_instance_details.db_instance_arn,
+                    )
+                if resource.rds_db_instance_details.db_cluster_identifier:
+                    builder.add_edge(
+                        self,
+                        clazz=AwsRdsCluster,
+                        id=resource.rds_db_instance_details.db_cluster_identifier,
+                    )
+
+            if resource.lambda_details and resource.lambda_details.function_name:
+                builder.add_edge(
+                    self,
+                    clazz=AwsLambdaFunction,
+                    name=resource.lambda_details.function_name,
+                )
 
 
 resources: List[Type[AwsResource]] = [AwsGuardDutyFinding]
