@@ -3,7 +3,7 @@ from attr import frozen, define
 import networkx
 from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
 
-from typing import List, Literal, Set, Optional, Tuple, Union, Pattern
+from typing import Dict, List, Literal, Set, Optional, Tuple, Union, Pattern
 
 from networkx.algorithms.dag import is_directed_acyclic_graph
 
@@ -492,7 +492,15 @@ def is_service_linked_role(principal: AwsResource) -> bool:
     return False
 
 
+action_level_overrides = {
+    "sts:AssumeRole": PermissionLevel.can_become,
+}
+
+
 def get_action_level(action: str) -> PermissionLevel:
+    if override := action_level_overrides.get(action):
+        return override
+
     service, action_name = action.split(":")
     level = ""
     action_data = get_action_data(service, action_name)
@@ -512,7 +520,7 @@ def get_action_level(action: str) -> PermissionLevel:
     elif level == "Write":
         return PermissionLevel.write
     elif level == "Permissions management":
-        return PermissionLevel.permission_management
+        return PermissionLevel.permission
     else:
         return PermissionLevel.unknown
 
@@ -823,7 +831,12 @@ class AccessEdgeCreator:
                 if not permissions:
                     continue
 
-                reported = to_json({"permissions": permissions}, strip_nulls=True)
+                access: Dict[PermissionLevel, bool] = {}
+
+                for permission in permissions:
+                    access[permission.level] = True
+
+                reported = to_json({"permissions": permissions, "access": access}, strip_nulls=True)
 
                 self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
 
