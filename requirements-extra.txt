@@ -42,7 +42,7 @@ detect-secrets==1.5.0
 durationpy==0.9
 fastjsonschema==2.19.1
 filelock==3.16.1
-fixcompliance==0.4.34
+fixcompliance==0.4.35
 fixdatalink[extra]==2.0.2
 fixinventoryclient==2.0.1
 fixinventorydata==0.2.6
@@ -91,7 +91,6 @@ onelogin==2.0.4
 orderly-set==5.2.2
 orjson==3.10.7
 packaging==24.1
-paramiko==3.5.0
 parsy==2.1
 pint==0.24.3
 plantuml==0.3.0
@@ -122,7 +121,6 @@ pyparsing==3.1.4
 python-arango==8.1.2
 python-dateutil==2.9.0.post0
 pytz==2024.1
-pyvmomi==8.0.3.0.1
 pyyaml==6.0.2
 requests==2.32.3
 requests-oauthlib==2.0.0

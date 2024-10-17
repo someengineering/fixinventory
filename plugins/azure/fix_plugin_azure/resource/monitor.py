@@ -305,6 +305,7 @@ class AzureMonitorActivityLogAlert(MicrosoftResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": [AzureMonitorActionGroup.kind]},
+        "successors": {"default": [MicrosoftResource.kind]},
     }
     _create_provider_link: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
@@ -335,6 +336,14 @@ class AzureMonitorActivityLogAlert(MicrosoftResource):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         for ref in self.action_groups or []:
             builder.add_edge(self, reverse=True, clazz=AzureMonitorActionGroup, id=ref.action_group_id)
+
+        if scopes := self.scopes:
+            for scope_id in scopes:
+                builder.add_edge(
+                    self,
+                    clazz=MicrosoftResource,
+                    id=scope_id,
+                )
 
 
 @define(eq=False, slots=False)
@@ -867,14 +876,22 @@ class AzureMetricAlertAction:
 
 
 @define(eq=False, slots=False)
-class AzureMetricAlert(MicrosoftResource):
-    kind: ClassVar[str] = "azure_metric_alert"
+class AzureMonitorMetricAlert(MicrosoftResource):
+    kind: ClassVar[str] = "azure_monitor_metric_alert"
     _kind_display: ClassVar[str] = "Azure Metric Alert"
     _kind_service: ClassVar[Optional[str]] = service_name
     _kind_description: ClassVar[str] = "Azure Metric Alert is a monitoring service in Microsoft Azure that tracks specified metrics for resources. It evaluates data against predefined thresholds and triggers notifications when these thresholds are breached. Users can configure alerts for various metrics, set custom conditions, and define actions such as sending emails or executing automated responses when alert conditions are met."  # fmt: skip
     _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-metric-overview"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "alarm", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
+    _reference_kinds: ClassVar[ModelReference] = {
+        "predecessors": {
+            "default": [
+                AzureMonitorActionGroup.kind,
+            ]
+        },
+        "successors": {"default": [MicrosoftResource.kind]},
+    }
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2018-03-01",
@@ -914,6 +931,19 @@ class AzureMetricAlert(MicrosoftResource):
     target_resource_region: Optional[str] = field(default=None, metadata={'description': 'the region of the target resource(s) on which the alert is created/updated. Mandatory if the scope contains a subscription, resource group, or more than one resource.'})  # fmt: skip
     target_resource_type: Optional[str] = field(default=None, metadata={'description': 'the resource type of the target resource(s) on which the alert is created/updated. Mandatory if the scope contains a subscription, resource group, or more than one resource.'})  # fmt: skip
     window_size: Optional[str] = field(default=None, metadata={'description': 'the period of time (in ISO 8601 duration format) that is used to monitor alert activity based on the threshold.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if alert_actions := self.alert_actions:
+            for alert_action in alert_actions:
+                if a_group_id := alert_action.action_group_id:
+                    builder.add_edge(self, clazz=AzureMonitorActionGroup, reverse=True, id=a_group_id)
+        if scopes := self.scopes:
+            for scope_id in scopes:
+                builder.add_edge(
+                    self,
+                    clazz=MicrosoftResource,
+                    id=scope_id,
+                )
 
 
 @define(eq=False, slots=False)
@@ -1257,6 +1287,9 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
     _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-scheduled-query"
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
     _create_provider_link: ClassVar[bool] = False
+    _reference_kinds: ClassVar[ModelReference] = {
+        "successors": {"default": [MicrosoftResource.kind]},
+    }
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="monitor",
         version="2024-01-01-preview",
@@ -1321,6 +1354,15 @@ class AzureMonitorScheduledQueryRule(MicrosoftResource):
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
     target_resource_types: Optional[List[str]] = field(default=None, metadata={'description': 'List of resource type of the target resource(s) on which the alert is created/updated. For example if the scope is a resource group and targetResourceTypes is Microsoft.Compute/virtualMachines, then a different alert will be fired for each virtual machine in the resource group which meet the alert criteria. Relevant only for rules of the kind LogAlert'})  # fmt: skip
     window_size: Optional[str] = field(default=None, metadata={'description': 'The period of time (in ISO 8601 duration format) on which the Alert query will be executed (bin size). Relevant and required only for rules of the kind LogAlert.'})  # fmt: skip
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        if scopes := self.scopes:
+            for scope_id in scopes:
+                builder.add_edge(
+                    self,
+                    clazz=MicrosoftResource,
+                    id=scope_id,
+                )
 
 
 @define(eq=False, slots=True)
@@ -1424,7 +1466,7 @@ resources: List[Type[MicrosoftResource]] = [
     AzureMonitorAlertRule,
     AzureMonitorDataCollectionRule,
     AzureMonitorLogProfile,
-    AzureMetricAlert,
+    AzureMonitorMetricAlert,
     AzureMonitorPrivateLinkScope,
     AzureMonitorWorkspace,
     AzureMonitorPipelineGroup,

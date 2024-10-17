@@ -377,7 +377,7 @@ class Config(metaclass=MetaConfig):
     def model(self) -> List[Json]:
         """Return the config dataclass model in fixcore format"""
         classes = set(_config.classes.values())
-        return dataclasses_to_fixcore_model(classes, use_optional_as_required=True)
+        return dataclasses_to_fixcore_model(classes, use_optional_as_required=True, with_prop_description=True)
 
     @staticmethod
     def add_args(arg_parser: ArgumentParser) -> None:

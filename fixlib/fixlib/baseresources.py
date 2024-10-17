@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import weakref
-from abc import ABC
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
 from enum import Enum, StrEnum, unique
@@ -1633,8 +1633,9 @@ class PolicySource:
 
 class HasResourcePolicy(ABC):
     # returns a list of all policies that affects the resource (inline, attached, etc.)
+    @abstractmethod
     def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Json]]:
-        raise NotImplementedError
+        pass
 
 
 @frozen
@@ -1676,7 +1677,8 @@ class PermissionLevel(StrEnum):
     read = "read"
     tagging = "tagging"
     write = "write"
-    permission_management = "permission"
+    permission = "permission"
+    can_become = "can_become"  # aka assume role
     unknown = "unknown"  # in case a resource is not in the levels database
 
 
