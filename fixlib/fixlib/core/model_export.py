@@ -351,13 +351,13 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
             metadata["protected"] = True
         if link := node._provider_link:
             metadata["provider_link"] = link
+        if assessments := node._assessments:
+            metadata["assessments"] = to_json(assessments)
 
         node_dict["reported"] = get_node_attributes(node)
         node_dict["metadata"] = metadata
         if usage := node._resource_usage:
             node_dict["usage"] = usage
-        if assessments := node._assessments:
-            node_dict["assessments"] = to_json(assessments)
         if node.clean:
             node_dict.update({"desired": {"clean": node.clean}})
     if include_revision and node._fixcore_revision:
