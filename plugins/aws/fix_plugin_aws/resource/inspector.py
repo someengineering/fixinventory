@@ -430,20 +430,27 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         if finding_resources := self.finding_resources:
             for finding_resource in finding_resources:
                 if rid := finding_resource.id:
-                    if "arn:aws:lambda" in rid:
-                        # remove lambda's version from arn to connect by arn
-                        lambda_arn = rid.rsplit(":", 1)[0]
-                        builder.add_edge(
-                            self,
-                            clazz=AwsLambdaFunction,
-                            arn=lambda_arn,
-                        )
-                    else:
-                        builder.add_edge(
-                            self,
-                            clazz=(AwsEc2Instance, AwsEcrRepository),
-                            id=rid,
-                        )
+                    match finding_resource.type:
+                        case "AWS_LAMBDA_FUNCTION":
+                            # remove lambda's version from arn to connect by arn
+                            lambda_arn = rid.rsplit(":", 1)[0]
+                            builder.add_edge(
+                                self,
+                                clazz=AwsLambdaFunction,
+                                arn=lambda_arn,
+                            )
+                        case "AWS_EC2_INSTANCE":
+                            builder.add_edge(
+                                self,
+                                clazz=AwsEc2Instance,
+                                id=rid,
+                            )
+                        case "AWS_ECR_REPOSITORY":
+                            builder.add_edge(
+                                self,
+                                clazz=AwsEcrRepository,
+                                id=rid,
+                            )
 
 
 resources: List[Type[AwsResource]] = [AwsInspectorFinding]
