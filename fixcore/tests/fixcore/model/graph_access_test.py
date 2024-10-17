@@ -90,6 +90,15 @@ def test_content_hash() -> None:
     assert sha1 == sha2
 
 
+def test_history_hash(person_model: Model) -> None:
+    address = person_model["Address"]
+    a = {"id": "a1", "zip": "s1", "city": "c1", "mtime": "2021-06-18T10:31:34Z"}
+    b = {"id": "a1", "zip": "s1", "city": "c1", "mtime": "2022-06-18T10:31:34Z"}
+    c = {"id": "a1", "zip": "s2", "city": "c2", "mtime": "2022-06-18T10:31:34Z"}
+    assert GraphBuilder.history_hash(a, address) == GraphBuilder.history_hash(b, address)
+    assert GraphBuilder.history_hash(a, address) != GraphBuilder.history_hash(c, address)
+
+
 def test_root(graph_access: GraphAccess) -> None:
     assert graph_access.root() == "1"
 

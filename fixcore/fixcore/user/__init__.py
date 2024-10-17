@@ -113,4 +113,4 @@ class UserManagement(Service, ABC):
 
 def config_model() -> List[Json]:
     config_classes: Set[Type[Any]] = {FixInventoryUsersConfig}
-    return dataclasses_to_fixcore_model(config_classes, use_optional_as_required=True)
+    return dataclasses_to_fixcore_model(config_classes, use_optional_as_required=True, with_prop_description=True)

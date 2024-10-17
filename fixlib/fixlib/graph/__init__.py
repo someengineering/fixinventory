@@ -288,6 +288,11 @@ class Graph(networkx.MultiDiGraph):  # type: ignore
         for edge in self.edges(keys=True):
             if len(edge) == 3:
                 key: EdgeKey = edge[2]
+
+                # skip iam edges, they're checked by the collector
+                if key.edge_type == EdgeType.iam:
+                    continue
+
                 edges_per_type[key.edge_type].append(edge)
         for edges in edges_per_type.values():
             typed_graph = self.edge_subgraph(edges)

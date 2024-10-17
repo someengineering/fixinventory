@@ -673,7 +673,7 @@ class EditableConfig(ConfigObject):
 
 def config_model() -> List[Json]:
     config_classes = {EditableConfig, CustomCommandsConfig}
-    return dataclasses_to_fixcore_model(config_classes)
+    return dataclasses_to_fixcore_model(config_classes, with_prop_description=True)
 
 
 # Define rules to validate this config

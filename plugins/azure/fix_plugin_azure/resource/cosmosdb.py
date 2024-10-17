@@ -1608,7 +1608,7 @@ class AzureCosmosDBRestorableAccount(CosmosDBLocationSetter, MicrosoftResource):
     api_type: Optional[str] = field(default=None, metadata={'description': 'Enum to indicate the API type of the restorable database account.'})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={'description': 'The creation time of the restorable database account (ISO-8601 format).'})  # fmt: skip
     deletion_time: Optional[datetime] = field(default=None, metadata={'description': 'The time at which the restorable database account has been deleted (ISO-8601 format).'})  # fmt: skip
-    oldest_restorable_time: Optional[datetime] = field(default=None, metadata={"ignore_history": True, 'description': 'The least recent time at which the database account can be restored to (ISO-8601 format).'})  # fmt: skip
+    oldest_restorable_time: Optional[datetime] = field(default=None, metadata={'description': 'The least recent time at which the database account can be restored to (ISO-8601 format).'})  # fmt: skip
     restorable_locations: Optional[List[AzureRestorableLocationResource]] = field(default=None, metadata={'description': 'List of regions where the of the database account can be restored from.'})  # fmt: skip
 
     def _collect_items(

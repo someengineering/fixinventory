@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, Optional, List, Any
+from typing import ClassVar, Dict, Optional, List, Any, Tuple
 from json import loads as json_loads
 
 from attrs import define, field
@@ -8,7 +8,7 @@ from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_fa
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import HasResourcePolicy, MetricName, ModelReference
+from fixlib.baseresources import HasResourcePolicy, MetricName, ModelReference, PolicySource, PolicySourceKind
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, bend, ForallBend
 from fixlib.types import Json
@@ -132,6 +132,12 @@ class AwsKinesisStream(AwsResource, HasResourcePolicy):
     kinesis_encryption_type: Optional[str] = field(default=None)
     kinesis_key_id: Optional[str] = field(default=None)
     kinesis_policy: Optional[Json] = field(default=None)
+
+    def resource_policy(self, builder: Any) -> List[Tuple[PolicySource, Dict[str, Any]]]:
+        if not self.kinesis_policy or not self.arn:
+            return []
+
+        return [(PolicySource(PolicySourceKind.resource, self.arn), self.kinesis_policy)]
 
     @classmethod
     def called_collect_apis(cls) -> List[AwsApiSpec]:
