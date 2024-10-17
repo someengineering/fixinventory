@@ -381,6 +381,7 @@ class AwsAccountCollector:
                 self.graph.remove_node(node)
 
         rm_leaf_nodes(bedrock.AwsBedrockFoundationModel, check_pred=False)
+        rm_leaf_nodes(guardduty.AwsGuardDutyFinding, check_pred=False)
         # remove regions that are not in use
         self.graph.remove_recursively(builder.nodes(AwsRegion, lambda r: r.compute_region_in_use(builder) is False))
 
