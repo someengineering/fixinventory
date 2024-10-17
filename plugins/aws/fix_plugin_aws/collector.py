@@ -49,6 +49,7 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
     scp,
+    guardduty,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -103,6 +104,7 @@ regional_resources: List[Type[AwsResource]] = (
     + elb.resources
     + elbv2.resources
     + glacier.resources
+    + guardduty.resources
     + kinesis.resources
     + kms.resources
     + lambda_.resources
@@ -372,6 +374,7 @@ class AwsAccountCollector:
                 self.graph.remove_node(node)
 
         rm_leaf_nodes(bedrock.AwsBedrockFoundationModel, check_pred=False)
+        rm_leaf_nodes(guardduty.AwsGuardDutyFinding, check_pred=False)
         # remove regions that are not in use
         self.graph.remove_recursively(builder.nodes(AwsRegion, lambda r: r.compute_region_in_use(builder) is False))
 
