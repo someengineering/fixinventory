@@ -1241,7 +1241,7 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
         }
     }
     _aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/guardduty/home?region={region}#/findings?fId={id}&macros=current",
+        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/guardduty/home?region={region_id}#/findings?fId={id}&macros=current",
     }
     # api spec defined in `collect_resources`
     mapping: ClassVar[Dict[str, Bender]] = {
