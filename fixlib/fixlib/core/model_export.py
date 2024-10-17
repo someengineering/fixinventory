@@ -12,7 +12,7 @@ from attr import resolve_types
 from attrs import Attribute
 
 from fixlib.baseresources import BaseResource
-from fixlib.json import from_json
+from fixlib.json import from_json, to_json
 from fixlib.types import Json
 from fixlib.utils import type_str
 
@@ -85,6 +85,8 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
                 for subclass in clazz.__subclasses__():
                     check(subclass)
             for field in attrs.fields(clazz):
+                if field.name.startswith("_"):  # ignore private properties
+                    continue
                 check(field.type)
         elif is_enum(clazz):
             all_classes.add(clazz)
@@ -349,6 +351,8 @@ def node_to_dict(node: BaseResource, changes_only: bool = False, include_revisio
             metadata["protected"] = True
         if link := node._provider_link:
             metadata["provider_link"] = link
+        if assessments := node._assessments:
+            metadata["assessments"] = to_json(assessments)
 
         node_dict["reported"] = get_node_attributes(node)
         node_dict["metadata"] = metadata
