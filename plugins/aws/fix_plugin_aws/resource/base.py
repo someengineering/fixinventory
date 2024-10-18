@@ -487,7 +487,6 @@ class GraphBuilder:
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
-        assessment_findings: Optional[Dict[Tuple[str, str, str], Dict[str, List[Finding]]]] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -504,8 +503,8 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
         self.__builder_cache = {region.safe_name: self}
-        self._assessment_findings: Dict[Tuple[str, str, str], Dict[str, List[Finding]]] = (
-            assessment_findings or defaultdict(lambda: defaultdict(list))
+        self._assessment_findings: Dict[Tuple[str, str, str], Dict[str, List[Finding]]] = defaultdict(
+            lambda: defaultdict(list)
         )
         """
         AWS assessment findings that hold a list of AwsInspectorFinding or AwsGuardDutyFinding.
@@ -547,7 +546,10 @@ class GraphBuilder:
         return SuppressWithFeedback(message, self.core_feedback, log)
 
     def add_finding(self, provider: str, class_name: str, region: str, class_id: str, finding: Finding) -> None:
-        self._assessment_findings[(provider, region, class_name)][class_id].append(finding)
+        global_builder = self.__builder_cache.get("global", None)
+        if not global_builder:
+            return
+        global_builder._assessment_findings[(provider, region, class_name)][class_id].append(finding)
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -755,7 +757,7 @@ class GraphBuilder:
             self.graph_nodes_access,
             self.graph_edges_access,
             self.last_run_started_at,
-            self._assessment_findings,
         )
+        builder.__builder_cache["global"] = self
         self.__builder_cache[region.safe_name] = builder
         return builder

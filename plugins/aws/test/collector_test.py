@@ -13,6 +13,7 @@ from fix_plugin_aws.collector import (
 )
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
+from fix_plugin_aws.resource.inspector import AwsInspectorFinding
 from fixlib.baseresources import BaseResource
 from fixlib.core.model_export import dataclasses_to_fixcore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
@@ -29,13 +30,16 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
         return count
 
     for resource in all_resources:
+        # we do not add findings to the graph --> skip check
+        if not isinstance(resource, AwsInspectorFinding):
+            continue
         assert count_kind(resource) > 0, f"No instances of {resource.__name__} found"
 
     # make sure all threads have been joined
     assert len(threading.enumerate()) == 1
     # ensure the correct number of nodes and edges
-    assert count_kind(AwsResource) == 262
-    assert len(account_collector.graph.edges) == 576
+    assert count_kind(AwsResource) == 261
+    assert len(account_collector.graph.edges) == 575
     assert len(account_collector.graph.deferred_edges) == 2
     for node in account_collector.graph.nodes:
         if isinstance(node, AwsRegion):
