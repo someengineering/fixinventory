@@ -31,7 +31,7 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
 
     for resource in all_resources:
         # we do not add findings to the graph --> skip check
-        if not isinstance(resource, AwsInspectorFinding):
+        if issubclass(resource, AwsInspectorFinding):
             continue
         assert count_kind(resource) > 0, f"No instances of {resource.__name__} found"
 
