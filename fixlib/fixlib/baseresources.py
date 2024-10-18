@@ -296,6 +296,8 @@ class BaseResource(ABC):
     _categories: ClassVar[List[Category]] = []
     # Link to the cloud providers product documentation of this resource kind.
     _docs_url: ClassVar[Optional[str]] = None
+    # Mark this class as exportable. Use False for internal model classes without instances.
+    _model_export: ClassVar[bool] = True
 
     ################################################################################
     # Instance Variables
