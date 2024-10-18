@@ -127,6 +127,9 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
             AwsApiSpec(service_name, "get-repository-policy"),
         ]
 
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        self.set_findings(builder)
+
 
 # @define(eq=False, slots=False)
 # class AwsEcrImageIdentifier:

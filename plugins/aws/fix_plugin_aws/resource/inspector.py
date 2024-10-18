@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
 from boto3.exceptions import Boto3Error
@@ -9,9 +9,9 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.ecr import AwsEcrRepository
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from fixlib.baseresources import ModelReference, PhantomBaseResource
-from fixlib.json_bender import Bender, S, ForallBend, Bend, F
+from fixlib.baseresources import ModelReference, PhantomBaseResource, Severity, Finding
 from fixlib.types import Json
+from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "inspector2"
@@ -403,20 +403,67 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     type: Optional[str] = field(default=None, metadata={"description": "The type of the finding. The type value determines the valid values for resource in your request. For more information, see Finding types in the Amazon Inspector user guide."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the finding was last updated at."})  # fmt: skip
 
+    def parse_finding(self, source: Json) -> Finding:
+        severity_mapping = {
+            "INFORMATIONAL": Severity.info,
+            "LOW": Severity.low,
+            "MEDIUM": Severity.medium,
+            "HIGH": Severity.high,
+            "CRITICAL": Severity.critical,
+        }
+        finding_title = self.safe_name
+        if not self.finding_severity:
+            finding_severity = Severity.unknown
+        else:
+            finding_severity = severity_mapping.get(self.finding_severity, Severity.unknown)
+        description = self.description
+        remidiation = ""
+        if self.remediation and self.remediation.recommendation:
+            remidiation = self.remediation.recommendation.text or ""
+        updated_at = self.updated_at
+        details = source.get("packageVulnerabilityDetails", {}) | source.get("codeVulnerabilityDetails", {})
+        return Finding(finding_title, finding_severity, description, remidiation, updated_at, details)
+
     @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_resources(cls, builder: GraphBuilder) -> None:
+        def check_type_and_adjust_id(
+            class_type: Optional[str], class_id: Optional[str]
+        ) -> Tuple[Optional[str], Optional[str]]:
+            if not class_id or not class_type:
+                return None, None
+            match class_type:
+                case "AWS_LAMBDA_FUNCTION":
+                    # remove lambda's version from arn
+                    lambda_arn = class_id.rsplit(":", 1)[0]
+                    return AwsLambdaFunction.__name__, lambda_arn
+                case "AWS_EC2_INSTANCE":
+                    return AwsEc2Instance.__name__, class_id
+                case "AWS_ECR_REPOSITORY":
+                    return AwsEcrRepository.__name__, class_id
+                case _:
+                    return None, None
+
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
         if spec := cls.api_spec:
             try:
-                items = builder.client.list(
+                for item in builder.client.list(
                     aws_service=spec.service,
                     action=spec.api_action,
                     result_name=spec.result_property,
                     expected_errors=spec.expected_errors,
                     filterCriteria={"awsAccountId": [{"comparison": "EQUALS", "value": f"{builder.account.id}"}]},
-                )
-                cls.collect(items, builder)
+                ):
+                    if finding := AwsInspectorFinding.from_api(item, builder):
+                        if finding_resources := finding.finding_resources:
+                            for fr in finding_resources:
+                                class_name, class_id = check_type_and_adjust_id(fr.type, fr.id)
+                                if class_name and class_id:
+                                    adjusted_finding = finding.parse_finding(item)
+                                    builder.add_finding(
+                                        "inspector", class_name, fr.region or "global", class_id, adjusted_finding
+                                    )
+
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.error(msg, log)
@@ -425,34 +472,6 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
                 builder.core_feedback.info(msg, log)
                 raise
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if finding_resources := self.finding_resources:
-            for finding_resource in finding_resources:
-                if rid := finding_resource.id:
-                    match finding_resource.type:
-                        case "AWS_LAMBDA_FUNCTION":
-                            # remove lambda's version from arn to connect by arn
-                            lambda_arn = rid.rsplit(":", 1)[0]
-                            builder.add_edge(
-                                self,
-                                clazz=AwsLambdaFunction,
-                                arn=lambda_arn,
-                            )
-                        case "AWS_EC2_INSTANCE":
-                            builder.add_edge(
-                                self,
-                                clazz=AwsEc2Instance,
-                                id=rid,
-                            )
-                        case "AWS_ECR_REPOSITORY":
-                            builder.add_edge(
-                                self,
-                                clazz=AwsEcrRepository,
-                                id=rid,
-                            )
-                        case _:
-                            continue
 
 
 resources: List[Type[AwsResource]] = [AwsInspectorFinding]

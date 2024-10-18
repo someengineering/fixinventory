@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import logging
 import re
 from abc import ABC
@@ -27,6 +28,8 @@ from fixlib.baseresources import (
     BaseVolumeType,
     Cloud,
     EdgeType,
+    Finding,
+    Assessment,
     ModelReference,
     PhantomBaseResource,
     BaseOrganizationalRoot,
@@ -168,6 +171,37 @@ class AwsResource(BaseResource, ABC):
         For resources with custom handling, you need to override this method and define the service name explicitly.
         """
         return cls.api_spec.service if cls.api_spec else None
+
+    def set_findings(self, builder: GraphBuilder, to_check: str = "id") -> None:
+        """
+        Set the assessment findings for the resource based on its ID or ARN.
+
+        Args:
+            builder (GraphBuilder): The builder object that holds assessment findings.
+            to_check (str): A string indicating whether to use "id" or "arn" to check findings.
+            Default is "id".
+        """
+        # Ensure this method is only applied to subclasses of AwsResource, not AwsResource itself
+        if isinstance(self, AwsResource) and self.__class__ == AwsResource:
+            return
+
+        id_or_arn = ""
+
+        if to_check == "arn":
+            if not self.arn:
+                return
+            id_or_arn = self.arn
+        elif to_check == "id":
+            id_or_arn = self.id
+        else:
+            return
+        for provider in ["inspector", "guard_duty"]:
+            provider_findings = builder._assessment_findings.get(
+                (provider, self.region().id, self.__class__.__name__), {}
+            ).get(id_or_arn, [])
+            if provider_findings:
+                # Set the findings in the resource's _assessments dictionary
+                self._assessments.append(Assessment(provider, provider_findings))
 
     def set_arn(
         self,
@@ -469,7 +503,19 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
         self.__builder_cache = {region.safe_name: self}
-
+        self._assessment_findings: Dict[Tuple[str, str, str], Dict[str, List[Finding]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        """
+        AWS assessment findings that hold a list of AwsInspectorFinding or AwsGuardDutyFinding.
+         The outer dictionary's keys are tuples:
+          - The first element is the assessment provider (str).
+          - The second element is the region of the finding (str).
+          - The third element is the class name (str).
+         The values are dictionaries where:
+          - The keys are class IDs (str).
+          - The values are lists of Finding instances.
+        """
         if last_run_started_at:
             now = utc()
 
@@ -498,6 +544,9 @@ class GraphBuilder:
 
     def suppress(self, message: str) -> SuppressWithFeedback:
         return SuppressWithFeedback(message, self.core_feedback, log)
+
+    def add_finding(self, provider: str, class_name: str, region: str, class_id: str, finding: Finding) -> None:
+        self._assessment_findings[(provider, region, class_name)][class_id].append(finding)
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
