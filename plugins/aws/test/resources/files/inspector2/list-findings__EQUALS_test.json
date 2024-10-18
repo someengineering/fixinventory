@@ -1,0 +1,237 @@
+{
+    "findings": [
+        {
+            "awsAccountId": "foo",
+            "codeVulnerabilityDetails": {
+                "cwes": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "detectorId": "foo",
+                "detectorName": "foo",
+                "detectorTags": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "filePath": {
+                    "endLine": 123,
+                    "fileName": "foo",
+                    "filePath": "foo",
+                    "startLine": 123
+                },
+                "referenceUrls": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "ruleId": "foo",
+                "sourceLambdaLayerArn": "foo"
+            },
+            "description": "foo",
+            "epss": {
+                "score": 1.234
+            },
+            "exploitAvailable": "NO",
+            "exploitabilityDetails": {
+                "lastKnownExploitAt": "2024-10-14T18:00:11Z"
+            },
+            "findingArn": "foo",
+            "firstObservedAt": "2024-10-14T18:00:11Z",
+            "fixAvailable": "NO",
+            "inspectorScore": 1.234,
+            "inspectorScoreDetails": {
+                "adjustedCvss": {
+                    "adjustments": [
+                        {
+                            "metric": "foo",
+                            "reason": "foo"
+                        },
+                        {
+                            "metric": "foo",
+                            "reason": "foo"
+                        },
+                        {
+                            "metric": "foo",
+                            "reason": "foo"
+                        }
+                    ],
+                    "cvssSource": "foo",
+                    "score": 1.234,
+                    "scoreSource": "foo",
+                    "scoringVector": "foo",
+                    "version": "foo"
+                }
+            },
+            "lastObservedAt": "2024-10-14T18:00:11Z",
+            "networkReachabilityDetails": {
+                "networkPath": {
+                    "steps": [
+                        {
+                            "componentId": "foo",
+                            "componentType": "foo"
+                        },
+                        {
+                            "componentId": "foo",
+                            "componentType": "foo"
+                        },
+                        {
+                            "componentId": "foo",
+                            "componentType": "foo"
+                        }
+                    ]
+                },
+                "openPortRange": {
+                    "begin": 123,
+                    "end": 123
+                },
+                "protocol": "UDP"
+            },
+            "packageVulnerabilityDetails": {
+                "cvss": [
+                    {
+                        "baseScore": 1.234,
+                        "scoringVector": "foo",
+                        "source": "foo",
+                        "version": "foo"
+                    },
+                    {
+                        "baseScore": 1.234,
+                        "scoringVector": "foo",
+                        "source": "foo",
+                        "version": "foo"
+                    },
+                    {
+                        "baseScore": 1.234,
+                        "scoringVector": "foo",
+                        "source": "foo",
+                        "version": "foo"
+                    }
+                ],
+                "referenceUrls": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "relatedVulnerabilities": [
+                    "foo",
+                    "foo",
+                    "foo"
+                ],
+                "source": "foo",
+                "sourceUrl": "https://example.com",
+                "vendorCreatedAt": "2024-10-14T18:00:11Z",
+                "vendorSeverity": "foo",
+                "vendorUpdatedAt": "2024-10-14T18:00:11Z",
+                "vulnerabilityId": "foo",
+                "vulnerablePackages": [
+                    {
+                        "arch": "foo",
+                        "epoch": 123,
+                        "filePath": "foo",
+                        "fixedInVersion": "foo",
+                        "name": "foo",
+                        "packageManager": "CARGO",
+                        "release": "foo",
+                        "remediation": "foo",
+                        "sourceLambdaLayerArn": "foo",
+                        "sourceLayerHash": "foo",
+                        "version": "foo"
+                    }
+                ]
+            },
+            "remediation": {
+                "recommendation": {
+                    "Url": "https://example.com",
+                    "text": "foo"
+                }
+            },
+            "resources": [
+                {
+                    "details": {
+                        "awsEc2Instance": {
+                            "iamInstanceProfileArn": "foo",
+                            "imageId": "foo",
+                            "ipV4Addresses": [
+                                "foo",
+                                "foo",
+                                "foo"
+                            ],
+                            "ipV6Addresses": [
+                                "foo",
+                                "foo",
+                                "foo"
+                            ],
+                            "keyName": "foo",
+                            "launchedAt": "2024-10-14T18:00:11Z",
+                            "platform": "foo",
+                            "subnetId": "foo",
+                            "type": "foo",
+                            "vpcId": "foo"
+                        },
+                        "awsEcrContainerImage": {
+                            "architecture": "foo",
+                            "author": "foo",
+                            "imageHash": "foo",
+                            "imageTags": [
+                                "foo",
+                                "foo",
+                                "foo"
+                            ],
+                            "platform": "foo",
+                            "pushedAt": "2024-10-14T18:00:11Z",
+                            "registry": "foo",
+                            "repositoryName": "foo"
+                        },
+                        "awsLambdaFunction": {
+                            "architectures": [
+                                "ARM64",
+                                "ARM64",
+                                "ARM64"
+                            ],
+                            "codeSha256": "foo",
+                            "executionRoleArn": "foo",
+                            "functionName": "foo",
+                            "lastModifiedAt": "2024-10-14T18:00:11Z",
+                            "layers": [
+                                "foo",
+                                "foo",
+                                "foo"
+                            ],
+                            "packageType": "ZIP",
+                            "runtime": "NODEJS_12_X",
+                            "version": "foo",
+                            "vpcConfig": {
+                                "securityGroupIds": [
+                                    "foo",
+                                    "foo",
+                                    "foo"
+                                ],
+                                "subnetIds": [
+                                    "foo",
+                                    "foo",
+                                    "foo"
+                                ],
+                                "vpcId": "foo"
+                            }
+                        }
+                    },
+                    "id": "i-1",
+                    "partition": "foo",
+                    "region": "global",
+                    "tags": {
+                        "0": "foo"
+                    },
+                    "type": "AWS_EC2_INSTANCE"
+                }
+            ],
+            "severity": "LOW",
+            "status": "SUPPRESSED",
+            "title": "foo",
+            "type": "PACKAGE_VULNERABILITY",
+            "updatedAt": "2024-10-14T18:00:11Z"
+        }
+    ],
+    "nextToken": "foo"
+}

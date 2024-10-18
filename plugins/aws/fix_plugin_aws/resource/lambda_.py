@@ -404,6 +404,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction, HasResourcePolicy):
                 clazz=AwsKmsKey,
                 arn=self.function_kms_key_arn,
             )
+        self.set_findings(builder, "arn")
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

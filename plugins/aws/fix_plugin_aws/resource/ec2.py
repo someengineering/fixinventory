@@ -1523,6 +1523,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
         if iam_profile := self.instance_iam_instance_profile:
             builder.add_edge(self, reverse=True, clazz=AwsIamInstanceProfile, arn=iam_profile.arn)
 
+        self.set_findings(builder)
+
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED:
             self.log("Instance is already terminated")
