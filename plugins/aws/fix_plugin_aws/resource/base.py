@@ -487,6 +487,7 @@ class GraphBuilder:
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
+        assessment_findings: Optional[Dict[Tuple[str, str, str], Dict[str, List[Finding]]]] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -503,8 +504,8 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
         self.__builder_cache = {region.safe_name: self}
-        self._assessment_findings: Dict[Tuple[str, str, str], Dict[str, List[Finding]]] = defaultdict(
-            lambda: defaultdict(list)
+        self._assessment_findings: Dict[Tuple[str, str, str], Dict[str, List[Finding]]] = (
+            assessment_findings or defaultdict(lambda: defaultdict(list))
         )
         """
         AWS assessment findings that hold a list of AwsInspectorFinding or AwsGuardDutyFinding.
@@ -754,6 +755,7 @@ class GraphBuilder:
             self.graph_nodes_access,
             self.graph_edges_access,
             self.last_run_started_at,
+            self._assessment_findings,
         )
         self.__builder_cache[region.safe_name] = builder
         return builder
