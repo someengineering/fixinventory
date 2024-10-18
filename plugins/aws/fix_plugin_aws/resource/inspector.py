@@ -451,6 +451,8 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
                                 clazz=AwsEcrRepository,
                                 id=rid,
                             )
+                        case _:
+                            continue
 
 
 resources: List[Type[AwsResource]] = [AwsInspectorFinding]
