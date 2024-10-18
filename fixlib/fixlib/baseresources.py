@@ -251,15 +251,16 @@ class Severity(StrEnum):
     medium = "medium"
     high = "high"
     critical = "critical"
+    unknown = "unknown"
 
 
 @define(slots=True)
 class Finding:
     title: str
-    severity: Severity = Severity.medium
+    severity: Severity = Severity.unknown
     description: Optional[str] = None
     remediation: Optional[str] = None
-    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     details: Optional[Json] = None
 
 
