@@ -174,12 +174,10 @@ def load_plugin_classes(*base: Type[BaseResource]) -> Set[Type[BaseResource]]:
         *dynamic_import("fix_plugin_github.resources.GithubResource"),
         *dynamic_import("fix_plugin_k8s.resources.KubernetesResource"),
         *dynamic_import("fix_plugin_onelogin.OneLoginResource"),
-        *dynamic_import("fix_plugin_onprem.resources.OnpremResource"),
         *dynamic_import("fix_plugin_posthog.resources.PosthogResource"),
         *dynamic_import("fix_plugin_random.resources.RandomResource"),
         *dynamic_import("fix_plugin_scarf.resources.ScarfResource"),
         *dynamic_import("fix_plugin_slack.resources.SlackResource"),
-        *dynamic_import("fix_plugin_vsphere.resources.VSphereResource"),
         *base,
     }
 
