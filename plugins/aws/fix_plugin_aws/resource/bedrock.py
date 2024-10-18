@@ -929,7 +929,6 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
             "default": [
                 AwsBedrockGuardrail.kind,
                 AwsKmsKey.kind,
-                "aws_bedrock_agent_version",
                 "aws_bedrock_agent_knowledge_base",
             ]
         },
