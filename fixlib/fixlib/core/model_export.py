@@ -69,7 +69,7 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
     def check(to_check: type) -> None:
         clazz = optional_origin(to_check)
         if clazz in all_classes:
-            pass
+            return
         elif is_dict(clazz):
             key_type, value_type = dict_types(to_check)
             check(key_type)
@@ -77,6 +77,8 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
         elif is_collection(clazz):
             check(type_arg(to_check))
         elif attrs.has(clazz):
+            if getattr(clazz, "_model_export", True) is False:
+                return
             resolve_types(clazz)
             all_classes.add(clazz)
             for mro_clazz in clazz.mro()[1:]:
