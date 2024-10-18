@@ -2200,7 +2200,7 @@ class AzureComputeSshPublicKey(MicrosoftResource, BaseKeyPair):
     _kind_service: ClassVar[Optional[str]] = service_name
     _kind_description: ClassVar[str] = "Azure Compute SSH Public Key is a cryptographic key used for secure authentication when connecting to Azure virtual machines via SSH. It provides a more secure alternative to password-based authentication, reducing the risk of unauthorized access. Users can generate or import SSH key pairs and associate them with Azure VMs for remote access and management."  # fmt: skip
     _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/virtual-machines/linux/ssh-keys-portal"
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "compute"}
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service="compute",
         version="2023-03-01",
