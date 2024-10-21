@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import logging
 import re
 from abc import ABC
@@ -27,6 +28,7 @@ from fixlib.baseresources import (
     BaseVolumeType,
     Cloud,
     EdgeType,
+    Finding,
     ModelReference,
     PhantomBaseResource,
     BaseOrganizationalRoot,
@@ -62,6 +64,11 @@ TemplateFn: Dict[str, Callable[[AwsResource], Optional[str]]] = {
     "region": lambda n: n.region().safe_name,
     "region_id": lambda n: n.region().id,
 }
+
+# Type alias for a tuple representing provider, region, and resource type
+AssessmentKey = Tuple[str, str, str]
+# Type alias for the inner dictionary that maps resource ID to a list of findings
+ResourceFindings = Dict[str, List[Finding]]
 
 
 def parse_json(
@@ -453,6 +460,7 @@ class GraphBuilder:
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
+        assessment_findings: Optional[Dict[AssessmentKey, ResourceFindings]] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -469,6 +477,9 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
         self.__builder_cache = {region.safe_name: self}
+        self._assessment_findings = (
+            assessment_findings if assessment_findings is not None else defaultdict(lambda: defaultdict(list))
+        )
 
         if last_run_started_at:
             now = utc()
@@ -498,6 +509,9 @@ class GraphBuilder:
 
     def suppress(self, message: str) -> SuppressWithFeedback:
         return SuppressWithFeedback(message, self.core_feedback, log)
+
+    def add_finding(self, provider: str, class_name: str, region: str, class_id: str, finding: Finding) -> None:
+        self._assessment_findings[(provider, region, class_name)][class_id].append(finding)
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -705,6 +719,7 @@ class GraphBuilder:
             self.graph_nodes_access,
             self.graph_edges_access,
             self.last_run_started_at,
+            self._assessment_findings,
         )
         self.__builder_cache[region.safe_name] = builder
         return builder
