@@ -7,13 +7,7 @@ from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
 
-# from fix_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2Volume
-# from fix_plugin_aws.resource.ecs import AwsEcsCluster
-# from fix_plugin_aws.resource.eks import AwsEksCluster
-# from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-# from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
-# from fix_plugin_aws.resource.s3 import AwsS3Bucket
-from fixlib.baseresources import PhantomBaseResource
+from fixlib.baseresources import Assessment, Finding, PhantomBaseResource, Severity
 from fixlib.json_bender import F, S, AsInt, Bend, Bender, ForallBend
 from fixlib.types import Json
 from fixlib.utils import chunks, utc_str
@@ -1227,20 +1221,6 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_findings.html"
-    # _reference_kinds: ClassVar[ModelReference] = {
-    #     "successors": {
-    #         "default": [
-    #             AwsS3Bucket.kind,
-    #             AwsEc2Instance.kind,
-    #             AwsEksCluster.kind,
-    #             AwsEc2Volume.kind,
-    #             AwsEcsCluster.kind,
-    #             AwsRdsInstance.kind,
-    #             AwsRdsCluster.kind,
-    #             AwsLambdaFunction.kind,
-    #         ]
-    #     }
-    # }
     _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/guardduty/home?region={region_id}#/findings?fId={id}&macros=current",
     }
@@ -1279,19 +1259,48 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
     def service_name(cls) -> str:
         return service_name
 
+    @staticmethod
+    def set_findings(builder: GraphBuilder, resource_to_set: AwsResource, to_check: str = "id") -> None:
+        """
+        Set the assessment findings for the resource based on its ID or ARN.
+        """
+        if not isinstance(resource_to_set, AwsResource):
+            return
+
+        id_or_arn = ""
+
+        if to_check == "arn":
+            if not resource_to_set.arn:
+                return
+            id_or_arn = resource_to_set.arn
+        elif to_check == "id":
+            id_or_arn = resource_to_set.id
+        elif to_check == "name":
+            id_or_arn = resource_to_set.safe_name
+        else:
+            return
+        provider_findings = builder._assessment_findings.get(
+            ("guard_duty", resource_to_set.region().id, resource_to_set.__class__.__name__), {}
+        ).get(id_or_arn, [])
+        if provider_findings:
+            # Set the findings in the resource's _assessments dictionary
+            resource_to_set._assessments.append(Assessment("guard_duty", provider_findings))
+
     def parse_finding(self, source: Json) -> Finding:
-        SEVERITY_MAPPING = {
-            1: "INFORMATIONAL",  # Minimal impact
-            2: "INFORMATIONAL",  # Minor impact
-            3: "LOW",  # Notable but manageable
-            4: "LOW",  # Moderate
-            5: "MEDIUM",  # Considerable
-            6: "MEDIUM",  # Serious
-            7: "HIGH",  # Severe impact
-            8: "HIGH",  # Critical impact
-            9: "CRITICAL",  # Extremely critical
-            10: "CRITICAL",  # Catastrophic
-        }
+        def get_severity() -> str:
+            if not self.finding_severity:
+                return "MEDIUM"
+            if self.finding_severity <= 2:
+                return "INFORMATIONAL"
+            elif self.finding_severity <= 4:
+                return "LOW"
+            elif self.finding_severity <= 6:
+                return "MEDIUM"
+            elif self.finding_severity <= 8:
+                return "HIGH"
+            else:
+                return "CRITICAL"
+
         severity_map = {
             "INFORMATIONAL": Severity.info,
             "LOW": Severity.low,
@@ -1303,14 +1312,11 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
         if not self.finding_severity:
             finding_severity = Severity.medium
         else:
-            finding_severity = severity_mapping.get(self.finding_severity, Severity.medium)
+            finding_severity = severity_map.get(get_severity(), Severity.medium)
         description = self.description
-        remidiation = ""
-        if self.remediation and self.remediation.recommendation:
-            remidiation = self.remediation.recommendation.text or ""
-        updated_at = self.updated_at
-        details = source.get("packageVulnerabilityDetails", {}) | source.get("codeVulnerabilityDetails", {})
-        return Finding(finding_title, finding_severity, description, remidiation, updated_at, details)
+        updated_at = self.mtime
+        details = source.get("Service", {})
+        return Finding(finding_title, finding_severity, description, None, updated_at, details)
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
@@ -1406,61 +1412,6 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
             msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
             builder.core_feedback.info(msg, log)
             raise
-
-    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-    #     resource = self.finding_resource
-    #     if resource:
-    #         for s3_bucket_detail in resource.s3_bucket_details or []:
-    #             if s3_bucket_detail.name:
-    #                 builder.add_edge(self, clazz=AwsS3Bucket, name=s3_bucket_detail.name)
-    #         if resource.instance_details and resource.instance_details.instance_id:
-    #             builder.add_edge(
-    #                 self,
-    #                 clazz=AwsEc2Instance,
-    #                 id=resource.instance_details.instance_id,
-    #             )
-    #         if resource.eks_cluster_details and resource.eks_cluster_details.arn:
-    #             builder.add_edge(
-    #                 self,
-    #                 clazz=AwsEksCluster,
-    #                 arn=resource.eks_cluster_details.arn,
-    #             )
-
-    #         if resource.ebs_volume_details:
-    #             for vol_detail in resource.ebs_volume_details.scanned_volume_details or []:
-    #                 if vol_detail.volume_arn:
-    #                     builder.add_edge(self, clazz=AwsEc2Volume, arn=vol_detail.volume_arn)
-    #             for vol_detail in resource.ebs_volume_details.skipped_volume_details or []:
-    #                 if vol_detail.volume_arn:
-    #                     builder.add_edge(self, clazz=AwsEc2Volume, arn=vol_detail.volume_arn)
-
-    #         if resource.ecs_cluster_details and resource.ecs_cluster_details.arn:
-    #             builder.add_edge(
-    #                 self,
-    #                 clazz=AwsEcsCluster,
-    #                 arn=resource.ecs_cluster_details.arn,
-    #             )
-
-    #         if resource.rds_db_instance_details:
-    #             if resource.rds_db_instance_details.db_instance_arn:
-    #                 builder.add_edge(
-    #                     self,
-    #                     clazz=AwsRdsInstance,
-    #                     arn=resource.rds_db_instance_details.db_instance_arn,
-    #                 )
-    #             if resource.rds_db_instance_details.db_cluster_identifier:
-    #                 builder.add_edge(
-    #                     self,
-    #                     clazz=AwsRdsCluster,
-    #                     id=resource.rds_db_instance_details.db_cluster_identifier,
-    #                 )
-
-    #         if resource.lambda_details and resource.lambda_details.function_name:
-    #             builder.add_edge(
-    #                 self,
-    #                 clazz=AwsLambdaFunction,
-    #                 name=resource.lambda_details.function_name,
-    #             )
 
 
 resources: List[Type[AwsResource]] = [AwsGuardDutyFinding]
