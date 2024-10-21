@@ -7,8 +7,9 @@ from attrs import define, field
 from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.inspector import AwsInspectorFinding
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import HasResourcePolicy, PolicySource, PolicySourceKind
+from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
 from fixlib.json import sort_json
 from fixlib.json_bender import Bender, S, Bend
 from fixlib.types import Json
@@ -34,6 +35,7 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecr/repositories/{name}?region={region}", "arn_tpl": "arn:{partition}:ecr:{region}:{account}:repository/{name}"}  # fmt: skip
+    _reference_kinds: ClassVar[ModelReference] = {}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr", "describe-repositories", "repositories")
     public_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr-public", "describe-repositories", "repositories")
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -126,6 +128,9 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
             AwsApiSpec(service_name, "get-lifecycle-policy"),
             AwsApiSpec(service_name, "get-repository-policy"),
         ]
+
+    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+        AwsInspectorFinding.set_findings(builder, self)
 
 
 # @define(eq=False, slots=False)

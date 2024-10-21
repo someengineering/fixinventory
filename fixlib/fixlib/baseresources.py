@@ -259,7 +259,7 @@ class Finding:
     severity: Severity = Severity.medium
     description: Optional[str] = None
     remediation: Optional[str] = None
-    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     details: Optional[Json] = None
 
 
