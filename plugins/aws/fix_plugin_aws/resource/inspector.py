@@ -402,9 +402,6 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         """
         Set the assessment findings for the resource based on its ID or ARN.
         """
-        if not isinstance(resource_to_set, AwsResource):
-            return
-
         id_or_arn = ""
 
         if to_check == "arn":
