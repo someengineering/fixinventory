@@ -29,7 +29,6 @@ from fixlib.baseresources import (
     Cloud,
     EdgeType,
     Finding,
-    Assessment,
     ModelReference,
     PhantomBaseResource,
     BaseOrganizationalRoot,
@@ -478,8 +477,8 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
         self.__builder_cache = {region.safe_name: self}
-        self._assessment_findings: Dict[AssessmentKey, ResourceFindings] = assessment_findings or defaultdict(
-            lambda: defaultdict(list)
+        self._assessment_findings = (
+            assessment_findings if assessment_findings is not None else defaultdict(lambda: defaultdict(list))
         )
 
         if last_run_started_at:

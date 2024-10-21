@@ -6,10 +6,7 @@ from attrs import define, field
 from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from fix_plugin_aws.resource.ec2 import AwsEc2Instance
-from fix_plugin_aws.resource.ecr import AwsEcrRepository
-from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from fixlib.baseresources import Assessment, ModelReference, PhantomBaseResource, Severity, Finding
+from fixlib.baseresources import Assessment, PhantomBaseResource, Severity, Finding
 from fixlib.types import Json
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 
@@ -345,9 +342,6 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     _kind_service: ClassVar[str] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/inspector/latest/user/findings-understanding.html"
-    _reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": [AwsEc2Instance.kind, AwsEcrRepository.kind, AwsLambdaFunction.kind]},
-    }
     _aws_metadata: ClassVar[Dict[str, Any]] = {
         "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/inspector/v2/home?region={region_id}#/findings/all",
     }
@@ -454,6 +448,11 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         def check_type_and_adjust_id(
             class_type: Optional[str], class_id: Optional[str]
         ) -> Tuple[Optional[str], Optional[str]]:
+            # to avoid circular import, defined here
+            from fix_plugin_aws.resource.ec2 import AwsEc2Instance
+            from fix_plugin_aws.resource.ecr import AwsEcrRepository
+            from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
+
             if not class_id or not class_type:
                 return None, None
             match class_type:
