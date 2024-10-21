@@ -9,7 +9,7 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.ecr import AwsEcrRepository
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from fixlib.baseresources import ModelReference, PhantomBaseResource, Severity, Finding
+from fixlib.baseresources import Assessment, ModelReference, PhantomBaseResource, Severity, Finding
 from fixlib.types import Json
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 
@@ -403,6 +403,31 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     type: Optional[str] = field(default=None, metadata={"description": "The type of the finding. The type value determines the valid values for resource in your request. For more information, see Finding types in the Amazon Inspector user guide."})  # fmt: skip
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the finding was last updated at."})  # fmt: skip
 
+    @staticmethod
+    def set_findings(builder: GraphBuilder, resource_to_set: AwsResource, to_check: str = "id") -> None:
+        """
+        Set the assessment findings for the resource based on its ID or ARN.
+        """
+        if not isinstance(resource_to_set, AwsResource):
+            return
+
+        id_or_arn = ""
+
+        if to_check == "arn":
+            if not resource_to_set.arn:
+                return
+            id_or_arn = resource_to_set.arn
+        elif to_check == "id":
+            id_or_arn = resource_to_set.id
+        else:
+            return
+        provider_findings = builder._assessment_findings.get(
+            ("inspector", resource_to_set.region().id, resource_to_set.__class__.__name__), {}
+        ).get(id_or_arn, [])
+        if provider_findings:
+            # Set the findings in the resource's _assessments dictionary
+            resource_to_set._assessments.append(Assessment("inspector", provider_findings))
+
     def parse_finding(self, source: Json) -> Finding:
         severity_mapping = {
             "INFORMATIONAL": Severity.info,
@@ -413,9 +438,9 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         }
         finding_title = self.safe_name
         if not self.finding_severity:
-            finding_severity = Severity.unknown
+            finding_severity = Severity.medium
         else:
-            finding_severity = severity_mapping.get(self.finding_severity, Severity.unknown)
+            finding_severity = severity_mapping.get(self.finding_severity, Severity.medium)
         description = self.description
         remidiation = ""
         if self.remediation and self.remediation.recommendation:

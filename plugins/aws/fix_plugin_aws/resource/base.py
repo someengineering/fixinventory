@@ -172,37 +172,6 @@ class AwsResource(BaseResource, ABC):
         """
         return cls.api_spec.service if cls.api_spec else None
 
-    def set_findings(self, builder: GraphBuilder, to_check: str = "id") -> None:
-        """
-        Set the assessment findings for the resource based on its ID or ARN.
-
-        Args:
-            builder (GraphBuilder): The builder object that holds assessment findings.
-            to_check (str): A string indicating whether to use "id" or "arn" to check findings.
-            Default is "id".
-        """
-        # Ensure this method is only applied to subclasses of AwsResource, not AwsResource itself
-        if isinstance(self, AwsResource) and self.__class__ == AwsResource:
-            return
-
-        id_or_arn = ""
-
-        if to_check == "arn":
-            if not self.arn:
-                return
-            id_or_arn = self.arn
-        elif to_check == "id":
-            id_or_arn = self.id
-        else:
-            return
-        for provider in ["inspector", "guard_duty"]:
-            provider_findings = builder._assessment_findings.get(
-                (provider, self.region().id, self.__class__.__name__), {}
-            ).get(id_or_arn, [])
-            if provider_findings:
-                # Set the findings in the resource's _assessments dictionary
-                self._assessments.append(Assessment(provider, provider_findings))
-
     def set_arn(
         self,
         builder: GraphBuilder,

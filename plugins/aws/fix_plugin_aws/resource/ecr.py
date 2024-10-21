@@ -7,6 +7,7 @@ from attrs import define, field
 from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.inspector import AwsInspectorFinding
 from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
 from fixlib.json import sort_json
@@ -129,7 +130,7 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
         ]
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        self.set_findings(builder)
+        AwsInspectorFinding.set_findings(builder, self)
 
 
 # @define(eq=False, slots=False)
