@@ -8,7 +8,7 @@
             "Description": "foo",
             "Id": "foo",
             "Partition": "foo",
-            "Region": "foo",
+            "Region": "global",
             "Resource": {
                 "AccessKeyDetails": {
                     "AccessKeyId": "foo",
@@ -83,7 +83,7 @@
                     },
                     "ImageDescription": "foo",
                     "ImageId": "foo",
-                    "InstanceId": "foo",
+                    "InstanceId": "i-1",
                     "InstanceState": "foo",
                     "InstanceType": "foo",
                     "OutpostArn": "foo",
