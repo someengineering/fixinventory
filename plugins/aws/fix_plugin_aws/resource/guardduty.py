@@ -1264,24 +1264,21 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
         """
         Set the assessment findings for the resource based on its ID or ARN.
         """
-        if not isinstance(resource_to_set, AwsResource):
-            return
-
-        id_or_arn = ""
+        id_or_arn_or_name = ""
 
         if to_check == "arn":
             if not resource_to_set.arn:
                 return
-            id_or_arn = resource_to_set.arn
+            id_or_arn_or_name = resource_to_set.arn
         elif to_check == "id":
-            id_or_arn = resource_to_set.id
+            id_or_arn_or_name = resource_to_set.id
         elif to_check == "name":
-            id_or_arn = resource_to_set.safe_name
+            id_or_arn_or_name = resource_to_set.safe_name
         else:
             return
         provider_findings = builder._assessment_findings.get(
             ("guard_duty", resource_to_set.region().id, resource_to_set.__class__.__name__), {}
-        ).get(id_or_arn, [])
+        ).get(id_or_arn_or_name, [])
         if provider_findings:
             # Set the findings in the resource's _assessments dictionary
             resource_to_set._assessments.append(Assessment("guard_duty", provider_findings))
@@ -1323,7 +1320,7 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
 
         def check_type_and_adjust_id(
             finding_resource: AwsGuardDutyResource,
-        ) -> Optional[Tuple[str, str]]:
+        ) -> List[Tuple[str, str]]:
             # To avoid circular imports, defined here
             from fix_plugin_aws.resource.ec2 import AwsEc2Instance, AwsEc2Volume
             from fix_plugin_aws.resource.ecs import AwsEcsCluster
@@ -1332,40 +1329,44 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
             from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
             from fix_plugin_aws.resource.s3 import AwsS3Bucket
 
-            # Check and return the first found resource type and its corresponding information
+            finding_resources = []
             if finding_resource.s3_bucket_details:
                 for s3_bucket_detail in finding_resource.s3_bucket_details:
                     if s3_bucket_detail.name:
-                        return (AwsS3Bucket.__name__, s3_bucket_detail.name)
+                        finding_resources.append((AwsS3Bucket.__name__, s3_bucket_detail.name))
 
             if finding_resource.instance_details and finding_resource.instance_details.instance_id:
-                return (AwsEc2Instance.__name__, finding_resource.instance_details.instance_id)
+                finding_resources.append((AwsEc2Instance.__name__, finding_resource.instance_details.instance_id))
 
             if finding_resource.eks_cluster_details and finding_resource.eks_cluster_details.arn:
-                return (AwsEksCluster.__name__, finding_resource.eks_cluster_details.arn)
+                finding_resources.append((AwsEksCluster.__name__, finding_resource.eks_cluster_details.arn))
 
             if finding_resource.ebs_volume_details:
                 for vol_detail in finding_resource.ebs_volume_details.scanned_volume_details or []:
                     if vol_detail.volume_arn:
-                        return (AwsEc2Volume.__name__, vol_detail.volume_arn)
+                        finding_resources.append((AwsEc2Volume.__name__, vol_detail.volume_arn))
 
                 for vol_detail in finding_resource.ebs_volume_details.skipped_volume_details or []:
                     if vol_detail.volume_arn:
-                        return (AwsEc2Volume.__name__, vol_detail.volume_arn)
+                        finding_resources.append((AwsEc2Volume.__name__, vol_detail.volume_arn))
 
             if finding_resource.ecs_cluster_details and finding_resource.ecs_cluster_details.arn:
-                return (AwsEcsCluster.__name__, finding_resource.ecs_cluster_details.arn)
+                finding_resources.append((AwsEcsCluster.__name__, finding_resource.ecs_cluster_details.arn))
 
             if finding_resource.rds_db_instance_details:
-                if finding_resource.rds_db_instance_details.db_instance_arn:
-                    return (AwsRdsInstance.__name__, finding_resource.rds_db_instance_details.db_instance_arn)
+                if finding_resource.rds_db_instance_details.db_instance_identifier:
+                    finding_resources.append(
+                        (AwsRdsInstance.__name__, finding_resource.rds_db_instance_details.db_instance_identifier)
+                    )
                 if finding_resource.rds_db_instance_details.db_cluster_identifier:
-                    return (AwsRdsCluster.__name__, finding_resource.rds_db_instance_details.db_cluster_identifier)
+                    finding_resources.append(
+                        (AwsRdsCluster.__name__, finding_resource.rds_db_instance_details.db_cluster_identifier)
+                    )
 
             if finding_resource.lambda_details and finding_resource.lambda_details.function_name:
-                return (AwsLambdaFunction.__name__, finding_resource.lambda_details.function_name)
+                finding_resources.append((AwsLambdaFunction.__name__, finding_resource.lambda_details.function_name))
 
-            return None
+            return finding_resources
 
         try:
             detector_ids = builder.client.list(
@@ -1394,8 +1395,7 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
                             if instance := AwsGuardDutyFinding.from_api(finding, builder):
                                 if fr := instance.finding_resource:
                                     found_info = check_type_and_adjust_id(fr)
-                                    if found_info:
-                                        class_name, id_or_arn_or_name = found_info
+                                    for class_name, id_or_arn_or_name in found_info:
                                         adjusted_finding = instance.parse_finding(finding)
                                         builder.add_finding(
                                             "guard_duty",

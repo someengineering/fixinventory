@@ -10,6 +10,7 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
+from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fixlib.baseresources import (
     BaseServerlessFunction,
@@ -405,6 +406,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction, HasResourcePolicy):
                 clazz=AwsKmsKey,
                 arn=self.function_kms_key_arn,
             )
+        AwsGuardDutyFinding.set_findings(builder, self, "name")
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

@@ -6,6 +6,7 @@ from concurrent.futures import wait as futures_wait
 from attrs import define, field
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
+from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.utils import TagsValue, ToDict
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
@@ -2110,6 +2111,7 @@ class AwsEcsCluster(EcsTaggable, AwsResource):
                     builder.dependant_node(self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(exc.kms_key_id))
                 if exc.log_configuration and exc.log_configuration.s3_bucket_name:
                     builder.add_edge(self, clazz=AwsS3Bucket, name=exc.log_configuration.s3_bucket_name)
+        AwsGuardDutyFinding.set_findings(builder, self, "arn")
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, cluster=self.arn)
