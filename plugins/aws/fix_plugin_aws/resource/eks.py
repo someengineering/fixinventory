@@ -6,6 +6,7 @@ from attrs import define, field
 
 from fix_plugin_aws.resource.autoscaling import AwsAutoScalingGroup
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec
+from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.resource.iam import AwsIamRole
 from fix_plugin_aws.aws_client import AwsClient
 from fixlib.baseresources import ModelReference, BaseManagedKubernetesClusterProvider
@@ -477,6 +478,7 @@ class AwsEksCluster(EKSTaggable, BaseManagedKubernetesClusterProvider, AwsResour
         builder.dependant_node(
             self, reverse=True, delete_same_as_default=True, clazz=AwsIamRole, arn=self.cluster_role_arn
         )
+        AwsGuardDutyFinding.set_findings(builder, self, "arn")
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(aws_service=self.api_spec.service, action="delete-cluster", result_name=None, name=self.name)

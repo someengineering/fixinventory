@@ -11,6 +11,7 @@ from fix_plugin_aws.collector import (
     called_collect_apis,
     called_mutator_apis,
 )
+from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fixlib.baseresources import BaseResource
@@ -29,6 +30,9 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
         return count
 
     for resource in all_resources:
+        # we do not add findings to the graph --> skip check
+        if issubclass(resource, AwsGuardDutyFinding):
+            continue
         assert count_kind(resource) > 0, f"No instances of {resource.__name__} found"
 
     # make sure all threads have been joined
