@@ -87,7 +87,8 @@ def test_instance_type_handling(builder: GraphBuilder) -> None:
     region1 = AwsRegion(id="us-east-1")
     region2 = AwsRegion(id="us-east-2")
     it = AwsEc2InstanceType(id="t3.micro")
-    builder.global_instance_types[it.safe_name] = it
+    builder.global_instance_types[(region1.id, it.safe_name)] = it
+    builder.global_instance_types[(region2.id, it.safe_name)] = it
     it1: AwsEc2InstanceType = builder.instance_type(region1, it.safe_name)  # type: ignore
     assert it1.region() == region1
     it2: AwsEc2InstanceType = builder.instance_type(region2, it.safe_name)  # type: ignore

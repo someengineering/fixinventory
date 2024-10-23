@@ -6,7 +6,7 @@ from attr import evolve
 from fix_plugin_aws.resource.base import AwsResource
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import GraphBuilder, AwsRegion
-from fix_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Vpc
+from fix_plugin_aws.resource.ec2 import AwsEc2InstanceType, AwsEc2Instance, AwsEc2Vpc
 from fix_plugin_aws.resource.elbv2 import AwsAlb
 from fix_plugin_aws.resource.iam import AwsIamServerCertificate
 from fix_plugin_aws.resource.service_quotas import AwsServiceQuota, RegionalQuotas
@@ -20,11 +20,10 @@ def test_service_quotas() -> None:
 
 
 def test_instance_type_quotas() -> None:
-    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type")
-    AwsEc2InstanceType.collect_resources(builder)
+    _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type", collect_also=[AwsEc2Instance])
     for _, it in builder.global_instance_types.items():
         builder.add_node(it, {})
-    expect_quotas(builder, 3)
+    expect_quotas(builder, 5)
 
 
 def test_volume_type_quotas() -> None:
