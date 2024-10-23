@@ -459,12 +459,12 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     supported_boot_modes: List[str] = field(factory=list)
 
     @classmethod
-    def collect_resource_types(cls, builder: GraphBuilder, *instances) -> None:
+    def collect_resource_types(cls, builder: GraphBuilder, instance_types: List[str]) -> None:
         spec = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
         try:
-            filters = [{"Name": "instance-type", "Values": list(instances)}]
+            filters = [{"Name": "instance-type", "Values": instance_types}]
             items = builder.client.list(
                 aws_service=spec.service,
                 action=spec.api_action,
@@ -1421,15 +1421,18 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
                 )
                 if not items:
                     return
-                ec2_instance_types = set()
+                ec2_instance_types = []
+                checked_types = set()
                 for item in items:
-                    instances = item.get("Instances", [])
-                    for instance in instances:
-                        if "InstanceType" in instance:
-                            ec2_instance_types.add(instance["InstanceType"])
+                    for instance in item.get("Instances", []):
+                        if instance_type := instance.get("InstanceType"):
+                            if instance_type not in checked_types:
+                                ec2_instance_types.append(instance_type)
+                                checked_types.add(instance_type)
                 if ec2_instance_types:
-                    # collect ec2 instance types
-                    AwsEc2InstanceType.collect_resource_types(builder, ec2_instance_types)
+                    builder.submit_work(
+                        service_name, AwsEc2InstanceType.collect_resource_types, builder, ec2_instance_types
+                    )
                 cls.collect(items, builder)
             except Boto3Error as e:
                 msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"

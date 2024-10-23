@@ -108,7 +108,7 @@ def test_delete_keypair() -> None:
 
 
 def test_instance() -> None:
-    round_trip_for(AwsEc2Instance)
+    round_trip_for(AwsEc2Instance, collect_also=[AwsEc2InstanceType])
 
 
 def test_delete_instances() -> None:
