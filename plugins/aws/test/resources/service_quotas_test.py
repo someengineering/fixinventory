@@ -23,7 +23,7 @@ def test_instance_type_quotas() -> None:
     _, builder = round_trip_for(AwsServiceQuota, "usage", "quota_type", collect_also=[AwsEc2Instance])
     for _, it in builder.global_instance_types.items():
         builder.add_node(it, {})
-    expect_quotas(builder, 7)
+    expect_quotas(builder, 5)
 
 
 def test_volume_type_quotas() -> None:
