@@ -391,6 +391,7 @@ class AzureMonitorAlertRule(MicrosoftResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
+        expected_error_codes={"InvalidResourceType": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
