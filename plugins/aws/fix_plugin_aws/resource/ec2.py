@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from typing import ClassVar, Dict, Optional, List, Type, Any
 import copy
 
+from boto3.exceptions import Boto3Error
 from attrs import define, field
-from fix_plugin_aws.aws_client import AwsClient
 
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
 from fix_plugin_aws.resource.cloudwatch import (
@@ -22,6 +22,7 @@ from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.utils import ToDict, TagsValue
+from fix_plugin_aws.aws_client import AwsClient
 from fixlib.baseresources import (
     BaseInstance,
     BaseKeyPair,
@@ -392,7 +393,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
+    # api_spec defined in `collect_resource_types` method
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_ec2_instance"],
@@ -458,6 +459,30 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     supported_boot_modes: List[str] = field(factory=list)
 
     @classmethod
+    def collect_resource_types(cls, builder: GraphBuilder, *instances) -> None:
+        spec = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        try:
+            filters = [{"Name": "instance-type", "Values": list(instances)}]
+            items = builder.client.list(
+                aws_service=spec.service,
+                action=spec.api_action,
+                result_name=spec.result_property,
+                expected_errors=spec.expected_errors,
+                Filters=filters,
+            )
+            cls.collect(items, builder)
+        except Boto3Error as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.error(msg, log)
+            raise
+        except Exception as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.info(msg, log)
+            raise
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             if it := AwsEc2InstanceType.from_api(js, builder):
@@ -466,7 +491,11 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
                 # Only "used" instance type will be stored in the graph
                 # note: not all instance types are returned in any region.
                 # we collect instance types in all regions and make the data unique in the builder
-                builder.global_instance_types[it.safe_name] = it
+                builder.global_instance_types[(builder.region.id, it.safe_name)] = it
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
 
 
 # endregion
@@ -1375,6 +1404,41 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_tpm_support: Optional[str] = field(default=None)
     instance_maintenance_options: Optional[str] = field(default=None)
     instance_user_data: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        if spec := cls.api_spec:
+            try:
+                kwargs = spec.parameter or {}
+                items = builder.client.list(
+                    aws_service=spec.service,
+                    action=spec.api_action,
+                    result_name=spec.result_property,
+                    expected_errors=spec.expected_errors,
+                    **kwargs,
+                )
+                if not items:
+                    return
+                ec2_instance_types = set()
+                for item in items:
+                    instances = item.get("Instances", [])
+                    for instance in instances:
+                        if "InstanceType" in instance:
+                            ec2_instance_types.add(instance["InstanceType"])
+                if ec2_instance_types:
+                    # collect ec2 instance types
+                    AwsEc2InstanceType.collect_resource_types(builder, ec2_instance_types)
+                cls.collect(items, builder)
+            except Boto3Error as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
+                raise
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -3953,7 +4017,7 @@ class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
 # endregion
 
 resources: List[Type[AwsResource]] = [
-    AwsEc2InstanceType,
+    # AwsEc2InstanceType, Collected via AwsEc2Instance
     AwsEc2ElasticIp,
     AwsEc2FlowLog,
     AwsEc2Host,
