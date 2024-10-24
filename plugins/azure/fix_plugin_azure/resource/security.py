@@ -1,15 +1,17 @@
 from datetime import datetime
+import logging
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
-from fixlib.baseresources import ModelReference, PhantomBaseResource
+from fixlib.baseresources import Assessment, Finding, ModelReference, PhantomBaseResource, Severity
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
 service_name = "security"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -127,15 +129,69 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
     additional_data: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'Additional data for the assessment'})  # fmt: skip
     subscription_issue: Optional[bool] = field(default=False, metadata={'description': 'Indicates if the assessment is a subscription issue'})  # fmt: skip
 
-    def post_process(self, builder: GraphBuilder, source: Json) -> None:
-        # mark as subscription issue, when the resource id is the same as the account id
-        if (rid := self.resource_id) and (sub := self._account):
-            self.subscription_issue = rid.split("/")[-1] == sub.id
+    @staticmethod
+    def set_findings(builder: GraphBuilder, resource_to_set: MicrosoftResource, resource_type: str) -> None:
+        """
+        Set the assessment findings for the resource based on its ID or ARN.
+        """
+        if not isinstance(resource_to_set, MicrosoftResource):
+            return
+        provider_findings = builder._assessment_findings.get(resource_type, {}).get(resource_to_set.id.lower(), [])
+        if provider_findings:
+            # Set the findings in the resource's _assessments dictionary
+            resource_to_set._assessments.append(Assessment("security_assessment", provider_findings))
 
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # this will not connect subscription issues.
-        if self.resource_source == "Azure" and (rid := self.resource_id):
-            builder.add_edge(self, clazz=MicrosoftResource, id=rid)
+    def parse_finding(self, source: Json) -> Finding:
+        severity_mapping = {
+            "INFORMATIONAL": Severity.info,
+            "LOW": Severity.low,
+            "MEDIUM": Severity.medium,
+            "HIGH": Severity.high,
+            "CRITICAL": Severity.critical,
+        }
+        remidiation = finding_title = self.safe_name
+        if metadata := source.get("metadata", {}):
+            finding_severity = severity_mapping.get(metadata.get("severity", "").upper(), Severity.medium)
+        else:
+            finding_severity = Severity.medium
+        if status := self.assessment_status:
+            description = status.cause
+            updated_at = status.status_change_date
+        else:
+            description = None
+            updated_at = None
+        details = self.additional_data or {} | source.get("metadata", {})
+        return Finding(finding_title, finding_severity, description, remidiation, updated_at, details)
+
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureSecurityAssessment"]:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
+        if spec := cls.api_spec:
+            try:
+                for item in builder.client.list(spec, **kwargs):
+                    if finding := AzureSecurityAssessment.from_api(item, builder):
+                        if finding.resource_source == "Azure" and (r_type := item.get("ResourceType")):
+                            rid = finding.resource_id
+                            if rid:
+                                adjusted_finding = finding.parse_finding(item)
+                                builder.add_finding(r_type, rid, adjusted_finding)
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+
+        return []
+
+    # def post_process(self, builder: GraphBuilder, source: Json) -> None:
+    #     # mark as subscription issue, when the resource id is the same as the account id
+    #     if (rid := self.resource_id) and (sub := self._account):
+    #         self.subscription_issue = rid.split("/")[-1] == sub.id
+
+    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
+    #     # this will not connect subscription issues.
+    #     if self.resource_source == "Azure" and (rid := self.resource_id):
+    #         builder.add_edge(self, clazz=MicrosoftResource, id=rid)
 
 
 @define(eq=False, slots=False)

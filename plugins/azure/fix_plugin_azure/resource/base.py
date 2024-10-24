@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import logging
 from concurrent.futures import Future
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast, Union, Set
+from typing import Any, ClassVar, Dict, Optional, Tuple, TypeVar, List, Type, Callable, cast, Union, Set
 
 from attr import define, field
 from azure.identity import DefaultAzureCredential
@@ -18,6 +19,7 @@ from fixlib.baseresources import (
     EdgeType,
     BaseAccount,
     BaseRegion,
+    Finding,
     ModelReference,
     PhantomBaseResource,
 )
@@ -50,6 +52,8 @@ def get_client(subscription_id: str) -> MicrosoftClient:
 
 
 T = TypeVar("T")
+# Type alias for the inner dictionary that maps resource ID to a list of findings
+ResourceFindings = Dict[str, List[Finding]]
 
 
 def parse_json(
@@ -782,6 +786,7 @@ class GraphBuilder:
         location: Optional[BaseRegion] = None,
         graph_access_lock: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
+        assessment_findings: Optional[Dict[str, ResourceFindings]] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -796,6 +801,9 @@ class GraphBuilder:
         self.config = config
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
+        self._assessment_findings = (
+            assessment_findings if assessment_findings is not None else defaultdict(lambda: defaultdict(list))
+        )
 
         if last_run_started_at:
             now = utc()
@@ -828,6 +836,9 @@ class GraphBuilder:
         Example: fetching tags of a resource.
         """
         return self.executor.submit_work(service, fn, *args, **kwargs)
+
+    def add_finding(self, resource_type: str, class_id: str, finding: Finding) -> None:
+        self._assessment_findings[resource_type.lower()][class_id.lower()].append(finding)
 
     def node(
         self,
@@ -1002,6 +1013,7 @@ class GraphBuilder:
             graph_access_lock=self.graph_access_lock,
             config=self.config,
             last_run_started_at=self.last_run_started_at,
+            assessment_findings=self._assessment_findings,
         )
 
 

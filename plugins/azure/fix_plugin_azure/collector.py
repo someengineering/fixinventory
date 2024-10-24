@@ -50,7 +50,7 @@ from fix_plugin_azure.resource.postgresql import (
     AzurePostgresqlServerType,
     resources as postgresql_resources,
 )
-from fix_plugin_azure.resource.security import resources as security_resources
+from fix_plugin_azure.resource.security import AzureSecurityAssessment, resources as security_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fix_plugin_azure.resource.web import resources as web_resources
@@ -160,6 +160,10 @@ class MicrosoftBaseCollector:
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, MicrosoftResource):
                     node.connect_in_graph(builder, data.get("source", {}))
+                    if (resource_type := node.extract_part("providers")) and (
+                        resource_type.lower() in builder._assessment_findings
+                    ):
+                        AzureSecurityAssessment.set_findings(builder, node, resource_type)
                 elif isinstance(node, (GraphRoot, Cloud)):
                     pass
                 else:
