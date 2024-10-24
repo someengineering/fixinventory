@@ -27,7 +27,7 @@ def test_security_assessment(
         config, Cloud(id="azure"), azure_subscription, credentials, core_feedback, filter_unused_resources=False
     )
     subscription_collector.collect()
-    instances = list(subscription_collector.graph.search("kind", AzureComputeVirtualMachineScaleSet.kind))  # type: ignore
+    instances = list(subscription_collector.graph.search("kind", AzureComputeVirtualMachineScaleSet.kind))
     assert instances[0]._assessments[0].provider == "security_assessment"
     assert (
         instances[0]._assessments[0].findings[0].title
