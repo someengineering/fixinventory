@@ -5,7 +5,7 @@ from typing import ClassVar, Dict, Optional, List, Any, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
+from fix_plugin_azure.resource.base import AzureSubscription, MicrosoftResource, AzureSystemData, GraphBuilder
 from fixlib.baseresources import Assessment, Finding, ModelReference, PhantomBaseResource, Severity
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
@@ -134,12 +134,15 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
         """
         Set the assessment findings for the resource based on its ID or ARN.
         """
-        if not isinstance(resource_to_set, MicrosoftResource):
-            return
-        provider_findings = builder._assessment_findings.get(resource_type, {}).get(resource_to_set.id.lower(), [])
+        if isinstance(resource_to_set, AzureSubscription):
+            resource_id = "/subscriptions/" + resource_to_set.id.lower()
+        else:
+            resource_id = resource_to_set.id.lower()
+        provider_findings = builder._assessment_findings.get(resource_type, {}).get(resource_id, [])
         if provider_findings:
             # Set the findings in the resource's _assessments dictionary
             resource_to_set._assessments.append(Assessment("security_assessment", provider_findings))
+            a = None
 
     def parse_finding(self, source: Json) -> Finding:
         severity_mapping = {
@@ -150,7 +153,8 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
             "CRITICAL": Severity.critical,
         }
         remidiation = finding_title = self.safe_name
-        if metadata := source.get("metadata", {}):
+        properties = source.get("properties") or {}
+        if metadata := properties.get("metadata", {}):
             finding_severity = severity_mapping.get(metadata.get("severity", "").upper(), Severity.medium)
         else:
             finding_severity = Severity.medium
@@ -160,7 +164,7 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
         else:
             description = None
             updated_at = None
-        details = self.additional_data or {} | source.get("metadata", {})
+        details = self.additional_data or {} | properties.get("metadata", {})
         return Finding(finding_title, finding_severity, description, remidiation, updated_at, details)
 
     @classmethod
@@ -171,7 +175,9 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
             try:
                 for item in builder.client.list(spec, **kwargs):
                     if finding := AzureSecurityAssessment.from_api(item, builder):
-                        if finding.resource_source == "Azure" and (r_type := item.get("ResourceType")):
+                        if finding.resource_source == "Azure" and (
+                            r_type := item.get("properties", {}).get("resourceDetails", {}).get("ResourceType", {})
+                        ):
                             rid = finding.resource_id
                             if rid:
                                 adjusted_finding = finding.parse_finding(item)
@@ -182,16 +188,6 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
                 raise
 
         return []
-
-    # def post_process(self, builder: GraphBuilder, source: Json) -> None:
-    #     # mark as subscription issue, when the resource id is the same as the account id
-    #     if (rid := self.resource_id) and (sub := self._account):
-    #         self.subscription_issue = rid.split("/")[-1] == sub.id
-
-    # def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-    #     # this will not connect subscription issues.
-    #     if self.resource_source == "Azure" and (rid := self.resource_id):
-    #         builder.add_edge(self, clazz=MicrosoftResource, id=rid)
 
 
 @define(eq=False, slots=False)
