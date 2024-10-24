@@ -175,39 +175,70 @@ def _expand_wildcards_and_match(*, identifier: str, wildcard_string: str) -> boo
     return pattern.match(identifier) is not None
 
 
-def expand_action_wildcards_and_match(action: str, wildcard_pattern: str) -> bool:
+@lru_cache(maxsize=1024)
+def _compile_action_pattern(wildcard_pattern: str) -> tuple[str, str, re.Pattern[str] | None]:
+    """
+    Compile and cache the action pattern components.
+    Returns (service, action_pattern, compiled_regex)
+    """
+    wildcard_pattern = wildcard_pattern.lower()
+    parts = wildcard_pattern.split(':', 1)
+    if len(parts) != 2:
+        raise ValueError(f"Invalid action pattern format: {wildcard_pattern}")
+    
+    service, action_pattern = parts
+    
+    # Convert AWS wildcard pattern to regex pattern
+    if '*' in action_pattern:
+        pattern = '^' + re.escape(action_pattern).replace('\\*', '.*') + '$'
+        compiled = re.compile(pattern)
+    else:
+        compiled = None
+        
+    return service, action_pattern, compiled
 
+
+def expand_action_wildcards_and_match(action: str, wildcard_pattern: str) -> bool:
+    # Short circuit for exact matches
     if action == wildcard_pattern:
         return True
 
+    # Short circuit for global wildcard
     if wildcard_pattern == "*":
         return True
- 
+
+    # Normalize action
     action = action.lower()
-    wildcard_pattern = wildcard_pattern.lower()
-
-    splitted_action = action.split(":")
-    if len(splitted_action) < 2:
-        log.warning(f"Resource action {action} is not in the expected format")
+    
+    # Split action
+    try:
+        action_service, action_name = action.split(':', 1)
+    except ValueError:
         return False
-
-    action_service = splitted_action[0]
-
-    splitted_pattern = wildcard_pattern.split(':')
-    if len(splitted_pattern) < 2:
-        log.warning(f"Wildcard action {wildcard_pattern} is not in the expected format")
+        
+    # Get cached pattern components
+    try:
+        pattern_service, pattern_action, compiled_regex = _compile_action_pattern(wildcard_pattern)
+    except ValueError:
         return False
-    pattern_service = splitted_pattern[0]
-    pattern_name = splitted_pattern[1]
-
+        
+    # Check service match
     if action_service != pattern_service:
         return False
-
-    if pattern_name == '*':
+        
+    # Handle full service wildcard
+    if pattern_action == '*':
         return True
-
-    # all the other cases
-    return _expand_wildcards_and_match(identifier=action, wildcard_string=wildcard_pattern)
+        
+    # Handle exact action match
+    if pattern_action == action_name:
+        return True
+        
+    # Handle regex pattern match
+    if compiled_regex:
+        return bool(compiled_regex.match(action_name))
+            
+    return False
 
 
 def expand_arn_wildcards_and_match(identifier: str, wildcard_string: str) -> bool:
