@@ -2,9 +2,9 @@ from functools import lru_cache
 from attr import frozen, define
 import networkx
 from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
-
+from policy_sentry.querying.actions import get_actions_for_service
 from typing import Dict, List, Literal, Set, Optional, Tuple, Union, Pattern
-
+import fnmatch
 from networkx.algorithms.dag import is_directed_acyclic_graph
 
 from fixlib.baseresources import (
@@ -102,14 +102,57 @@ def find_all_allowed_actions(all_involved_policies: List[PolicyDocument], resour
     return policy_actions.intersection(resource_actions)
 
 
-def get_expanded_action(statement: StatementDetail, service_prefix: str) -> Set[str]:
-    actions = set()
-    expanded: List[str] = statement.expanded_actions or []
-    for action in expanded:
-        if action.startswith(f"{service_prefix}:"):
-            actions.add(action)
+@lru_cache(maxsize=1024)
+def expand(action: str, service_prefix: str) -> list[str]:
+    if action == "*":
+        return get_actions_for_service(service_prefix=service_prefix)
+    elif "*" in action:
+        prefix = action.split(":", maxsplit=1)[0]
+        if prefix != service_prefix:
+            return []
+        service_actions = get_actions_for_service(service_prefix=prefix)
+        expanded = [
+            expanded_action
+            for expanded_action in service_actions
+            if fnmatch.fnmatchcase(expanded_action.lower(), action.lower())
+        ]
 
-    return actions
+        if not expanded:
+            return [action]
+
+        return expanded
+    return [action]
+
+
+def determine_actions_to_expand(action_list: list[str], service_prefix: str) -> list[str]:
+    new_action_list = []
+    for action in action_list:
+        if "*" in action:
+            expanded_action = expand(action, service_prefix)
+            new_action_list.extend(expanded_action)
+        elif action.startswith(service_prefix):
+            new_action_list.append(action)
+    new_action_list.sort()
+    return new_action_list
+
+
+@lru_cache(maxsize=4096)
+def statement_expanded_actions(statement: StatementDetail, service_prefix: str) -> List[str]:
+    if statement.actions:
+        expanded: list[str] = determine_actions_to_expand(statement.actions, service_prefix)
+        return expanded
+    elif statement.not_action:
+        not_actions = statement.not_action_effective_actions or []
+        return [na for na in not_actions if na.startswith(service_prefix)]
+    else:
+        log.warning("Statement has neither Actions nor NotActions")
+        return []
+
+
+@lru_cache(maxsize=1024)
+def get_expanded_action(statement: StatementDetail, service_prefix: str) -> List[str]:
+    expanded: List[str] = statement_expanded_actions(statement, service_prefix)
+    return expanded
 
 
 @lru_cache(maxsize=1024)
@@ -120,7 +163,7 @@ def make_resoruce_regex(aws_resorce_wildcard: str) -> Pattern[str]:
     return re.compile(f"^{python_regex}$", re.IGNORECASE)
 
 
-def expand_wildcards_and_match(*, identifier: str, wildcard_string: str) -> bool:
+def _expand_wildcards_and_match(*, identifier: str, wildcard_string: str) -> bool:
     """
     helper function to expand wildcards and match the identifier
 
@@ -130,6 +173,76 @@ def expand_wildcards_and_match(*, identifier: str, wildcard_string: str) -> bool
     """
     pattern = make_resoruce_regex(wildcard_string)
     return pattern.match(identifier) is not None
+
+
+@lru_cache(maxsize=1024)
+def _compile_action_pattern(wildcard_pattern: str) -> tuple[str, str, re.Pattern[str] | None]:
+    """
+    Compile and cache the action pattern components.
+    Returns (service, action_pattern, compiled_regex)
+    """
+    wildcard_pattern = wildcard_pattern.lower()
+    parts = wildcard_pattern.split(':', 1)
+    if len(parts) != 2:
+        raise ValueError(f"Invalid action pattern format: {wildcard_pattern}")
+    
+    service, action_pattern = parts
+    
+    # Convert AWS wildcard pattern to regex pattern
+    if '*' in action_pattern:
+        pattern = '^' + re.escape(action_pattern).replace('\\*', '.*') + '$'
+        compiled = re.compile(pattern)
+    else:
+        compiled = None
+        
+    return service, action_pattern, compiled
+
+
+def expand_action_wildcards_and_match(action: str, wildcard_pattern: str) -> bool:
+    # Short circuit for exact matches
+    if action == wildcard_pattern:
+        return True
+
+    # Short circuit for global wildcard
+    if wildcard_pattern == "*":
+        return True
+
+    # Normalize action
+    action = action.lower()
+    
+    # Split action
+    try:
+        action_service, action_name = action.split(':', 1)
+    except ValueError:
+        return False
+        
+    # Get cached pattern components
+    try:
+        pattern_service, pattern_action, compiled_regex = _compile_action_pattern(wildcard_pattern)
+    except ValueError:
+        return False
+        
+    # Check service match
+    if action_service != pattern_service:
+        return False
+        
+    # Handle full service wildcard
+    if pattern_action == '*':
+        return True
+        
+    # Handle exact action match
+    if pattern_action == action_name:
+        return True
+        
+    # Handle regex pattern match
+    if compiled_regex:
+        return bool(compiled_regex.match(action_name))
+            
+    return False
+
+
+def expand_arn_wildcards_and_match(identifier: str, wildcard_string: str) -> bool:
+    return _expand_wildcards_and_match(identifier=identifier, wildcard_string=wildcard_string)
 
 
 def check_statement_match(
@@ -198,14 +311,14 @@ def check_statement_match(
                 action_match = False
         else:
             for a in statement.actions:
-                if expand_wildcards_and_match(identifier=action, wildcard_string=a):
+                if expand_action_wildcards_and_match(action=action, wildcard_pattern=a):
                     action_match = True
                     break
     else:
         # not_action
         action_match = True
         for na in statement.not_action:
-            if expand_wildcards_and_match(identifier=action, wildcard_string=na):
+            if expand_action_wildcards_and_match(action=action, wildcard_pattern=na):
                 action_match = False
                 break
     if not action_match:
@@ -217,14 +330,14 @@ def check_statement_match(
     resource_matches = False
     if len(statement.resources) > 0:
         for resource_constraint in statement.resources:
-            if expand_wildcards_and_match(identifier=resource.arn, wildcard_string=resource_constraint):
+            if expand_arn_wildcards_and_match(identifier=resource.arn, wildcard_string=resource_constraint):
                 matched_resource_constraints.append(resource_constraint)
                 resource_matches = True
                 break
     elif len(statement.not_resource) > 0:
         resource_matches = True
         for not_resource_constraint in statement.not_resource:
-            if expand_wildcards_and_match(identifier=resource.arn, wildcard_string=not_resource_constraint):
+            if expand_arn_wildcards_and_match(identifier=resource.arn, wildcard_string=not_resource_constraint):
                 resource_matches = False
                 break
             matched_resource_constraints.append("not " + not_resource_constraint)
