@@ -130,19 +130,14 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
     subscription_issue: Optional[bool] = field(default=False, metadata={'description': 'Indicates if the assessment is a subscription issue'})  # fmt: skip
 
     @staticmethod
-    def set_findings(builder: GraphBuilder, resource_to_set: MicrosoftResource, resource_type: str) -> None:
+    def set_findings(builder: GraphBuilder, resource_to_set: MicrosoftResource, resource_id: str) -> None:
         """
-        Set the assessment findings for the resource based on its ID or ARN.
+        Set the assessment findings for the resource based on its ID.
         """
-        if isinstance(resource_to_set, AzureSubscription):
-            resource_id = "/subscriptions/" + resource_to_set.id.lower()
-        else:
-            resource_id = resource_to_set.id.lower()
-        provider_findings = builder._assessment_findings.get(resource_type, {}).get(resource_id, [])
+        provider_findings = builder._assessment_findings.get(resource_id, [])
         if provider_findings:
-            # Set the findings in the resource's _assessments dictionary
+            # Set the findings in the resource's _assessments list
             resource_to_set._assessments.append(Assessment("security_assessment", provider_findings))
-            a = None
 
     def parse_finding(self, source: Json) -> Finding:
         severity_mapping = {
@@ -175,13 +170,9 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
             try:
                 for item in builder.client.list(spec, **kwargs):
                     if finding := AzureSecurityAssessment.from_api(item, builder):
-                        if finding.resource_source == "Azure" and (
-                            r_type := item.get("properties", {}).get("resourceDetails", {}).get("ResourceType", {})
-                        ):
-                            rid = finding.resource_id
-                            if rid:
-                                adjusted_finding = finding.parse_finding(item)
-                                builder.add_finding(r_type, rid, adjusted_finding)
+                        if finding.resource_source == "Azure" and (rid := finding.resource_id):
+                            adjusted_finding = finding.parse_finding(item)
+                            builder.add_finding(rid, adjusted_finding)
             except Exception as e:
                 msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
                 builder.core_feedback.info(msg, log)

@@ -155,15 +155,19 @@ class MicrosoftBaseCollector:
             self.collect_with(builder, locations)
             queue.wait_for_submitted_work()
 
-            # connect nodes
+            # connect nodes and set findings
             log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, MicrosoftResource):
                     node.connect_in_graph(builder, data.get("source", {}))
-                    if (resource_type := node.extract_part("providers")) and (
-                        resource_type.lower() in builder._assessment_findings
-                    ):
-                        AzureSecurityAssessment.set_findings(builder, node, resource_type)
+                    if isinstance(node, AzureLocation):
+                        continue
+                    node_id = node.id.lower()
+                    if isinstance(node, AzureSubscription):
+                        node_id = "/subscriptions/" + node_id
+                    if node_id in builder._assessment_findings:
+                        AzureSecurityAssessment.set_findings(builder, node, node_id)
+
                 elif isinstance(node, (GraphRoot, Cloud)):
                     pass
                 else:

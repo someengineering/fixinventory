@@ -786,7 +786,7 @@ class GraphBuilder:
         location: Optional[BaseRegion] = None,
         graph_access_lock: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
-        assessment_findings: Optional[Dict[str, ResourceFindings]] = None,
+        assessment_findings: Optional[ResourceFindings] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -801,9 +801,7 @@ class GraphBuilder:
         self.config = config
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
-        self._assessment_findings = (
-            assessment_findings if assessment_findings is not None else defaultdict(lambda: defaultdict(list))
-        )
+        self._assessment_findings = assessment_findings if assessment_findings is not None else defaultdict(list)
 
         if last_run_started_at:
             now = utc()
@@ -837,8 +835,8 @@ class GraphBuilder:
         """
         return self.executor.submit_work(service, fn, *args, **kwargs)
 
-    def add_finding(self, resource_type: str, class_id: str, finding: Finding) -> None:
-        self._assessment_findings[resource_type.lower()][class_id.lower()].append(finding)
+    def add_finding(self, class_id: str, finding: Finding) -> None:
+        self._assessment_findings[class_id.lower()].append(finding)
 
     def node(
         self,
