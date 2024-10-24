@@ -5,7 +5,7 @@ from typing import ClassVar, Dict, Optional, List, Any, Type
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import AzureSubscription, MicrosoftResource, AzureSystemData, GraphBuilder
+from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
 from fixlib.baseresources import Assessment, Finding, ModelReference, PhantomBaseResource, Severity
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json

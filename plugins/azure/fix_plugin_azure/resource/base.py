@@ -4,7 +4,7 @@ from collections import defaultdict
 import logging
 from concurrent.futures import Future
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, Optional, Tuple, TypeVar, List, Type, Callable, cast, Union, Set
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast, Union, Set
 
 from attr import define, field
 from azure.identity import DefaultAzureCredential
