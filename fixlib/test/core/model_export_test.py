@@ -70,6 +70,13 @@ class DataClassOther(DataClassBase):
     something: str
 
 
+@define(slots=False)
+class DataClassNotExported(DataClassBase):
+    _model_export: ClassVar[bool] = False
+    kind: ClassVar[str] = "other"
+    something: str
+
+
 def test_collection() -> None:
     assert is_collection(Optional[List[str]]) is True
     assert is_collection(List[str]) is True
