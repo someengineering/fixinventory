@@ -1,3 +1,4 @@
+from enum import Enum
 from functools import lru_cache
 from attr import frozen, define
 import networkx
@@ -34,19 +35,70 @@ log = logging.getLogger("fix.plugins.aws")
 ALL_ACTIONS = get_all_actions()
 
 
+class WildcardKind(Enum):
+    fixed = 1
+    pattern = 2
+    any = 3
+
+
+@frozen(slots=True)
+class ActionWildcardPattern:
+    pattern: str
+    service: str
+    kind: WildcardKind
+
+
+class FixStatementDetail(StatementDetail):
+    def __init__(self, statement: Json):
+        super().__init__(statement)
+
+        def pattern_from_action(action: str) -> ActionWildcardPattern:
+            if action == "*":
+                return ActionWildcardPattern(pattern=action, service="*", kind=WildcardKind.any)
+
+            action = action.lower()
+            service, action_name = action.split(":", 1)
+            if action_name == "*":
+                kind = WildcardKind.any
+            elif "*" in action_name:
+                kind = WildcardKind.pattern
+            else:
+                kind = WildcardKind.fixed
+
+            return ActionWildcardPattern(pattern=action, service=service, kind=kind)
+
+        self.actions_patterns = [pattern_from_action(action) for action in self.actions]
+        self.not_action_patterns = [pattern_from_action(action) for action in self.not_action]
+
+
+class FixPolicyDocument(PolicyDocument):
+    def __init__(self, policy_document: Json):
+        super().__init__(policy_document)
+
+        self.fix_statements = [FixStatementDetail(statement.json) for statement in self.statements]
+
+
+@frozen(slots=True)
+class ActionToCheck:
+    raw: str
+    raw_lower: str
+    service: str
+    action_name: str
+
+
 @define(slots=True)
 class IamRequestContext:
     principal: AwsResource
-    identity_policies: List[Tuple[PolicySource, PolicyDocument]]
-    permission_boundaries: List[PolicyDocument]  # todo: use them too
+    identity_policies: List[Tuple[PolicySource, FixPolicyDocument]]
+    permission_boundaries: List[FixPolicyDocument]  # todo: use them too
     # all service control policies applicable to the principal,
     # starting from the root, then all org units, then the account
-    service_control_policy_levels: List[List[PolicyDocument]]
+    service_control_policy_levels: List[List[FixPolicyDocument]]
     # technically we should also add a list of session policies here, but they don't exist in the collector context
 
     def all_policies(
-        self, resource_based_policies: Optional[List[Tuple[PolicySource, PolicyDocument]]] = None
-    ) -> List[PolicyDocument]:
+        self, resource_based_policies: Optional[List[Tuple[PolicySource, FixPolicyDocument]]] = None
+    ) -> List[FixPolicyDocument]:
         return (
             [p[1] for p in self.identity_policies]
             + self.permission_boundaries
@@ -81,7 +133,7 @@ def find_non_service_actions(resource_arn: str) -> Set[IamAction]:
     return set()
 
 
-def find_all_allowed_actions(all_involved_policies: List[PolicyDocument], resource_arn: str) -> Set[IamAction]:
+def find_all_allowed_actions(all_involved_policies: List[FixPolicyDocument], resource_arn: str) -> Set[IamAction]:
     resource_actions = set()
     try:
         resource_actions = set(get_actions_matching_arn(resource_arn))
@@ -176,7 +228,7 @@ def _expand_wildcards_and_match(*, identifier: str, wildcard_string: str) -> boo
 
 
 @lru_cache(maxsize=1024)
-def _compile_action_pattern(wildcard_pattern: str) -> tuple[str, str, re.Pattern[str] | None]:
+def _compile_action_pattern(wildcard_pattern: str) -> tuple[str, re.Pattern[str] | None]:
     """
     Compile and cache the action pattern components.
     Returns (service, action_pattern, compiled_regex)
@@ -186,7 +238,7 @@ def _compile_action_pattern(wildcard_pattern: str) -> tuple[str, str, re.Pattern
     if len(parts) != 2:
         raise ValueError(f"Invalid action pattern format: {wildcard_pattern}")
 
-    service, action_pattern = parts
+    _, action_pattern = parts
 
     # Convert AWS wildcard pattern to regex pattern
     if "*" in action_pattern:
@@ -195,48 +247,33 @@ def _compile_action_pattern(wildcard_pattern: str) -> tuple[str, str, re.Pattern
     else:
         compiled = None
 
-    return service, action_pattern, compiled
+    return action_pattern, compiled
 
 
-def expand_action_wildcards_and_match(action: str, wildcard_pattern: str) -> bool:
-    # Short circuit for exact matches
-    if action == wildcard_pattern:
+def expand_action_wildcards_and_match(action: ActionToCheck, wildcard_pattern: ActionWildcardPattern) -> bool:
+
+    if wildcard_pattern.kind == WildcardKind.any:
         return True
 
-    # Short circuit for global wildcard
-    if wildcard_pattern == "*":
-        return True
+    if wildcard_pattern.kind == WildcardKind.fixed:
+        return action.raw_lower == wildcard_pattern.pattern
 
-    # Normalize action
-    action = action.lower()
-
-    # Split action
-    try:
-        action_service, action_name = action.split(":", 1)
-    except ValueError:
+    if action.service != wildcard_pattern.service:
         return False
 
     # Get cached pattern components
     try:
-        pattern_service, pattern_action, compiled_regex = _compile_action_pattern(wildcard_pattern)
+        pattern_action, compiled_regex = _compile_action_pattern(wildcard_pattern.pattern)
     except ValueError:
         return False
 
-    # Check service match
-    if action_service != pattern_service:
-        return False
-
-    # Handle full service wildcard
-    if pattern_action == "*":
-        return True
-
     # Handle exact action match
-    if pattern_action == action_name:
+    if pattern_action == action.action_name:
         return True
 
     # Handle regex pattern match
     if compiled_regex:
-        return bool(compiled_regex.match(action_name))
+        return bool(compiled_regex.match(action.action_name))
 
     return False
 
@@ -246,9 +283,9 @@ def expand_arn_wildcards_and_match(identifier: str, wildcard_string: str) -> boo
 
 
 def check_statement_match(
-    statement: StatementDetail,
+    statement: FixStatementDetail,
     effect: Optional[Literal["Allow", "Deny"]],
-    action: str,
+    action: ActionToCheck,
     resource: AwsResource,
     principal: Optional[AwsResource],
     source_arn: Optional[str] = None,
@@ -304,20 +341,20 @@ def check_statement_match(
     if statement.actions:
         # shortcuts for known AWS managed policies
         if source_arn == "arn:aws:iam::aws:policy/ReadOnlyAccess":
-            action_level = get_action_level(action)
+            action_level = get_action_level(action.raw)
             if action_level in [PermissionLevel.read or PermissionLevel.list]:
                 action_match = True
             else:
                 action_match = False
         else:
-            for a in statement.actions:
+            for a in statement.actions_patterns:
                 if expand_action_wildcards_and_match(action=action, wildcard_pattern=a):
                     action_match = True
                     break
     else:
         # not_action
         action_match = True
-        for na in statement.not_action:
+        for na in statement.not_action_patterns:
             if expand_action_wildcards_and_match(action=action, wildcard_pattern=na):
                 action_match = False
                 break
@@ -374,22 +411,22 @@ def check_principal_match(principal: AwsResource, aws_principal_list: List[str])
 
 def collect_matching_statements(
     *,
-    policy: PolicyDocument,
+    policy: FixPolicyDocument,
     effect: Optional[Literal["Allow", "Deny"]],
-    action: str,
+    action: ActionToCheck,
     resource: AwsResource,
     principal: Optional[AwsResource],
     source_arn: Optional[str] = None,
-) -> List[Tuple[StatementDetail, List[ResourceConstraint]]]:
+) -> List[Tuple[FixStatementDetail, List[ResourceConstraint]]]:
     """
     resoruce based policies contain principal field and need to be handled differently
     """
-    results: List[Tuple[StatementDetail, List[ResourceConstraint]]] = []
+    results: List[Tuple[FixStatementDetail, List[ResourceConstraint]]] = []
 
     if resource.arn is None:
         raise ValueError("Resource ARN is missing, go and fix the filtering logic")
 
-    for statement in policy.statements:
+    for statement in policy.fix_statements:
 
         matches, maybe_resource_constraint = check_statement_match(
             statement, effect=effect, action=action, resource=resource, principal=principal, source_arn=source_arn
@@ -403,8 +440,8 @@ def collect_matching_statements(
 def check_explicit_deny(
     request_context: IamRequestContext,
     resource: AwsResource,
-    action: str,
-    resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
+    action: ActionToCheck,
+    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
 ) -> Union[Literal["Denied", "NextStep"], List[Json]]:
 
     denied_when_any_is_true: List[Json] = []
@@ -450,7 +487,7 @@ def check_explicit_deny(
     return "NextStep"
 
 
-def scp_allowed(request_context: IamRequestContext, action: str, resource: AwsResource) -> bool:
+def scp_allowed(request_context: IamRequestContext, action: ActionToCheck, resource: AwsResource) -> bool:
 
     # traverse the SCPs:  root -> OU -> account levels
     for scp_level_policies in request_context.service_control_policy_levels:
@@ -492,9 +529,9 @@ ResourceBasedPolicyResult = Union[FinalAllow, Continue, Deny]
 # as a shortcut we return the first allow statement we find, or a first seen condition.
 def check_resource_based_policies(
     principal: AwsResource,
-    action: str,
+    action: ActionToCheck,
     resource: AwsResource,
-    resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
+    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
 ) -> ResourceBasedPolicyResult:
     assert resource.arn
 
@@ -552,7 +589,7 @@ def check_resource_based_policies(
 
 
 def check_identity_based_policies(
-    request_context: IamRequestContext, resource: AwsResource, action: str
+    request_context: IamRequestContext, resource: AwsResource, action: ActionToCheck
 ) -> List[PermissionScope]:
 
     scopes: List[PermissionScope] = []
@@ -571,7 +608,7 @@ def check_identity_based_policies(
 
 
 def check_permission_boundaries(
-    request_context: IamRequestContext, resource: AwsResource, action: str
+    request_context: IamRequestContext, resource: AwsResource, action: ActionToCheck
 ) -> Union[Literal["Denied", "NextStep"], List[Json]]:
 
     conditions: List[Json] = []
@@ -642,8 +679,8 @@ def get_action_level(action: str) -> PermissionLevel:
 def check_policies(
     request_context: IamRequestContext,
     resource: AwsResource,
-    action: str,
-    resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
+    action: ActionToCheck,
+    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
 ) -> Optional[AccessPermission]:
 
     # when any of the conditions evaluate to true, the action is explicitly denied
@@ -686,7 +723,9 @@ def check_policies(
             for scope in scopes:
                 final_resource_scopes.add(scope.with_deny_conditions(deny_conditions))
 
-            return AccessPermission(action=action, level=get_action_level(action), scopes=tuple(final_resource_scopes))
+            return AccessPermission(
+                action=action.raw, level=get_action_level(action.raw), scopes=tuple(final_resource_scopes)
+            )
         if isinstance(resource_result, Continue):
             scopes = resource_result.scopes
             allowed_scopes.extend(scopes)
@@ -720,7 +759,7 @@ def check_policies(
     # we don't collect session principals and session policies, so this step is skipped
 
     # 7. if we reached here, the action is allowed
-    level = get_action_level(action)
+    level = get_action_level(action.raw)
 
     final_scopes: Set[PermissionScope] = set()
     for scope in allowed_scopes:
@@ -740,7 +779,7 @@ def check_policies(
 
     # return the result
     return AccessPermission(
-        action=action,
+        action=action.raw,
         level=level,
         scopes=tuple(final_scopes),
     )
@@ -749,7 +788,7 @@ def check_policies(
 def compute_permissions(
     resource: AwsResource,
     iam_context: IamRequestContext,
-    resource_based_policies: List[Tuple[PolicySource, PolicyDocument]],
+    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
 ) -> List[AccessPermission]:
 
     assert resource.arn
@@ -760,7 +799,16 @@ def compute_permissions(
 
     # step 2: for every action, check if it is allowed
     for action in relevant_actions:
-        if p := check_policies(iam_context, resource, action, resource_based_policies):
+        try:
+            service, action_name = action.split(":", 1)
+        except ValueError:
+            log.error(f"Invalid action: {action}")
+            continue
+
+        action_to_check = ActionToCheck(
+            service=service.lower(), action_name=action_name.lower(), raw_lower=action.lower(), raw=action
+        )
+        if p := check_policies(iam_context, resource, action_to_check, resource_based_policies):
             all_permissions.append(p)
 
     return all_permissions
@@ -776,11 +824,11 @@ class AccessEdgeCreator:
     def _init_principals(self) -> None:
 
         account_id = self.builder.account.id
-        service_control_policy_levels: List[List[PolicyDocument]] = []
+        service_control_policy_levels: List[List[FixPolicyDocument]] = []
         account = next(self.builder.nodes(clazz=AwsAccount, filter=lambda a: a.id == account_id), None)
         if account and account._service_control_policies:
             service_control_policy_levels = [
-                [PolicyDocument(json) for json in level] for level in account._service_control_policies
+                [FixPolicyDocument(json) for json in level] for level in account._service_control_policies
             ]
 
         for node in self.builder.nodes(clazz=AwsResource):
@@ -788,11 +836,12 @@ class AccessEdgeCreator:
 
                 identity_based_policies = self._get_user_based_policies(node)
 
-                permission_boundaries: List[PolicyDocument] = []
+                permission_boundaries: List[FixPolicyDocument] = []
                 if (pb := node.user_permissions_boundary) and (pb_arn := pb.permissions_boundary_arn):
                     for pb_policy in self.builder.nodes(clazz=AwsIamPolicy, filter=lambda p: p.arn == pb_arn):
                         if pdj := pb_policy.policy_document_json():
-                            permission_boundaries.append(PolicyDocument(pdj))
+                            pd = FixPolicyDocument(pdj)
+                            permission_boundaries.append(pd)
 
                 request_context = IamRequestContext(
                     principal=node,
@@ -822,7 +871,7 @@ class AccessEdgeCreator:
                 if (pb := node.role_permissions_boundary) and (pb_arn := pb.permissions_boundary_arn):
                     for pb_policy in self.builder.nodes(clazz=AwsIamPolicy, filter=lambda p: p.arn == pb_arn):
                         if pdj := pb_policy.policy_document_json():
-                            permission_boundaries.append(PolicyDocument(pdj))
+                            permission_boundaries.append(FixPolicyDocument(pdj))
 
                 request_context = IamRequestContext(
                     principal=node,
@@ -833,11 +882,11 @@ class AccessEdgeCreator:
 
                 self.principals.append(request_context)
 
-    def _get_user_based_policies(self, principal: AwsIamUser) -> List[Tuple[PolicySource, PolicyDocument]]:
+    def _get_user_based_policies(self, principal: AwsIamUser) -> List[Tuple[PolicySource, FixPolicyDocument]]:
         inline_policies = [
             (
                 PolicySource(kind=PolicySourceKind.principal, uri=principal.arn or ""),
-                PolicyDocument(policy.policy_document),
+                FixPolicyDocument(policy.policy_document),
             )
             for policy in principal.user_policies
             if policy.policy_document
@@ -850,7 +899,7 @@ class AccessEdgeCreator:
                     attached_policies.append(
                         (
                             PolicySource(kind=PolicySourceKind.principal, uri=to_node.arn or ""),
-                            PolicyDocument(doc),
+                            FixPolicyDocument(doc),
                         )
                     )
 
@@ -862,7 +911,7 @@ class AccessEdgeCreator:
                         group_policies.append(
                             (
                                 PolicySource(kind=PolicySourceKind.group, uri=group.arn or ""),
-                                PolicyDocument(policy.policy_document),
+                                FixPolicyDocument(policy.policy_document),
                             )
                         )
                 # attached group policies
@@ -872,18 +921,18 @@ class AccessEdgeCreator:
                             group_policies.append(
                                 (
                                     PolicySource(kind=PolicySourceKind.group, uri=group_successor.arn or ""),
-                                    PolicyDocument(doc),
+                                    FixPolicyDocument(doc),
                                 )
                             )
 
         return inline_policies + attached_policies + group_policies
 
-    def _get_group_based_policies(self, principal: AwsIamGroup) -> List[Tuple[PolicySource, PolicyDocument]]:
+    def _get_group_based_policies(self, principal: AwsIamGroup) -> List[Tuple[PolicySource, FixPolicyDocument]]:
         # not really a principal, but could be useful to have access edges for groups
         inline_policies = [
             (
                 PolicySource(kind=PolicySourceKind.group, uri=principal.arn or ""),
-                PolicyDocument(policy.policy_document),
+                FixPolicyDocument(policy.policy_document),
             )
             for policy in principal.group_policies
             if policy.policy_document
@@ -896,19 +945,19 @@ class AccessEdgeCreator:
                     attached_policies.append(
                         (
                             PolicySource(kind=PolicySourceKind.group, uri=to_node.arn or ""),
-                            PolicyDocument(doc),
+                            FixPolicyDocument(doc),
                         )
                     )
 
         return inline_policies + attached_policies
 
-    def _get_role_based_policies(self, principal: AwsIamRole) -> List[Tuple[PolicySource, PolicyDocument]]:
+    def _get_role_based_policies(self, principal: AwsIamRole) -> List[Tuple[PolicySource, FixPolicyDocument]]:
         inline_policies = []
         for doc in [p.policy_document for p in principal.role_policies if p.policy_document]:
             inline_policies.append(
                 (
                     PolicySource(kind=PolicySourceKind.principal, uri=principal.arn or ""),
-                    PolicyDocument(doc),
+                    FixPolicyDocument(doc),
                 )
             )
 
@@ -919,7 +968,7 @@ class AccessEdgeCreator:
                     attached_policies.append(
                         (
                             PolicySource(kind=PolicySourceKind.principal, uri=to_node.arn or ""),
-                            PolicyDocument(policy_doc),
+                            FixPolicyDocument(policy_doc),
                         )
                     )
 
@@ -934,10 +983,10 @@ class AccessEdgeCreator:
                     # small graph cycles avoidance optimization
                     continue
 
-                resource_policies: List[Tuple[PolicySource, PolicyDocument]] = []
+                resource_policies: List[Tuple[PolicySource, FixPolicyDocument]] = []
                 if isinstance(node, HasResourcePolicy):
                     for source, json_policy in node.resource_policy(self.builder):
-                        resource_policies.append((source, PolicyDocument(json_policy)))
+                        resource_policies.append((source, FixPolicyDocument(json_policy)))
 
                 permissions = compute_permissions(node, context, resource_policies)
 

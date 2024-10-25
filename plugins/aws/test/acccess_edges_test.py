@@ -1,5 +1,4 @@
 from cloudsplaining.scan.policy_document import PolicyDocument
-from cloudsplaining.scan.statement_detail import StatementDetail
 
 from fix_plugin_aws.resource.base import AwsResource
 from fix_plugin_aws.resource.iam import AwsIamUser, AwsIamGroup, AwsIamRole
@@ -14,6 +13,9 @@ from fix_plugin_aws.access_edges import (
     IamRequestContext,
     check_explicit_deny,
     compute_permissions,
+    FixPolicyDocument,
+    FixStatementDetail,
+    ActionToCheck,
 )
 
 from fixlib.baseresources import PolicySourceKind, PolicySource, PermissionLevel
@@ -66,6 +68,13 @@ def test_make_resoruce_regex() -> None:
     assert not regex.match("arn:aws:s3:::my-bucket/abc")
 
 
+def atc(action: str) -> ActionToCheck:
+    splitted = action.split(":")
+    return ActionToCheck(
+        raw=action, raw_lower=action.lower(), service=splitted[0].lower(), action_name=splitted[1].lower()
+    )
+
+
 def test_check_statement_match1() -> None:
     allow_statement = {
         "Effect": "Allow",
@@ -73,41 +82,41 @@ def test_check_statement_match1() -> None:
         "Resource": "arn:aws:s3:::example-bucket/*",
         "Principal": {"AWS": ["arn:aws:iam::123456789012:user/example-user"]},
     }
-    statement = StatementDetail(allow_statement)
+    statement = FixStatementDetail(allow_statement)
     resource = AwsResource(id="bucket", arn="arn:aws:s3:::example-bucket/object.txt")
     principal = AwsResource(id="principal", arn="arn:aws:iam::123456789012:user/example-user")
 
     # Test matching statement
-    result, constraints = check_statement_match(statement, "Allow", "s3:GetObject", resource, principal)
+    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
     assert result is True
     assert constraints == ["arn:aws:s3:::example-bucket/*"]
 
     # Test wrong effect
-    result, constraints = check_statement_match(statement, "Deny", "s3:GetObject", resource, principal)
+    result, constraints = check_statement_match(statement, "Deny", atc("s3:GetObject"), resource, principal)
     assert result is False
     assert constraints == []
 
     # wrong principal does not match
-    result, constraints = check_statement_match(statement, "Allow", "s3:GetObject", resource, resource)
+    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, resource)
     assert result is False
 
     # Test statement with condition
     allow_statement["Condition"] = {"StringEquals": {"s3:prefix": "private/"}}
-    statement = StatementDetail(allow_statement)
-    result, constraints = check_statement_match(statement, "Allow", "s3:GetObject", resource, principal)
+    statement = FixStatementDetail(allow_statement)
+    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
     assert result is True
 
     # not providing principaal works
-    result, constraints = check_statement_match(statement, "Allow", "s3:GetObject", resource, principal=None)
+    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal=None)
     assert result is True
 
     # not providing effect works
     result, constraints = check_statement_match(
-        statement, effect=None, action="s3:GetObject", resource=resource, principal=None
+        statement, effect=None, action=atc("s3:GetObject"), resource=resource, principal=None
     )
     assert result is True
 
-    result, constraints = check_statement_match(statement, "Allow", "s3:GetObject", resource, principal)
+    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
     assert result is True
     assert constraints == ["arn:aws:s3:::example-bucket/*"]
 
@@ -118,8 +127,8 @@ def test_check_statement_match1() -> None:
         "Principal": {"AWS": ["arn:aws:iam::123456789012:user/example-user"]},
     }
 
-    statement = StatementDetail(deny_statement)
-    result, constraints = check_statement_match(statement, "Deny", "s3:GetObject", resource, principal)
+    statement = FixStatementDetail(deny_statement)
+    result, constraints = check_statement_match(statement, "Deny", atc("s3:GetObject"), resource, principal)
     assert result is True
     assert constraints == ["arn:aws:s3:::example-bucket/*"]
 
@@ -127,8 +136,8 @@ def test_check_statement_match1() -> None:
     not_resource_statement = dict(allow_statement)
     del not_resource_statement["Resource"]
     not_resource_statement["NotResource"] = "arn:aws:s3:::example-bucket/private/*"
-    statement = StatementDetail(not_resource_statement)
-    result, constraints = check_statement_match(statement, "Allow", "s3:GetObject", resource, principal)
+    statement = FixStatementDetail(not_resource_statement)
+    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
     assert result is True
     assert constraints == ["not arn:aws:s3:::example-bucket/private/*"]
 
@@ -162,7 +171,7 @@ def test_no_explicit_deny() -> None:
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket")
-    action = "s3:GetObject"
+    action = atc("s3:GetObject")
 
     result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     assert result == "NextStep"
@@ -177,10 +186,10 @@ def test_explicit_deny_in_identity_policy() -> None:
         "Version": "2012-10-17",
         "Statement": [{"Effect": "Deny", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::example-bucket/*"}],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=principal.arn), policy_document)]
-    permission_boundaries: List[PolicyDocument] = []
-    service_control_policy_levels: List[List[PolicyDocument]] = []
+    permission_boundaries: List[FixPolicyDocument] = []
+    service_control_policy_levels: List[List[FixPolicyDocument]] = []
 
     request_context = IamRequestContext(
         principal=principal,
@@ -190,7 +199,7 @@ def test_explicit_deny_in_identity_policy() -> None:
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
-    action = "s3:GetObject"
+    action = atc("s3:GetObject")
 
     result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     assert result == "Denied"
@@ -212,7 +221,7 @@ def test_explicit_deny_with_condition_in_identity_policy() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=principal.arn), policy_document)]
 
     request_context = IamRequestContext(
@@ -223,7 +232,7 @@ def test_explicit_deny_with_condition_in_identity_policy() -> None:
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
-    action = "s3:GetObject"
+    action = atc("s3:GetObject")
 
     result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     expected_conditions = [policy_json["Statement"][0]["Condition"]]
@@ -238,7 +247,7 @@ def test_explicit_deny_in_scp() -> None:
         "Version": "2012-10-17",
         "Statement": [{"Effect": "Deny", "Action": "s3:GetObject", "Resource": "*"}],
     }
-    scp_policy_document = PolicyDocument(scp_policy_json)
+    scp_policy_document = FixPolicyDocument(scp_policy_json)
     service_control_policy_levels = [[scp_policy_document]]
 
     request_context = IamRequestContext(
@@ -249,7 +258,7 @@ def test_explicit_deny_in_scp() -> None:
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
-    action = "s3:GetObject"
+    action = atc("s3:GetObject")
 
     result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     assert result == "Denied"
@@ -270,7 +279,7 @@ def test_explicit_deny_with_condition_in_scp() -> None:
             }
         ],
     }
-    scp_policy_document = PolicyDocument(scp_policy_json)
+    scp_policy_document = FixPolicyDocument(scp_policy_json)
     service_control_policy_levels = [
         [
             scp_policy_document,
@@ -285,7 +294,7 @@ def test_explicit_deny_with_condition_in_scp() -> None:
     )
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
-    action = "s3:GetObject"
+    action = atc("s3:GetObject")
 
     result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
     expected_conditions = [scp_policy_json["Statement"][0]["Condition"]]
@@ -314,13 +323,13 @@ def test_explicit_deny_in_resource_policy() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
     resource_based_policies = [
         (PolicySource(kind=PolicySourceKind.resource, uri="arn:aws:s3:::example-bucket"), policy_document)
     ]
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
-    action = "s3:GetObject"
+    action = atc("s3:GetObject")
 
     result = check_explicit_deny(request_context, resource, action, resource_based_policies)
     assert result == "Denied"
@@ -349,13 +358,13 @@ def test_explicit_deny_with_condition_in_resource_policy() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
     resource_based_policies = [
         (PolicySource(kind=PolicySourceKind.resource, uri="arn:aws:s3:::example-bucket"), policy_document)
     ]
 
     resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
-    action = "s3:GetObject"
+    action = atc("s3:GetObject")
 
     result = check_explicit_deny(request_context, resource, action, resource_based_policies)
     expected_conditions = [policy_json["Statement"][0]["Condition"]]
@@ -379,7 +388,7 @@ def test_compute_permissions_user_inline_policy_allow() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
 
@@ -418,7 +427,7 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
 
@@ -456,7 +465,7 @@ def test_compute_permissions_user_inline_policy_deny() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
 
@@ -489,7 +498,7 @@ def test_compute_permissions_user_inline_policy_deny_with_condition() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
 
@@ -520,7 +529,7 @@ def test_deny_overrides_allow() -> None:
             }
         ],
     }
-    deny_policy_document = PolicyDocument(deny_policy_json)
+    deny_policy_document = FixPolicyDocument(deny_policy_json)
 
     allow_policy_json = {
         "Version": "2012-10-17",
@@ -533,7 +542,7 @@ def test_deny_overrides_allow() -> None:
             }
         ],
     }
-    allow_policy_document = PolicyDocument(allow_policy_json)
+    allow_policy_document = FixPolicyDocument(allow_policy_json)
 
     identity_policies = [
         (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
@@ -566,7 +575,7 @@ def test_deny_different_action_does_not_override_allow() -> None:
             }
         ],
     }
-    deny_policy_document = PolicyDocument(deny_policy_json)
+    deny_policy_document = FixPolicyDocument(deny_policy_json)
 
     allow_policy_json = {
         "Version": "2012-10-17",
@@ -579,7 +588,7 @@ def test_deny_different_action_does_not_override_allow() -> None:
             }
         ],
     }
-    allow_policy_document = PolicyDocument(allow_policy_json)
+    allow_policy_document = FixPolicyDocument(allow_policy_json)
 
     identity_policies = [
         (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
@@ -615,7 +624,7 @@ def test_deny_overrides_allow_with_condition() -> None:
             }
         ],
     }
-    deny_policy_document = PolicyDocument(deny_policy_json)
+    deny_policy_document = FixPolicyDocument(deny_policy_json)
 
     allow_policy_json = {
         "Version": "2012-10-17",
@@ -628,7 +637,7 @@ def test_deny_overrides_allow_with_condition() -> None:
             }
         ],
     }
-    allow_policy_document = PolicyDocument(allow_policy_json)
+    allow_policy_document = FixPolicyDocument(allow_policy_json)
 
     identity_policies = [
         (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
@@ -672,7 +681,7 @@ def test_compute_permissions_resource_based_policy_allow() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
 
     request_context = IamRequestContext(
         principal=user, identity_policies=[], permission_boundaries=[], service_control_policy_levels=[]
@@ -718,7 +727,7 @@ def test_compute_permissions_permission_boundary_restrict() -> None:
             },
         ],
     }
-    identity_policy_document = PolicyDocument(identity_policy_json)
+    identity_policy_document = FixPolicyDocument(identity_policy_json)
 
     permission_boundary_json = {
         "Version": "2012-10-17",
@@ -726,7 +735,7 @@ def test_compute_permissions_permission_boundary_restrict() -> None:
             {"Sid": "Boundary", "Effect": "Allow", "Action": ["s3:ListBucket", "s3:PutObject"], "Resource": "*"}
         ],
     }
-    permission_boundary_document = PolicyDocument(permission_boundary_json)
+    permission_boundary_document = FixPolicyDocument(permission_boundary_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), identity_policy_document)]
 
@@ -769,7 +778,7 @@ def test_compute_permissions_scp_deny() -> None:
             }
         ],
     }
-    identity_policy_document = PolicyDocument(identity_policy_json)
+    identity_policy_document = FixPolicyDocument(identity_policy_json)
 
     scp_policy_json = {
         "Version": "2012-10-17",
@@ -777,7 +786,7 @@ def test_compute_permissions_scp_deny() -> None:
             {"Sid": "DenyTerminateInstances", "Effect": "Deny", "Action": "ec2:TerminateInstances", "Resource": "*"}
         ],
     }
-    scp_policy_document = PolicyDocument(scp_policy_json)
+    scp_policy_document = FixPolicyDocument(scp_policy_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), identity_policy_document)]
 
@@ -808,7 +817,7 @@ def test_compute_permissions_user_with_group_policies() -> None:
             {"Sid": "AllowS3ListBucket", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": bucket.arn}
         ],
     }
-    group_policy_document = PolicyDocument(group_policy_json)
+    group_policy_document = FixPolicyDocument(group_policy_json)
 
     identity_policies = []
 
@@ -862,7 +871,7 @@ def test_compute_permissions_group_inline_policy_allow() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.group, uri=group.arn), policy_document)]
 
@@ -899,7 +908,7 @@ def test_compute_permissions_role_inline_policy_allow() -> None:
             }
         ],
     }
-    policy_document = PolicyDocument(policy_json)
+    policy_document = FixPolicyDocument(policy_json)
 
     identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=role.arn), policy_document)]
 
