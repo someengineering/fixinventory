@@ -112,8 +112,8 @@ class PosthogEvent(PosthogResource, BaseResource):
         )
 
 
-def convert_date(date_str: str) -> Optional[datetime]:
+def convert_date(isodate_str: str) -> Optional[datetime]:
     try:
-        return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return datetime.strptime(isodate_str, "%Y-%m-%dT%H:%M:%S.%fZ")
     except Exception:
         return None
