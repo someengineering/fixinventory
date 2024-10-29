@@ -6,7 +6,7 @@ import logging
 from attrs import define, field
 from boto3.exceptions import Boto3Error
 
-from fix_plugin_aws.resource.base import AwsResource, GraphBuilder
+from fix_plugin_aws.resource.base import AssessmentKey, AwsResource, GraphBuilder
 
 from fixlib.baseresources import Assessment, Finding, PhantomBaseResource, Severity
 from fixlib.json_bender import F, S, AsInt, Bend, Bender, ForallBend
@@ -1278,7 +1278,7 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
         else:
             return
         provider_findings = builder._assessment_findings.get(
-            ("guard_duty", resource_to_set.region().id, resource_to_set.__class__.__name__), {}
+            AssessmentKey("guard_duty", resource_to_set.region().id, resource_to_set.__class__.__name__), {}
         ).get(id_or_arn_or_name, [])
         if provider_findings:
             # Set the findings in the resource's _assessments dictionary

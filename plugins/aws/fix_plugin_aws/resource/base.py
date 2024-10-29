@@ -65,8 +65,14 @@ TemplateFn: Dict[str, Callable[[AwsResource], Optional[str]]] = {
     "region_id": lambda n: n.region().id,
 }
 
-# Type alias for a tuple representing provider, region, and resource type
-AssessmentKey = Tuple[str, str, str]
+
+@define(slots=True, frozen=True)
+class AssessmentKey:
+    provider: str
+    region: str
+    resource_type: str
+
+
 # Type alias for the inner dictionary that maps resource ID to a list of findings
 ResourceFindings = Dict[str, List[Finding]]
 
@@ -509,7 +515,7 @@ class GraphBuilder:
         return SuppressWithFeedback(message, self.core_feedback, log)
 
     def add_finding(self, provider: str, class_name: str, region: str, class_id: str, finding: Finding) -> None:
-        self._assessment_findings[(provider, region, class_name)][class_id].append(finding)
+        self._assessment_findings[AssessmentKey(provider, region, class_name)][class_id].append(finding)
 
     def submit_work(self, service: str, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
