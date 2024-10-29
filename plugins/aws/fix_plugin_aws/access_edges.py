@@ -22,8 +22,10 @@ from fixlib.types import Json
 
 from cloudsplaining.scan.policy_document import PolicyDocument
 from cloudsplaining.scan.statement_detail import StatementDetail
-from policy_sentry.querying.actions import get_action_data, get_actions_matching_arn
+from policy_sentry.querying.actions import get_action_data
 from policy_sentry.querying.all import get_all_actions
+from policy_sentry.querying.arns import get_matching_raw_arns, get_resource_type_name_with_raw_arn
+from policy_sentry.shared.iam_data import get_service_prefix_data
 from policy_sentry.util.arns import ARN, get_service_from_arn
 from fixlib.graph import EdgeKey
 import re
@@ -133,12 +135,46 @@ def find_non_service_actions(resource_arn: str) -> Set[IamAction]:
     return set()
 
 
-def find_all_allowed_actions(all_involved_policies: List[FixPolicyDocument], resource_arn: str) -> Set[IamAction]:
-    resource_actions = set()
+@lru_cache(maxsize=1024)
+def get_actions_matching_raw_arn(raw_arn: str) -> set[str]:
+    results: set[str] = set()
+    resource_type_name = get_resource_type_name_with_raw_arn(raw_arn)
+    if resource_type_name is None:
+        return results
+
+    service_prefix = get_service_from_arn(raw_arn)
+    service_prefix_data = get_service_prefix_data(service_prefix)
+    for action_name, action_data in service_prefix_data["privileges"].items():
+        if resource_type_name.lower() in action_data["resource_types_lower_name"]:
+            results.add(f"{service_prefix}:{action_name}")
+
+    return results
+
+
+def get_actions_matching_arn(arn: str) -> set[str]:
+    """
+    Given a user-supplied ARN, get a list of all actions that correspond to that ARN.
+
+    Arguments:
+        arn: A user-supplied arn
+    Returns:
+        List: A list of all actions that can match it.
+    """
+    results = set()
     try:
-        resource_actions = set(get_actions_matching_arn(resource_arn))
+        raw_arns = get_matching_raw_arns(arn)
+        for raw_arn in raw_arns:
+            raw_arn_actions = get_actions_matching_raw_arn(raw_arn)
+            results.update(raw_arn_actions)
     except Exception as e:
-        log.debug(f"Error when trying to get actions matching ARN {resource_arn}: {e}")
+        log.debug(f"Error when trying to get actions for ARN {arn}: {e}")
+
+    return results
+
+
+def find_all_allowed_actions(
+    all_involved_policies: List[FixPolicyDocument], resource_arn: str, resource_actions: set[IamAction]
+) -> Set[IamAction]:
 
     if additinal_actions := find_non_service_actions(resource_arn):
         resource_actions.update(additinal_actions)
@@ -789,11 +825,16 @@ def compute_permissions(
     resource: AwsResource,
     iam_context: IamRequestContext,
     resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
+    resource_actions: set[IamAction],
 ) -> List[AccessPermission]:
 
     assert resource.arn
     # step 1: find the relevant action to check
-    relevant_actions = find_all_allowed_actions(iam_context.all_policies(resource_based_policies), resource.arn)
+    relevant_actions = find_all_allowed_actions(
+        iam_context.all_policies(resource_based_policies),
+        resource.arn,
+        resource_actions,
+    )
 
     all_permissions: List[AccessPermission] = []
 
@@ -820,6 +861,7 @@ class AccessEdgeCreator:
         self.builder = builder
         self.principals: List[IamRequestContext] = []
         self._init_principals()
+        self.actions_for_resource: Dict[str, set[IamAction]] = self._compute_actions_for_resource()
 
     def _init_principals(self) -> None:
 
@@ -881,6 +923,18 @@ class AccessEdgeCreator:
                 )
 
                 self.principals.append(request_context)
+
+    def _compute_actions_for_resource(self) -> Dict[str, set[IamAction]]:
+
+        actions_for_resource: Dict[str, set[IamAction]] = {}
+
+        for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
+            if not node.arn:
+                continue
+
+            actions_for_resource[node.arn] = get_actions_matching_arn(node.arn)
+
+        return actions_for_resource
 
     def _get_user_based_policies(self, principal: AwsIamUser) -> List[Tuple[PolicySource, FixPolicyDocument]]:
         inline_policies = [
@@ -977,7 +1031,7 @@ class AccessEdgeCreator:
     def add_access_edges(self) -> None:
 
         for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
-
+            assert node.arn
             for context in self.principals:
                 if context.principal.arn == node.arn:
                     # small graph cycles avoidance optimization
@@ -988,7 +1042,9 @@ class AccessEdgeCreator:
                     for source, json_policy in node.resource_policy(self.builder):
                         resource_policies.append((source, FixPolicyDocument(json_policy)))
 
-                permissions = compute_permissions(node, context, resource_policies)
+                permissions = compute_permissions(
+                    node, context, resource_policies, self.actions_for_resource.get(node.arn, set())
+                )
 
                 if not permissions:
                     continue

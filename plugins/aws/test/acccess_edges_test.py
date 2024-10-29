@@ -16,6 +16,7 @@ from fix_plugin_aws.access_edges import (
     FixPolicyDocument,
     FixStatementDetail,
     ActionToCheck,
+    get_actions_matching_arn,
 )
 
 from fixlib.baseresources import PolicySourceKind, PolicySource, PermissionLevel
@@ -396,7 +397,12 @@ def test_compute_permissions_user_inline_policy_allow() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
     assert permissions[0].level == PermissionLevel.list
@@ -435,7 +441,12 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
     assert permissions[0].level == PermissionLevel.list
@@ -473,7 +484,12 @@ def test_compute_permissions_user_inline_policy_deny() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 0
 
@@ -506,7 +522,12 @@ def test_compute_permissions_user_inline_policy_deny_with_condition() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     # deny does not grant any permissions by itself, even if the condition is met
     assert len(permissions) == 0
@@ -553,7 +574,12 @@ def test_deny_overrides_allow() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 0
 
@@ -599,7 +625,12 @@ def test_deny_different_action_does_not_override_allow() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 1
 
@@ -648,7 +679,12 @@ def test_deny_overrides_allow_with_condition() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 1
     p = permissions[0]
@@ -690,7 +726,10 @@ def test_compute_permissions_resource_based_policy_allow() -> None:
     resource_based_policies = [(PolicySource(kind=PolicySourceKind.resource, uri=bucket.arn), policy_document)]
 
     permissions = compute_permissions(
-        resource=bucket, iam_context=request_context, resource_based_policies=resource_based_policies
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=resource_based_policies,
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
     )
 
     assert len(permissions) == 1
@@ -748,7 +787,12 @@ def test_compute_permissions_permission_boundary_restrict() -> None:
         service_control_policy_levels=[],
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 1
     p = permissions[0]
@@ -799,7 +843,12 @@ def test_compute_permissions_scp_deny() -> None:
         service_control_policy_levels=service_control_policy_levels,
     )
 
-    permissions = compute_permissions(resource=ec2_instance, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=ec2_instance,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(ec2_instance.arn or ""),
+    )
 
     assert len(permissions) == 0
 
@@ -827,7 +876,12 @@ def test_compute_permissions_user_with_group_policies() -> None:
         principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 1
     p = permissions[0]
@@ -848,7 +902,12 @@ def test_compute_permissions_implicit_deny() -> None:
         principal=user, identity_policies=[], permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=table, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=table,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(table.arn or ""),
+    )
 
     # Assert that permissions do not include any actions (implicit deny)
     assert len(permissions) == 0
@@ -879,7 +938,12 @@ def test_compute_permissions_group_inline_policy_allow() -> None:
         principal=group, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
@@ -916,7 +980,12 @@ def test_compute_permissions_role_inline_policy_allow() -> None:
         principal=role, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
     )
 
-    permissions = compute_permissions(resource=bucket, iam_context=request_context, resource_based_policies=[])
+    permissions = compute_permissions(
+        resource=bucket,
+        iam_context=request_context,
+        resource_based_policies=[],
+        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+    )
 
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
