@@ -449,7 +449,7 @@ class GraphBuilder:
         client: AwsClient,
         executor: ExecutorQueue,
         core_feedback: CoreFeedback,
-        global_instance_types: Optional[Dict[Tuple[str, str], Any]] = None,
+        global_instance_types: Optional[Dict[str, Any]] = None,
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
@@ -462,9 +462,7 @@ class GraphBuilder:
         self.client = client
         self.executor = executor
         self.name = f"AWS:{account.name}:{region.name}"
-        self.global_instance_types: Dict[Tuple[str, str], Any] = (
-            global_instance_types if global_instance_types is not None else {}
-        )
+        self.global_instance_types: Dict[str, Any] = global_instance_types if global_instance_types is not None else {}
         self.core_feedback = core_feedback
         self.graph_nodes_access = graph_nodes_access or RWLock()
         self.graph_edges_access = graph_edges_access or RWLock()
@@ -659,7 +657,7 @@ class GraphBuilder:
 
     @lru_cache(maxsize=None)
     def instance_type(self, region: AwsRegion, instance_type: str) -> Optional[Any]:
-        if (it := self.global_instance_types.get((region.id, instance_type))) is None:
+        if (it := self.global_instance_types.get(instance_type)) is None:
             return None  # instance type not found
 
         price = value_in_path(cloud_instance_data, ["aws", instance_type, "pricing", region.id, "linux", "ondemand"])

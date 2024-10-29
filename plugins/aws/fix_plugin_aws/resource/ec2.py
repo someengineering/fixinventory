@@ -393,7 +393,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
-    # api_spec defined in `collect_resource_types` method
+    # api_spec defined in `collect_resource_types` method and collected by AwsEc2Instance
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_ec2_instance"],
@@ -491,7 +491,7 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
                 # Only "used" instance type will be stored in the graph
                 # note: not all instance types are returned in any region.
                 # we collect instance types in all regions and make the data unique in the builder
-                builder.global_instance_types[(builder.region.id, it.safe_name)] = it
+                builder.global_instance_types[it.safe_name] = it
 
     @classmethod
     def service_name(cls) -> Optional[str]:
@@ -1407,41 +1407,15 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
 
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
-        if spec := cls.api_spec:
-            try:
-                kwargs = spec.parameter or {}
-                items = builder.client.list(
-                    aws_service=spec.service,
-                    action=spec.api_action,
-                    result_name=spec.result_property,
-                    expected_errors=spec.expected_errors,
-                    **kwargs,
-                )
-                if not items:
-                    return
-                ec2_instance_types = []
-                checked_types = set()
-                for item in items:
-                    for instance in item.get("Instances", []):
-                        if instance_type := instance.get("InstanceType"):
-                            if instance_type not in checked_types:
-                                ec2_instance_types.append(instance_type)
-                                checked_types.add(instance_type)
-                if ec2_instance_types:
-                    builder.submit_work(
-                        service_name, AwsEc2InstanceType.collect_resource_types, builder, ec2_instance_types
-                    )
-                cls.collect(items, builder)
-            except Boto3Error as e:
-                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
-                builder.core_feedback.error(msg, log)
-                raise
-            except Exception as e:
-                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
-                builder.core_feedback.info(msg, log)
-                raise
+        super().collect_resources(builder)  # type: ignore # mypy bug: https://github.com/python/mypy/issues/12885
+        ec2_instance_types = []
+        checked_types = set()
+        for instance in builder.nodes(clazz=AwsEc2Instance):
+            if (instance_type := instance.instance_type) and instance_type not in checked_types:
+                ec2_instance_types.append(instance_type)
+                checked_types.add(instance_type)
+        if ec2_instance_types:
+            builder.submit_work(service_name, AwsEc2InstanceType.collect_resource_types, builder, ec2_instance_types)
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
@@ -4020,7 +3994,7 @@ class AwsEc2LaunchTemplate(EC2Taggable, AwsResource):
 # endregion
 
 resources: List[Type[AwsResource]] = [
-    # AwsEc2InstanceType, Collected via AwsEc2Instance
+    AwsEc2InstanceType,
     AwsEc2ElasticIp,
     AwsEc2FlowLog,
     AwsEc2Host,
