@@ -5,7 +5,7 @@ from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from attrs import define, field
 from boto3.exceptions import Boto3Error
 
-from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.base import AssessmentKey, AwsResource, AwsApiSpec, GraphBuilder
 from fixlib.baseresources import Assessment, PhantomBaseResource, Severity, Finding
 from fixlib.types import Json
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
@@ -413,7 +413,7 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         else:
             return
         provider_findings = builder._assessment_findings.get(
-            ("inspector", resource_to_set.region().id, resource_to_set.__class__.__name__), {}
+            AssessmentKey("inspector", resource_to_set.region().id, resource_to_set.__class__.__name__), {}
         ).get(id_or_arn, [])
         if provider_findings:
             # Set the findings in the resource's _assessments dictionary
