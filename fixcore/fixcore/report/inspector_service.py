@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from functools import lru_cache
-from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator, cast
+from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator, cast, Set
 
 from aiostream import stream, pipe
 from aiostream.core import Stream
@@ -267,11 +267,13 @@ class InspectorService(Inspector, Service):
 
         def account_failing(account_id: str) -> Json:
             failing_checks: Dict[ReportSeverity, int] = defaultdict(int)
-            failing_resources: Dict[ReportSeverity, int] = defaultdict(int)
+            failing_resource_ids: Dict[ReportSeverity, Set[str]] = defaultdict(set)
             for cr in all_checks.values():
                 if fr := cr.resources_failing_by_account.get(account_id, []):
                     failing_checks[cr.check.severity] += 1
-                    failing_resources[cr.check.severity] += len(fr)
+                    for r in fr:
+                        failing_resource_ids[cr.check.severity].add(r["node_id"])
+            failing_resources = {sev: len(ids) for sev, ids in failing_resource_ids.items()}
             return {
                 sev.value: {"checks": count, "resources": failing_resources[sev]}
                 for sev, count in failing_checks.items()
