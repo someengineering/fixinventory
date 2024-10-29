@@ -123,7 +123,7 @@ async def _run_app(
     sites: List[BaseSite] = []
 
     def with_port(port: int, ssl: Optional[SSLContext] = None) -> None:
-        if isinstance(host, (str, bytes, bytearray, memoryview)):
+        if isinstance(host, (str, bytes, bytearray)):
             sites.append(
                 TCPSite(
                     runner,
