@@ -354,7 +354,7 @@ async def test_keep_org_root_when_merging_graph(graph_db: ArangoGraphDB, foo_mod
 
     # adding another account without org_root does not delete the old root:
     _, update = await graph_db.merge_graph(create("yes or no", org_root_id=None, account_id="aws_account_2"), foo_model)
-    assert GraphUpdate(111, 1, 0, 211, 0, 0) == update
+    assert GraphUpdate(111, 0, 0, 211, 0, 0) == update
 
     assert await graph_db.by_id(NodeId("org_root")) is not None
 
@@ -658,7 +658,7 @@ async def test_update_node(filled_graph_db: ArangoGraphDB, foo_model: Model) -> 
     async def elements(history: bool) -> List[Json]:
         fn = filled_graph_db.search_history if history else filled_graph_db.search_list
         model = QueryModel(parse_query("ancestors.account.reported.name==bat"), foo_model)
-        async with await fn(query=model) as crs:  # type: ignore
+        async with await fn(query=model) as crs:
             return [e async for e in crs]
 
     assert len(await elements(False)) == 111

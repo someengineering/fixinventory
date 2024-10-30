@@ -174,7 +174,7 @@ def parse_time_or_delta(time_or_delta: str) -> datetime:
 
 def js_value_get(element: JsonElement, path_or_name: Union[List[str], str], if_none: AnyT) -> AnyT:
     result = js_value_at(element, path_or_name)
-    return result if result and isinstance(result, type(if_none)) else if_none  # type: ignore
+    return result if result and isinstance(result, type(if_none)) else if_none
 
 
 def js_value_at(element: JsonElement, path_or_name: Union[List[str], str]) -> Optional[Any]:
