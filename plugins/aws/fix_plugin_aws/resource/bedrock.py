@@ -14,7 +14,7 @@ from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
 from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, Sort
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -906,6 +906,7 @@ class AwsBedrockPromptOverrideConfiguration:
     mapping: ClassVar[Dict[str, Bender]] = {
         "override_lambda": S("overrideLambda"),
         "prompt_configurations": S("promptConfigurations", default=[])
+        >> Sort(S("basePromptTemplate"))  # The configurations are returned always in different order
         >> ForallBend(AwsBedrockPromptConfiguration.mapping),
     }
     override_lambda: Optional[str] = field(default=None, metadata={"description": "The ARN of the Lambda function to use when parsing the raw foundation model output in parts of the agent sequence. If you specify this field, at least one of the promptConfigurations must contain a parserMode value that is set to OVERRIDDEN. For more information, see Parser Lambda function in Agents for Amazon Bedrock."})  # fmt: skip
@@ -928,7 +929,6 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
             "default": [
                 AwsBedrockGuardrail.kind,
                 AwsKmsKey.kind,
-                "aws_bedrock_agent_version",
                 "aws_bedrock_agent_knowledge_base",
             ]
         },
@@ -1029,19 +1029,6 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
             if tags:
                 agent.tags.update(tags[0])
 
-        def collect_agent_versions(agent: AwsBedrockAgent) -> None:
-            if not agent.agent_version or agent.agent_version == "DRAFT":
-                return
-            for result in builder.client.list(
-                "bedrock-agent",
-                "get-agent-version",
-                agentId=agent.id,
-                agentVersion=agent.agent_version,
-            ):
-                if instance := AwsBedrockAgentVersion.from_api(result, builder):
-                    builder.add_node(instance, js)
-                    builder.submit_work("bedrock-agent", add_tags, instance)
-
         for js in json:
             for result in builder.client.list(
                 "bedrock-agent",
@@ -1052,102 +1039,6 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
                     instance.agent_version = js["latestAgentVersion"]
                     builder.add_node(instance, js)
                     builder.submit_work("bedrock-agent", add_tags, instance)
-                    builder.submit_work("bedrock-agent", collect_agent_versions, instance)
-
-
-@define(eq=False, slots=False)
-class AwsBedrockAgentVersion(BedrockTaggable, AwsResource):
-    kind: ClassVar[str] = "aws_bedrock_agent_version"
-    _kind_display: ClassVar[str] = "AWS Bedrock Agent Version"
-    _kind_description: ClassVar[str] = "AWS Bedrock Agent Version is a feature that tracks changes in Bedrock agents over time. It maintains a record of agent configurations, including knowledge bases, prompts, and action groups. Users can view, compare, and revert to previous versions, ensuring version control and facilitating collaboration across teams working on AI agent development."  # fmt: skip
-    _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/bedrock/latest/userguide/agents-version.html"
-    _kind_service: ClassVar[Optional[str]] = "bedrock-agent"
-    _aws_metadata: ClassVar[Dict[str, Any]] = {
-        "provider_link_tpl": "https://{region_id}.console.aws.amazon.com/bedrock/home?region={region_id}#/agents/{id}/versions/{version}"
-    }
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "version", "group": "ai"}
-    _reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": [AwsIamRole.kind, AwsBedrockFoundationModel.kind]},
-        "successors": {"default": [AwsBedrockGuardrail.kind, AwsKmsKey.kind]},
-    }
-    # Collected via AwsBedrockAgent()
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("agentVersion", "agentId"),
-        "name": S("agentVersion", "agentName"),
-        "ctime": S("agentVersion", "createdAt"),
-        "mtime": S("agentVersion", "updatedAt"),
-        "arn": S("agentVersion", "agentArn"),
-        "agent_arn": S("agentVersion", "agentArn"),
-        "agent_id": S("agentVersion", "agentId"),
-        "agent_name": S("agentVersion", "agentName"),
-        "agent_resource_role_arn": S("agentVersion", "agentResourceRoleArn"),
-        "agent_status": S("agentVersion", "agentStatus"),
-        "created_at": S("agentVersion", "createdAt"),
-        "customer_encryption_key_arn": S("agentVersion", "customerEncryptionKeyArn"),
-        "description": S("agentVersion", "description"),
-        "failure_reasons": S("agentVersion", "failureReasons", default=[]),
-        "foundation_model": S("agentVersion", "foundationModel"),
-        "guardrail_configuration": S("agentVersion", "guardrailConfiguration")
-        >> Bend(AwsBedrockGuardrailConfiguration.mapping),
-        "idle_session_ttl_in_seconds": S("agentVersion", "idleSessionTTLInSeconds"),
-        "instruction": S("agentVersion", "instruction"),
-        "memory_configuration": S("agentVersion", "memoryConfiguration") >> Bend(AwsBedrockMemoryConfiguration.mapping),
-        "prompt_override_configuration": S("agentVersion", "promptOverrideConfiguration")
-        >> Bend(AwsBedrockPromptOverrideConfiguration.mapping),
-        "agent_recommended_actions": S("agentVersion", "recommendedActions", default=[]),
-        "updated_at": S("agentVersion", "updatedAt"),
-        "version": S("agentVersion", "version"),
-    }
-    agent_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the agent that the version belongs to."})  # fmt: skip
-    agent_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the agent that the version belongs to."})  # fmt: skip
-    agent_name: Optional[str] = field(default=None, metadata={"description": "The name of the agent that the version belongs to."})  # fmt: skip
-    agent_resource_role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the IAM role with permissions to invoke API operations on the agent."})  # fmt: skip
-    agent_status: Optional[str] = field(default=None, metadata={"description": "The status of the agent that the version belongs to."})  # fmt: skip
-    created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the version was created."})  # fmt: skip
-    customer_encryption_key_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the KMS key that encrypts the agent."})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={"description": "The description of the version."})  # fmt: skip
-    failure_reasons: Optional[List[str]] = field(factory=list, metadata={"description": "A list of reasons that the API operation on the version failed."})  # fmt: skip
-    foundation_model: Optional[str] = field(default=None, metadata={"description": "The foundation model that the version invokes."})  # fmt: skip
-    guardrail_configuration: Optional[AwsBedrockGuardrailConfiguration] = field(default=None, metadata={"description": "Details about the guardrail associated with the agent."})  # fmt: skip
-    idle_session_ttl_in_seconds: Optional[int] = field(default=None, metadata={"description": "The number of seconds for which Amazon Bedrock keeps information about a user's conversation with the agent. A user interaction remains active for the amount of time specified. If no conversation occurs during this time, the session expires and Amazon Bedrock deletes any data provided before the timeout."})  # fmt: skip
-    instruction: Optional[str] = field(default=None, metadata={"description": "The instructions provided to the agent."})  # fmt: skip
-    memory_configuration: Optional[AwsBedrockMemoryConfiguration] = field(default=None, metadata={"description": "Contains details of the memory configuration on the version of the agent."})  # fmt: skip
-    prompt_override_configuration: Optional[AwsBedrockPromptOverrideConfiguration] = field(default=None, metadata={"description": "Contains configurations to override prompt templates in different parts of an agent sequence. For more information, see Advanced prompts."})  # fmt: skip
-    agent_recommended_actions: Optional[List[str]] = field(factory=list, metadata={"description": "A list of recommended actions to take for the failed API operation on the version to succeed."})  # fmt: skip
-    updated_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the version was last updated."})  # fmt: skip
-    version: Optional[str] = field(default=None, metadata={"description": "The version number."})  # fmt: skip
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if role_arn := self.agent_resource_role_arn:
-            builder.add_edge(self, reverse=True, clazz=AwsIamRole, arn=role_arn)
-        if encryption_key_arn := self.customer_encryption_key_arn:
-            builder.add_edge(self, clazz=AwsKmsKey, arn=encryption_key_arn)
-        if (g_configuration := self.guardrail_configuration) and (g_id := g_configuration.guardrail_identifier):
-            builder.add_edge(self, clazz=AwsBedrockGuardrail, id=g_id)
-        if foundation_model_name := self.foundation_model:
-            builder.add_edge(self, reverse=True, clazz=AwsBedrockFoundationModel, id=foundation_model_name)
-
-    def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
-        client.call(
-            aws_service="bedrock-agent",
-            action="delete-agent-version",
-            result_name=None,
-            agentId=self.agent_id,
-            agentVersion=self.version,
-        )
-        return True
-
-    @classmethod
-    def called_mutator_apis(cls) -> List[AwsApiSpec]:
-        return super().called_mutator_apis() + [AwsApiSpec("bedrock-agent", "delete-agent-version")]
-
-    @classmethod
-    def called_collect_apis(cls) -> List[AwsApiSpec]:
-        return super().called_collect_apis() + [AwsApiSpec("bedrock-agent", "get-agent-version")]
-
-    @classmethod
-    def service_name(cls) -> str:
-        return "bedrock-agent"
 
 
 @define(eq=False, slots=False)
@@ -2022,7 +1913,6 @@ resources: List[Type[AwsResource]] = [
     AwsBedrockModelCustomizationJob,
     AwsBedrockEvaluationJob,
     AwsBedrockAgent,
-    AwsBedrockAgentVersion,
     AwsBedrockAgentKnowledgeBase,
     AwsBedrockAgentPrompt,
     AwsBedrockAgentFlow,

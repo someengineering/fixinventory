@@ -692,10 +692,8 @@ class AzureMachineLearningDataContainerBase(AzureProxyResource):
     }
     description: Optional[str] = field(default=None, metadata={"description": "The asset description text."})
     is_archived: Optional[bool] = field(default=False, metadata={"description": "Is the asset archived?"})
-    latest_version: Optional[str] = field(
-        default=None, metadata={"description": "The latest version inside this container."}
-    )
-    next_version: Optional[str] = field(default=None, metadata={"description": "The next auto incremental version."})
+    latest_version: Optional[str] = field(default=None, metadata={"ignore_history": True, "description": "The latest version inside this container."})  # fmt: skip
+    next_version: Optional[str] = field(default=None, metadata={"ignore_history": True, "description": "The next auto incremental version."})  # fmt: skip
     properties: Optional[Dict[str, Any]] = field(default=None, metadata={"description": ""})
 
 
