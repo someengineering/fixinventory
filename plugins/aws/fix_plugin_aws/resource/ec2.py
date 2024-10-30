@@ -497,6 +497,10 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     def service_name(cls) -> Optional[str]:
         return service_name
 
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec(service_name, "describe-instance-types")]
+
 
 # endregion
 
@@ -1408,14 +1412,13 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     @classmethod
     def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
         super().collect_resources(builder)  # type: ignore # mypy bug: https://github.com/python/mypy/issues/12885
-        ec2_instance_types = []
-        checked_types = set()
+        ec2_instance_types = set()
         for instance in builder.nodes(clazz=AwsEc2Instance):
-            if (instance_type := instance.instance_type) and instance_type not in checked_types:
-                ec2_instance_types.append(instance_type)
-                checked_types.add(instance_type)
+            ec2_instance_types.add(instance.instance_type)
         if ec2_instance_types:
-            builder.submit_work(service_name, AwsEc2InstanceType.collect_resource_types, builder, ec2_instance_types)
+            builder.submit_work(
+                service_name, AwsEc2InstanceType.collect_resource_types, builder, list(ec2_instance_types)
+            )
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
