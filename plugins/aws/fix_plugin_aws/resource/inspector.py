@@ -136,11 +136,11 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
                 case "AWS_LAMBDA_FUNCTION":
                     # remove lambda's version from arn
                     lambda_arn = resource_id.rsplit(":", 1)[0]
-                    return AwsLambdaFunction, dict(arn=lambda_arn)
+                    return AwsLambdaFunction, {"arn": lambda_arn}
                 case "AWS_EC2_INSTANCE":
-                    return AwsEc2Instance, dict(id=resource_id)
+                    return AwsEc2Instance, {"id": resource_id}
                 case "AWS_ECR_REPOSITORY":
-                    return AwsEcrRepository, dict(id=resource_id, _region=builder.region)
+                    return AwsEcrRepository, {"id": resource_id, "_region": builder.region}
                 case _:
                     return None, None
 
