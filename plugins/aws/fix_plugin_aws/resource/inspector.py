@@ -7,6 +7,9 @@ from attrs import define, field
 from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance
+from fix_plugin_aws.resource.ecr import AwsEcrRepository
+from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from fixlib.baseresources import PhantomBaseResource, Severity, Finding
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 from fixlib.types import Json
@@ -427,11 +430,6 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         def check_type_and_adjust_id(
             class_type: Optional[str], class_id: Optional[str]
         ) -> Tuple[Optional[Type[Any]], Optional[Dict[str, Any]]]:
-            # to avoid circular import, defined here
-            from fix_plugin_aws.resource.ec2 import AwsEc2Instance
-            from fix_plugin_aws.resource.ecr import AwsEcrRepository
-            from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-
             if not class_id or not class_type:
                 return None, None
             match class_type:
