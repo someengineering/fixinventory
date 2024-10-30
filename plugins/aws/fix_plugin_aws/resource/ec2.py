@@ -1,14 +1,14 @@
 import base64
-from functools import partial
+import copy
 import logging
 from contextlib import suppress
 from datetime import datetime, timedelta
+from functools import partial
 from typing import ClassVar, Dict, Optional, List, Type, Any
-import copy
 
 from attrs import define, field
-from fix_plugin_aws.aws_client import AwsClient
 
+from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
@@ -18,10 +18,9 @@ from fix_plugin_aws.resource.cloudwatch import (
     operations_to_iops,
     normalizer_factory,
 )
-from fix_plugin_aws.resource.inspector import AwsInspectorFinding
+from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
-from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.utils import ToDict, TagsValue
 from fixlib.baseresources import (
     BaseInstance,
@@ -49,7 +48,6 @@ from fixlib.config import current_config
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from fixlib.types import Json
-
 
 # region InstanceType
 from fixlib.utils import utc
@@ -1523,8 +1521,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             builder.add_edge(self, reverse=True, clazz=AwsEc2LaunchTemplate, id=lt_id)
         if iam_profile := self.instance_iam_instance_profile:
             builder.add_edge(self, reverse=True, clazz=AwsIamInstanceProfile, arn=iam_profile.arn)
-
-        AwsInspectorFinding.set_findings(builder, self)
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED:

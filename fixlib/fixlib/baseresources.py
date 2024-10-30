@@ -409,6 +409,13 @@ class BaseResource(ABC):
         self.__log.append(log_entry)
         self._changes.add("log")
 
+    def add_finding(self, provider: str, finding: Finding) -> None:
+        for assessment in self._assessments:
+            if assessment.provider == provider:
+                assessment.findings.append(finding)
+                return
+        self._assessments.append(Assessment(provider=provider, findings=[finding]))
+
     def add_change(self, change: str) -> None:
         self._changes.add(change)
 

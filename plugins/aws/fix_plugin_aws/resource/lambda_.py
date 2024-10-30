@@ -1,15 +1,15 @@
-from datetime import timedelta
 import json as json_p
 import logging
 import re
+from datetime import timedelta
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
+
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
 from fix_plugin_aws.resource.ec2 import AwsEc2Subnet, AwsEc2SecurityGroup, AwsEc2Vpc
-from fix_plugin_aws.resource.inspector import AwsInspectorFinding
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fixlib.baseresources import (
     BaseServerlessFunction,
@@ -20,9 +20,9 @@ from fixlib.baseresources import (
     PolicySourceKind,
 )
 from fixlib.graph import Graph
+from fixlib.json import sort_json
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F, bend
 from fixlib.types import Json
-from fixlib.json import sort_json
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -405,7 +405,6 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction, HasResourcePolicy):
                 clazz=AwsKmsKey,
                 arn=self.function_kms_key_arn,
             )
-        AwsInspectorFinding.set_findings(builder, self, "arn")
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         client.call(

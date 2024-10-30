@@ -1,13 +1,12 @@
 import json
 import logging
-from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from json import loads as json_loads
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
 from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
-from fix_plugin_aws.resource.inspector import AwsInspectorFinding
 from fix_plugin_aws.utils import ToDict
 from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
 from fixlib.json import sort_json
@@ -128,9 +127,6 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
             AwsApiSpec(service_name, "get-lifecycle-policy"),
             AwsApiSpec(service_name, "get-repository-policy"),
         ]
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        AwsInspectorFinding.set_findings(builder, self)
 
 
 # @define(eq=False, slots=False)

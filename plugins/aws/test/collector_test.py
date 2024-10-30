@@ -30,8 +30,8 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
         return count
 
     for resource in all_resources:
-        # we do not add findings to the graph --> skip check
-        if issubclass(resource, AwsInspectorFinding):
+        # there will be no instances of resources that are not exported
+        if not resource._model_export:
             continue
         assert count_kind(resource) > 0, f"No instances of {resource.__name__} found"
 

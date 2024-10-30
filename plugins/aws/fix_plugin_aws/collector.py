@@ -246,6 +246,10 @@ class AwsAccountCollector:
                     )
             shared_queue.wait_for_submitted_work()
 
+            # call all registered after collect hooks
+            for after_collect in global_builder.after_collect_actions:
+                after_collect()
+
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):

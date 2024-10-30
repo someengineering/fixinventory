@@ -158,6 +158,8 @@ def build_graph(
         for cls in clazz if isinstance(clazz, list) else [clazz]:
             cls.collect_resources(builder)
         builder.executor.wait_for_submitted_work()
+        for after_collect in builder.after_collect_actions:
+            after_collect()
         return builder
 
 
