@@ -6,7 +6,7 @@ from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from attrs import define, field
 from boto3.exceptions import Boto3Error
 
-from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
+from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.ecr import AwsEcrRepository
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
@@ -428,19 +428,19 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
         def check_type_and_adjust_id(
-            class_type: Optional[str], class_id: Optional[str]
+            class_type: Optional[str], resource_id: Optional[str]
         ) -> Tuple[Optional[Type[Any]], Optional[Dict[str, Any]]]:
-            if not class_id or not class_type:
+            if not resource_id or not class_type:
                 return None, None
             match class_type:
                 case "AWS_LAMBDA_FUNCTION":
                     # remove lambda's version from arn
-                    lambda_arn = class_id.rsplit(":", 1)[0]
+                    lambda_arn = resource_id.rsplit(":", 1)[0]
                     return AwsLambdaFunction, dict(arn=lambda_arn)
                 case "AWS_EC2_INSTANCE":
-                    return AwsEc2Instance, dict(id=class_id)
+                    return AwsEc2Instance, dict(id=resource_id)
                 case "AWS_ECR_REPOSITORY":
-                    return AwsEcrRepository, dict(id=class_id)
+                    return AwsEcrRepository, dict(id=resource_id, _region=builder.region)
                 case _:
                     return None, None
 
