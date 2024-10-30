@@ -1207,7 +1207,7 @@ class ArangoGraphDB(GraphDB):
         ) -> None:
             if array:
                 async_fn_with_args = partial(async_fn, **kwargs) if kwargs else async_fn
-                result = await async_fn_with_args(name, array)  # type: ignore
+                result = await async_fn_with_args(name, array)
                 ex: Optional[Exception] = first(lambda x: isinstance(x, Exception), result)
                 if ex:
                     raise ex  # pylint: disable=raising-bad-type

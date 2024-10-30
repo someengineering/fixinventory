@@ -108,8 +108,8 @@ class Config(metaclass=MetaConfig):
             Config.running_config.classes[config.kind] = config  # type: ignore
             Config.running_config.types[config.kind] = {}
             for field in fields(config):  # type: ignore
-                if hasattr(field, "type"):
-                    Config.running_config.types[config.kind][field.name] = optional_origin(field.type)
+                if hasattr(field, "type") and isinstance(origin := optional_origin(field.type), type):
+                    Config.running_config.types[config.kind][field.name] = origin
         else:
             raise RuntimeError("Config must have a 'kind' attribute")
 

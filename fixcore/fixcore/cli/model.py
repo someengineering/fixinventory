@@ -260,7 +260,7 @@ class CLISource(CLIAction):
 
     async def source(self) -> Tuple[CLISourceContext, JsStream]:
         res = self._fn()
-        context, gen = await res if iscoroutine(res) else res
+        context, gen = await res if iscoroutine(res) else res  # type: ignore
         return context, self.make_stream(await gen if iscoroutine(gen) else gen)
 
     @staticmethod
@@ -273,7 +273,7 @@ class CLISource(CLIAction):
     ) -> CLISource:
         async def combine() -> Tuple[CLISourceContext, JsGen]:
             res = fn()
-            count, gen = await res if iscoroutine(res) else res
+            count, gen = await res if iscoroutine(res) else res  # type: ignore
             return CLISourceContext(count=count, total_count=count), gen
 
         return CLISource(combine, produces, requires, envelope, required_permissions)
@@ -299,7 +299,7 @@ class CLISource(CLIAction):
     ) -> CLISource:
         async def combine() -> Tuple[CLISourceContext, JsGen]:
             res = fn()
-            gen = await res if iscoroutine(res) else res
+            gen: JsGen = await res if iscoroutine(res) else res  # type: ignore
             return CLISourceContext(count=count), gen
 
         return CLISource(combine, produces, requires, envelope, required_permissions)
@@ -333,7 +333,7 @@ class CLIFlow(CLIAction):
 
     async def flow(self, in_stream: JsGen) -> JsStream:
         gen = self._fn(self.make_stream(in_stream))
-        return self.make_stream(await gen if iscoroutine(gen) else gen)
+        return self.make_stream(await gen if iscoroutine(gen) else gen)  # type: ignore
 
 
 @define
