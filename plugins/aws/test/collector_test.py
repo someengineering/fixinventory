@@ -13,7 +13,6 @@ from fix_plugin_aws.collector import (
 )
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
-from fix_plugin_aws.resource.inspector import AwsInspectorFinding
 from fixlib.baseresources import BaseResource
 from fixlib.core.model_export import dataclasses_to_fixcore_model
 from test import account_collector, builder, aws_client, aws_config, no_feedback  # noqa: F401
