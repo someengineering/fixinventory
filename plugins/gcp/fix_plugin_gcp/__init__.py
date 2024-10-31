@@ -57,7 +57,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
             len(credentials) if len(credentials) < Config.gcp.project_pool_size else Config.gcp.project_pool_size
         )
         collect_args = {}
-        pool_args = {"max_workers": max_workers}
+        pool_args: Dict[str, Any] = {"max_workers": max_workers}
         pool_executor = futures.ThreadPoolExecutor
         if Config.gcp.fork_process:
             collect_args = {

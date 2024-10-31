@@ -20,43 +20,43 @@ property_metadata_to_strip = ["restart_required", "description", "required", "ki
 
 
 # List[X] -> list, list -> list
-def optional_origin(clazz: Type[Any]) -> Type[Any]:
+def optional_origin(clazz: Union[type, Tuple[Any], None]) -> Union[type, Tuple[Any], None]:
     maybe_optional = get_args(clazz)[0] if is_optional(clazz) else clazz
     origin = get_origin(maybe_optional)
-    return origin if origin else maybe_optional  # type: ignore
+    return origin if origin else maybe_optional
 
 
 # Optional[x] -> true
-def is_optional(clazz: Union[type, Tuple[Any]]) -> bool:
+def is_optional(clazz: Union[type, Tuple[Any], None]) -> bool:
     args = get_args(clazz)
     return get_origin(clazz) is Union and type(None) in args and len(args) == 2
 
 
 # List[x] -> true, list -> true
-def is_collection(clazz: type) -> bool:
+def is_collection(clazz: Union[type, Tuple[Any], None]) -> bool:
     return optional_origin(clazz) in [list, set, tuple]
 
 
 # Dict[x,y] -> true, dict -> true
-def is_dict(clazz: type) -> bool:
+def is_dict(clazz: Union[type, Tuple[Any], None]) -> bool:
     return optional_origin(clazz) in [dict]
 
 
 # either enum or optional enum
-def is_enum(clazz: type) -> bool:
+def is_enum(clazz: Union[type, Tuple[Any], None]) -> bool:
     origin = optional_origin(clazz)
     return isinstance(origin, type) and issubclass(origin, Enum)
 
 
 # List[X] -> X, list -> object
-def type_arg(clazz: type) -> type:
+def type_arg(clazz: Union[type, Tuple[Any], None]) -> type:
     maybe_optional = get_args(clazz)[0] if is_optional(clazz) else clazz
     args = get_args(maybe_optional)
-    return args[0] if args and len(args) == 1 else object  # type: ignore
+    return args[0] if args and len(args) == 1 else object
 
 
 # Dict[X,Y] -> (X,Y), dict -> (object, object)
-def dict_types(clazz: type) -> Tuple[type, type]:
+def dict_types(clazz: Union[type, Tuple[Any], None]) -> Tuple[type, type]:
     maybe_optional = get_args(clazz)[0] if is_optional(clazz) else clazz
     args = get_args(maybe_optional)
     return (args[0], args[1]) if args and len(args) == 2 else (object, object)
@@ -76,7 +76,7 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
             check(value_type)
         elif is_collection(clazz):
             check(type_arg(to_check))
-        elif attrs.has(clazz):
+        elif isinstance(clazz, type) and attrs.has(clazz):
             if getattr(clazz, "_model_export", True) is False:
                 return
             resolve_types(clazz)
@@ -91,7 +91,7 @@ def transitive_classes(classes: Set[type], walk_subclasses: bool = True) -> Set[
                     continue
                 check(field.type)
         elif is_enum(clazz):
-            all_classes.add(clazz)
+            all_classes.add(clazz)  # type: ignore
 
     for c in classes:
         check(c)
@@ -123,7 +123,7 @@ def model_name(clazz: Union[type, Tuple[Any], None]) -> str:
         return f"dictionary[{model_name(key_type)}, {model_name(value_type)}]"
     elif is_enum(to_check):
         # camel case to snake case
-        return re.sub(r"(?<!^)(?=[A-Z])", "_", to_check.__name__).lower()
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", to_check.__name__).lower()  # type: ignore
     elif get_origin(to_check) == Union:
         # this is a union of different types other than none.
         # since union types are not supported, we fallback to any here
@@ -132,7 +132,7 @@ def model_name(clazz: Union[type, Tuple[Any], None]) -> str:
         return model_name(get_args(to_check))
     elif isinstance(to_check, type) and issubclass(to_check, simple_type):
         return lookup[to_check]
-    elif attrs.has(to_check):
+    elif isinstance(to_check, type) and attrs.has(to_check):
         name = getattr(to_check, "kind", None)
         if not name:
             raise AttributeError(f"dataclass {to_check} need to define a ClassVar kind!")
@@ -191,7 +191,7 @@ def dataclasses_to_fixcore_model(
         kind = meta.pop("type_hint", model_name(field.type))
         desc = meta.pop("description", None)
         desc = desc if with_prop_description else None
-        required = meta.pop("required", use_optional_as_required and not is_optional(field.type))  # type: ignore
+        required = meta.pop("required", use_optional_as_required and not is_optional(field.type))
         synthetic = meta.pop("synthetic", None)
         synthetic = synthetic if synthetic else {}
         for ps in property_metadata_to_strip:

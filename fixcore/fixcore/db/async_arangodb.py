@@ -51,7 +51,7 @@ class AsyncCursor(AsyncIterator[Any]):
         self.visited_edge: Set[str] = set()
         self.deferred_edges: List[Json] = []
         self.cursor_exhausted = False
-        self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else identity  # type: ignore
+        self.trafo: Callable[[Json], Optional[Any]] = trafo if trafo else identity
         self.vt_len: Optional[int] = None
         self.on_hold: Optional[Json] = None
         self.get_next: Callable[[], Awaitable[Optional[Json]]] = (

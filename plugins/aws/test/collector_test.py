@@ -29,6 +29,9 @@ def test_collect(account_collector: AwsAccountCollector) -> None:
         return count
 
     for resource in all_resources:
+        # there will be no instances of resources that are not exported
+        if not resource._model_export:
+            continue
         assert count_kind(resource) > 0, f"No instances of {resource.__name__} found"
 
     # make sure all threads have been joined
@@ -106,6 +109,8 @@ def test_resource_classes() -> None:
     expected_declared_properties = ["kind", "_kind_display"]
     expected_props_in_hierarchy = ["_kind_service", "_metadata"]
     for rc in all_resources:
+        if not rc._model_export:
+            continue
         for prop in expected_declared_properties:
             assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
         with_bases = (all_base_classes(rc) | {rc}) - {AwsResource, BaseResource}

@@ -44,6 +44,7 @@ dependencies = [
     "prometheus-client",
     "psutil",
     "python-dateutil",
+    "pytz==2024.1",  # https://github.com/stub42/pytz/issues/130
     "requests",
     "typeguard",
     "tzdata",

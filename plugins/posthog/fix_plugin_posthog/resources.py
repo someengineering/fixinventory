@@ -1,6 +1,7 @@
 from datetime import datetime
 from attrs import define
 from typing import Optional, ClassVar, List, Dict
+from fixlib.logger import log
 from fixlib.graph import Graph
 from fixlib.baseresources import BaseAccount, BaseResource
 
@@ -112,8 +113,9 @@ class PosthogEvent(PosthogResource, BaseResource):
         )
 
 
-def convert_date(date_str: str) -> Optional[datetime]:
+def convert_date(isodate_str: str) -> Optional[datetime]:
     try:
-        return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-    except Exception:
+        return datetime.strptime(isodate_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except Exception as e:
+        log.debug(f"Error converting date: {e}")
         return None
