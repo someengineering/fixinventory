@@ -18,7 +18,6 @@ from fix_plugin_aws.resource.cloudwatch import (
     operations_to_iops,
     normalizer_factory,
 )
-from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
@@ -706,7 +705,6 @@ class AwsEc2Volume(EC2Taggable, AwsResource, BaseVolume):
                 clazz=AwsKmsKey,
                 id=AwsKmsKey.normalise_id(self.volume_kms_key_id),
             )
-        AwsGuardDutyFinding.set_findings(builder, self, "arn")
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
@@ -1523,8 +1521,6 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
             builder.add_edge(self, reverse=True, clazz=AwsEc2LaunchTemplate, id=lt_id)
         if iam_profile := self.instance_iam_instance_profile:
             builder.add_edge(self, reverse=True, clazz=AwsIamInstanceProfile, arn=iam_profile.arn)
-
-        AwsGuardDutyFinding.set_findings(builder, self, "id")
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         if self.instance_status == InstanceStatus.TERMINATED:

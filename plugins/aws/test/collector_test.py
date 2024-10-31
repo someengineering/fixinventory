@@ -11,7 +11,6 @@ from fix_plugin_aws.collector import (
     called_collect_apis,
     called_mutator_apis,
 )
-from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, AwsRegion
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fixlib.baseresources import BaseResource

@@ -34,7 +34,6 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "repository", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"provider_link_tpl": "https://{region_id}.console.aws.amazon.com/ecr/repositories/{name}?region={region}", "arn_tpl": "arn:{partition}:ecr:{region}:{account}:repository/{name}"}  # fmt: skip
-    _reference_kinds: ClassVar[ModelReference] = {}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr", "describe-repositories", "repositories")
     public_spec: ClassVar[AwsApiSpec] = AwsApiSpec("ecr-public", "describe-repositories", "repositories")
     mapping: ClassVar[Dict[str, Bender]] = {

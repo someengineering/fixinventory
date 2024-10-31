@@ -66,17 +66,6 @@ TemplateFn: Dict[str, Callable[[AwsResource], Optional[str]]] = {
 }
 
 
-@define(slots=True, frozen=True)
-class AssessmentKey:
-    provider: str
-    region: str
-    resource_type: str
-
-
-# Type alias for the inner dictionary that maps resource ID to a list of findings
-ResourceFindings = Dict[str, List[Finding]]
-
-
 def parse_json(
     json: Json, clazz: Type[T], builder: GraphBuilder, mapping: Optional[Dict[str, Bender]] = None
 ) -> Optional[T]:

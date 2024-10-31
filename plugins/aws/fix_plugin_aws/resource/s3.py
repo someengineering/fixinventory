@@ -11,7 +11,6 @@ from attrs import define
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
-from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.utils import tags_as_dict
 from fixlib.baseresources import (
     BaseBucket,
@@ -180,7 +179,6 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
     _kind_description: ClassVar[str] = "AWS S3 Bucket is a cloud storage service provided by Amazon Web Services. It stores and retrieves data objects, such as files, documents, and images. S3 Buckets organize data into containers, offering features like access control, versioning, and lifecycle management. Users can interact with S3 Buckets through APIs, SDKs, or the AWS Management Console."  # fmt: skip
     _docs_url: ClassVar[str] = "https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html"
     _kind_service: ClassVar[Optional[str]] = service_name
-    _reference_kinds: ClassVar[ModelReference] = {}
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
         service_name, "list-buckets", "Buckets", override_iam_permission="s3:ListAllMyBuckets"
     )
@@ -215,9 +213,6 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
             AwsApiSpec(service_name, "get-bucket-location"),
             AwsApiSpec(service_name, "get-bucket-lifecycle-configuration"),
         ]
-
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        AwsGuardDutyFinding.set_findings(builder, self, "name")
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

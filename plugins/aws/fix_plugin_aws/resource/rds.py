@@ -7,7 +7,6 @@ from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, AwsCloudwatchMetricData, normalizer_factory
 from fix_plugin_aws.resource.ec2 import AwsEc2SecurityGroup, AwsEc2Subnet, AwsEc2Vpc
-from fix_plugin_aws.resource.guardduty import AwsGuardDutyFinding
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict, TagsValue
@@ -599,8 +598,6 @@ class AwsRdsInstance(RdsTaggable, AwsResource, BaseDatabase):
         for key_reference in keys:
             builder.dependant_node(from_node=self, clazz=AwsKmsKey, id=AwsKmsKey.normalise_id(key_reference))
 
-        AwsGuardDutyFinding.set_findings(builder, self, "id")
-
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
             aws_service=self.api_spec.service,
@@ -1042,7 +1039,6 @@ class AwsRdsCluster(RdsTaggable, AwsResource, BaseDatabase):
             )
         if kinesis := self.rds_activity_stream_kinesis_stream_name:
             builder.add_edge(self, clazz=AwsKinesisStream, name=kinesis)
-        AwsGuardDutyFinding.set_findings(builder, self, "id")
 
     def delete_resource(self, client: AwsClient, graph: Graph) -> bool:
         client.call(
