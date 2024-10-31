@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 import logging
 from concurrent.futures import Future
 from datetime import datetime, timedelta
@@ -19,7 +18,6 @@ from fixlib.baseresources import (
     EdgeType,
     BaseAccount,
     BaseRegion,
-    Finding,
     ModelReference,
     PhantomBaseResource,
 )
@@ -832,9 +830,6 @@ class GraphBuilder:
         Example: fetching tags of a resource.
         """
         return self.executor.submit_work(service, fn, *args, **kwargs)
-
-    # def add_finding(self, class_id: str, finding: Finding) -> None:
-    #     self._assessment_findings[class_id.lower()].append(finding)
 
     def node(
         self,
