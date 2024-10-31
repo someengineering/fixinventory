@@ -50,7 +50,7 @@ from fix_plugin_azure.resource.postgresql import (
     AzurePostgresqlServerType,
     resources as postgresql_resources,
 )
-from fix_plugin_azure.resource.security import AzureSecurityAssessment, resources as security_resources
+from fix_plugin_azure.resource.security import resources as security_resources
 from fix_plugin_azure.resource.sql_server import resources as sql_resources
 from fix_plugin_azure.resource.storage import AzureStorageAccountUsage, AzureStorageSku, resources as storage_resources
 from fix_plugin_azure.resource.web import resources as web_resources
@@ -155,19 +155,15 @@ class MicrosoftBaseCollector:
             self.collect_with(builder, locations)
             queue.wait_for_submitted_work()
 
-            # connect nodes and set findings
+            # call all registered after collect hooks
+            for after_collect in builder.after_collect_actions:
+                after_collect()
+
+            # connect nodes
             log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
                 if isinstance(node, MicrosoftResource):
                     node.connect_in_graph(builder, data.get("source", {}))
-                    if isinstance(node, AzureLocation):
-                        continue
-                    node_id = node.id.lower()
-                    if isinstance(node, AzureSubscription):
-                        node_id = "/subscriptions/" + node_id
-                    if node_id in builder._assessment_findings:
-                        AzureSecurityAssessment.set_findings(builder, node, node_id)
-
                 elif isinstance(node, (GraphRoot, Cloud)):
                     pass
                 else:

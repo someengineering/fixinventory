@@ -28,7 +28,7 @@ def test_security_assessment(
     )
     subscription_collector.collect()
     instances = list(subscription_collector.graph.search("kind", AzureComputeVirtualMachineScaleSet.kind))
-    assert instances[0]._assessments[0].provider == "security_assessment"
+    assert instances[0]._assessments[0].provider == "azure_security_assessment"
     assert (
         instances[0]._assessments[0].findings[0].title
         == "Install endpoint protection solution on virtual machine scale sets"

@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import partial
 import logging
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
@@ -6,7 +7,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
-from fixlib.baseresources import Assessment, Finding, ModelReference, PhantomBaseResource, Severity
+from fixlib.baseresources import Finding, ModelReference, PhantomBaseResource, Severity
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
@@ -120,24 +121,16 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
         "assessment_status": S("properties", "status") >> Bend(AzureAssessmentStatus.mapping),
         "resource_source": S("properties", "resourceDetails", "Source"),
         "resource_id": S("properties", "resourceDetails", "ResourceId"),
+        "resource_type": S("properties", "resourceDetails", "ResourceType"),
         "additional_date": S("properties", "additionalData"),
         "azurePortalUri": S("properties", "links", "azurePortalUri"),
     }
     assessment_status: Optional[AzureAssessmentStatus] = field(default=None, metadata={'description': 'The result of the assessment'})  # fmt: skip
     resource_source: Optional[str] = field(default=None, metadata={'description': 'The source of the resource that the assessment is performed on'})  # fmt: skip
     resource_id: Optional[str] = field(default=None, metadata={'description': 'The id of the resource that the assessment is performed on'})  # fmt: skip
+    resource_type: Optional[str] = field(default=None, metadata={'description': 'The resource type'})  # fmt: skip
     additional_data: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'Additional data for the assessment'})  # fmt: skip
     subscription_issue: Optional[bool] = field(default=False, metadata={'description': 'Indicates if the assessment is a subscription issue'})  # fmt: skip
-
-    @staticmethod
-    def set_findings(builder: GraphBuilder, resource_to_set: MicrosoftResource, resource_id: str) -> None:
-        """
-        Set the assessment findings for the resource based on its ID.
-        """
-        provider_findings = builder._assessment_findings.get(resource_id, [])
-        if provider_findings:
-            # Set the findings in the resource's _assessments list
-            resource_to_set._assessments.append(Assessment("security_assessment", provider_findings))
 
     def parse_finding(self, source: Json) -> Finding:
         severity_mapping = {
@@ -164,6 +157,10 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureSecurityAssessment"]:
+        def add_finding(provider: str, finding: Finding, resource_id: str) -> None:
+            if resource := builder.node(clazz=MicrosoftResource, id=resource_id):
+                resource.add_finding(provider, finding)
+
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
         if spec := cls.api_spec:
@@ -171,8 +168,16 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
                 for item in builder.client.list(spec, **kwargs):
                     if finding := AzureSecurityAssessment.from_api(item, builder):
                         if finding.resource_source == "Azure" and (rid := finding.resource_id):
-                            adjusted_finding = finding.parse_finding(item)
-                            builder.add_finding(rid, adjusted_finding)
+                            if finding.resource_type == "subscription":
+                                rid = "/subscriptions/" + rid
+                            builder.after_collect_actions.append(
+                                partial(
+                                    add_finding,
+                                    "azure_security_assessment",
+                                    finding.parse_finding(item),
+                                    rid,
+                                )
+                            )
             except Exception as e:
                 msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
                 builder.core_feedback.info(msg, log)
