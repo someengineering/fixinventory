@@ -8,7 +8,7 @@ from boto3.exceptions import Boto3Error
 
 from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
+from fixlib.baseresources import HasResourcePolicy, PolicySource, PolicySourceKind
 from fixlib.json import sort_json
 from fixlib.json_bender import Bender, S, Bend
 from fixlib.types import Json
