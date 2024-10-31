@@ -27,7 +27,6 @@ from fixlib.baseresources import (
     BaseVolumeType,
     Cloud,
     EdgeType,
-    Finding,
     ModelReference,
     PhantomBaseResource,
     BaseOrganizationalRoot,
