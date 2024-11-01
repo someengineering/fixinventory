@@ -1410,8 +1410,8 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_user_data: Optional[str] = field(default=None)
 
     @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
-        super().collect_resources(builder)  # type: ignore # mypy bug: https://github.com/python/mypy/issues/12885
+    def collect_resources(cls, builder: GraphBuilder) -> None:
+        super().collect_resources(builder)
         ec2_instance_types = set()
         for instance in builder.nodes(clazz=AwsEc2Instance):
             ec2_instance_types.add(instance.instance_type)
