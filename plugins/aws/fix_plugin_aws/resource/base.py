@@ -198,7 +198,7 @@ class AwsResource(BaseResource, ABC):
         return parse_json(json, cls, builder, cls.mapping)
 
     @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_resources(cls, builder: GraphBuilder) -> None:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
         if spec := cls.api_spec:
