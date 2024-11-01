@@ -386,6 +386,7 @@ class AwsEc2InferenceAcceleratorInfo:
 
 @define(eq=False, slots=False)
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
+    # collected via AwsEc2Instance
     kind: ClassVar[str] = "aws_ec2_instance_type"
     _kind_display: ClassVar[str] = "AWS EC2 Instance Type"
     _kind_description: ClassVar[str] = "AWS EC2 Instance Types are predefined virtual server configurations offered by Amazon Web Services. Each type specifies the compute, memory, storage, and networking capacity of the virtual machine. Users select an instance type based on their application's requirements, balancing performance and cost. EC2 instances can be launched, stopped, and terminated as needed for various computing workloads."  # fmt: skip
@@ -393,7 +394,6 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
-    # api_spec defined in `collect_resource_types` method and collected by AwsEc2Instance
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_ec2_instance"],
@@ -461,7 +461,6 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     @classmethod
     def collect_resource_types(cls, builder: GraphBuilder, instance_types: List[str]) -> None:
         spec = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
-        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
         try:
             filters = [{"Name": "instance-type", "Values": instance_types}]
