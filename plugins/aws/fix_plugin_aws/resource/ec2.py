@@ -1412,8 +1412,9 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     def collect_resources(cls, builder: GraphBuilder) -> None:
         super().collect_resources(builder)
         ec2_instance_types = set()
-        for instance in builder.nodes(clazz=AwsEc2Instance):
-            ec2_instance_types.add(instance.instance_type)
+        for instance in builder.nodes(clazz=AwsEc2Instance, _region=builder.region):
+            if instance.instance_type:
+                ec2_instance_types.add(instance.instance_type)
         if ec2_instance_types:
             builder.submit_work(
                 service_name, AwsEc2InstanceType.collect_resource_types, builder, list(ec2_instance_types)
