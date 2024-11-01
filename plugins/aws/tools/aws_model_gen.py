@@ -291,10 +291,10 @@ def create_test_response(service: str, function: str, is_pascal: bool = False) -
             return "foo"
         elif isinstance(shape, ListShape):
             inner = shape.member
-            return [sample(inner) for _ in range(3)]
+            return [sample(inner)]
         elif isinstance(shape, MapShape):
             value_type = shape.value
-            return {f"{num}": sample(value_type) for num in range(3)}
+            return {f"{num}": sample(value_type) for num in range(1)}
         elif isinstance(shape, StructureShape):
             return {name: sample(shape) for name, shape in shape.members.items()}
         elif shape.type_name == "double":
@@ -984,6 +984,14 @@ models: Dict[str, List[AwsFixModel]] = {
         #     result_shape=None,
         #     prefix="Bedrock",
         # )
+    ],
+    "guardduty": [
+        # AwsFixModel(
+        #     api_action="get-findings",
+        #     result_property="Findings",
+        #     result_shape="GetFindingsResponse",
+        #     prefix="GuardDuty",
+        # ),
     ],
     "inspector2": [
         # AwsFixModel(
