@@ -699,6 +699,7 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
                     "FindingIds",
                     expected_errors=["BadRequestException"],
                     DetectorId=detector_id,
+                    FindingCriteria={"Criterion": {"accountId": {"Eq": [builder.account.id]}}},
                 ): detector_id
                 for detector_id in detector_ids
             }
@@ -723,20 +724,19 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
                 for chunk_future in as_completed(chunk_futures):
                     findings = chunk_future.result()
                     for finding in findings:
-                        if finding.get("AccountId", None) == builder.account.id:
-                            if instance := AwsGuardDutyFinding.from_api(finding, builder):
-                                if fr := instance.finding_resource:
-                                    found_info = check_type_and_adjust_id(fr)
-                                    for clazz, res_filter in found_info:
-                                        builder.after_collect_actions.append(
-                                            partial(
-                                                add_finding,
-                                                amazon_guardduty,
-                                                instance.parse_finding(finding),
-                                                clazz,
-                                                **res_filter,
-                                            )
+                        if instance := AwsGuardDutyFinding.from_api(finding, builder):
+                            if fr := instance.finding_resource:
+                                found_info = check_type_and_adjust_id(fr)
+                                for clazz, res_filter in found_info:
+                                    builder.after_collect_actions.append(
+                                        partial(
+                                            add_finding,
+                                            amazon_guardduty,
+                                            instance.parse_finding(finding),
+                                            clazz,
+                                            **res_filter,
                                         )
+                                    )
         except Boto3Error as e:
             msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
             builder.core_feedback.error(msg, log)
