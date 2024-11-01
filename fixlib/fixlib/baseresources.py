@@ -263,6 +263,15 @@ class Finding:
     details: Optional[Json] = None
 
 
+SEVERITY_MAPPING = {
+    "INFORMATIONAL": Severity.info,
+    "LOW": Severity.low,
+    "MEDIUM": Severity.medium,
+    "HIGH": Severity.high,
+    "CRITICAL": Severity.critical,
+}
+
+
 @define(slots=True)
 class Assessment:
     # The provider of the security assessment
