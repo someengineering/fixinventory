@@ -7,7 +7,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
-from fixlib.baseresources import Finding, ModelReference, PhantomBaseResource, Severity
+from fixlib.baseresources import SEVERITY_MAPPING, Finding, PhantomBaseResource, Severity
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
@@ -126,17 +126,10 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
     subscription_issue: Optional[bool] = field(default=False, metadata={'description': 'Indicates if the assessment is a subscription issue'})  # fmt: skip
 
     def parse_finding(self, source: Json) -> Finding:
-        severity_mapping = {
-            "INFORMATIONAL": Severity.info,
-            "LOW": Severity.low,
-            "MEDIUM": Severity.medium,
-            "HIGH": Severity.high,
-            "CRITICAL": Severity.critical,
-        }
         remediation = finding_title = self.safe_name
         properties = source.get("properties") or {}
         if metadata := properties.get("metadata", {}):
-            finding_severity = severity_mapping.get(metadata.get("severity", "").upper(), Severity.medium)
+            finding_severity = SEVERITY_MAPPING.get(metadata.get("severity", "").upper(), Severity.medium)
         else:
             finding_severity = Severity.medium
         if status := self.assessment_status:
