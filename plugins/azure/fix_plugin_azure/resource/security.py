@@ -97,14 +97,7 @@ class AzureAssessmentStatus:
 @define(eq=False, slots=False)
 class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_security_assessment"
-    _kind_display: ClassVar[str] = "Azure Security Assessment"
-    _kind_service: ClassVar[Optional[str]] = service_name
-    _kind_description: ClassVar[str] = "Azure Security Assessment is a service that evaluates Azure resources for potential security vulnerabilities and compliance issues. It scans configurations, identifies risks, and provides recommendations to improve security posture. The assessment covers various aspects including network security, data protection, and access control, offering insights to help organizations strengthen their Azure environment's security."  # fmt: skip
-    _docs_url: ClassVar[str] = (
-        "https://learn.microsoft.com/en-us/azure/defender-for-cloud/secure-score-security-controls"
-    )
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
-    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
+    _model_export: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
         version="2021-06-01",
@@ -140,7 +133,7 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
             "HIGH": Severity.high,
             "CRITICAL": Severity.critical,
         }
-        remidiation = finding_title = self.safe_name
+        remediation = finding_title = self.safe_name
         properties = source.get("properties") or {}
         if metadata := properties.get("metadata", {}):
             finding_severity = severity_mapping.get(metadata.get("severity", "").upper(), Severity.medium)
@@ -153,7 +146,7 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
             description = None
             updated_at = None
         details = self.additional_data or {} | properties.get("metadata", {})
-        return Finding(finding_title, finding_severity, description, remidiation, updated_at, details)
+        return Finding(finding_title, finding_severity, description, remediation, updated_at, details)
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureSecurityAssessment"]:
