@@ -126,20 +126,20 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
     subscription_issue: Optional[bool] = field(default=False, metadata={'description': 'Indicates if the assessment is a subscription issue'})  # fmt: skip
 
     def parse_finding(self, source: Json) -> Finding:
-        remediation = finding_title = self.safe_name
+        finding_title = self.safe_name
         properties = source.get("properties") or {}
         if metadata := properties.get("metadata", {}):
             finding_severity = SEVERITY_MAPPING.get(metadata.get("severity", "").upper(), Severity.medium)
         else:
             finding_severity = Severity.medium
         if status := self.assessment_status:
-            description = status.cause
+            description = status.description
             updated_at = status.status_change_date
         else:
             description = None
             updated_at = None
         details = self.additional_data or {} | properties.get("metadata", {})
-        return Finding(finding_title, finding_severity, description, remediation, updated_at, details)
+        return Finding(finding_title, finding_severity, description, None, updated_at, details)
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureSecurityAssessment"]:
