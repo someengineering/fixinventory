@@ -10,7 +10,7 @@ from fix_plugin_aws.resource.base import AwsResource, AwsApiSpec, GraphBuilder
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.ecr import AwsEcrRepository
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
-from fixlib.baseresources import PhantomBaseResource, Severity, Finding
+from fixlib.baseresources import SEVERITY_MAPPING, PhantomBaseResource, Severity, Finding
 from fixlib.json_bender import Bender, S, ForallBend, Bend, F
 from fixlib.types import Json
 
@@ -105,18 +105,11 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
     updated_at: Optional[datetime] = field(default=None, metadata={"description": "The date and time the finding was last updated at."})  # fmt: skip
 
     def parse_finding(self, source: Json) -> Finding:
-        severity_mapping = {
-            "INFORMATIONAL": Severity.info,
-            "LOW": Severity.low,
-            "MEDIUM": Severity.medium,
-            "HIGH": Severity.high,
-            "CRITICAL": Severity.critical,
-        }
         finding_title = self.safe_name
         if not self.finding_severity:
             finding_severity = Severity.medium
         else:
-            finding_severity = severity_mapping.get(self.finding_severity, Severity.medium)
+            finding_severity = SEVERITY_MAPPING.get(self.finding_severity, Severity.medium)
         description = self.description
         remediation = ""
         if self.remediation and self.remediation.recommendation:
