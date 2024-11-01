@@ -180,7 +180,8 @@ def round_trip_for(
     to_collect = [cls] + collect_also if collect_also else [cls]
     builder = build_graph(to_collect, region_name=region_name)
     assert len(builder.graph.nodes) > 0
-    for node, data in builder.graph.nodes(data=True):
+    nodes_to_process = list(builder.graph.nodes(data=True))
+    for node, data in nodes_to_process:
         node.connect_in_graph(builder, data.get("source", {}))
         check_single_node(node)
     first = next(iter(builder.resources_of(cls)))
