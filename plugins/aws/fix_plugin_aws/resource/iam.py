@@ -676,11 +676,11 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
         ]
 
     @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_resources(cls, builder: GraphBuilder) -> None:
         # start generation of the credentials resport and pick it up later
         builder.client.get(service_name, "generate-credential-report")
         # let super handle the rest (this will take some time for the report to be done)
-        super().collect_resources(builder)  # type: ignore # mypy bug: https://github.com/python/mypy/issues/12885
+        super().collect_resources(builder)
 
     @classmethod
     def collect(cls: Type[AwsResource], json_list: List[Json], builder: GraphBuilder) -> None:
