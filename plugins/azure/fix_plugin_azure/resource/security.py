@@ -1,15 +1,18 @@
 from datetime import datetime
+from functools import partial
+import logging
 from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import MicrosoftResource, AzureSystemData, GraphBuilder
-from fixlib.baseresources import ModelReference, PhantomBaseResource
+from fixlib.baseresources import SEVERITY_MAPPING, Finding, PhantomBaseResource, Severity
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F
 from fixlib.types import Json
 
 service_name = "security"
+log = logging.getLogger("fix.plugins.azure")
 
 
 @define(eq=False, slots=False)
@@ -94,14 +97,7 @@ class AzureAssessmentStatus:
 @define(eq=False, slots=False)
 class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
     kind: ClassVar[str] = "azure_security_assessment"
-    _kind_display: ClassVar[str] = "Azure Security Assessment"
-    _kind_service: ClassVar[Optional[str]] = service_name
-    _kind_description: ClassVar[str] = "Azure Security Assessment is a service that evaluates Azure resources for potential security vulnerabilities and compliance issues. It scans configurations, identifies risks, and provides recommendations to improve security posture. The assessment covers various aspects including network security, data protection, and access control, offering insights to help organizations strengthen their Azure environment's security."  # fmt: skip
-    _docs_url: ClassVar[str] = (
-        "https://learn.microsoft.com/en-us/azure/defender-for-cloud/secure-score-security-controls"
-    )
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "log", "group": "management"}
-    _reference_kinds: ClassVar[ModelReference] = {"successors": {"default": [MicrosoftResource.kind]}}
+    _model_export: ClassVar[bool] = False
     api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
         service=service_name,
         version="2021-06-01",
@@ -118,24 +114,62 @@ class AzureSecurityAssessment(MicrosoftResource, PhantomBaseResource):
         "assessment_status": S("properties", "status") >> Bend(AzureAssessmentStatus.mapping),
         "resource_source": S("properties", "resourceDetails", "Source"),
         "resource_id": S("properties", "resourceDetails", "ResourceId"),
+        "resource_type": S("properties", "resourceDetails", "ResourceType"),
         "additional_date": S("properties", "additionalData"),
         "azurePortalUri": S("properties", "links", "azurePortalUri"),
     }
     assessment_status: Optional[AzureAssessmentStatus] = field(default=None, metadata={'description': 'The result of the assessment'})  # fmt: skip
     resource_source: Optional[str] = field(default=None, metadata={'description': 'The source of the resource that the assessment is performed on'})  # fmt: skip
     resource_id: Optional[str] = field(default=None, metadata={'description': 'The id of the resource that the assessment is performed on'})  # fmt: skip
+    resource_type: Optional[str] = field(default=None, metadata={'description': 'The resource type'})  # fmt: skip
     additional_data: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'Additional data for the assessment'})  # fmt: skip
     subscription_issue: Optional[bool] = field(default=False, metadata={'description': 'Indicates if the assessment is a subscription issue'})  # fmt: skip
 
-    def post_process(self, builder: GraphBuilder, source: Json) -> None:
-        # mark as subscription issue, when the resource id is the same as the account id
-        if (rid := self.resource_id) and (sub := self._account):
-            self.subscription_issue = rid.split("/")[-1] == sub.id
+    def parse_finding(self, source: Json) -> Finding:
+        finding_title = self.safe_name
+        properties = source.get("properties") or {}
+        if metadata := properties.get("metadata", {}):
+            finding_severity = SEVERITY_MAPPING.get(metadata.get("severity", "").upper(), Severity.medium)
+        else:
+            finding_severity = Severity.medium
+        if status := self.assessment_status:
+            description = status.description
+            updated_at = status.status_change_date
+        else:
+            description = None
+            updated_at = None
+        details = self.additional_data or {} | properties.get("metadata", {})
+        return Finding(finding_title, finding_severity, description, None, updated_at, details)
 
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # this will not connect subscription issues.
-        if self.resource_source == "Azure" and (rid := self.resource_id):
-            builder.add_edge(self, clazz=MicrosoftResource, id=rid)
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder, **kwargs: Any) -> List["AzureSecurityAssessment"]:
+        def add_finding(provider: str, finding: Finding, resource_id: str) -> None:
+            if resource := builder.node(clazz=MicrosoftResource, id=resource_id):
+                resource.add_finding(provider, finding)
+
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"[Azure:{builder.account.id}] Collecting {cls.__name__} with ({kwargs})")
+        if spec := cls.api_spec:
+            try:
+                for item in builder.client.list(spec, **kwargs):
+                    if finding := AzureSecurityAssessment.from_api(item, builder):
+                        if finding.resource_source == "Azure" and (rid := finding.resource_id):
+                            if finding.resource_type == "subscription":
+                                rid = "/subscriptions/" + rid
+                            builder.after_collect_actions.append(
+                                partial(
+                                    add_finding,
+                                    "azure_security_assessment",
+                                    finding.parse_finding(item),
+                                    rid,
+                                )
+                            )
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+
+        return []
 
 
 @define(eq=False, slots=False)
