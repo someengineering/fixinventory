@@ -6,6 +6,7 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
+    LACK_OF_READ_PERMISSION,
     AzureBaseUsage,
     MicrosoftResource,
     MicrosoftResourceType,
@@ -204,7 +205,7 @@ class AzureStorageAccountDeleted(MicrosoftResource, PhantomBaseResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes={"ProviderError": None},
+        expected_error_codes={"ProviderError": LACK_OF_READ_PERMISSION},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1083,7 +1084,7 @@ class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=AzureBaseUsage._expected_error_codes | {"SubscriptionNotFound": None},
+        expected_error_codes=AzureBaseUsage._expected_error_codes | {"SubscriptionNotFound": LACK_OF_READ_PERMISSION},
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("name", "value"),

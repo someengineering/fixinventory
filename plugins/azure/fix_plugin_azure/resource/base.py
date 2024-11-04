@@ -80,6 +80,9 @@ def parse_json(
         return None
 
 
+LACK_OF_READ_PERMISSION = "Error: Insufficient permissions to access the requested resource. Please ensure that the necessary read permissions are granted to your account or service principal."
+
+
 @define(eq=False, slots=False)
 class MicrosoftResource(BaseResource):
     kind: ClassVar[str] = "microsoft_resource"
