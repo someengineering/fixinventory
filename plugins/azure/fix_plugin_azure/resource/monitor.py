@@ -375,45 +375,6 @@ class AzureMonitorRuleCondition:
 
 
 @define(eq=False, slots=False)
-class AzureMonitorAlertRule(MicrosoftResource):
-    kind: ClassVar[str] = "azure_monitor_alert_rule"
-    _kind_display: ClassVar[str] = "Azure Monitor Alert Rule"
-    _kind_service: ClassVar[Optional[str]] = service_name
-    _kind_description: ClassVar[str] = "Azure Monitor Alert Rule is a feature in Microsoft Azure that defines conditions for monitoring resources and triggers notifications when specified thresholds are met. It evaluates metrics, logs, and activity data from Azure services, then sends alerts via various channels when predefined criteria are satisfied, helping administrators respond to issues and maintain system health."  # fmt: skip
-    _docs_url: ClassVar[str] = "https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-overview"
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "config", "group": "management"}
-    _create_provider_link: ClassVar[bool] = False
-    api_spec: ClassVar[AzureResourceSpec] = AzureResourceSpec(
-        service="monitor",
-        version="2016-03-01",
-        path="/subscriptions/{subscriptionId}/providers/Microsoft.Insights/alertrules",
-        path_parameters=["subscriptionId"],
-        query_parameters=["api-version"],
-        access_path="value",
-        expect_array=True,
-        expected_error_codes={"InvalidResourceType": None},
-    )
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("id"),
-        "tags": S("tags").or_else(K({})),
-        "name": S("name"),
-        "action": S("properties", "action", "odata.type"),
-        "actions": S("properties") >> S("actions", default=[]) >> ForallBend(S("odata.type")),
-        "rule_condition": S("properties", "condition") >> Bend(AzureMonitorRuleCondition.mapping),
-        "description": S("properties", "description"),
-        "is_enabled": S("properties", "isEnabled"),
-        "last_updated_time": S("properties", "lastUpdatedTime"),
-        "provisioning_state": S("properties", "provisioningState"),
-    }
-    action: Optional[str] = field(default=None, metadata={'description': 'The action that is performed when the alert rule becomes active, and when an alert condition is resolved.'})  # fmt: skip
-    actions: Optional[List[str]] = field(default=None, metadata={'description': 'the array of actions that are performed when the alert rule becomes active, and when an alert condition is resolved.'})  # fmt: skip
-    rule_condition: Optional[AzureMonitorRuleCondition] = field(default=None, metadata={'description': 'The condition that results in the alert rule being activated.'})  # fmt: skip
-    description: Optional[str] = field(default=None, metadata={'description': 'the description of the alert rule that will be included in the alert email.'})  # fmt: skip
-    is_enabled: Optional[bool] = field(default=None, metadata={'description': 'the flag that indicates whether the alert rule is enabled.'})  # fmt: skip
-    last_updated_time: Optional[datetime] = field(default=None, metadata={'description': 'Last time the rule was updated in ISO8601 format.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureMonitorAccessModeSettingsExclusion:
     kind: ClassVar[str] = "azure_monitor_access_mode_settings_exclusion"
     mapping: ClassVar[Dict[str, Bender]] = {
@@ -1464,7 +1425,6 @@ class AzureMonitorDiagnosticSettings(MicrosoftResource):
 resources: List[Type[MicrosoftResource]] = [
     AzureMonitorActionGroup,
     AzureMonitorActivityLogAlert,
-    AzureMonitorAlertRule,
     AzureMonitorDataCollectionRule,
     AzureMonitorLogProfile,
     AzureMonitorMetricAlert,

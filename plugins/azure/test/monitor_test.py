@@ -3,7 +3,6 @@ from fix_plugin_azure.resource.base import GraphBuilder
 from fix_plugin_azure.resource.monitor import (
     AzureMonitorActionGroup,
     AzureMonitorActivityLogAlert,
-    AzureMonitorAlertRule,
     AzureMonitorLogProfile,
     AzureMonitorMetricAlert,
     AzureMonitorPrivateLinkScope,
@@ -22,11 +21,6 @@ def test_action_groups(builder: GraphBuilder) -> None:
 
 def test_activity_log_alert(builder: GraphBuilder) -> None:
     collected = roundtrip_check(AzureMonitorActivityLogAlert, builder)
-    assert len(collected) == 2
-
-
-def test_alert_rule(builder: GraphBuilder) -> None:
-    collected = roundtrip_check(AzureMonitorAlertRule, builder)
     assert len(collected) == 2
 
 
