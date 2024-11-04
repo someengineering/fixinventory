@@ -347,34 +347,6 @@ class AzureMonitorActivityLogAlert(MicrosoftResource):
 
 
 @define(eq=False, slots=False)
-class AzureMonitorRuleDataSource:
-    kind: ClassVar[str] = "azure_monitor_rule_data_source"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "legacy_resource_id": S("legacyResourceId"),
-        "metric_namespace": S("metricNamespace"),
-        "type": S("odata.type"),
-        "resource_location": S("resourceLocation"),
-        "resource_uri": S("resourceUri"),
-    }
-    legacy_resource_id: Optional[str] = field(default=None, metadata={'description': 'the legacy resource identifier of the resource the rule monitors. **NOTE**: this property cannot be updated for an existing rule.'})  # fmt: skip
-    metric_namespace: Optional[str] = field(default=None, metadata={"description": "the namespace of the metric."})
-    type: Optional[str] = field(default=None, metadata={'description': 'specifies the type of data source. There are two types of rule data sources: RuleMetricDataSource and RuleManagementEventDataSource'})  # fmt: skip
-    resource_location: Optional[str] = field(default=None, metadata={"description": "the location of the resource."})
-    resource_uri: Optional[str] = field(default=None, metadata={'description': 'the resource identifier of the resource the rule monitors. **NOTE**: this property cannot be updated for an existing rule.'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
-class AzureMonitorRuleCondition:
-    kind: ClassVar[str] = "azure_monitor_rule_condition"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "data_source": S("dataSource") >> Bend(AzureMonitorRuleDataSource.mapping),
-        "type": S("odata.type"),
-    }
-    data_source: Optional[AzureMonitorRuleDataSource] = field(default=None, metadata={'description': 'The resource from which the rule collects its data.'})  # fmt: skip
-    type: Optional[str] = field(default=None, metadata={'description': 'specifies the type of condition. This can be one of three types: ManagementEventRuleCondition (occurrences of management events), LocationThresholdRuleCondition (based on the number of failures of a web test), and ThresholdRuleCondition (based on the threshold of a metric).'})  # fmt: skip
-
-
-@define(eq=False, slots=False)
 class AzureMonitorAccessModeSettingsExclusion:
     kind: ClassVar[str] = "azure_monitor_access_mode_settings_exclusion"
     mapping: ClassVar[Dict[str, Bender]] = {
