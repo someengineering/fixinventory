@@ -1,0 +1,789 @@
+{
+    "Findings": [
+        {
+            "AccountId": "test",
+            "Arn": "foo",
+            "Confidence": 1.234,
+            "CreatedAt": "foo",
+            "Description": "foo",
+            "Id": "foo",
+            "Partition": "foo",
+            "Region": "global",
+            "Resource": {
+                "AccessKeyDetails": {
+                    "AccessKeyId": "foo",
+                    "PrincipalId": "foo",
+                    "UserName": "foo",
+                    "UserType": "foo"
+                },
+                "S3BucketDetails": [
+                    {
+                        "Arn": "foo",
+                        "Name": "foo",
+                        "Type": "foo",
+                        "CreatedAt": "2024-10-17T11:10:43Z",
+                        "Owner": {
+                            "Id": "foo"
+                        },
+                        "Tags": [
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            }
+                        ],
+                        "DefaultServerSideEncryption": {
+                            "EncryptionType": "foo",
+                            "KmsMasterKeyArn": "foo"
+                        },
+                        "PublicAccess": {
+                            "PermissionConfiguration": {
+                                "BucketLevelPermissions": {
+                                    "AccessControlList": {
+                                        "AllowsPublicReadAccess": true,
+                                        "AllowsPublicWriteAccess": true
+                                    },
+                                    "BucketPolicy": {
+                                        "AllowsPublicReadAccess": true,
+                                        "AllowsPublicWriteAccess": true
+                                    },
+                                    "BlockPublicAccess": {
+                                        "IgnorePublicAcls": true,
+                                        "RestrictPublicBuckets": true,
+                                        "BlockPublicAcls": true,
+                                        "BlockPublicPolicy": true
+                                    }
+                                },
+                                "AccountLevelPermissions": {
+                                    "BlockPublicAccess": {
+                                        "IgnorePublicAcls": true,
+                                        "RestrictPublicBuckets": true,
+                                        "BlockPublicAcls": true,
+                                        "BlockPublicPolicy": true
+                                    }
+                                }
+                            },
+                            "EffectivePermission": "foo"
+                        },
+                        "S3ObjectDetails": [
+                            {
+                                "ObjectArn": "foo",
+                                "Key": "foo",
+                                "ETag": "foo",
+                                "Hash": "foo",
+                                "VersionId": "foo"
+                            }
+                        ]
+                    }
+                ],
+                "InstanceDetails": {
+                    "AvailabilityZone": "foo",
+                    "IamInstanceProfile": {
+                        "Arn": "foo",
+                        "Id": "foo"
+                    },
+                    "ImageDescription": "foo",
+                    "ImageId": "foo",
+                    "InstanceId": "i-1",
+                    "InstanceState": "foo",
+                    "InstanceType": "foo",
+                    "OutpostArn": "foo",
+                    "LaunchTime": "foo",
+                    "NetworkInterfaces": [
+                        {
+                            "Ipv6Addresses": [
+                                "foo"
+                            ],
+                            "NetworkInterfaceId": "foo",
+                            "PrivateDnsName": "foo",
+                            "PrivateIpAddress": "foo",
+                            "PrivateIpAddresses": [
+                                {
+                                    "PrivateDnsName": "foo",
+                                    "PrivateIpAddress": "foo"
+                                }
+                            ],
+                            "PublicDnsName": "foo",
+                            "PublicIp": "foo",
+                            "SecurityGroups": [
+                                {
+                                    "GroupId": "foo",
+                                    "GroupName": "foo"
+                                }
+                            ],
+                            "SubnetId": "foo",
+                            "VpcId": "foo"
+                        }
+                    ],
+                    "Platform": "foo",
+                    "ProductCodes": [
+                        {
+                            "Code": "foo",
+                            "ProductType": "foo"
+                        }
+                    ],
+                    "Tags": [
+                        {
+                            "Key": "foo",
+                            "Value": "foo"
+                        }
+                    ]
+                },
+                "EksClusterDetails": {
+                    "Name": "foo",
+                    "Arn": "foo",
+                    "VpcId": "foo",
+                    "Status": "foo",
+                    "Tags": [
+                        {
+                            "Key": "foo",
+                            "Value": "foo"
+                        }
+                    ],
+                    "CreatedAt": "2024-10-17T11:10:43Z"
+                },
+                "KubernetesDetails": {
+                    "KubernetesUserDetails": {
+                        "Username": "foo",
+                        "Uid": "foo",
+                        "Groups": [
+                            "foo"
+                        ],
+                        "SessionName": [
+                            "foo"
+                        ],
+                        "ImpersonatedUser": {
+                            "Username": "foo",
+                            "Groups": [
+                                "foo"
+                            ]
+                        }
+                    },
+                    "KubernetesWorkloadDetails": {
+                        "Name": "foo",
+                        "Type": "foo",
+                        "Uid": "foo",
+                        "Namespace": "foo",
+                        "HostNetwork": true,
+                        "Containers": [
+                            {
+                                "ContainerRuntime": "foo",
+                                "Id": "foo",
+                                "Name": "foo",
+                                "Image": "foo",
+                                "ImagePrefix": "foo",
+                                "VolumeMounts": [
+                                    {
+                                        "Name": "foo",
+                                        "MountPath": "foo"
+                                    }
+                                ],
+                                "SecurityContext": {
+                                    "Privileged": true,
+                                    "AllowPrivilegeEscalation": true
+                                }
+                            }
+                        ],
+                        "Volumes": [
+                            {
+                                "Name": "foo",
+                                "HostPath": {
+                                    "Path": "foo"
+                                }
+                            }
+                        ],
+                        "ServiceAccountName": "foo",
+                        "HostIPC": true,
+                        "HostPID": true
+                    }
+                },
+                "ResourceType": "foo",
+                "EbsVolumeDetails": {
+                    "ScannedVolumeDetails": [
+                        {
+                            "VolumeArn": "foo",
+                            "VolumeType": "foo",
+                            "DeviceName": "foo",
+                            "VolumeSizeInGB": 123,
+                            "EncryptionType": "foo",
+                            "SnapshotArn": "foo",
+                            "KmsKeyArn": "foo"
+                        }
+                    ],
+                    "SkippedVolumeDetails": [
+                        {
+                            "VolumeArn": "foo",
+                            "VolumeType": "foo",
+                            "DeviceName": "foo",
+                            "VolumeSizeInGB": 123,
+                            "EncryptionType": "foo",
+                            "SnapshotArn": "foo",
+                            "KmsKeyArn": "foo"
+                        }
+                    ]
+                },
+                "EcsClusterDetails": {
+                    "Name": "foo",
+                    "Arn": "foo",
+                    "Status": "foo",
+                    "ActiveServicesCount": 123,
+                    "RegisteredContainerInstancesCount": 123,
+                    "RunningTasksCount": 123,
+                    "Tags": [
+                        {
+                            "Key": "foo",
+                            "Value": "foo"
+                        }
+                    ],
+                    "TaskDetails": {
+                        "Arn": "foo",
+                        "DefinitionArn": "foo",
+                        "Version": "foo",
+                        "TaskCreatedAt": "2024-10-17T11:10:43Z",
+                        "StartedAt": "2024-10-17T11:10:43Z",
+                        "StartedBy": "foo",
+                        "Tags": [
+                            {
+                                "Key": "foo",
+                                "Value": "foo"
+                            }
+                        ],
+                        "Volumes": [
+                            {
+                                "Name": "foo",
+                                "HostPath": {
+                                    "Path": "foo"
+                                }
+                            }
+                        ],
+                        "Containers": [
+                            {
+                                "ContainerRuntime": "foo",
+                                "Id": "foo",
+                                "Name": "foo",
+                                "Image": "foo",
+                                "ImagePrefix": "foo",
+                                "VolumeMounts": [
+                                    {
+                                        "Name": "foo",
+                                        "MountPath": "foo"
+                                    }
+                                ],
+                                "SecurityContext": {
+                                    "Privileged": true,
+                                    "AllowPrivilegeEscalation": true
+                                }
+                            }
+                        ],
+                        "Group": "foo",
+                        "LaunchType": "foo"
+                    }
+                },
+                "ContainerDetails": {
+                    "ContainerRuntime": "foo",
+                    "Id": "foo",
+                    "Name": "foo",
+                    "Image": "foo",
+                    "ImagePrefix": "foo",
+                    "VolumeMounts": [
+                        {
+                            "Name": "foo",
+                            "MountPath": "foo"
+                        }
+                    ],
+                    "SecurityContext": {
+                        "Privileged": true,
+                        "AllowPrivilegeEscalation": true
+                    }
+                },
+                "RdsDbInstanceDetails": {
+                    "DbInstanceIdentifier": "foo",
+                    "Engine": "foo",
+                    "EngineVersion": "foo",
+                    "DbClusterIdentifier": "foo",
+                    "DbInstanceArn": "foo",
+                    "Tags": [
+                        {
+                            "Key": "foo",
+                            "Value": "foo"
+                        }
+                    ]
+                },
+                "RdsDbUserDetails": {
+                    "User": "foo",
+                    "Application": "foo",
+                    "Database": "foo",
+                    "Ssl": "foo",
+                    "AuthMethod": "foo"
+                },
+                "LambdaDetails": {
+                    "FunctionArn": "foo",
+                    "FunctionName": "foo",
+                    "Description": "foo",
+                    "LastModifiedAt": "2024-10-17T11:10:43Z",
+                    "RevisionId": "foo",
+                    "FunctionVersion": "foo",
+                    "Role": "foo",
+                    "VpcConfig": {
+                        "SubnetIds": [
+                            "foo"
+                        ],
+                        "VpcId": "foo",
+                        "SecurityGroups": [
+                            {
+                                "GroupId": "foo",
+                                "GroupName": "foo"
+                            }
+                        ]
+                    },
+                    "Tags": [
+                        {
+                            "Key": "foo",
+                            "Value": "foo"
+                        }
+                    ]
+                }
+            },
+            "SchemaVersion": "foo",
+            "Service": {
+                "Action": {
+                    "ActionType": "foo",
+                    "AwsApiCallAction": {
+                        "Api": "foo",
+                        "CallerType": "foo",
+                        "DomainDetails": {
+                            "Domain": "foo"
+                        },
+                        "ErrorCode": "foo",
+                        "UserAgent": "foo",
+                        "RemoteIpDetails": {
+                            "City": {
+                                "CityName": "foo"
+                            },
+                            "Country": {
+                                "CountryCode": "foo",
+                                "CountryName": "foo"
+                            },
+                            "GeoLocation": {
+                                "Lat": 1.234,
+                                "Lon": 1.234
+                            },
+                            "IpAddressV4": "foo",
+                            "IpAddressV6": "foo",
+                            "Organization": {
+                                "Asn": "foo",
+                                "AsnOrg": "foo",
+                                "Isp": "foo",
+                                "Org": "foo"
+                            }
+                        },
+                        "ServiceName": "foo",
+                        "RemoteAccountDetails": {
+                            "AccountId": "foo",
+                            "Affiliated": true
+                        },
+                        "AffectedResources": {
+                            "0": "foo"
+                        }
+                    },
+                    "DnsRequestAction": {
+                        "Domain": "foo",
+                        "Protocol": "foo",
+                        "Blocked": true,
+                        "DomainWithSuffix": "foo"
+                    },
+                    "NetworkConnectionAction": {
+                        "Blocked": true,
+                        "ConnectionDirection": "foo",
+                        "LocalPortDetails": {
+                            "Port": 123,
+                            "PortName": "foo"
+                        },
+                        "Protocol": "foo",
+                        "LocalIpDetails": {
+                            "IpAddressV4": "foo",
+                            "IpAddressV6": "foo"
+                        },
+                        "RemoteIpDetails": {
+                            "City": {
+                                "CityName": "foo"
+                            },
+                            "Country": {
+                                "CountryCode": "foo",
+                                "CountryName": "foo"
+                            },
+                            "GeoLocation": {
+                                "Lat": 1.234,
+                                "Lon": 1.234
+                            },
+                            "IpAddressV4": "foo",
+                            "IpAddressV6": "foo",
+                            "Organization": {
+                                "Asn": "foo",
+                                "AsnOrg": "foo",
+                                "Isp": "foo",
+                                "Org": "foo"
+                            }
+                        },
+                        "RemotePortDetails": {
+                            "Port": 123,
+                            "PortName": "foo"
+                        }
+                    },
+                    "PortProbeAction": {
+                        "Blocked": true,
+                        "PortProbeDetails": [
+                            {
+                                "LocalPortDetails": {
+                                    "Port": 123,
+                                    "PortName": "foo"
+                                },
+                                "LocalIpDetails": {
+                                    "IpAddressV4": "foo",
+                                    "IpAddressV6": "foo"
+                                },
+                                "RemoteIpDetails": {
+                                    "City": {
+                                        "CityName": "foo"
+                                    },
+                                    "Country": {
+                                        "CountryCode": "foo",
+                                        "CountryName": "foo"
+                                    },
+                                    "GeoLocation": {
+                                        "Lat": 1.234,
+                                        "Lon": 1.234
+                                    },
+                                    "IpAddressV4": "foo",
+                                    "IpAddressV6": "foo",
+                                    "Organization": {
+                                        "Asn": "foo",
+                                        "AsnOrg": "foo",
+                                        "Isp": "foo",
+                                        "Org": "foo"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "KubernetesApiCallAction": {
+                        "RequestUri": "foo",
+                        "Verb": "foo",
+                        "SourceIps": [
+                            "foo"
+                        ],
+                        "UserAgent": "foo",
+                        "RemoteIpDetails": {
+                            "City": {
+                                "CityName": "foo"
+                            },
+                            "Country": {
+                                "CountryCode": "foo",
+                                "CountryName": "foo"
+                            },
+                            "GeoLocation": {
+                                "Lat": 1.234,
+                                "Lon": 1.234
+                            },
+                            "IpAddressV4": "foo",
+                            "IpAddressV6": "foo",
+                            "Organization": {
+                                "Asn": "foo",
+                                "AsnOrg": "foo",
+                                "Isp": "foo",
+                                "Org": "foo"
+                            }
+                        },
+                        "StatusCode": 123,
+                        "Parameters": "foo",
+                        "Resource": "foo",
+                        "Subresource": "foo",
+                        "Namespace": "foo",
+                        "ResourceName": "foo"
+                    },
+                    "RdsLoginAttemptAction": {
+                        "RemoteIpDetails": {
+                            "City": {
+                                "CityName": "foo"
+                            },
+                            "Country": {
+                                "CountryCode": "foo",
+                                "CountryName": "foo"
+                            },
+                            "GeoLocation": {
+                                "Lat": 1.234,
+                                "Lon": 1.234
+                            },
+                            "IpAddressV4": "foo",
+                            "IpAddressV6": "foo",
+                            "Organization": {
+                                "Asn": "foo",
+                                "AsnOrg": "foo",
+                                "Isp": "foo",
+                                "Org": "foo"
+                            }
+                        },
+                        "LoginAttributes": [
+                            {
+                                "User": "foo",
+                                "Application": "foo",
+                                "FailedLoginAttempts": 123,
+                                "SuccessfulLoginAttempts": 123
+                            }
+                        ]
+                    },
+                    "KubernetesPermissionCheckedDetails": {
+                        "Verb": "foo",
+                        "Resource": "foo",
+                        "Namespace": "foo",
+                        "Allowed": true
+                    },
+                    "KubernetesRoleBindingDetails": {
+                        "Kind": "foo",
+                        "Name": "foo",
+                        "Uid": "foo",
+                        "RoleRefName": "foo",
+                        "RoleRefKind": "foo"
+                    },
+                    "KubernetesRoleDetails": {
+                        "Kind": "foo",
+                        "Name": "foo",
+                        "Uid": "foo"
+                    }
+                },
+                "Evidence": {
+                    "ThreatIntelligenceDetails": [
+                        {
+                            "ThreatListName": "foo",
+                            "ThreatNames": [
+                                "foo"
+                            ],
+                            "ThreatFileSha256": "foo"
+                        }
+                    ]
+                },
+                "Archived": true,
+                "Count": 123,
+                "DetectorId": "foo",
+                "EventFirstSeen": "foo",
+                "EventLastSeen": "foo",
+                "ResourceRole": "foo",
+                "ServiceName": "foo",
+                "UserFeedback": "foo",
+                "AdditionalInfo": {
+                    "Value": "foo",
+                    "Type": "foo"
+                },
+                "FeatureName": "foo",
+                "EbsVolumeScanDetails": {
+                    "ScanId": "foo",
+                    "ScanStartedAt": "2024-10-17T11:10:43Z",
+                    "ScanCompletedAt": "2024-10-17T11:10:43Z",
+                    "TriggerFindingId": "foo",
+                    "Sources": [
+                        "foo"
+                    ],
+                    "ScanDetections": {
+                        "ScannedItemCount": {
+                            "TotalGb": 123,
+                            "Files": 123,
+                            "Volumes": 123
+                        },
+                        "ThreatsDetectedItemCount": {
+                            "Files": 123
+                        },
+                        "HighestSeverityThreatDetails": {
+                            "Severity": "foo",
+                            "ThreatName": "foo",
+                            "Count": 123
+                        },
+                        "ThreatDetectedByName": {
+                            "ItemCount": 123,
+                            "UniqueThreatNameCount": 123,
+                            "Shortened": true,
+                            "ThreatNames": [
+                                {
+                                    "Name": "foo",
+                                    "Severity": "foo",
+                                    "ItemCount": 123,
+                                    "FilePaths": [
+                                        {
+                                            "FilePath": "foo",
+                                            "VolumeArn": "foo",
+                                            "Hash": "foo",
+                                            "FileName": "foo"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "ScanType": "ON_DEMAND"
+                },
+                "RuntimeDetails": {
+                    "Process": {
+                        "Name": "foo",
+                        "ExecutablePath": "foo",
+                        "ExecutableSha256": "foo",
+                        "NamespacePid": 123,
+                        "Pwd": "foo",
+                        "Pid": 123,
+                        "StartTime": "2024-10-17T11:10:43Z",
+                        "Uuid": "foo",
+                        "ParentUuid": "foo",
+                        "User": "foo",
+                        "UserId": 123,
+                        "Euid": 123,
+                        "Lineage": [
+                            {
+                                "StartTime": "2024-10-17T11:10:43Z",
+                                "NamespacePid": 123,
+                                "UserId": 123,
+                                "Name": "foo",
+                                "Pid": 123,
+                                "Uuid": "foo",
+                                "ExecutablePath": "foo",
+                                "Euid": 123,
+                                "ParentUuid": "foo"
+                            }
+                        ]
+                    },
+                    "Context": {
+                        "ModifyingProcess": {
+                            "Name": "foo",
+                            "ExecutablePath": "foo",
+                            "ExecutableSha256": "foo",
+                            "NamespacePid": 123,
+                            "Pwd": "foo",
+                            "Pid": 123,
+                            "StartTime": "2024-10-17T11:10:43Z",
+                            "Uuid": "foo",
+                            "ParentUuid": "foo",
+                            "User": "foo",
+                            "UserId": 123,
+                            "Euid": 123,
+                            "Lineage": [
+                                {
+                                    "StartTime": "2024-10-17T11:10:43Z",
+                                    "NamespacePid": 123,
+                                    "UserId": 123,
+                                    "Name": "foo",
+                                    "Pid": 123,
+                                    "Uuid": "foo",
+                                    "ExecutablePath": "foo",
+                                    "Euid": 123,
+                                    "ParentUuid": "foo"
+                                }
+                            ]
+                        },
+                        "ModifiedAt": "2024-10-17T11:10:43Z",
+                        "ScriptPath": "foo",
+                        "LibraryPath": "foo",
+                        "LdPreloadValue": "foo",
+                        "SocketPath": "foo",
+                        "RuncBinaryPath": "foo",
+                        "ReleaseAgentPath": "foo",
+                        "MountSource": "foo",
+                        "MountTarget": "foo",
+                        "FileSystemType": "foo",
+                        "Flags": [
+                            "foo"
+                        ],
+                        "ModuleName": "foo",
+                        "ModuleFilePath": "foo",
+                        "ModuleSha256": "foo",
+                        "ShellHistoryFilePath": "foo",
+                        "TargetProcess": {
+                            "Name": "foo",
+                            "ExecutablePath": "foo",
+                            "ExecutableSha256": "foo",
+                            "NamespacePid": 123,
+                            "Pwd": "foo",
+                            "Pid": 123,
+                            "StartTime": "2024-10-17T11:10:43Z",
+                            "Uuid": "foo",
+                            "ParentUuid": "foo",
+                            "User": "foo",
+                            "UserId": 123,
+                            "Euid": 123,
+                            "Lineage": [
+                                {
+                                    "StartTime": "2024-10-17T11:10:43Z",
+                                    "NamespacePid": 123,
+                                    "UserId": 123,
+                                    "Name": "foo",
+                                    "Pid": 123,
+                                    "Uuid": "foo",
+                                    "ExecutablePath": "foo",
+                                    "Euid": 123,
+                                    "ParentUuid": "foo"
+                                }
+                            ]
+                        },
+                        "AddressFamily": "foo",
+                        "IanaProtocolNumber": 123,
+                        "MemoryRegions": [
+                            "foo"
+                        ],
+                        "ToolName": "foo",
+                        "ToolCategory": "foo",
+                        "ServiceName": "foo",
+                        "CommandLineExample": "foo",
+                        "ThreatFilePath": "foo"
+                    }
+                },
+                "Detection": {
+                    "Anomaly": {
+                        "Profiles": {
+                            "0": {
+                                "0": [
+                                    {
+                                        "ProfileType": "FREQUENCY",
+                                        "ProfileSubtype": "RARE",
+                                        "Observations": {
+                                            "Text": [
+                                                "foo"
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "Unusual": {
+                            "Behavior": {
+                                "0": {
+                                    "0": {
+                                        "ProfileType": "FREQUENCY",
+                                        "ProfileSubtype": "RARE",
+                                        "Observations": {
+                                            "Text": [
+                                                "foo"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "MalwareScanDetails": {
+                    "Threats": [
+                        {
+                            "Name": "foo",
+                            "Source": "foo",
+                            "ItemPaths": [
+                                {
+                                    "NestedItemPath": "foo",
+                                    "Hash": "foo"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "Severity": 1.234,
+            "Title": "foo",
+            "Type": "foo",
+            "UpdatedAt": "foo"
+        }
+    ]
+}

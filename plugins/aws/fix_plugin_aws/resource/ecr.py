@@ -1,7 +1,7 @@
 import json
 import logging
-from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from json import loads as json_loads
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
 from boto3.exceptions import Boto3Error

@@ -785,6 +785,7 @@ class GraphBuilder:
         location: Optional[BaseRegion] = None,
         graph_access_lock: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
+        after_collect_actions: Optional[List[Callable[[], Any]]] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -799,6 +800,7 @@ class GraphBuilder:
         self.config = config
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
+        self.after_collect_actions = after_collect_actions if after_collect_actions is not None else []
 
         if last_run_started_at:
             now = utc()
@@ -1005,6 +1007,7 @@ class GraphBuilder:
             graph_access_lock=self.graph_access_lock,
             config=self.config,
             last_run_started_at=self.last_run_started_at,
+            after_collect_actions=self.after_collect_actions,
         )
 
 

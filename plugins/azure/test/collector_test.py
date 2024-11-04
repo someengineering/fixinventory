@@ -113,6 +113,8 @@ def test_resource_classes() -> None:
     expected_declared_properties = ["kind", "_kind_display"]
     expected_props_in_hierarchy = ["_kind_service", "_metadata"]
     for rc in all_resources:
+        if not rc._model_export:
+            continue
         for prop in expected_declared_properties:
             assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
         with_bases = (all_base_classes(rc) | {rc}) - {MicrosoftResource, BaseResource}

@@ -259,8 +259,17 @@ class Finding:
     severity: Severity = Severity.medium
     description: Optional[str] = None
     remediation: Optional[str] = None
-    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     details: Optional[Json] = None
+
+
+SEVERITY_MAPPING = {
+    "INFORMATIONAL": Severity.info,
+    "LOW": Severity.low,
+    "MEDIUM": Severity.medium,
+    "HIGH": Severity.high,
+    "CRITICAL": Severity.critical,
+}
 
 
 @define(slots=True)
@@ -408,6 +417,13 @@ class BaseResource(ABC):
         }
         self.__log.append(log_entry)
         self._changes.add("log")
+
+    def add_finding(self, provider: str, finding: Finding) -> None:
+        for assessment in self._assessments:
+            if assessment.provider == provider:
+                assessment.findings.append(finding)
+                return
+        self._assessments.append(Assessment(provider=provider, findings=[finding]))
 
     def add_change(self, change: str) -> None:
         self._changes.add(change)

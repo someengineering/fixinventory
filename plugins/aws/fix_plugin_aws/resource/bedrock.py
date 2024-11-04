@@ -221,7 +221,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
                 modelIdentifier=js["modelArn"],
             ):
                 if instance := cls.from_api(result, builder):
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work(service_name, add_tags, instance)
 
 
@@ -505,7 +505,7 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
                 guardrailVersion=js["version"],
             ):
                 if instance := cls.from_api(result, builder):
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work(service_name, add_tags, instance)
 
 
@@ -637,7 +637,7 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
                 jobIdentifier=js["jobArn"],
             ):
                 if instance := cls.from_api(result, builder):
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work(service_name, add_tags, instance)
 
 
@@ -838,7 +838,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
                 jobIdentifier=js["jobArn"],
             ):
                 if instance := cls.from_api(result, builder):
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work(service_name, add_tags, instance)
 
 
@@ -1037,7 +1037,7 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
             ):
                 if instance := AwsBedrockAgent.from_api(result, builder):
                     instance.agent_version = js["latestAgentVersion"]
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
 
@@ -1324,7 +1324,7 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
                 knowledgeBaseId=js["knowledgeBaseId"],
             ):
                 if instance := cls.from_api(result, builder):
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work(service_name, add_tags, instance)
 
     @classmethod
@@ -1492,7 +1492,7 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
                 promptVersion=js["version"],
             ):
                 if instance := cls.from_api(result, builder):
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
 
@@ -1822,7 +1822,7 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
                 flowVersion=flow.version,
             ):
                 if instance := AwsBedrockAgentFlowVersion.from_api(result, builder):
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
         for js in json:
@@ -1834,7 +1834,7 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
                 if instance := AwsBedrockAgentFlow.from_api(result, builder):
                     if not instance.version:
                         instance.version = js["version"]
-                    builder.add_node(instance, js)
+                    builder.add_node(instance, result)
                     builder.submit_work("bedrock-agent", add_tags, instance)
                     builder.submit_work("bedrock-agent", collect_flow_versions, instance)
 

@@ -22,7 +22,6 @@ venv*
 /config/
 *.code-workspace
 */build/
-docs/_build/
 .DS_Store
 .coverage
 .dccache

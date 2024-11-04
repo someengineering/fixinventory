@@ -1,14 +1,15 @@
 import base64
-from functools import partial
+import copy
 import logging
 from contextlib import suppress
 from datetime import datetime, timedelta
+from functools import partial
 from typing import ClassVar, Dict, Optional, List, Type, Any
-import copy
 
+from boto3.exceptions import Boto3Error
 from attrs import define, field
-from fix_plugin_aws.aws_client import AwsClient
 
+from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, get_client
 from fix_plugin_aws.resource.cloudwatch import (
     AwsCloudwatchQuery,
@@ -18,10 +19,11 @@ from fix_plugin_aws.resource.cloudwatch import (
     operations_to_iops,
     normalizer_factory,
 )
+from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
-from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.utils import ToDict, TagsValue
+from fix_plugin_aws.aws_client import AwsClient
 from fixlib.baseresources import (
     BaseInstance,
     BaseKeyPair,
@@ -48,7 +50,6 @@ from fixlib.config import current_config
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, bend, MapEnum, F, K, StripNones
 from fixlib.types import Json
-
 
 # region InstanceType
 from fixlib.utils import utc
@@ -385,6 +386,7 @@ class AwsEc2InferenceAcceleratorInfo:
 
 @define(eq=False, slots=False)
 class AwsEc2InstanceType(AwsResource, BaseInstanceType):
+    # collected via AwsEc2Instance
     kind: ClassVar[str] = "aws_ec2_instance_type"
     _kind_display: ClassVar[str] = "AWS EC2 Instance Type"
     _kind_description: ClassVar[str] = "AWS EC2 Instance Types are predefined virtual server configurations offered by Amazon Web Services. Each type specifies the compute, memory, storage, and networking capacity of the virtual machine. Users select an instance type based on their application's requirements, balancing performance and cost. EC2 instances can be launched, stopped, and terminated as needed for various computing workloads."  # fmt: skip
@@ -392,7 +394,6 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
     _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ec2:{region}:{account}:instance/{id}"}  # fmt: skip
-    api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": ["aws_ec2_instance"],
@@ -458,6 +459,29 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
     supported_boot_modes: List[str] = field(factory=list)
 
     @classmethod
+    def collect_resource_types(cls, builder: GraphBuilder, instance_types: List[str]) -> None:
+        spec = AwsApiSpec(service_name, "describe-instance-types", "InstanceTypes")
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        try:
+            filters = [{"Name": "instance-type", "Values": instance_types}]
+            items = builder.client.list(
+                aws_service=spec.service,
+                action=spec.api_action,
+                result_name=spec.result_property,
+                expected_errors=spec.expected_errors,
+                Filters=filters,
+            )
+            cls.collect(items, builder)
+        except Boto3Error as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.error(msg, log)
+            raise
+        except Exception as e:
+            msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+            builder.core_feedback.info(msg, log)
+            raise
+
+    @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
         for js in json:
             if it := AwsEc2InstanceType.from_api(js, builder):
@@ -467,6 +491,14 @@ class AwsEc2InstanceType(AwsResource, BaseInstanceType):
                 # note: not all instance types are returned in any region.
                 # we collect instance types in all regions and make the data unique in the builder
                 builder.global_instance_types[it.safe_name] = it
+
+    @classmethod
+    def service_name(cls) -> Optional[str]:
+        return service_name
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [AwsApiSpec(service_name, "describe-instance-types")]
 
 
 # endregion
@@ -1375,6 +1407,18 @@ class AwsEc2Instance(EC2Taggable, AwsResource, BaseInstance):
     instance_tpm_support: Optional[str] = field(default=None)
     instance_maintenance_options: Optional[str] = field(default=None)
     instance_user_data: Optional[str] = field(default=None)
+
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder) -> None:
+        super().collect_resources(builder)
+        ec2_instance_types = set()
+        for instance in builder.nodes(clazz=AwsEc2Instance, _region=builder.region):
+            if instance.instance_type:
+                ec2_instance_types.add(instance.instance_type)
+        if ec2_instance_types:
+            builder.submit_work(
+                service_name, AwsEc2InstanceType.collect_resource_types, builder, list(ec2_instance_types)
+            )
 
     @classmethod
     def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:

@@ -488,31 +488,39 @@ class GraphAccess:
     def __resolve_count_descendants(self) -> None:
         empty_set: Set[str] = set()
 
-        def count_descendants_of(identifier: str, ancestor_kind: str, path: List[str]) -> Dict[str, int]:
+        def count_descendants_of(rid: str, rname: str, ancestor_kind: str, path: List[str]) -> Dict[str, int]:
             result: DefaultDict[str, int] = defaultdict(int)
-            ancestor_path = ["ancestors", ancestor_kind, "reported", "id"]
+            rid_path = ["ancestors", ancestor_kind, "reported", "id"]
+            rname_path = ["ancestors", ancestor_kind, "reported", "name"]
             for _, elem in self.g.nodes(data=True):
-                if value_in_path(elem, ancestor_path) == identifier:
+                if value_in_path(elem, rid_path) == rid and value_in_path(elem, rname_path) == rname:
                     kinds_set = elem.get("kinds_set", empty_set)
                     extracted = value_in_path(elem, path)
                     if "phantom_resource" not in kinds_set and isinstance(extracted, str):
                         result[extracted] += 1
             return result
 
-        for on_kind, prop in GraphResolver.count_successors.items():
-            for _, node in self.g.nodes(data=True):
-                kinds = node.get("kinds_set")
-                if kinds and on_kind in kinds:
-                    if rid := value_in_path(node, NodePath.reported_id):
-                        # descendant summary
-                        summary = count_descendants_of(rid, on_kind, prop.extract_path)
+        empty_set = set()
+        for _, node in self.g.nodes(data=True):
+            kinds = node.get("kinds_set", empty_set)
+            for on_kind, prop in GraphResolver.count_successors.items():
+                if on_kind in kinds:
+                    if (rid := value_in_path(node, NodePath.reported_id)) and (
+                        rname := value_in_path(node, NodePath.reported_name)
+                    ):
+                        # Descendant summary: we need to compare id and name.
+                        # Example AWS global region: id=us-east-1, name=global
+                        summary = count_descendants_of(rid, rname, on_kind, prop.extract_path)
                         set_value_in_path(summary, prop.to_path, node)
                         # descendant count
                         total = reduce(lambda left, right: left + right, summary.values(), 0)
                         set_value_in_path(total, NodePath.descendant_count, node)
                         # update hash
                         node["hash"] = GraphBuilder.content_hash(
-                            node["reported"], node.get("desired"), node.get("metadata"), node.get("kinds")
+                            node["reported"],
+                            desired=node.get("desired"),
+                            metadata=node.get("metadata"),
+                            kinds=node.get("kinds"),
                         )
 
     def __resolve(self, node_id: NodeId, node: Json) -> Json:

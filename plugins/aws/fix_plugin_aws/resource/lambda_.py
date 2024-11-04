@@ -1,10 +1,11 @@
-from datetime import timedelta
 import json as json_p
 import logging
 import re
+from datetime import timedelta
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attrs import define, field
+
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.base import AwsResource, GraphBuilder, AwsApiSpec, parse_json
 from fix_plugin_aws.resource.cloudwatch import AwsCloudwatchQuery, normalizer_factory
@@ -19,9 +20,9 @@ from fixlib.baseresources import (
     PolicySourceKind,
 )
 from fixlib.graph import Graph
+from fixlib.json import sort_json
 from fixlib.json_bender import Bender, S, Bend, ForallBend, F, bend
 from fixlib.types import Json
-from fixlib.json import sort_json
 
 log = logging.getLogger("fix.plugins.aws")
 

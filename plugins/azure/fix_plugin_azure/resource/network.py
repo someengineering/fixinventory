@@ -5275,6 +5275,7 @@ class AzureNetworkVirtualNetwork(MicrosoftResource, BaseNetwork):
         "virtual_network_peerings": S("properties", "virtualNetworkPeerings")
         >> ForallBend(AzureVirtualNetworkPeering.mapping),
         "location": S("location"),
+        "type": S("type"),
     }
     address_space: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
     bgp_communities: Optional[AzureVirtualNetworkBgpCommunities] = field(default=None, metadata={'description': 'Bgp Communities sent over ExpressRoute with each route corresponding to a prefix in this VNET.'})  # fmt: skip
@@ -5291,6 +5292,7 @@ class AzureNetworkVirtualNetwork(MicrosoftResource, BaseNetwork):
     _subnet_ids: Optional[List[str]] = field(default=None, metadata={'description': 'A list of subnets in a Virtual Network.'})  # fmt: skip
     virtual_network_peerings: Optional[List[AzureVirtualNetworkPeering]] = field(default=None, metadata={'description': 'A list of peerings in a Virtual Network.'})  # fmt: skip
     location: Optional[str] = field(default=None, metadata={"description": "Resource location."})
+    type: Optional[str] = field(default=None, metadata={"description": "Type of the resource."})
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_subnets() -> None:

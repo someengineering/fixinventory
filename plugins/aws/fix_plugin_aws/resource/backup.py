@@ -175,7 +175,7 @@ class AwsBackupProtectedResource(AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("backup", "list-protected-resources", "Results")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ResourceArn") >> F(lambda arn: arn.rsplit("/")[1]),
+        "id": S("ResourceArn") >> F(AwsResource.id_from_arn),
         "name": S("ResourceName"),
         "resource_arn": S("ResourceArn"),
         "resource_type": S("ResourceType"),
