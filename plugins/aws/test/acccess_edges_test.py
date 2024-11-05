@@ -2,7 +2,8 @@ from cloudsplaining.scan.policy_document import PolicyDocument
 
 from fix_plugin_aws.resource.base import AwsResource
 from fix_plugin_aws.resource.iam import AwsIamUser, AwsIamGroup, AwsIamRole
-from typing import Any, Dict, List
+from typing import Any, Dict
+from policy_sentry.util.arns import ARN
 
 import re
 from fix_plugin_aws.access_edges import (
@@ -84,41 +85,47 @@ def test_check_statement_match1() -> None:
         "Principal": {"AWS": ["arn:aws:iam::123456789012:user/example-user"]},
     }
     statement = FixStatementDetail(allow_statement)
-    resource = AwsResource(id="bucket", arn="arn:aws:s3:::example-bucket/object.txt")
+    resource_arn = ARN("arn:aws:s3:::example-bucket/object.txt")
+    resource = AwsResource(id="bucket", arn=resource_arn.arn)
     principal = AwsResource(id="principal", arn="arn:aws:iam::123456789012:user/example-user")
 
     # Test matching statement
-    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
-    assert result is True
+    match_fn = check_statement_match(statement, "Allow", atc("s3:GetObject"), principal)
+    assert match_fn is not None
+    constraints = match_fn(resource_arn)
     assert constraints == ["arn:aws:s3:::example-bucket/*"]
 
     # Test wrong effect
-    result, constraints = check_statement_match(statement, "Deny", atc("s3:GetObject"), resource, principal)
-    assert result is False
-    assert constraints == []
+    match_fn = check_statement_match(statement, "Deny", atc("s3:GetObject"), principal)
+    assert match_fn is None
 
     # wrong principal does not match
-    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, resource)
-    assert result is False
+    match_fn = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource)
+    assert match_fn is None
 
     # Test statement with condition
     allow_statement["Condition"] = {"StringEquals": {"s3:prefix": "private/"}}
     statement = FixStatementDetail(allow_statement)
-    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
-    assert result is True
+    match_fn = check_statement_match(statement, "Allow", atc("s3:GetObject"), principal)
+    assert match_fn is not None
+    result = match_fn(resource_arn)
+    assert result is not None
 
-    # not providing principaal works
-    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal=None)
-    assert result is True
+    # not providing principal works
+    match_fn = check_statement_match(statement, "Allow", atc("s3:GetObject"), principal=None)
+    assert match_fn is not None
+    result = match_fn(resource_arn)
+    assert result is not None
 
     # not providing effect works
-    result, constraints = check_statement_match(
-        statement, effect=None, action=atc("s3:GetObject"), resource=resource, principal=None
-    )
-    assert result is True
+    match_fn = check_statement_match(statement, effect=None, action=atc("s3:GetObject"), principal=None)
+    assert match_fn is not None
+    result = match_fn(resource_arn)
+    assert result is not None
 
-    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
-    assert result is True
+    match_fn = check_statement_match(statement, "Allow", atc("s3:GetObject"), principal)
+    assert match_fn is not None
+    constraints = match_fn(resource_arn)
     assert constraints == ["arn:aws:s3:::example-bucket/*"]
 
     deny_statement = {
@@ -129,8 +136,9 @@ def test_check_statement_match1() -> None:
     }
 
     statement = FixStatementDetail(deny_statement)
-    result, constraints = check_statement_match(statement, "Deny", atc("s3:GetObject"), resource, principal)
-    assert result is True
+    match_fn = check_statement_match(statement, "Deny", atc("s3:GetObject"), principal)
+    assert match_fn is not None
+    constraints = match_fn(resource_arn)
     assert constraints == ["arn:aws:s3:::example-bucket/*"]
 
     # test not resource
@@ -138,8 +146,9 @@ def test_check_statement_match1() -> None:
     del not_resource_statement["Resource"]
     not_resource_statement["NotResource"] = "arn:aws:s3:::example-bucket/private/*"
     statement = FixStatementDetail(not_resource_statement)
-    result, constraints = check_statement_match(statement, "Allow", atc("s3:GetObject"), resource, principal)
-    assert result is True
+    match_fn = check_statement_match(statement, "Allow", atc("s3:GetObject"), principal)
+    assert match_fn is not None
+    constraints = match_fn(resource_arn)
     assert constraints == ["not arn:aws:s3:::example-bucket/private/*"]
 
 
@@ -166,15 +175,15 @@ def test_no_explicit_deny() -> None:
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=[],
-        permission_boundaries=[],
-        service_control_policy_levels=[],
+        identity_policies=(),
+        permission_boundaries=(),
+        service_control_policy_levels=(),
     )
 
-    resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket")
+    resource_arn = ARN("arn:aws:s3:::example-bucket")
     action = atc("s3:GetObject")
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
+    result = check_explicit_deny(request_context, action, resource_based_policies=())(resource_arn)
     assert result == "NextStep"
 
 
@@ -188,9 +197,9 @@ def test_explicit_deny_in_identity_policy() -> None:
         "Statement": [{"Effect": "Deny", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::example-bucket/*"}],
     }
     policy_document = FixPolicyDocument(policy_json)
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=principal.arn), policy_document)]
-    permission_boundaries: List[FixPolicyDocument] = []
-    service_control_policy_levels: List[List[FixPolicyDocument]] = []
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=principal.arn), policy_document)])
+    permission_boundaries: tuple[FixPolicyDocument, ...] = ()
+    service_control_policy_levels: tuple[tuple[FixPolicyDocument, ...], ...] = ()
 
     request_context = IamRequestContext(
         principal=principal,
@@ -199,10 +208,10 @@ def test_explicit_deny_in_identity_policy() -> None:
         service_control_policy_levels=service_control_policy_levels,
     )
 
-    resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
+    resource_arn = ARN("arn:aws:s3:::example-bucket/object.txt")
     action = atc("s3:GetObject")
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
+    result = check_explicit_deny(request_context, action, resource_based_policies=())(resource_arn)
     assert result == "Denied"
 
 
@@ -223,19 +232,19 @@ def test_explicit_deny_with_condition_in_identity_policy() -> None:
         ],
     }
     policy_document = FixPolicyDocument(policy_json)
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=principal.arn), policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=principal.arn), policy_document)])
 
     request_context = IamRequestContext(
         principal=principal,
         identity_policies=identity_policies,
-        permission_boundaries=[],
-        service_control_policy_levels=[],
+        permission_boundaries=(),
+        service_control_policy_levels=(),
     )
 
-    resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
+    resource_arn = ARN("arn:aws:s3:::example-bucket/object.txt")
     action = atc("s3:GetObject")
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
+    result = check_explicit_deny(request_context, action, resource_based_policies=())(resource_arn)
     expected_conditions = [policy_json["Statement"][0]["Condition"]]
     assert result == expected_conditions
 
@@ -249,19 +258,19 @@ def test_explicit_deny_in_scp() -> None:
         "Statement": [{"Effect": "Deny", "Action": "s3:GetObject", "Resource": "*"}],
     }
     scp_policy_document = FixPolicyDocument(scp_policy_json)
-    service_control_policy_levels = [[scp_policy_document]]
+    service_control_policy_levels = tuple([tuple([scp_policy_document])])
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=[],
-        permission_boundaries=[],
+        identity_policies=(),
+        permission_boundaries=(),
         service_control_policy_levels=service_control_policy_levels,
     )
 
-    resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
+    resource_arn = ARN("arn:aws:s3:::example-bucket/object.txt")
     action = atc("s3:GetObject")
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
+    result = check_explicit_deny(request_context, action, resource_based_policies=())(resource_arn)
     assert result == "Denied"
 
 
@@ -281,23 +290,27 @@ def test_explicit_deny_with_condition_in_scp() -> None:
         ],
     }
     scp_policy_document = FixPolicyDocument(scp_policy_json)
-    service_control_policy_levels = [
+    service_control_policy_levels = tuple(
         [
-            scp_policy_document,
+            tuple(
+                [
+                    scp_policy_document,
+                ]
+            )
         ]
-    ]
+    )
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=[],
-        permission_boundaries=[],
+        identity_policies=(),
+        permission_boundaries=(),
         service_control_policy_levels=service_control_policy_levels,
     )
 
-    resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
+    resource_arn = ARN("arn:aws:s3:::example-bucket/object.txt")
     action = atc("s3:GetObject")
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies=[])
+    result = check_explicit_deny(request_context, action, resource_based_policies=())(resource_arn)
     expected_conditions = [scp_policy_json["Statement"][0]["Condition"]]
     assert result == expected_conditions
 
@@ -308,9 +321,9 @@ def test_explicit_deny_in_resource_policy() -> None:
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=[],
-        permission_boundaries=[],
-        service_control_policy_levels=[],
+        identity_policies=(),
+        permission_boundaries=(),
+        service_control_policy_levels=(),
     )
 
     policy_json: Dict[str, Any] = {
@@ -325,14 +338,14 @@ def test_explicit_deny_in_resource_policy() -> None:
         ],
     }
     policy_document = FixPolicyDocument(policy_json)
-    resource_based_policies = [
-        (PolicySource(kind=PolicySourceKind.resource, uri="arn:aws:s3:::example-bucket"), policy_document)
-    ]
+    resource_based_policies = tuple(
+        [(PolicySource(kind=PolicySourceKind.resource, uri="arn:aws:s3:::example-bucket"), policy_document)]
+    )
 
-    resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
+    resource_arn = ARN("arn:aws:s3:::example-bucket/object.txt")
     action = atc("s3:GetObject")
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, action, resource_based_policies)(resource_arn)
     assert result == "Denied"
 
 
@@ -342,9 +355,9 @@ def test_explicit_deny_with_condition_in_resource_policy() -> None:
 
     request_context = IamRequestContext(
         principal=principal,
-        identity_policies=[],
-        permission_boundaries=[],
-        service_control_policy_levels=[],
+        identity_policies=(),
+        permission_boundaries=(),
+        service_control_policy_levels=(),
     )
 
     policy_json: Dict[str, Any] = {
@@ -360,14 +373,14 @@ def test_explicit_deny_with_condition_in_resource_policy() -> None:
         ],
     }
     policy_document = FixPolicyDocument(policy_json)
-    resource_based_policies = [
-        (PolicySource(kind=PolicySourceKind.resource, uri="arn:aws:s3:::example-bucket"), policy_document)
-    ]
+    resource_based_policies = tuple(
+        [(PolicySource(kind=PolicySourceKind.resource, uri="arn:aws:s3:::example-bucket"), policy_document)]
+    )
 
-    resource = AwsResource(id="some-resource", arn="arn:aws:s3:::example-bucket/object.txt")
+    resource_arn = ARN("arn:aws:s3:::example-bucket/object.txt")
     action = atc("s3:GetObject")
 
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, action, resource_based_policies)(resource_arn)
     expected_conditions = [policy_json["Statement"][0]["Condition"]]
     assert result == expected_conditions
 
@@ -376,7 +389,7 @@ def test_compute_permissions_user_inline_policy_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket_arn = ARN("arn:aws:s3:::my-test-bucket")
 
     policy_json = {
         "Version": "2012-10-17",
@@ -391,17 +404,17 @@ def test_compute_permissions_user_inline_policy_allow() -> None:
     }
     policy_document = FixPolicyDocument(policy_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)])
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
-        resource=bucket,
+        resource=bucket_arn,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket_arn.arn),
     )
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
@@ -417,7 +430,7 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     condition = {"IpAddress": {"aws:SourceIp": "1.1.1.1"}}
 
@@ -435,17 +448,17 @@ def test_compute_permissions_user_inline_policy_allow_with_conditions() -> None:
     }
     policy_document = FixPolicyDocument(policy_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)])
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
     assert len(permissions) == 1
     assert permissions[0].action == "s3:ListBucket"
@@ -463,7 +476,7 @@ def test_compute_permissions_user_inline_policy_deny() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     policy_json = {
         "Version": "2012-10-17",
@@ -478,17 +491,17 @@ def test_compute_permissions_user_inline_policy_deny() -> None:
     }
     policy_document = FixPolicyDocument(policy_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)])
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 0
@@ -498,7 +511,7 @@ def test_compute_permissions_user_inline_policy_deny_with_condition() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     condition = {"IpAddress": {"aws:SourceIp": "1.1.1.1"}}
 
@@ -516,17 +529,17 @@ def test_compute_permissions_user_inline_policy_deny_with_condition() -> None:
     }
     policy_document = FixPolicyDocument(policy_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), policy_document)])
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     # deny does not grant any permissions by itself, even if the condition is met
@@ -537,7 +550,7 @@ def test_deny_overrides_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     deny_policy_json = {
         "Version": "2012-10-17",
@@ -565,20 +578,22 @@ def test_deny_overrides_allow() -> None:
     }
     allow_policy_document = FixPolicyDocument(allow_policy_json)
 
-    identity_policies = [
-        (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
-        (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), allow_policy_document),
-    ]
+    identity_policies = tuple(
+        [
+            (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
+            (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), allow_policy_document),
+        ]
+    )
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 0
@@ -588,7 +603,7 @@ def test_deny_different_action_does_not_override_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     deny_policy_json = {
         "Version": "2012-10-17",
@@ -616,20 +631,22 @@ def test_deny_different_action_does_not_override_allow() -> None:
     }
     allow_policy_document = FixPolicyDocument(allow_policy_json)
 
-    identity_policies = [
-        (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
-        (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), allow_policy_document),
-    ]
+    identity_policies = tuple(
+        [
+            (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
+            (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), allow_policy_document),
+        ]
+    )
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 1
@@ -639,7 +656,7 @@ def test_deny_overrides_allow_with_condition() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     condition = {"IpAddress": {"aws:SourceIp": "1.1.1.1"}}
 
@@ -670,20 +687,22 @@ def test_deny_overrides_allow_with_condition() -> None:
     }
     allow_policy_document = FixPolicyDocument(allow_policy_json)
 
-    identity_policies = [
-        (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
-        (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), allow_policy_document),
-    ]
+    identity_policies = tuple(
+        [
+            (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), deny_policy_document),
+            (PolicySource(kind=PolicySourceKind.principal, uri=user.arn), allow_policy_document),
+        ]
+    )
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 1
@@ -702,7 +721,7 @@ def test_deny_overrides_allow_with_condition() -> None:
 def test_compute_permissions_resource_based_policy_allow() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::111122223333:user/test-user")
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
     assert bucket.arn
 
     policy_json = {
@@ -720,16 +739,16 @@ def test_compute_permissions_resource_based_policy_allow() -> None:
     policy_document = FixPolicyDocument(policy_json)
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=[], permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=(), permission_boundaries=(), service_control_policy_levels=()
     )
 
-    resource_based_policies = [(PolicySource(kind=PolicySourceKind.resource, uri=bucket.arn), policy_document)]
+    resource_based_policies = tuple([(PolicySource(kind=PolicySourceKind.resource, uri=bucket.arn), policy_document)])
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
         resource_based_policies=resource_based_policies,
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 1
@@ -747,7 +766,7 @@ def test_compute_permissions_permission_boundary_restrict() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     identity_policy_json = {
         "Version": "2012-10-17",
@@ -776,22 +795,22 @@ def test_compute_permissions_permission_boundary_restrict() -> None:
     }
     permission_boundary_document = FixPolicyDocument(permission_boundary_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), identity_policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), identity_policy_document)])
 
-    permission_boundaries = [permission_boundary_document]
+    permission_boundaries = tuple([permission_boundary_document])
 
     request_context = IamRequestContext(
         principal=user,
         identity_policies=identity_policies,
         permission_boundaries=permission_boundaries,
-        service_control_policy_levels=[],
+        service_control_policy_levels=(),
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 1
@@ -809,7 +828,7 @@ def test_compute_permissions_scp_deny() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
     assert user.arn
 
-    ec2_instance = AwsResource(id="instance123", arn="arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0")
+    ec2_instance = ARN("arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0")
 
     identity_policy_json = {
         "Version": "2012-10-17",
@@ -832,22 +851,22 @@ def test_compute_permissions_scp_deny() -> None:
     }
     scp_policy_document = FixPolicyDocument(scp_policy_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), identity_policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=user.arn), identity_policy_document)])
 
-    service_control_policy_levels = [[scp_policy_document]]
+    service_control_policy_levels = ((scp_policy_document,),)
 
     request_context = IamRequestContext(
         principal=user,
         identity_policies=identity_policies,
-        permission_boundaries=[],
+        permission_boundaries=(),
         service_control_policy_levels=service_control_policy_levels,
     )
 
     permissions = compute_permissions(
         resource=ec2_instance,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(ec2_instance.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(ec2_instance.arn),
     )
 
     assert len(permissions) == 0
@@ -855,7 +874,7 @@ def test_compute_permissions_scp_deny() -> None:
 
 def test_compute_permissions_user_with_group_policies() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     group = AwsResource(id="group123", arn="arn:aws:iam::123456789012:group/test-group")
     assert group.arn
@@ -873,13 +892,16 @@ def test_compute_permissions_user_with_group_policies() -> None:
     identity_policies.append((PolicySource(kind=PolicySourceKind.group, uri=group.arn), group_policy_document))
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=user,
+        identity_policies=tuple(identity_policies),
+        permission_boundaries=(),
+        service_control_policy_levels=(),
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
+        resource_based_policies=(),
         resource_actions=get_actions_matching_arn(bucket.arn or ""),
     )
 
@@ -896,17 +918,17 @@ def test_compute_permissions_user_with_group_policies() -> None:
 
 def test_compute_permissions_implicit_deny() -> None:
     user = AwsIamUser(id="user123", arn="arn:aws:iam::123456789012:user/test-user")
-    table = AwsResource(id="table123", arn="arn:aws:dynamodb:us-east-1:123456789012:table/my-table")
+    table = ARN("arn:aws:dynamodb:us-east-1:123456789012:table/my-table")
 
     request_context = IamRequestContext(
-        principal=user, identity_policies=[], permission_boundaries=[], service_control_policy_levels=[]
+        principal=user, identity_policies=(), permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=table,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(table.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(table.arn),
     )
 
     # Assert that permissions do not include any actions (implicit deny)
@@ -917,7 +939,7 @@ def test_compute_permissions_group_inline_policy_allow() -> None:
     group = AwsIamGroup(id="group123", arn="arn:aws:iam::123456789012:group/test-group")
     assert group.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     policy_json = {
         "Version": "2012-10-17",
@@ -932,17 +954,17 @@ def test_compute_permissions_group_inline_policy_allow() -> None:
     }
     policy_document = FixPolicyDocument(policy_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.group, uri=group.arn), policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.group, uri=group.arn), policy_document)])
 
     request_context = IamRequestContext(
-        principal=group, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=group, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 1
@@ -959,7 +981,7 @@ def test_compute_permissions_role_inline_policy_allow() -> None:
     role = AwsIamRole(id="role123", arn="arn:aws:iam::123456789012:role/test-role")
     assert role.arn
 
-    bucket = AwsResource(id="bucket123", arn="arn:aws:s3:::my-test-bucket")
+    bucket = ARN("arn:aws:s3:::my-test-bucket")
 
     policy_json = {
         "Version": "2012-10-17",
@@ -974,17 +996,17 @@ def test_compute_permissions_role_inline_policy_allow() -> None:
     }
     policy_document = FixPolicyDocument(policy_json)
 
-    identity_policies = [(PolicySource(kind=PolicySourceKind.principal, uri=role.arn), policy_document)]
+    identity_policies = tuple([(PolicySource(kind=PolicySourceKind.principal, uri=role.arn), policy_document)])
 
     request_context = IamRequestContext(
-        principal=role, identity_policies=identity_policies, permission_boundaries=[], service_control_policy_levels=[]
+        principal=role, identity_policies=identity_policies, permission_boundaries=(), service_control_policy_levels=()
     )
 
     permissions = compute_permissions(
         resource=bucket,
         iam_context=request_context,
-        resource_based_policies=[],
-        resource_actions=get_actions_matching_arn(bucket.arn or ""),
+        resource_based_policies=(),
+        resource_actions=get_actions_matching_arn(bucket.arn),
     )
 
     assert len(permissions) == 1

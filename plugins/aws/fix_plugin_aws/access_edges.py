@@ -1,10 +1,10 @@
 from enum import Enum
 from functools import lru_cache
-from attr import frozen, define
+from attr import frozen
 import networkx
 from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
 from policy_sentry.querying.actions import get_actions_for_service
-from typing import Dict, List, Literal, Set, Optional, Tuple, Union, Pattern
+from typing import Callable, Dict, List, Literal, Set, Optional, Tuple, Union, Pattern
 import fnmatch
 from networkx.algorithms.dag import is_directed_acyclic_graph
 
@@ -88,22 +88,22 @@ class ActionToCheck:
     action_name: str
 
 
-@define(slots=True)
+@frozen(slots=True)
 class IamRequestContext:
     principal: AwsResource
-    identity_policies: List[Tuple[PolicySource, FixPolicyDocument]]
-    permission_boundaries: List[FixPolicyDocument]  # todo: use them too
+    identity_policies: Tuple[Tuple[PolicySource, FixPolicyDocument], ...]
+    permission_boundaries: Tuple[FixPolicyDocument, ...]  # todo: use them too
     # all service control policies applicable to the principal,
     # starting from the root, then all org units, then the account
-    service_control_policy_levels: List[List[FixPolicyDocument]]
+    service_control_policy_levels: Tuple[Tuple[FixPolicyDocument, ...], ...]
     # technically we should also add a list of session policies here, but they don't exist in the collector context
 
     def all_policies(
-        self, resource_based_policies: Optional[List[Tuple[PolicySource, FixPolicyDocument]]] = None
+        self, resource_based_policies: Optional[Tuple[Tuple[PolicySource, FixPolicyDocument], ...]] = None
     ) -> List[FixPolicyDocument]:
         return (
             [p[1] for p in self.identity_policies]
-            + self.permission_boundaries
+            + list(self.permission_boundaries)
             + [p for group in self.service_control_policy_levels for p in group]
             + ([p[1] for p in (resource_based_policies or [])])
         )
@@ -121,12 +121,11 @@ def find_allowed_action(policy_document: PolicyDocument, service_prefix: str) ->
     return allowed_actions
 
 
-def find_non_service_actions(resource_arn: str) -> Set[IamAction]:
+def find_non_service_actions(resource_arn: ARN) -> Set[IamAction]:
     try:
-        splitted = resource_arn.split(":")
-        service_prefix = splitted[2]
+        service_prefix = resource_arn.service_prefix
         if service_prefix == "iam":
-            resource_type = splitted[5]
+            resource_type = resource_arn.resource_string
             resource = resource_type.split("/")[0]
             if resource == "role":
                 return {"sts:AssumeRole"}
@@ -173,7 +172,7 @@ def get_actions_matching_arn(arn: str) -> set[str]:
 
 
 def find_all_allowed_actions(
-    all_involved_policies: List[FixPolicyDocument], resource_arn: str, resource_actions: set[IamAction]
+    all_involved_policies: List[FixPolicyDocument], resource_arn: ARN, resource_actions: set[IamAction]
 ) -> Set[IamAction]:
 
     if additinal_actions := find_non_service_actions(resource_arn):
@@ -181,7 +180,7 @@ def find_all_allowed_actions(
 
     service_prefix = ""
     try:
-        service_prefix = get_service_from_arn(resource_arn)
+        service_prefix = resource_arn.service_prefix
     except Exception as e:
         log.debug(f"Error when trying to get service prefix from ARN {resource_arn}: {e}")
     policy_actions: Set[IamAction] = set()
@@ -318,21 +317,19 @@ def expand_arn_wildcards_and_match(identifier: str, wildcard_string: str) -> boo
     return _expand_wildcards_and_match(identifier=identifier, wildcard_string=wildcard_string)
 
 
+@lru_cache(maxsize=4096)
 def check_statement_match(
     statement: FixStatementDetail,
     effect: Optional[Literal["Allow", "Deny"]],
     action: ActionToCheck,
-    resource: AwsResource,
     principal: Optional[AwsResource],
     source_arn: Optional[str] = None,
-) -> Tuple[bool, List[ResourceConstraint]]:
+) -> Union[None, Callable[[ARN], Optional[List[ResourceConstraint]]]]:
     """
-    check if a statement matches the given effect, action, resource and principal,
-    returns boolean if there is a match and optional resource constraint (if there were any)
+    check if a statement matches the given effect, action, and principal,
+    returns None if there is no match no matter what the resource is,
+    or a callable that can be used to check if the resource matches
     """
-    if resource.arn is None:
-        raise ValueError("Resource ARN is missing, go and fix the filtering logic")
-
     # step 1: check the principal if provided
     if principal:
         principal_match = False
@@ -364,13 +361,13 @@ def check_statement_match(
 
         if not principal_match:
             # principal does not match, we can shortcut here
-            return False, []
+            return None
 
     # step 2: check if the effect matches
     if effect:
         if statement.effect != effect:
             # wrong effect, skip this statement
-            return False, []
+            return None
 
     # step 3: check if the action matches
     action_match = False
@@ -396,34 +393,37 @@ def check_statement_match(
                 break
     if not action_match:
         # action does not match, skip this statement
-        return False, []
+        return None
 
-    # step 4: check if the resource matches
-    matched_resource_constraints: List[ResourceConstraint] = []
-    resource_matches = False
-    if len(statement.resources) > 0:
-        for resource_constraint in statement.resources:
-            if expand_arn_wildcards_and_match(identifier=resource.arn, wildcard_string=resource_constraint):
-                matched_resource_constraints.append(resource_constraint)
-                resource_matches = True
-                break
-    elif len(statement.not_resource) > 0:
-        resource_matches = True
-        for not_resource_constraint in statement.not_resource:
-            if expand_arn_wildcards_and_match(identifier=resource.arn, wildcard_string=not_resource_constraint):
-                resource_matches = False
-                break
-            matched_resource_constraints.append("not " + not_resource_constraint)
-    else:
-        # no Resource/NotResource specified, consider allowed
-        resource_matches = True
-    if not resource_matches:
-        # resource does not match, skip this statement
-        return False, []
+    def check_resource_match(arn: ARN) -> Optional[List[ResourceConstraint]]:
+        # step 4: check if the resource matches
+        matched_resource_constraints: List[ResourceConstraint] = []
+        resource_matches = False
+        if len(statement.resources) > 0:
+            for resource_constraint in statement.resources:
+                if expand_arn_wildcards_and_match(identifier=arn.arn, wildcard_string=resource_constraint):
+                    matched_resource_constraints.append(resource_constraint)
+                    resource_matches = True
+                    break
+        elif len(statement.not_resource) > 0:
+            resource_matches = True
+            for not_resource_constraint in statement.not_resource:
+                if expand_arn_wildcards_and_match(identifier=arn.arn, wildcard_string=not_resource_constraint):
+                    resource_matches = False
+                    break
+                matched_resource_constraints.append("not " + not_resource_constraint)
+        else:
+            # no Resource/NotResource specified, consider allowed
+            resource_matches = True
+        if not resource_matches:
+            # resource does not match, skip this statement
+            return None
 
-    # step 5: (we're not doing this yet) check if the condition matches
-    # here we just return the statement and condition checking is the responsibility of the caller
-    return (True, matched_resource_constraints)
+        # step 5: (we're not doing this yet) check if the condition matches
+        # here we just return the statement and condition checking is the responsibility of the caller
+        return matched_resource_constraints
+
+    return check_resource_match
 
 
 def check_principal_match(principal: AwsResource, aws_principal_list: List[str]) -> bool:
@@ -445,93 +445,106 @@ def check_principal_match(principal: AwsResource, aws_principal_list: List[str])
     return False
 
 
+@lru_cache(maxsize=4096)
 def collect_matching_statements(
     *,
     policy: FixPolicyDocument,
     effect: Optional[Literal["Allow", "Deny"]],
     action: ActionToCheck,
-    resource: AwsResource,
     principal: Optional[AwsResource],
     source_arn: Optional[str] = None,
-) -> List[Tuple[FixStatementDetail, List[ResourceConstraint]]]:
+) -> Callable[[ARN], List[Tuple[FixStatementDetail, List[ResourceConstraint]]]]:
     """
     resoruce based policies contain principal field and need to be handled differently
     """
-    results: List[Tuple[FixStatementDetail, List[ResourceConstraint]]] = []
-
-    if resource.arn is None:
-        raise ValueError("Resource ARN is missing, go and fix the filtering logic")
+    matching_fns: List[Tuple[FixStatementDetail, Callable[[ARN], Optional[List[ResourceConstraint]]]]] = []
 
     for statement in policy.fix_statements:
 
-        matches, maybe_resource_constraint = check_statement_match(
-            statement, effect=effect, action=action, resource=resource, principal=principal, source_arn=source_arn
+        match_fn = check_statement_match(
+            statement, effect=effect, action=action, principal=principal, source_arn=source_arn
         )
-        if matches:
-            results.append((statement, maybe_resource_constraint))
+        if not match_fn:
+            continue
 
-    return results
+        matching_fns.append((statement, match_fn))
+
+    def collect_matching_statements_closure(resource: ARN) -> List[Tuple[FixStatementDetail, List[ResourceConstraint]]]:
+        results: List[Tuple[FixStatementDetail, List[ResourceConstraint]]] = []
+        for statement, match_fn in matching_fns:
+            if constraints := match_fn(resource):
+                results.append((statement, constraints))
+
+        return results
+
+    return collect_matching_statements_closure
 
 
+@lru_cache(maxsize=4096)
 def check_explicit_deny(
     request_context: IamRequestContext,
-    resource: AwsResource,
     action: ActionToCheck,
-    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
-) -> Union[Literal["Denied", "NextStep"], List[Json]]:
+    resource_based_policies: Tuple[Tuple[PolicySource, FixPolicyDocument], ...],
+) -> Callable[[ARN], Union[Literal["Denied", "NextStep"], List[Json]]]:
 
-    denied_when_any_is_true: List[Json] = []
+    matching_fns = []
 
     # we should skip service control policies for service linked roles
     if not is_service_linked_role(request_context.principal):
         for scp_level in request_context.service_control_policy_levels:
             for policy in scp_level:
-                policy_statements = collect_matching_statements(
-                    policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
+                matching_fn = collect_matching_statements(
+                    policy=policy, effect="Deny", action=action, principal=request_context.principal
                 )
-                for statement, _ in policy_statements:
-                    if statement.condition:
-                        denied_when_any_is_true.append(statement.condition)
-                    else:
-                        return "Denied"
+                matching_fns.append(matching_fn)
 
     # check permission boundaries
     for policy in request_context.permission_boundaries:
-        policy_statements = collect_matching_statements(
-            policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
+        matching_fn = collect_matching_statements(
+            policy=policy, effect="Deny", action=action, principal=request_context.principal
         )
-        for statement, _ in policy_statements:
-            if statement.condition:
-                denied_when_any_is_true.append(statement.condition)
-            else:
-                return "Denied"
+        matching_fns.append(matching_fn)
 
     # check the rest of the policies
-    for _, policy in request_context.identity_policies + resource_based_policies:
-        policy_statements = collect_matching_statements(
-            policy=policy, effect="Deny", action=action, resource=resource, principal=request_context.principal
+    for _, policy in request_context.identity_policies:
+        matching_fn = collect_matching_statements(
+            policy=policy, effect="Deny", action=action, principal=request_context.principal
         )
-        for statement, _ in policy_statements:
-            if statement.condition:
-                denied_when_any_is_true.append(statement.condition)
-            else:
-                return "Denied"
+        matching_fns.append(matching_fn)
 
-    if denied_when_any_is_true:
-        return denied_when_any_is_true
+    for _, policy in resource_based_policies:
+        matching_fn = collect_matching_statements(
+            policy=policy, effect="Deny", action=action, principal=request_context.principal
+        )
+        matching_fns.append(matching_fn)
 
-    return "NextStep"
+    def check_explicit_deny_closure(arn: ARN) -> Union[Literal["Denied", "NextStep"], List[Json]]:
+
+        denied_when_any_is_true: List[Json] = []
+
+        for matching_fn in matching_fns:
+            for statement, _ in matching_fn(arn):
+                if statement.condition:
+                    denied_when_any_is_true.append(statement.condition)
+                else:
+                    return "Denied"
+
+        if denied_when_any_is_true:
+            return denied_when_any_is_true
+
+        return "NextStep"
+
+    return check_explicit_deny_closure
 
 
-def scp_allowed(request_context: IamRequestContext, action: ActionToCheck, resource: AwsResource) -> bool:
+def scp_allowed(request_context: IamRequestContext, action: ActionToCheck, resource: ARN) -> bool:
 
     # traverse the SCPs:  root -> OU -> account levels
     for scp_level_policies in request_context.service_control_policy_levels:
         level_allows = False
         for policy in scp_level_policies:
-            statements = collect_matching_statements(
-                policy=policy, effect="Allow", action=action, resource=resource, principal=None
-            )
+            matching_fn = collect_matching_statements(policy=policy, effect="Allow", action=action, principal=None)
+            statements = matching_fn(resource)
             if statements:
                 # 'Allow' statements in SCP can't have conditions, we do not check them
                 level_allows = True
@@ -566,27 +579,26 @@ ResourceBasedPolicyResult = Union[FinalAllow, Continue, Deny]
 def check_resource_based_policies(
     principal: AwsResource,
     action: ActionToCheck,
-    resource: AwsResource,
-    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
+    resource: ARN,
+    resource_based_policies: Tuple[Tuple[PolicySource, FixPolicyDocument], ...],
 ) -> ResourceBasedPolicyResult:
-    assert resource.arn
 
     scopes: List[PermissionScope] = []
 
-    arn = ARN(resource.arn)
+    arn = resource
     explicit_allow_required = False
     if arn.service_prefix == "iam" or arn.service_prefix == "kms":
         explicit_allow_required = True
 
     for source, policy in resource_based_policies:
 
-        matching_statements = collect_matching_statements(
+        matching_fn = collect_matching_statements(
             policy=policy,
             effect="Allow",
             action=action,
-            resource=resource,
             principal=principal,
         )
+        matching_statements = matching_fn(arn)
         if len(matching_statements) == 0:
             continue
 
@@ -624,27 +636,38 @@ def check_resource_based_policies(
     return Continue(scopes)
 
 
+@lru_cache(maxsize=4096)
 def check_identity_based_policies(
-    request_context: IamRequestContext, resource: AwsResource, action: ActionToCheck
-) -> List[PermissionScope]:
+    request_context: IamRequestContext, action: ActionToCheck
+) -> Callable[[ARN], List[PermissionScope]]:
 
-    scopes: List[PermissionScope] = []
+    matching_fns: List[
+        Tuple[PolicySource, Callable[[ARN], List[Tuple[FixStatementDetail, List[ResourceConstraint]]]]]
+    ] = []
 
     for source, policy in request_context.identity_policies:
-        for statement, resource_constraints in collect_matching_statements(
-            policy=policy, effect="Allow", action=action, resource=resource, principal=None, source_arn=source.uri
-        ):
-            conditions = None
-            if statement.condition:
-                conditions = PermissionCondition(allow=(to_json_str(statement.condition),))
+        matching_fn = collect_matching_statements(
+            policy=policy, effect="Allow", action=action, principal=None, source_arn=source.uri
+        )
+        matching_fns.append((source, matching_fn))
 
-            scopes.append(PermissionScope(source, tuple(resource_constraints), conditions=conditions))
+    def check_identity_policies_closure(resource: ARN) -> List[PermissionScope]:
+        scopes: List[PermissionScope] = []
+        for source, matching_fn in matching_fns:
+            for statement, resource_constraints in matching_fn(resource):
+                conditions = None
+                if statement.condition:
+                    conditions = PermissionCondition(allow=(to_json_str(statement.condition),))
 
-    return scopes
+                scopes.append(PermissionScope(source, tuple(resource_constraints), conditions=conditions))
+
+        return scopes
+
+    return check_identity_policies_closure
 
 
 def check_permission_boundaries(
-    request_context: IamRequestContext, resource: AwsResource, action: ActionToCheck
+    request_context: IamRequestContext, resource: ARN, action: ActionToCheck
 ) -> Union[Literal["Denied", "NextStep"], List[Json]]:
 
     conditions: List[Json] = []
@@ -652,9 +675,8 @@ def check_permission_boundaries(
     # ignore policy sources and resource constraints because permission boundaries
     # can never allow access to a resource, only restrict it
     for policy in request_context.permission_boundaries:
-        for statement, _ in collect_matching_statements(
-            policy=policy, effect="Allow", action=action, resource=resource, principal=None
-        ):
+        matching_fn = collect_matching_statements(policy=policy, effect="Allow", action=action, principal=None)
+        for statement, _ in matching_fn(resource):
             if statement.condition:
                 assert isinstance(statement.condition, dict)
                 conditions.append(statement.condition)
@@ -714,9 +736,9 @@ def get_action_level(action: str) -> PermissionLevel:
 # logic according to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
 def check_policies(
     request_context: IamRequestContext,
-    resource: AwsResource,
+    resource: ARN,
     action: ActionToCheck,
-    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
+    resource_based_policies: Tuple[Tuple[PolicySource, FixPolicyDocument], ...],
 ) -> Optional[AccessPermission]:
 
     # when any of the conditions evaluate to true, the action is explicitly denied
@@ -732,7 +754,7 @@ def check_policies(
     allowed_scopes: List[PermissionScope] = []
 
     # 1. check for explicit deny. If denied, we can abort immediately
-    result = check_explicit_deny(request_context, resource, action, resource_based_policies)
+    result = check_explicit_deny(request_context, action, resource_based_policies)(resource)
     if result == "Denied":
         return None
     elif result == "NextStep":
@@ -786,7 +808,7 @@ def check_policies(
             return None
         # otherwise continue with the resource based policies
     else:
-        identity_based_allowed = check_identity_based_policies(request_context, resource, action)
+        identity_based_allowed = check_identity_based_policies(request_context, action)(resource)
         if not identity_based_allowed:
             return None
         allowed_scopes.extend(identity_based_allowed)
@@ -822,17 +844,16 @@ def check_policies(
 
 
 def compute_permissions(
-    resource: AwsResource,
+    resource: ARN,
     iam_context: IamRequestContext,
-    resource_based_policies: List[Tuple[PolicySource, FixPolicyDocument]],
+    resource_based_policies: Tuple[Tuple[PolicySource, FixPolicyDocument], ...],
     resource_actions: set[IamAction],
 ) -> List[AccessPermission]:
 
-    assert resource.arn
     # step 1: find the relevant action to check
     relevant_actions = find_all_allowed_actions(
         iam_context.all_policies(resource_based_policies),
-        resource.arn,
+        resource,
         resource_actions,
     )
 
@@ -866,17 +887,17 @@ class AccessEdgeCreator:
     def _init_principals(self) -> None:
 
         account_id = self.builder.account.id
-        service_control_policy_levels: List[List[FixPolicyDocument]] = []
+        service_control_policy_levels: tuple[tuple[FixPolicyDocument, ...], ...] = ()
         account = next(self.builder.nodes(clazz=AwsAccount, filter=lambda a: a.id == account_id), None)
         if account and account._service_control_policies:
-            service_control_policy_levels = [
-                [FixPolicyDocument(json) for json in level] for level in account._service_control_policies
-            ]
+            service_control_policy_levels = tuple(
+                [tuple([FixPolicyDocument(json) for json in level]) for level in account._service_control_policies]
+            )
 
         for node in self.builder.nodes(clazz=AwsResource):
             if isinstance(node, AwsIamUser):
 
-                identity_based_policies = self._get_user_based_policies(node)
+                identity_based_policies = tuple(self._get_user_based_policies(node))
 
                 permission_boundaries: List[FixPolicyDocument] = []
                 if (pb := node.user_permissions_boundary) and (pb_arn := pb.permissions_boundary_arn):
@@ -888,26 +909,26 @@ class AccessEdgeCreator:
                 request_context = IamRequestContext(
                     principal=node,
                     identity_policies=identity_based_policies,
-                    permission_boundaries=permission_boundaries,
+                    permission_boundaries=tuple(permission_boundaries),
                     service_control_policy_levels=service_control_policy_levels,
                 )
 
                 self.principals.append(request_context)
 
             if isinstance(node, AwsIamGroup):
-                identity_based_policies = self._get_group_based_policies(node)
+                identity_based_policies = tuple(self._get_group_based_policies(node))
 
                 request_context = IamRequestContext(
                     principal=node,
                     identity_policies=identity_based_policies,
-                    permission_boundaries=[],  # permission boundaries are not applicable to groups
+                    permission_boundaries=(),  # permission boundaries are not applicable to groups
                     service_control_policy_levels=service_control_policy_levels,
                 )
 
                 self.principals.append(request_context)
 
             if isinstance(node, AwsIamRole):
-                identity_based_policies = self._get_role_based_policies(node)
+                identity_based_policies = tuple(self._get_role_based_policies(node))
                 # todo: colect these resources
                 permission_boundaries = []
                 if (pb := node.role_permissions_boundary) and (pb_arn := pb.permissions_boundary_arn):
@@ -918,7 +939,7 @@ class AccessEdgeCreator:
                 request_context = IamRequestContext(
                     principal=node,
                     identity_policies=identity_based_policies,
-                    permission_boundaries=permission_boundaries,
+                    permission_boundaries=tuple(permission_boundaries),
                     service_control_policy_levels=service_control_policy_levels,
                 )
 
@@ -1042,8 +1063,9 @@ class AccessEdgeCreator:
                     for source, json_policy in node.resource_policy(self.builder):
                         resource_policies.append((source, FixPolicyDocument(json_policy)))
 
+                resource_arn = ARN(node.arn)
                 permissions = compute_permissions(
-                    node, context, resource_policies, self.actions_for_resource.get(node.arn, set())
+                    resource_arn, context, tuple(resource_policies), self.actions_for_resource.get(node.arn, set())
                 )
 
                 if not permissions:
