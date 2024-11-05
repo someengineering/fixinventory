@@ -1076,7 +1076,7 @@ class AccessEdgeCreator:
                 for permission in permissions:
                     access[permission.level] = True
 
-                reported = to_json({"permissions": permissions, "access": access}, strip_nulls=True)
+                reported = to_json({"permissions": permissions} | access, strip_nulls=True)
 
                 self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
 

@@ -386,21 +386,23 @@ class BenchmarkResult(CheckCollectionResult):
         return result
 
     # score, failed_checks, failed_resources
-    def score_for(self, account: str) -> BenchmarkScore:
+    def score_for(self, account_id: str) -> BenchmarkScore:
         failing_checks: Dict[ReportSeverity, int] = defaultdict(int)
-        failing_resources: Dict[ReportSeverity, int] = defaultdict(int)
+        failing_resource_ids: Dict[ReportSeverity, Set[str]] = defaultdict(set)
         available: Dict[ReportSeverity, int] = defaultdict(int)
 
         def available_failing(check: CheckCollectionResult) -> None:
             for result in check.checks:
-                fr = result.number_of_resources_failing_by_account.get(account, 0)
+                fr = result.resources_failing_by_account.get(account_id, [])
                 available[result.check.severity] += 1
                 failing_checks[result.check.severity] += 1 if fr else 0
-                failing_resources[result.check.severity] += fr
+                for r in fr:
+                    failing_resource_ids[result.check.severity].add(r["node_id"])
             for child in check.children:
                 available_failing(child)
 
         available_failing(self)  # walk the benchmark hierarchy
+        failing_resources = {severity: len(ids) for severity, ids in failing_resource_ids.items()}
         missing = sum(severity.score * count for severity, count in failing_checks.items())
         total = sum(severity.score * count for severity, count in available.items())
         return BenchmarkScore(

@@ -48,7 +48,7 @@ class DirectAdjuster(AdjustNode):
                 expires = DateTimeKind.from_datetime(expires_tag)
             else:
                 expiration_tag = first_matching(self.expiration_values)
-                if expiration_tag and expires_tag != "never" and DurationRe.fullmatch(expiration_tag):
+                if expiration_tag and DurationRe.fullmatch(expiration_tag):
                     ctime_str = value_in_path(json, NodePath.reported_ctime)
                     if ctime_str:
                         ctime = from_utc(ctime_str)

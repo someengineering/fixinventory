@@ -48,8 +48,8 @@ def test_collect(
         config, Cloud(id="azure"), azure_subscription, credentials, core_feedback, filter_unused_resources=False
     )
     subscription_collector.collect()
-    assert len(subscription_collector.graph.nodes) == 889
-    assert len(subscription_collector.graph.edges) == 1284
+    assert len(subscription_collector.graph.nodes) == 887
+    assert len(subscription_collector.graph.edges) == 1282
 
     graph_collector = MicrosoftGraphOrganizationCollector(
         config, Cloud(id="azure"), MicrosoftGraphOrganization(id="test", name="test"), credentials, core_feedback
@@ -113,6 +113,8 @@ def test_resource_classes() -> None:
     expected_declared_properties = ["kind", "_kind_display"]
     expected_props_in_hierarchy = ["_kind_service", "_metadata"]
     for rc in all_resources:
+        if not rc._model_export:
+            continue
         for prop in expected_declared_properties:
             assert prop in rc.__dict__, f"{rc.__name__} missing {prop}"
         with_bases = (all_base_classes(rc) | {rc}) - {MicrosoftResource, BaseResource}

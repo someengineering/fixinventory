@@ -155,6 +155,10 @@ class MicrosoftBaseCollector:
             self.collect_with(builder, locations)
             queue.wait_for_submitted_work()
 
+            # call all registered after collect hooks
+            for after_collect in builder.after_collect_actions:
+                after_collect()
+
             # connect nodes
             log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):

@@ -50,6 +50,8 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
     scp,
+    guardduty,
+    inspector,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -104,6 +106,7 @@ regional_resources: List[Type[AwsResource]] = (
     + elb.resources
     + elbv2.resources
     + glacier.resources
+    + guardduty.resources
     + kinesis.resources
     + kms.resources
     + lambda_.resources
@@ -118,6 +121,7 @@ regional_resources: List[Type[AwsResource]] = (
     + backup.resources
     + amazonq.resources
     + bedrock.resources
+    + inspector.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
@@ -243,6 +247,10 @@ class AwsAccountCollector:
                         f"Failed to collect usage metrics on account {self.account.id} in region {global_builder.region.id}: {e}"
                     )
             shared_queue.wait_for_submitted_work()
+
+            # call all registered after collect hooks
+            for after_collect in global_builder.after_collect_actions:
+                after_collect()
 
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")

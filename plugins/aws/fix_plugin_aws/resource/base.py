@@ -198,7 +198,7 @@ class AwsResource(BaseResource, ABC):
         return parse_json(json, cls, builder, cls.mapping)
 
     @classmethod
-    def collect_resources(cls: Type[AwsResource], builder: GraphBuilder) -> None:
+    def collect_resources(cls, builder: GraphBuilder) -> None:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
         if spec := cls.api_spec:
@@ -453,6 +453,7 @@ class GraphBuilder:
         graph_nodes_access: Optional[RWLock] = None,
         graph_edges_access: Optional[RWLock] = None,
         last_run_started_at: Optional[datetime] = None,
+        after_collect_actions: Optional[List[Callable[[], Any]]] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -469,6 +470,7 @@ class GraphBuilder:
         self.last_run_started_at = last_run_started_at
         self.created_at = utc()
         self.__builder_cache = {region.safe_name: self}
+        self.after_collect_actions = after_collect_actions if after_collect_actions is not None else []
 
         if last_run_started_at:
             now = utc()
@@ -705,6 +707,7 @@ class GraphBuilder:
             self.graph_nodes_access,
             self.graph_edges_access,
             self.last_run_started_at,
+            self.after_collect_actions,
         )
         self.__builder_cache[region.safe_name] = builder
         return builder

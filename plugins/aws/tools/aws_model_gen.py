@@ -239,6 +239,8 @@ def clazz_model(
     elif isinstance(shape, StringShape):
         return []
     elif isinstance(shape, ListShape):
+        if isinstance(shape.member, StringShape):
+            return []
         process_shape_items(shape.member.members.items(), prop_prefix, clazz_name)
     else:
         if getattr(shape, "members", None) is None:
@@ -280,7 +282,7 @@ def create_test_response(service: str, function: str, is_pascal: bool = False) -
 
     def sample(shape: Shape) -> JsonElement:
         if isinstance(shape, StringShape) and shape.enum:
-            return shape.enum[1]
+            return shape.enum[-1]
         elif isinstance(shape, StringShape) and "8601" in shape.documentation:
             return utc_str()
         elif isinstance(shape, StringShape) and "URL" in shape.documentation:
@@ -289,10 +291,10 @@ def create_test_response(service: str, function: str, is_pascal: bool = False) -
             return "foo"
         elif isinstance(shape, ListShape):
             inner = shape.member
-            return [sample(inner) for _ in range(3)]
+            return [sample(inner)]
         elif isinstance(shape, MapShape):
             value_type = shape.value
-            return {f"{num}": sample(value_type) for num in range(3)}
+            return {f"{num}": sample(value_type) for num in range(1)}
         elif isinstance(shape, StructureShape):
             return {name: sample(shape) for name, shape in shape.members.items()}
         elif shape.type_name == "double":
@@ -983,12 +985,28 @@ models: Dict[str, List[AwsFixModel]] = {
         #     prefix="Bedrock",
         # )
     ],
+    "guardduty": [
+        # AwsFixModel(
+        #     api_action="get-findings",
+        #     result_property="Findings",
+        #     result_shape="GetFindingsResponse",
+        #     prefix="GuardDuty",
+        # ),
+    ],
+    "inspector2": [
+        # AwsFixModel(
+        #     api_action="list-findings",
+        #     result_property="findings",
+        #     result_shape="ListFindingsResponse",
+        #     prefix="InspectorV2",
+        # ),
+    ],
 }
 
 
 if __name__ == "__main__":
     """print some test data"""
-    print(json.dumps(create_test_response("bedrock-agent", "get-knowledge-base"), indent=2))
+    # print(json.dumps(create_test_response("inspector2", "list-coverage"), indent=2))
 
     """print the class models"""
     # print(default_imports())

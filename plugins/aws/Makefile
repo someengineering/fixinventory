@@ -29,7 +29,7 @@ clean-test: ## remove test and coverage artifacts
 
 lint: ## static code analysis
 	black --line-length 120 --check fix_plugin_aws test
-	flake8 fix_plugin_aws
+	flake8 fix_plugin_aws test
 	mypy --python-version 3.12 --strict --install-types fix_plugin_aws test
 
 test: ## run tests quickly with the default Python
