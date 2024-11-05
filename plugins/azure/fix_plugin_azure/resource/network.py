@@ -5,7 +5,6 @@ from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
-    LACK_OF_READ_PERMISSION,
     AzureBaseUsage,
     GraphBuilder,
     AzureSubResource,
@@ -6774,7 +6773,7 @@ class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes={"BadRequest": LACK_OF_READ_PERMISSION},
+        expected_error_codes={"BadRequest": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
