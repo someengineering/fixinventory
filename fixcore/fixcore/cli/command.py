@@ -2909,7 +2909,7 @@ class ListCommand(CLICommand, OutputTransformer):
                 .map(extract_values)
                 .chunks(chunk_size)
                 .enumerate()
-                .flatmap(generate_markdown)  # type: ignore
+                .flatmap(generate_markdown)
             )
 
             return markdown_chunks
@@ -3262,7 +3262,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
     ) -> JsStream:
         async def load_element(items: JsStream) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
-            ids: List[str] = [i["id"] if is_node(i) else i async for i in items]
+            ids: List[str] = [i["id"] if is_node(i) else i async for i in items]  # type: ignore
             # if there is an entry which is not a string, use the list as is (e.g. chunked)
             if any(a for a in ids if not isinstance(a, str)):
                 async for a in items:
