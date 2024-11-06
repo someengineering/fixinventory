@@ -26,8 +26,6 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from aiostream import stream
-from aiostream.core import Stream
 from attrs import define, field
 from parsy import test_char, string
 from rich.jupyter import JupyterMixin
@@ -42,6 +40,7 @@ from fixcore.query.model import Query, variable_to_absolute, PathRoot
 from fixcore.query.template_expander import render_template
 from fixcore.types import Json, JsonElement
 from fixcore.util import AccessJson, uuid_str, from_utc, utc, utc_str
+from fixlib.asynchronous.stream import Stream
 from fixlib.parse_util import l_curly_dp, r_curly_dp
 from fixlib.utils import get_local_tzinfo
 
@@ -236,7 +235,7 @@ class CLIAction(ABC):
 
     @staticmethod
     def make_stream(in_stream: JsGen) -> JsStream:
-        return in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
+        return in_stream if isinstance(in_stream, Stream) else Stream.iterate(in_stream)
 
 
 @define
@@ -316,7 +315,7 @@ class CLISource(CLIAction):
 
     @staticmethod
     def empty() -> CLISource:
-        return CLISource.with_count(stream.empty, 0)
+        return CLISource.with_count(Stream.empty, 0)
 
 
 class CLIFlow(CLIAction):
@@ -739,7 +738,7 @@ class ParsedCommandLine:
                 flow = await flow_action.flow(flow)
             return context, flow
         else:
-            return CLISourceContext(count=0), stream.empty()
+            return CLISourceContext(count=0), Stream.empty()
 
 
 class CLI(ABC):

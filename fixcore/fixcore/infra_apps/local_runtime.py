@@ -3,7 +3,6 @@ from argparse import Namespace
 from pydoc import locate
 from typing import List, AsyncIterator, Type, Optional, Any
 
-from aiostream import stream, pipe
 from jinja2 import Environment
 
 from fixcore.cli import NoExitArgumentParser, JsStream, JsGen
@@ -14,6 +13,7 @@ from fixcore.infra_apps.manifest import AppManifest
 from fixcore.infra_apps.runtime import Runtime
 from fixcore.service import Service
 from fixcore.types import Json, JsonElement
+from fixlib.asynchronous.stream import Stream
 from fixlib.asynchronous.utils import async_lines
 from fixlib.durations import parse_optional_duration
 
@@ -46,9 +46,8 @@ class LocalfixcoreAppRuntime(Runtime, Service):
         Runtime implementation that runs the app locally.
         """
         async for line in self.generate_template(graph, manifest, config, stdin, argv):
-            async with (await self._interpret_line(line, ctx)).stream() as streamer:
-                async for item in streamer:
-                    yield item
+            async for item in await self._interpret_line(line, ctx):
+                yield item
 
     async def generate_template(
         self,
@@ -117,4 +116,4 @@ class LocalfixcoreAppRuntime(Runtime, Service):
             total_nr_outputs = total_nr_outputs + (src_ctx.count or 0)
             command_streams.append(command_output_stream)
 
-        return stream.iterate(command_streams) | pipe.concat(task_limit=1)
+        return Stream.iterate(command_streams).concat(task_limit=1)  # type: ignore
