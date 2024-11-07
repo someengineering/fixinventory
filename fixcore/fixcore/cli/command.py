@@ -1975,7 +1975,10 @@ class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
         func = partial(self.set_desired, arg, ctx.graph_name, self.patch(arg, ctx))
-        return CLIFlow(lambda i: Stream(i).chunks(buffer_size).flatmap(func), required_permissions={Permission.write})
+        return CLIFlow(
+            lambda i: Stream(i).chunks(buffer_size).flatmap(func, task_limit=10, ordered=False),
+            required_permissions={Permission.write},
+        )
 
     async def set_desired(
         self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
@@ -2111,7 +2114,10 @@ class SetMetadataStateBase(CLICommand, EntityProvider, ABC):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         buffer_size = 1000
         func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
-        return CLIFlow(lambda i: Stream(i).chunks(buffer_size).flatmap(func), required_permissions={Permission.write})
+        return CLIFlow(
+            lambda i: Stream(i).chunks(buffer_size).flatmap(func, task_limit=10, ordered=False),
+            required_permissions={Permission.write},
+        )
 
     async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
@@ -3286,7 +3292,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
                     async for a in crs:
                         yield a
 
-        return in_stream.chunks(1000).flatmap(load_element)
+        return in_stream.chunks(1000).flatmap(load_element, task_limit=10)
 
     async def no_update(self, _: WorkerTask, future_result: Future[Json]) -> Json:
         return await future_result
@@ -6508,7 +6514,7 @@ class RefineResourceDataCommand(CLICommand, InternalPart):
 
         def setup_stream(in_stream: JsStream) -> JsStream:
             def with_dependencies(model: Model) -> JsStream:
-                async def process_element(el: JsonElement) -> JsonElement:
+                def process_element(el: JsonElement) -> JsonElement:
                     if (
                         is_node(el)
                         and (fqn := value_in_path(el, NodePath.reported_kind))

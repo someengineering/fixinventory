@@ -145,7 +145,7 @@ async def _flatmap_ordered(
     async with TaskGroup() as tg:
         while True:
             # Start new tasks up to task_limit ahead of next_index_to_yield
-            while not source_exhausted and (max_index_started - next_index_to_yield + 1) < task_limit:
+            while (not source_exhausted) and (max_index_started - next_index_to_yield + 1) < task_limit:
                 try:
                     await semaphore.acquire()
                     si = await anext(source_iter)
