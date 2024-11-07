@@ -1593,7 +1593,7 @@ class ChunkCommand(CLICommand):
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         size = int(arg) if arg else 100
         return CLIFlow(
-            lambda in_stream: Stream(in_stream).chunks(size).map(Stream.as_list),
+            lambda in_stream: Stream(in_stream).chunks(size),
             required_permissions={Permission.read},
         )
 
@@ -1978,12 +1978,12 @@ class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
         return CLIFlow(lambda i: Stream(i).chunks(buffer_size).flatmap(func), required_permissions={Permission.write})
 
     async def set_desired(
-        self, arg: Optional[str], graph_name: GraphName, patch: Json, items: Stream[Json]
+        self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
-        async for item in items:
+        for item in items:
             if "id" in item:
                 node_ids.append(item["id"])
             elif isinstance(item, str):
@@ -2090,7 +2090,7 @@ class CleanCommand(SetDesiredStateBase):
         return {"clean": True}
 
     async def set_desired(
-        self, arg: Optional[str], graph_name: GraphName, patch: Json, items: Stream[Json]
+        self, arg: Optional[str], graph_name: GraphName, patch: Json, items: List[Json]
     ) -> AsyncIterator[JsonElement]:
         reason = f"Reason: {strip_quotes(arg)}" if arg else "No reason provided."
         async for elem in super().set_desired(arg, graph_name, patch, items):
@@ -2113,11 +2113,11 @@ class SetMetadataStateBase(CLICommand, EntityProvider, ABC):
         func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(lambda i: Stream(i).chunks(buffer_size).flatmap(func), required_permissions={Permission.write})
 
-    async def set_metadata(self, graph_name: GraphName, patch: Json, items: Stream[Json]) -> AsyncIterator[JsonElement]:
+    async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
         model = await self.dependencies.model_handler.load_model(graph_name)
         db = self.dependencies.db_access.get_graph_db(graph_name)
         node_ids = []
-        async for item in items:
+        for item in items:
             if "id" in item:
                 node_ids.append(item["id"])
             elif isinstance(item, str):
@@ -2864,7 +2864,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     result.append(value)
                 return result
 
-            async def generate_markdown(chunk: Tuple[int, Stream[List[Any]]]) -> JsGen:
+            async def generate_markdown(chunk: Tuple[int, List[List[Any]]]) -> JsGen:
                 idx, rows = chunk
 
                 def to_str(elem: Any) -> str:
@@ -2896,7 +2896,7 @@ class ListCommand(CLICommand, OutputTransformer):
                     line += "|"
                     yield line
 
-                async for row in rows:
+                for row in rows:
                     line = ""
                     for value, padding in zip(row, columns_padding):
                         line += f"|{to_str(value).ljust(padding)}"
@@ -3260,12 +3260,12 @@ class SendWorkerTaskCommand(CLICommand, ABC):
         expected_kind: Optional[str] = None,
         **env: str,
     ) -> JsStream:
-        async def load_element(items: JsStream) -> AsyncIterator[JsonElement]:
+        async def load_element(items: List[JsonElement]) -> AsyncIterator[JsonElement]:
             # collect ids either from json dict or string
-            ids: List[str] = [i["id"] if is_node(i) else i async for i in items]  # type: ignore
+            ids: List[str] = [i["id"] if is_node(i) else i for i in items]  # type: ignore
             # if there is an entry which is not a string, use the list as is (e.g. chunked)
             if any(a for a in ids if not isinstance(a, str)):
-                async for a in items:
+                for a in items:
                     yield a
             else:
                 # one query to load all items that match given ids (max 1000 as defined in chunk size)

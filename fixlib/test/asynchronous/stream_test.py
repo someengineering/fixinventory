@@ -68,5 +68,7 @@ async def test_call() -> None:
     assert await Stream.call(fn, 1, "bla").map(with_int).collect() == [124]
 
 
-# async def test_chunks(example_stream: Stream) -> None:
-#     assert await example_stream.chunks(2).collect() == [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
+async def test_chunks() -> None:
+    assert len([chunk async for chunk in example_stream().chunks(2)]) == 3
+    assert [chunk async for chunk in example_stream().chunks(2)] == await example_stream().chunks(2).collect()
+    assert await example_stream().chunks(2).map(Stream.as_list).collect() == [[0, 1], [2, 3], [4]]

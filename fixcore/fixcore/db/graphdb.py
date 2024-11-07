@@ -23,7 +23,6 @@ from typing import (
     Union,
 )
 
-from aiostream import stream, pipe
 from arango import AnalyzerGetError
 from arango.collection import VertexCollection, StandardCollection, EdgeCollection
 from arango.graph import Graph
@@ -67,6 +66,7 @@ from fixcore.util import (
     set_value_in_path,
     if_set,
 )
+from fixlib.asynchronous.stream import Stream
 
 log = logging.getLogger(__name__)
 
@@ -675,9 +675,8 @@ class ArangoGraphDB(GraphDB):
 
         try:
             # stream updates to the temp collection
-            async with (stream.iterate(iterator) | pipe.chunks(1000)).stream() as streamer:
-                async for part in streamer:
-                    await update_chunk(dict(part))
+            async for part in Stream.iterate(iterator).chunks(1000):
+                await update_chunk(dict(part))
             # move temp collection to proper and history collection
             await move_security_temp_to_proper()
         finally:

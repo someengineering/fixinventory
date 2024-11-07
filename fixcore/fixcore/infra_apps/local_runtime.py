@@ -116,4 +116,4 @@ class LocalfixcoreAppRuntime(Runtime, Service):
             total_nr_outputs = total_nr_outputs + (src_ctx.count or 0)
             command_streams.append(command_output_stream)
 
-        return Stream.iterate(command_streams).concat(task_limit=1)  # type: ignore
+        return Stream.iterate(command_streams).concat()  # type: ignore

@@ -13,8 +13,6 @@ P = ParamSpec("P")
 DirectOrAwaitable: TypeAlias = Union[T, Awaitable[T]]
 IterOrAsyncIter: TypeAlias = Union[Iterable[T], AsyncIterable[T]]
 
-DefaultTaskLimit = 1
-
 
 def _async_iter(x: Iterable[T]) -> AsyncIterator[T]:
     async def gen() -> AsyncIterator[T]:
@@ -36,17 +34,35 @@ def _flatmap(
     task_limit: Optional[int],
     ordered: bool,
 ) -> AsyncIterator[T]:
-    if ordered:
+    if task_limit is None or task_limit == 1:
+        return _flatmap_direct(source)
+    elif ordered:
         return _flatmap_ordered(source, task_limit)
     else:
         return _flatmap_unordered(source, task_limit)
 
 
+async def _flatmap_direct(
+    source: AsyncIterable[IterOrAsyncIter[DirectOrAwaitable[T]]],
+) -> AsyncIterator[T]:
+    async for sub_iter in source:
+        if isinstance(sub_iter, AsyncIterable):
+            async for item in sub_iter:
+                if isinstance(item, Awaitable):
+                    item = await item
+                yield item
+        else:
+            for item in sub_iter:
+                if isinstance(item, Awaitable):
+                    item = await item
+                yield item
+
+
 async def _flatmap_unordered(
     source: AsyncIterable[IterOrAsyncIter[DirectOrAwaitable[T]]],
-    task_limit: Optional[int] = None,
+    task_limit: int,
 ) -> AsyncIterator[T]:
-    semaphore = asyncio.Semaphore(task_limit or DefaultTaskLimit)
+    semaphore = asyncio.Semaphore(task_limit)
     queue: asyncio.Queue[T | Exception] = asyncio.Queue()
     tasks_in_flight = 0
 
@@ -91,10 +107,9 @@ async def _flatmap_unordered(
 
 async def _flatmap_ordered(
     source: AsyncIterable[IterOrAsyncIter[DirectOrAwaitable[T]]],
-    task_limit: Optional[int] = None,
+    task_limit: int,
 ) -> AsyncIterator[T]:
-    tlf = task_limit or DefaultTaskLimit
-    semaphore = asyncio.Semaphore(tlf)
+    semaphore = asyncio.Semaphore(task_limit)
     tasks: Dict[int, Task[None]] = {}
     results: Dict[int, List[T] | Exception] = {}
     next_index_to_yield = 0
@@ -123,7 +138,7 @@ async def _flatmap_ordered(
 
     while True:
         # Start new tasks up to task_limit ahead of next_index_to_yield
-        while not source_exhausted and (max_index_started - next_index_to_yield + 1) < tlf:
+        while not source_exhausted and (max_index_started - next_index_to_yield + 1) < task_limit:
             try:
                 await semaphore.acquire()
                 si = await anext(source_iter)
@@ -190,26 +205,30 @@ class Stream(Generic[T], AsyncIterator[T]):
         task_limit: Optional[int] = None,
         ordered: bool = True,
     ) -> Stream[R]:
-        async def gen() -> AsyncIterator[AsyncIterator[R | Awaitable[R]]]:
+        async def gen() -> AsyncIterator[IterOrAsyncIter[DirectOrAwaitable[R]]]:
             async for item in self:
                 res = fn(item)
-                yield _async_iter([res])
+                yield [res]
 
+        # in the case of a synchronous function, task_limit is ignored
+        task_limit = task_limit if asyncio.iscoroutinefunction(fn) else 1
         return Stream(_flatmap(gen(), task_limit, ordered))
 
     def flatmap(
         self,
-        fn: Callable[[T], DirectOrAwaitable[IterOrAsyncIter[R]]],
+        fn: Callable[[T], DirectOrAwaitable[IterOrAsyncIter[DirectOrAwaitable[R]]]],
         task_limit: Optional[int] = None,
         ordered: bool = True,
     ) -> Stream[R]:
-        async def gen() -> AsyncIterator[IterOrAsyncIter[R]]:
+        async def gen() -> AsyncIterator[IterOrAsyncIter[DirectOrAwaitable[R]]]:
             async for item in self:
                 res = fn(item)
                 if isinstance(res, Awaitable):
                     res = await res
                 yield res
 
+        # in the case of a synchronous function, task_limit is ignored
+        task_limit = task_limit if asyncio.iscoroutinefunction(fn) else 1
         return Stream(_flatmap(gen(), task_limit, ordered))
 
     def concat(self: Stream[Stream[T]], task_limit: Optional[int] = None, ordered: bool = True) -> Stream[T]:
@@ -256,35 +275,19 @@ class Stream(Generic[T], AsyncIterator[T]):
 
         return Stream(gen())
 
-    def chunks(self, num: int) -> Stream[Stream[T]]:
-        def take_n(iterator: AsyncIterator[T], n: int) -> AsyncIterator[T]:
-            async def n_gen() -> AsyncIterator[T]:
-                count = 0
-                try:
-                    while count < n:
-                        item = await anext(iterator)
-                        yield item
-                        count += 1
-                except StopAsyncIteration:
-                    return
-
-            return n_gen()
-
-        async def gen() -> AsyncIterator[Stream[T]]:
-            iterator = aiter(self.iterator)
+    def chunks(self, num: int) -> Stream[List[T]]:
+        async def gen() -> AsyncIterator[List[T]]:
             while True:
-                chunk_iterator = take_n(iterator, num)
+                chunk_items: List[T] = []
                 try:
-                    first_item = await anext(chunk_iterator)
+                    for _ in range(num):
+                        item = await anext(self.iterator)
+                        chunk_items.append(item)
+                    yield chunk_items
                 except StopAsyncIteration:
-                    break  # No more items
-
-                async def chunk_with_first() -> AsyncIterator[T]:
-                    yield first_item
-                    async for item in chunk_iterator:
-                        yield item
-
-                yield Stream(chunk_with_first())
+                    if chunk_items:
+                        yield chunk_items
+                    break
 
         return Stream(gen())
 
@@ -298,18 +301,6 @@ class Stream(Generic[T], AsyncIterator[T]):
                     for subitem in item:
                         yield subitem
                 else:
-                    yield item
-
-        return Stream(gen())
-
-    def cycle(self) -> Stream[T]:
-        async def gen() -> AsyncIterator[T]:
-            items = []
-            async for item in self:
-                yield item
-                items.append(item)
-            while items:
-                for item in items:
                     yield item
 
         return Stream(gen())
@@ -345,10 +336,13 @@ class Stream(Generic[T], AsyncIterator[T]):
         return Stream(empty())
 
     @staticmethod
-    def for_ever(fn: Callable[[], T]) -> Stream[T]:
+    def for_ever(fn: Callable[P, Awaitable[R]] | Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> Stream[T]:
         async def gen() -> AsyncIterator[T]:
             while True:
-                yield fn()
+                if asyncio.iscoroutinefunction(fn):
+                    yield await fn(*args, **kwargs)
+                else:
+                    yield fn(*args, **kwargs)  # type: ignore
 
         return Stream(gen())
 

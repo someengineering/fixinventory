@@ -3,8 +3,6 @@ from collections import defaultdict
 from functools import lru_cache
 from typing import Optional, List, Dict, Tuple, Callable, AsyncIterator, cast, Set
 
-from aiostream import stream, pipe
-from aiostream.core import Stream
 from attr import define
 
 from fixcore.analytics import CoreEvent
@@ -40,6 +38,7 @@ from fixcore.report.report_config import ReportCheckCollectionConfig, BenchmarkC
 from fixcore.service import Service
 from fixcore.types import Json
 from fixcore.util import value_in_path, uuid_str, value_in_path_get
+from fixlib.asynchronous.stream import Stream
 from fixlib.json_bender import Bender, S, bend
 
 log = logging.getLogger(__name__)
@@ -380,7 +379,7 @@ class InspectorService(Inspector, Service):
     async def __list_failing_resources(
         self, graph: GraphName, model: Model, inspection: ReportCheck, context: CheckContext
     ) -> AsyncIterator[Json]:
-        # final environment: defaults are coming from the check and are eventually overriden in the config
+        # final environment: defaults are coming from the check and are eventually overridden in the config
         env = inspection.environment(context.override_values())
         account_id_prop = "ancestors.account.reported.id"
         ignore_prop = "metadata.security_ignore"
@@ -484,7 +483,7 @@ class InspectorService(Inspector, Service):
             node_id=next_node_id(),
         )
 
-    async def __perform_checks(  # type: ignore
+    async def __perform_checks(
         self, graph: GraphName, checks: List[ReportCheck], context: CheckContext
     ) -> Dict[str, SingleCheckResult]:
         # load model
@@ -493,11 +492,10 @@ class InspectorService(Inspector, Service):
         async def perform_single(check: ReportCheck) -> Tuple[str, SingleCheckResult]:
             return check.id, await self.__perform_check(graph, model, check, context)
 
-        check_results: Stream[Tuple[str, SingleCheckResult]] = stream.iterate(checks) | pipe.map(
-            perform_single, ordered=False, task_limit=context.parallel_checks  # type: ignore
+        check_results: Stream[Tuple[str, SingleCheckResult]] = Stream.iterate(checks).map(
+            perform_single, ordered=False, task_limit=context.parallel_checks
         )
-        async with check_results.stream() as streamer:
-            return {key: value async for key, value in streamer}
+        return {key: value async for key, value in check_results}
 
     async def __perform_check(
         self, graph: GraphName, model: Model, inspection: ReportCheck, context: CheckContext
