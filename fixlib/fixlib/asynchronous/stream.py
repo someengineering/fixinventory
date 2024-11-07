@@ -65,6 +65,7 @@ async def _flatmap_unordered(
     semaphore = asyncio.Semaphore(task_limit)
     queue: asyncio.Queue[T | Exception] = asyncio.Queue()
     tasks_in_flight = 0
+    ingest_done = False
 
     async def worker(sub_iter: IterOrAsyncIter[DirectOrAwaitable[T]]) -> None:
         nonlocal tasks_in_flight
@@ -86,15 +87,20 @@ async def _flatmap_unordered(
             tasks_in_flight -= 1
 
     async with TaskGroup() as tg:
-        # Start worker tasks
-        async for src in source:
-            await semaphore.acquire()
-            tg.create_task(worker(src))
-            tasks_in_flight += 1
+
+        async def ingest_tasks() -> None:
+            nonlocal tasks_in_flight, ingest_done
+            # Start worker tasks
+            async for src in source:
+                await semaphore.acquire()
+                tg.create_task(worker(src))
+                tasks_in_flight += 1
+            ingest_done = True
 
         # Consume items from the queue and yield them
+        tg.create_task(ingest_tasks())
         while True:
-            if tasks_in_flight == 0 and queue.empty():
+            if ingest_done and tasks_in_flight == 0 and queue.empty():
                 break
             try:
                 item = await queue.get()
