@@ -142,39 +142,40 @@ async def _flatmap_ordered(
         finally:
             semaphore.release()
 
-    while True:
-        # Start new tasks up to task_limit ahead of next_index_to_yield
-        while not source_exhausted and (max_index_started - next_index_to_yield + 1) < task_limit:
-            try:
-                await semaphore.acquire()
-                si = await anext(source_iter)
-                max_index_started += 1
-                tasks[max_index_started] = asyncio.create_task(worker(_to_async_iter(si), max_index_started))
-            except StopAsyncIteration:
-                source_exhausted = True
-                break
+    async with TaskGroup() as tg:
+        while True:
+            # Start new tasks up to task_limit ahead of next_index_to_yield
+            while not source_exhausted and (max_index_started - next_index_to_yield + 1) < task_limit:
+                try:
+                    await semaphore.acquire()
+                    si = await anext(source_iter)
+                    max_index_started += 1
+                    tasks[max_index_started] = tg.create_task(worker(_to_async_iter(si), max_index_started))
+                except StopAsyncIteration:
+                    source_exhausted = True
+                    break
 
-        if next_index_to_yield in results:
-            result = results.pop(next_index_to_yield)
-            if isinstance(result, Exception):
-                raise result
+            if next_index_to_yield in results:
+                result = results.pop(next_index_to_yield)
+                if isinstance(result, Exception):
+                    raise result
+                else:
+                    for res in result:
+                        yield res
+                # Remove completed task
+                tasks.pop(next_index_to_yield, None)  # noqa
+                next_index_to_yield += 1
             else:
-                for res in result:
-                    yield res
-            # Remove completed task
-            tasks.pop(next_index_to_yield, None)  # noqa
-            next_index_to_yield += 1
-        else:
-            # Wait for the next task to complete
-            if next_index_to_yield in tasks:
-                task = tasks[next_index_to_yield]
-                await asyncio.wait({task})
-            elif not tasks and source_exhausted:
-                # No more tasks to process
-                break
-            else:
-                # Yield control to the event loop
-                await asyncio.sleep(0.01)
+                # Wait for the next task to complete
+                if next_index_to_yield in tasks:
+                    task = tasks[next_index_to_yield]
+                    await asyncio.wait({task})
+                elif not tasks and source_exhausted:
+                    # No more tasks to process
+                    break
+                else:
+                    # Yield control to the event loop
+                    await asyncio.sleep(0.01)
 
 
 class Stream(Generic[T], AsyncIterator[T]):
