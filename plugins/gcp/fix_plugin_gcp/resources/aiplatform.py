@@ -12,8 +12,8 @@ from fix_plugin_gcp.resources.base import (
     GcpDeprecationStatus,
     GraphBuilder,
 )
-from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
-from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict
+from fixlib.baseresources import BaseAIJob, AIJobStatus, ModelReference, BaseAIModel
+from fixlib.json_bender import Bender, S, Bend, ForallBend, MapDict, MapEnum
 from fixlib.types import Json
 
 service_name = "aiplatform"
@@ -27,6 +27,21 @@ log = logging.getLogger("fix.plugins.gcp")
 expected_message_substrings = {
     "Matching Engine is not supported in region",
     "Permission denied by location policies",
+}
+
+GCP_AI_JOB_STATUS_MAPPING = {
+    "JOB_STATE_UNSPECIFIED": AIJobStatus.UNKNOWN,
+    "JOB_STATE_QUEUED": AIJobStatus.PENDING,
+    "JOB_STATE_PENDING": AIJobStatus.PENDING,
+    "JOB_STATE_RUNNING": AIJobStatus.RUNNING,
+    "JOB_STATE_SUCCEEDED": AIJobStatus.COMPLETED,
+    "JOB_STATE_FAILED": AIJobStatus.FAILED,
+    "JOB_STATE_CANCELLING": AIJobStatus.STOPPING,
+    "JOB_STATE_CANCELLED": AIJobStatus.CANCELLED,
+    "JOB_STATE_PAUSED": AIJobStatus.PAUSED,
+    "JOB_STATE_EXPIRED": AIJobStatus.FAILED,
+    "JOB_STATE_UPDATING": AIJobStatus.RUNNING,
+    "JOB_STATE_PARTIALLY_SUCCEEDED": AIJobStatus.COMPLETED,
 }
 
 
@@ -531,7 +546,7 @@ class GcpVertexAIBatchPredictionJob(AIPlatformRegionFilter, BaseAIJob, GcpResour
         "resources_consumed": S("resourcesConsumed", "replicaHours"),
         "service_account": S("serviceAccount"),
         "start_time": S("startTime"),
-        "state": S("state"),
+        "state": S("state") >> MapEnum(GCP_AI_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "unmanaged_container_model": S("unmanagedContainerModel", default={})
         >> Bend(GcpVertexAIUnmanagedContainerModel.mapping),
         "update_time": S("updateTime"),
@@ -558,7 +573,6 @@ class GcpVertexAIBatchPredictionJob(AIPlatformRegionFilter, BaseAIJob, GcpResour
     resources_consumed: Optional[float] = field(default=None)
     service_account: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
-    state: Optional[str] = field(default=None)
     unmanaged_container_model: Optional[GcpVertexAIUnmanagedContainerModel] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
 
@@ -725,7 +739,7 @@ class GcpVertexAICustomJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
         "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "custom_job_spec": S("jobSpec", default={}) >> Bend(GcpVertexAICustomJobSpec.mapping),
         "start_time": S("startTime"),
-        "state": S("state"),
+        "state": S("state") >> MapEnum(GCP_AI_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "update_time": S("updateTime"),
         "web_access_uris": S("webAccessUris"),
     }
@@ -736,7 +750,6 @@ class GcpVertexAICustomJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     custom_job_spec: Optional[GcpVertexAICustomJobSpec] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
-    state: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
     web_access_uris: Optional[Dict[str, str]] = field(default=None)
 
@@ -1635,7 +1648,7 @@ class GcpVertexAIHyperparameterTuningJob(AIPlatformRegionFilter, BaseAIJob, GcpR
         "max_trial_count": S("maxTrialCount"),
         "parallel_trial_count": S("parallelTrialCount"),
         "start_time": S("startTime"),
-        "state": S("state"),
+        "state": S("state") >> MapEnum(GCP_AI_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "study_spec": S("studySpec", default={}) >> Bend(GcpVertexAIStudySpec.mapping),
         "trial_job_spec": S("trialJobSpec", default={}) >> Bend(GcpVertexAICustomJobSpec.mapping),
         "trials": S("trials", default=[]) >> ForallBend(GcpVertexAITrial.mapping),
@@ -1650,7 +1663,6 @@ class GcpVertexAIHyperparameterTuningJob(AIPlatformRegionFilter, BaseAIJob, GcpR
     max_trial_count: Optional[int] = field(default=None)
     parallel_trial_count: Optional[int] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
-    state: Optional[str] = field(default=None)
     study_spec: Optional[GcpVertexAIStudySpec] = field(default=None)
     trial_job_spec: Optional[GcpVertexAICustomJobSpec] = field(default=None)
     trials: Optional[List[GcpVertexAITrial]] = field(default=None)
@@ -2165,7 +2177,7 @@ class GcpVertexAIModelDeploymentMonitoringJob(AIPlatformRegionFilter, BaseAIJob,
         "predict_instance_schema_uri": S("predictInstanceSchemaUri"),
         "sample_predict_instance": S("samplePredictInstance"),
         "schedule_state": S("scheduleState"),
-        "state": S("state"),
+        "state": S("state") >> MapEnum(GCP_AI_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "stats_anomalies_base_directory": S("statsAnomaliesBaseDirectory", "outputUriPrefix"),
         "update_time": S("updateTime"),
     }
@@ -2193,7 +2205,6 @@ class GcpVertexAIModelDeploymentMonitoringJob(AIPlatformRegionFilter, BaseAIJob,
     predict_instance_schema_uri: Optional[str] = field(default=None)
     sample_predict_instance: Optional[Any] = field(default=None)
     schedule_state: Optional[str] = field(default=None)
-    state: Optional[str] = field(default=None)
     stats_anomalies_base_directory: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
 
@@ -2744,7 +2755,7 @@ class GcpVertexAIPipelineJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
         "schedule_name": S("scheduleName"),
         "service_account": S("serviceAccount"),
         "start_time": S("startTime"),
-        "state": S("state"),
+        "state": S("state") >> MapEnum(GCP_AI_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "template_metadata": S("templateMetadata", "version"),
         "template_uri": S("templateUri"),
         "update_time": S("updateTime"),
@@ -2763,7 +2774,6 @@ class GcpVertexAIPipelineJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     schedule_name: Optional[str] = field(default=None)
     service_account: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
-    state: Optional[str] = field(default=None)
     template_metadata: Optional[str] = field(default=None)
     template_uri: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
@@ -3299,7 +3309,7 @@ class GcpVertexAITuningJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
         "rpc_error": S("error", default={}) >> Bend(GcpGoogleRpcStatus.mapping),
         "experiment": S("experiment"),
         "start_time": S("startTime"),
-        "state": S("state"),
+        "state": S("state") >> MapEnum(GCP_AI_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "supervised_tuning_spec": S("supervisedTuningSpec", default={})
         >> Bend(GcpVertexAISupervisedTuningSpec.mapping),
         "tuned_model": S("tunedModel", default={}) >> Bend(GcpVertexAITunedModel.mapping),
@@ -3314,7 +3324,6 @@ class GcpVertexAITuningJob(AIPlatformRegionFilter, BaseAIJob, GcpResource):
     rpc_error: Optional[GcpGoogleRpcStatus] = field(default=None)
     experiment: Optional[str] = field(default=None)
     start_time: Optional[datetime] = field(default=None)
-    state: Optional[str] = field(default=None)
     supervised_tuning_spec: Optional[GcpVertexAISupervisedTuningSpec] = field(default=None)
     tuned_model: Optional[GcpVertexAITunedModel] = field(default=None)
     tuned_model_display_name: Optional[str] = field(default=None)

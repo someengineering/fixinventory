@@ -12,9 +12,9 @@ from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.lambda_ import AwsLambdaFunction
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.resource.rds import AwsRdsCluster, AwsRdsInstance
-from fixlib.baseresources import BaseAIJob, ModelReference, BaseAIModel
+from fixlib.baseresources import AIJobStatus, BaseAIJob, ModelReference, BaseAIModel
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, ForallBend, Bend, Sort
+from fixlib.json_bender import Bender, S, ForallBend, Bend, MapEnum, Sort
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
@@ -80,6 +80,16 @@ class BedrockTaggable:
     @classmethod
     def service_name(cls) -> str:
         return service_name
+
+
+AWS_BEDROCK_JOB_STATUS_MAPPING = {
+    "InProgress": AIJobStatus.RUNNING,
+    "Completed": AIJobStatus.COMPLETED,
+    "Failed": AIJobStatus.FAILED,
+    "Stopping": AIJobStatus.STOPPING,
+    "Stopped": AIJobStatus.STOPPED,
+    "Deleting": AIJobStatus.STOPPING,
+}
 
 
 @define(eq=False, slots=False)
@@ -553,7 +563,7 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "output_model_arn": S("outputModelArn"),
         "client_request_token": S("clientRequestToken"),
         "role_arn": S("roleArn"),
-        "status": S("status"),
+        "status": S("status") >> MapEnum(AWS_BEDROCK_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "failure_message": S("failureMessage"),
         "creation_time": S("creationTime"),
         "last_modified_time": S("lastModifiedTime"),
@@ -575,7 +585,6 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
     output_model_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the output model."})  # fmt: skip
     client_request_token: Optional[str] = field(default=None, metadata={"description": "The token that you specified in the CreateCustomizationJob request."})  # fmt: skip
     role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the IAM role."})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The status of the job. A successful job transitions from in-progress to completed when the output model is ready to use. If the job failed, the failure message contains information about why the job failed."})  # fmt: skip
     failure_message: Optional[str] = field(default=None, metadata={"description": "Information about why the job failed."})  # fmt: skip
     creation_time: Optional[datetime] = field(default=None, metadata={"description": "Time that the resource was created."})  # fmt: skip
     last_modified_time: Optional[datetime] = field(default=None, metadata={"description": "Time that the resource was last modified."})  # fmt: skip
@@ -777,7 +786,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "ctime": S("creationTime"),
         "mtime": S("lastModifiedTime"),
         "job_name": S("jobName"),
-        "status": S("status"),
+        "status": S("status") >> MapEnum(AWS_BEDROCK_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "job_arn": S("jobArn"),
         "job_description": S("jobDescription"),
         "role_arn": S("roleArn"),
@@ -791,7 +800,6 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
         "failure_messages": S("failureMessages", default=[]),
     }
     job_name: Optional[str] = field(default=None, metadata={"description": "The name of the model evaluation job."})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The status of the model evaluation job."})  # fmt: skip
     job_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the model evaluation job."})  # fmt: skip
     job_description: Optional[str] = field(default=None, metadata={"description": "The description of the model evaluation job."})  # fmt: skip
     role_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the IAM service role used in the model evaluation job."})  # fmt: skip
