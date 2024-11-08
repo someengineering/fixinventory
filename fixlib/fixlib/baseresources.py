@@ -1222,6 +1222,8 @@ class BaseSubnet(BaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "subnet", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
 
+    cidr_block: Optional[str] = None
+
 
 @define(eq=False, slots=False)
 class BaseGateway(BaseResource):
@@ -1610,7 +1612,7 @@ class BaseAIJob(BaseAIResource):
     _kind_description: ClassVar[str] = "An AI Job resource."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
 
-    status: Optional[AIJobStatus] = field(default=None, metadata={"description": "Current status of the AI job"})
+    ai_job_status: Optional[AIJobStatus] = field(default=None, metadata={"description": "Current status of the AI job"})
 
 
 @define(eq=False, slots=False)

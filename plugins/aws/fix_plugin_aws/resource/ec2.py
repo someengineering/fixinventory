@@ -2507,6 +2507,7 @@ class AwsEc2Subnet(EC2Taggable, AwsResource, BaseSubnet):
         "subnet_ipv6_native": S("Ipv6Native"),
         "subnet_private_dns_name_options_on_launch": S("PrivateDnsNameOptionsOnLaunch")
         >> Bend(AwsEc2PrivateDnsNameOptionsOnLaunch.mapping),
+        "cidr_block": S("CidrBlock"),
     }
     subnet_availability_zone: Optional[str] = field(default=None)
     subnet_availability_zone_id: Optional[str] = field(default=None)

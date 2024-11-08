@@ -2347,6 +2347,7 @@ class AzureNetworkSubnet(MicrosoftResource, BaseSubnet):
         "service_endpoints": S("properties", "serviceEndpoints")
         >> ForallBend(AzureServiceEndpointPropertiesFormat.mapping),
         "type": S("type"),
+        "cidr_block": S("properties", "addressPrefix"),
     }
     address_prefix: Optional[str] = field(default=None, metadata={"description": "The address prefix for the subnet."})
     address_prefixes: Optional[List[str]] = field(default=None, metadata={'description': 'List of address prefixes for the subnet.'})  # fmt: skip

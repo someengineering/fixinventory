@@ -7196,6 +7196,7 @@ class GcpSubnetwork(GcpResource, BaseSubnet):
         "secondary_ip_ranges": S("secondaryIpRanges", default=[]) >> ForallBend(GcpSubnetworkSecondaryRange.mapping),
         "stack_type": S("stackType"),
         "subnetwork_state": S("state"),
+        "cidr_block": S("ipCidrRange"),
     }
     enable_flow_logs: Optional[bool] = field(default=None)
     external_ipv6_prefix: Optional[str] = field(default=None)
