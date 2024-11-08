@@ -5275,6 +5275,7 @@ class AzureNetworkVirtualNetwork(MicrosoftResource, BaseNetwork):
         >> ForallBend(AzureVirtualNetworkPeering.mapping),
         "location": S("location"),
         "type": S("type"),
+        "cidr_blocks": S("properties", "addressSpace", "addressPrefixes", default=[]),
     }
     address_space: Optional[AzureAddressSpace] = field(default=None, metadata={'description': 'AddressSpace contains an array of IP address ranges that can be used by subnets of the virtual network.'})  # fmt: skip
     bgp_communities: Optional[AzureVirtualNetworkBgpCommunities] = field(default=None, metadata={'description': 'Bgp Communities sent over ExpressRoute with each route corresponding to a prefix in this VNET.'})  # fmt: skip

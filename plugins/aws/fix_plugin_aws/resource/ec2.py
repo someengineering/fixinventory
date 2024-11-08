@@ -2155,6 +2155,7 @@ class AwsEc2Vpc(EC2Taggable, AwsResource, BaseNetwork):
         "vpc_cidr_block_association_set": S("CidrBlockAssociationSet", default=[])
         >> ForallBend(AwsEc2VpcCidrBlockAssociation.mapping),
         "vpc_is_default": S("IsDefault"),
+        "cidr_blocks": S("CidrBlockAssociationSet", default=[]) >> ForallBend(S("CidrBlock")),
     }
     vpc_cidr_block: Optional[str] = field(default=None)
     vpc_dhcp_options_id: Optional[str] = field(default=None)

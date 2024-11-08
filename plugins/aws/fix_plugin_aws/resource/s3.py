@@ -271,6 +271,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
                 else:
                     bck.bucket_versioning = False
                     bck.bucket_mfa_delete = False
+                    bck.versioning_enabled = False
 
         def add_public_access(bck: AwsS3Bucket) -> None:
             with builder.suppress(f"{service_name}.get-public-access-block"):

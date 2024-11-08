@@ -1139,6 +1139,8 @@ class BaseNetwork(BaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
 
+    cidr_blocks: List[str] = field(factory=list)
+
 
 @define(eq=False, slots=False)
 class BaseNetworkQuota(BaseQuota):
