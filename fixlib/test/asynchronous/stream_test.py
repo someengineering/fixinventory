@@ -53,7 +53,7 @@ async def test_map() -> None:
     assert await example_stream().map(sync_fn).collect() == [10, 8, 6, 4, 2]
     assert await example_stream().map(async_fn).collect() == [10, 8, 6, 4, 2]
     # The function will wait depending on the streamed value.
-    # Since we start from biggest to smallest, the result will be reversed
+    # Since we start from biggest to smallest, the result should be reversed
     # High chance of being flaky, since it relies on timing.
     assert await example_stream().map(async_fn, task_limit=100, ordered=False).collect() == [2, 4, 6, 8, 10]
     # All items are processed in parallel, while the order is preserved.
@@ -88,6 +88,10 @@ async def test_flatmap() -> None:
 
     assert await example_stream().flatmap(sync_gen).collect() == [10, 10, 8, 8, 6, 6, 4, 4, 2, 2]
     assert await example_stream().flatmap(async_gen).collect() == [10, 10, 8, 8, 6, 6, 4, 4, 2, 2]
+    assert await Stream.empty().flatmap(sync_gen).collect() == []
+    assert await Stream.empty().flatmap(async_gen).collect() == []
+    assert await Stream.iterate([]).flatmap(sync_gen).collect() == []
+    assert await Stream.iterate([]).flatmap(async_gen).collect() == []
 
 
 async def test_take() -> None:
