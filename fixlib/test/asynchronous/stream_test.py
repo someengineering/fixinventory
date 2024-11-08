@@ -120,4 +120,4 @@ async def test_call() -> None:
 async def test_chunks() -> None:
     assert len([chunk async for chunk in example_stream().chunks(2)]) == 3
     assert [chunk async for chunk in example_stream().chunks(2)] == await example_stream().chunks(2).collect()
-    assert await example_stream().chunks(2).map(Stream.as_list).collect() == [[5, 4], [3, 2], [1]]
+    assert await example_stream().chunks(2).collect() == [[5, 4], [3, 2], [1]]
