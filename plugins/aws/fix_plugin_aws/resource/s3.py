@@ -234,6 +234,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
                     mapped = bend(AwsS3ServerSideEncryptionRule.mapping, raw)
                     if rule := parse_json(mapped, AwsS3ServerSideEncryptionRule, builder):
                         bck.bucket_encryption_rules.append(rule)
+                bck.encryption_enabled = len(bck.bucket_encryption_rules) > 0
 
         def add_bucket_policy(bck: AwsS3Bucket) -> None:
             with builder.suppress(f"{service_name}.get-bucket-policy"):
@@ -266,6 +267,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
                 ):
                     bck.bucket_versioning = raw_versioning.get("Status") == "Enabled"
                     bck.bucket_mfa_delete = raw_versioning.get("MFADelete") == "Enabled"
+                    bck.versioning_enabled = bck.bucket_versioning
                 else:
                     bck.bucket_versioning = False
                     bck.bucket_mfa_delete = False

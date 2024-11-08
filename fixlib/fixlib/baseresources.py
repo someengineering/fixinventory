@@ -1089,6 +1089,9 @@ class BaseBucket(BaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     _categories: ClassVar[List[Category]] = [Category.storage]
 
+    encryption_enabled: Optional[bool] = None
+    versioning_enabled: Optional[bool] = None
+
 
 @define(eq=False, slots=False)
 class BaseQueue(BaseResource):
@@ -1573,6 +1576,7 @@ class BaseManagedKubernetesClusterProvider(BaseResource):
     version: Optional[str] = field(default=None, metadata={"description": "The kubernetes version"})
     endpoint: Optional[str] = field(default=None, metadata={"description": "The kubernetes API endpoint"})
 
+
 class AIJobStatus(Enum):
     PENDING = "pending"
     PREPARING = "preparing"
@@ -1584,6 +1588,7 @@ class AIJobStatus(Enum):
     CANCELLED = "cancelled"
     PAUSED = "paused"
     UNKNOWN = "unknown"
+
 
 @define(eq=False, slots=False)
 class BaseAIResource(BaseResource):
@@ -1600,9 +1605,8 @@ class BaseAIJob(BaseAIResource):
     _kind_display: ClassVar[str] = "AI Job"
     _kind_description: ClassVar[str] = "An AI Job resource."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
-    
-    status: Optional[AIJobStatus] = field(default=None, metadata={"description": "Current status of the AI job"})
 
+    status: Optional[AIJobStatus] = field(default=None, metadata={"description": "Current status of the AI job"})
 
 
 @define(eq=False, slots=False)

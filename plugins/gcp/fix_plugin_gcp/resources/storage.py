@@ -415,8 +415,10 @@ class GcpBucket(GcpResource, BaseBucket):
     updated: Optional[datetime] = field(default=None)
     bucket_website: Optional[GcpWebsite] = field(default=None)
     requester_pays: Optional[bool] = field(default=None)
-    versioning_enabled: Optional[bool] = field(default=None)
     lifecycle_rule: List[GcpRule] = field(factory=list)
+
+    def post_process(self, builder: GraphBuilder, source: Json):
+        self.encryption_enabled = bool(self.encryption_default_kms_key_name)
 
     def pre_delete(self, graph: Graph) -> bool:
         client = get_client(self)
