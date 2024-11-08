@@ -1128,6 +1128,8 @@ class BaseServerlessFunction(BaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
     _categories: ClassVar[List[Category]] = [Category.compute]
 
+    memory_size: Optional[int] = None
+
 
 @define(eq=False, slots=False)
 class BaseNetwork(BaseResource):
