@@ -4,9 +4,10 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, get_client
+from fix_plugin_gcp.resources.base import GcpResource, GraphBuilder, GcpDeprecationStatus, get_client
 from fixlib.baseresources import BaseBucket
 from fixlib.graph import Graph
+from fixlib.types import Json
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
 service_name = "storage"
@@ -417,7 +418,7 @@ class GcpBucket(GcpResource, BaseBucket):
     requester_pays: Optional[bool] = field(default=None)
     lifecycle_rule: List[GcpRule] = field(factory=list)
 
-    def post_process(self, builder: GraphBuilder, source: Json):
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.encryption_enabled = bool(self.encryption_default_kms_key_name)
 
     def pre_delete(self, graph: Graph) -> bool:
