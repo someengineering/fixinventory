@@ -101,6 +101,22 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
     update_time: Optional[datetime] = field(default=None)
     version_retention_period: Optional[str] = field(default=None)
 
+    @classmethod
+    def called_collect_apis(cls) -> List[GcpApiSpec]:
+        return [
+            cls.api_spec,
+            GcpApiSpec(
+                service="firestore",
+                version="v1",
+                accessors=["projects", "databases", "documents"],
+                action="list",
+                request_parameter={"parent": "projects/{project}/databases/{databaseId}/documents"},
+                request_parameter_in={"project", "databaseId"},
+                response_path="documents",
+                response_regional_sub_path=None,
+            ),
+        ]
+
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_documents() -> None:
             spec = GcpApiSpec(
@@ -109,7 +125,7 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
                 accessors=["projects", "databases", "documents"],
                 action="list",
                 request_parameter={"parent": f"{self.id}/documents"},
-                request_parameter_in={"project"},
+                request_parameter_in=set(),
                 response_path="documents",
                 response_regional_sub_path=None,
             )
