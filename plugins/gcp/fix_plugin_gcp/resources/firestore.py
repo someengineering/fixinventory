@@ -6,7 +6,7 @@ from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpErrorHandler, GcpResource, GcpDeprecationStatus, GraphBuilder
-from fixlib.baseresources import BaseDatabase
+from fixlib.baseresources import BaseDatabase, ModelReference
 from fixlib.json_bender import Bender, S, Bend, MapDict
 from fixlib.types import Json
 
@@ -46,6 +46,13 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
     )
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "storage"}
+    _reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "gcp_firestore_document",
+            ],
+        },
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="firestore",
         version="v1",
@@ -138,7 +145,9 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
                 f" in {graph_builder.project.id} kind {GcpFirestoreDocument.kind}",
             ):
                 items = graph_builder.client.list(spec)
-                GcpFirestoreDocument.collect(items, graph_builder)
+                documents = GcpFirestoreDocument.collect(items, graph_builder)
+                for document in documents:
+                    graph_builder.add_edge(self, node=document)
                 log.info(f"[GCP:{graph_builder.project.id}] finished collecting: {GcpFirestoreDocument.kind}")
 
         graph_builder.submit_work(collect_documents)
