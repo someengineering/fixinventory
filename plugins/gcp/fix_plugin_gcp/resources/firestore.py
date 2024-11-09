@@ -40,6 +40,12 @@ class GcpFirestoreSourceInfo:
 @define(eq=False, slots=False)
 class GcpFirestoreDatabase(GcpResource, BaseDatabase):
     kind: ClassVar[str] = "gcp_firestore_database"
+    _kind_display: ClassVar[str] = "GCP Firestore Database"
+    _kind_description: ClassVar[str] = (
+        "A Firestore Database in GCP, which is a scalable NoSQL cloud database to store and sync data for client- and server-side development."
+    )
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "storage"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="firestore",
         version="v1",
@@ -176,6 +182,12 @@ class GcpValue:
 @define(eq=False, slots=False)
 class GcpFirestoreDocument(GcpResource):
     kind: ClassVar[str] = "gcp_firestore_document"
+    _kind_display: ClassVar[str] = "GCP Firestore Document"
+    _kind_description: ClassVar[str] = (
+        "A Firestore Document in GCP, representing a single document in a Firestore database, which can contain fields and subcollections."
+    )
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "database", "group": "storage"}
     # collected via GcpFirestoreDatabase()
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -211,6 +223,12 @@ class GcpFirestoreStats:
 @define(eq=False, slots=False)
 class GcpFirestoreBackup(GcpResource):
     kind: ClassVar[str] = "gcp_firestore_backup"
+    _kind_display: ClassVar[str] = "GCP Firestore Backup"
+    _kind_description: ClassVar[str] = (
+        "A Firestore Backup in GCP, which provides a way to back up and restore Firestore databases to protect against data loss."
+    )
+    _kind_service: ClassVar[Optional[str]] = service_name
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="firestore",
         version="v1",
