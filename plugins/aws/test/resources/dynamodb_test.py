@@ -7,13 +7,17 @@ from fix_plugin_aws.resource.dynamodb import AwsDynamoDbTable, AwsDynamoDbGlobal
 
 
 def test_tables() -> None:
-    first, builder = round_trip_for(AwsDynamoDbTable, "dynamodb_policy")
+    first, builder = round_trip_for(
+        AwsDynamoDbTable, "dynamodb_policy", "db_version", "db_publicly_accessible", "volume_size", "volume_iops"
+    )
     assert len(builder.resources_of(AwsDynamoDbTable)) == 1
     assert len(first.tags) == 1
 
 
 def test_tagging_tables() -> None:
-    table, _ = round_trip_for(AwsDynamoDbTable, "dynamodb_policy")
+    table, _ = round_trip_for(
+        AwsDynamoDbTable, "dynamodb_policy", "db_version", "db_publicly_accessible", "volume_size", "volume_iops"
+    )
 
     def validate_update_args(**kwargs: Any) -> Any:
         if kwargs["action"] == "list-tags-of-resource":
@@ -37,7 +41,9 @@ def test_tagging_tables() -> None:
 
 
 def test_delete_tables() -> None:
-    table, _ = round_trip_for(AwsDynamoDbTable, "dynamodb_policy")
+    table, _ = round_trip_for(
+        AwsDynamoDbTable, "dynamodb_policy", "db_version", "db_publicly_accessible", "volume_size", "volume_iops"
+    )
 
     def validate_delete_args(**kwargs: Any) -> Any:
         assert kwargs["action"] == "delete-table"

@@ -187,7 +187,7 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
     remaining_retention_days: Optional[int] = field(default=None, metadata={'description': 'Remaining retention days for soft deleted blob container.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={'description': 'The version of the deleted blob container.'})  # fmt: skip
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json):
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         self.encryption_enabled = bool(self.default_encryption_scope)
         self.versioning_enabled = bool(self.blob_immutable_storage_with_versioning)
 
