@@ -8,9 +8,16 @@ from fix_plugin_aws.resource.base import AwsApiSpec, AwsResource, GraphBuilder, 
 from fix_plugin_aws.resource.kinesis import AwsKinesisStream
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import HasResourcePolicy, ModelReference, PolicySource, PolicySourceKind
+from fixlib.baseresources import (
+    BaseDatabase,
+    DatabaseInstanceStatus,
+    HasResourcePolicy,
+    ModelReference,
+    PolicySource,
+    PolicySourceKind,
+)
 from fixlib.graph import Graph
-from fixlib.json_bender import S, Bend, Bender, ForallBend, bend
+from fixlib.json_bender import S, Bend, Bender, ForallBend, bend, K, MapValue
 from fixlib.types import Json
 from fixlib.json import sort_json
 
@@ -356,7 +363,7 @@ class AwsDynamoDbContinuousBackup:
 
 
 @define(eq=False, slots=False)
-class AwsDynamoDbTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
+class AwsDynamoDbTable(DynamoDbTaggable, BaseDatabase, AwsResource, HasResourcePolicy):
     kind: ClassVar[str] = "aws_dynamodb_table"
     _kind_display: ClassVar[str] = "AWS DynamoDB Table"
     _kind_description: ClassVar[str] = "AWS DynamoDB Table is a fully managed NoSQL database service that stores and retrieves data. It supports key-value and document data models, offering automatic scaling and low-latency performance. DynamoDB Tables handle data storage, indexing, and querying, providing consistent read and write throughput. They offer data encryption, backup, and recovery features for secure and reliable data management."  # fmt: skip
@@ -396,6 +403,25 @@ class AwsDynamoDbTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
         "dynamodb_sse_description": S("SSEDescription") >> Bend(AwsDynamoDbSSEDescription.mapping),
         "dynamodb_archival_summary": S("ArchivalSummary") >> Bend(AwsDynamoDbArchivalSummary.mapping),
         "dynamodb_table_class_summary": S("TableClassSummary") >> Bend(AwsDynamoDbTableClassSummary.mapping),
+        "db_type": K("dynamodb"),
+        "db_status": S("TableStatus")
+        >> MapValue(
+            {
+                "CREATING": DatabaseInstanceStatus.BUSY,
+                "UPDATING": DatabaseInstanceStatus.BUSY,
+                "DELETING": DatabaseInstanceStatus.BUSY,
+                "ACTIVE": DatabaseInstanceStatus.AVAILABLE,
+                "INACCESSIBLE_ENCRYPTION_CREDENTIALS": DatabaseInstanceStatus.FAILED,
+                "ARCHIVING": DatabaseInstanceStatus.BUSY,
+                "ARCHIVED": DatabaseInstanceStatus.STOPPED,
+            },
+            default=DatabaseInstanceStatus.UNKNOWN,
+        ),
+        "volume_encrypted": S("SSEDescription", "Status")
+        >> MapValue(
+            {"ENABLING": True, "ENABLED": True, "DISABLING": False, "DISABLED": False, "UPDATING": None},
+            default=None,
+        ),
     }
     arn: Optional[str] = field(default=None)
     dynamodb_attribute_definitions: List[AwsDynamoDbAttributeDefinition] = field(factory=list)
