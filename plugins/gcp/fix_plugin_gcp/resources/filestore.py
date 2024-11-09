@@ -6,7 +6,7 @@ from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GraphBuilder, GcpErrorHandler, GcpResource, GcpDeprecationStatus
-from fixlib.baseresources import BaseNetworkShare
+from fixlib.baseresources import BaseNetworkShare, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
 
@@ -169,6 +169,13 @@ class GcpReplication:
 @define(eq=False, slots=False)
 class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
     kind: ClassVar[str] = "gcp_filestore_instance"
+    _reference_kinds: ClassVar[ModelReference] = {
+        "successors": {
+            "default": [
+                "gcp_filestore_snapshot",
+            ],
+        },
+    }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="file",
         version="v1",
@@ -263,7 +270,9 @@ class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
                 f" in {graph_builder.project.id} kind {GcpFilestoreSnapshot.kind}",
             ):
                 items = graph_builder.client.list(spec)
-                GcpFilestoreSnapshot.collect(items, graph_builder)
+                snapshots = GcpFilestoreSnapshot.collect(items, graph_builder)
+                for snapshot in snapshots:
+                    graph_builder.add_edge(self, node=snapshot)
                 log.info(f"[GCP:{graph_builder.project.id}] finished collecting: {GcpFilestoreSnapshot.kind}")
 
         graph_builder.submit_work(collect_snapshots)
