@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -19,6 +19,14 @@ service_name = "filestore"
 @define(eq=False, slots=False)
 class GcpFilestoreBackup(GcpResource):
     kind: ClassVar[str] = "gcp_filestore_backup"
+    _kind_display: ClassVar[str] = "GCP Filestore Backup"
+    _kind_description: ClassVar[str] = (
+        "GCP Filestore Backup is a service that allows you to create backups of your Filestore instances."
+        " It provides a way to protect your data and restore it in case of data loss."
+    )
+    _docs_url: ClassVar[str] = "https://cloud.google.com/filestore/docs/backups"
+    _kind_service: ClassVar[Optional[str]] = "filestore"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "backup", "group": "storage"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="file",
         version="v1",
@@ -169,6 +177,14 @@ class GcpReplication:
 @define(eq=False, slots=False)
 class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
     kind: ClassVar[str] = "gcp_filestore_instance"
+    _kind_display: ClassVar[str] = "GCP Filestore Instance"
+    _kind_description: ClassVar[str] = (
+        "GCP Filestore Instance is a fully managed file storage service that provides scalable and high-performance"
+        " file systems for applications running on Google Cloud."
+    )
+    _docs_url: ClassVar[str] = "https://cloud.google.com/filestore/docs/instances"
+    _kind_service: ClassVar[Optional[str]] = "filestore"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "network_share", "group": "storage"}
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
@@ -282,6 +298,14 @@ class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
 class GcpFilestoreSnapshot(GcpResource):
     # collected via GcpFilestoreInstance()
     kind: ClassVar[str] = "gcp_filestore_snapshot"
+    _kind_display: ClassVar[str] = "GCP Filestore Snapshot"
+    _kind_description: ClassVar[str] = (
+        "GCP Filestore Snapshot is a point-in-time copy of a Filestore instance, allowing you to restore"
+        " data to a previous state or create new instances from the snapshot."
+    )
+    _docs_url: ClassVar[str] = "https://cloud.google.com/filestore/docs/snapshots"
+    _kind_service: ClassVar[Optional[str]] = "filestore"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "snapshot", "group": "storage"}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "name": S("name"),
