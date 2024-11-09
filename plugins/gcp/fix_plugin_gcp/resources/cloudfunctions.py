@@ -1,17 +1,12 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
+from fixlib.baseresources import BaseServerlessFunction
 from fixlib.json_bender import Bender, S, Bend, ForallBend
-
-
-@define(eq=False, slots=False)
-class GcpAutomaticUpdatePolicy:
-    kind: ClassVar[str] = "gcp_automatic_update_policy"
-    mapping: ClassVar[Dict[str, Bender]] = {}
 
 
 @define(eq=False, slots=False)
@@ -78,7 +73,7 @@ class GcpSourceProvenance:
 class GcpBuildConfig:
     kind: ClassVar[str] = "gcp_build_config"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "automatic_update_policy": S("automaticUpdatePolicy", default={}) >> Bend(GcpAutomaticUpdatePolicy.mapping),
+        "automatic_update_policy": S("automaticUpdatePolicy", default={}),
         "build": S("build"),
         "docker_registry": S("dockerRegistry"),
         "docker_repository": S("dockerRepository"),
@@ -92,7 +87,7 @@ class GcpBuildConfig:
         "source_token": S("sourceToken"),
         "worker_pool": S("workerPool"),
     }
-    automatic_update_policy: Optional[GcpAutomaticUpdatePolicy] = field(default=None)
+    automatic_update_policy: Optional[Dict[str, Any]] = field(default=None)
     build: Optional[str] = field(default=None)
     docker_registry: Optional[str] = field(default=None)
     docker_repository: Optional[str] = field(default=None)
@@ -226,8 +221,8 @@ class GcpServiceConfig:
 
 
 @define(eq=False, slots=False)
-class GcpGoogleCloudFunctionsV2StateMessage:
-    kind: ClassVar[str] = "gcp_google_cloud_functions_v2_state_message"
+class GcpCloudFunctionsStateMessage:
+    kind: ClassVar[str] = "gcp_cloud_functions_state_message"
     mapping: ClassVar[Dict[str, Bender]] = {"message": S("message"), "severity": S("severity"), "type": S("type")}
     message: Optional[str] = field(default=None)
     severity: Optional[str] = field(default=None)
@@ -250,8 +245,16 @@ class GcpUpgradeInfo:
 
 
 @define(eq=False, slots=False)
-class GcpFunction(GcpResource):
-    kind: ClassVar[str] = "gcp_function"
+class GcpCloudFunction(GcpResource, BaseServerlessFunction):
+    kind: ClassVar[str] = "gcp_cloud_function"
+    _kind_display: ClassVar[str] = "GCP Cloud Function"
+    _kind_description: ClassVar[str] = (
+        "GCP Cloud Function is a serverless execution environment for building and connecting cloud services."
+        " It allows you to run your code in response to events without provisioning or managing servers."
+    )
+    _docs_url: ClassVar[str] = "https://cloud.google.com/functions/docs"
+    _kind_service: ClassVar[Optional[str]] = "cloudfunctions"
+    _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service="cloudfunctions",
         version="v2",
@@ -279,7 +282,7 @@ class GcpFunction(GcpResource):
         "satisfies_pzs": S("satisfiesPzs"),
         "service_config": S("serviceConfig", default={}) >> Bend(GcpServiceConfig.mapping),
         "state": S("state"),
-        "state_messages": S("stateMessages", default=[]) >> ForallBend(GcpGoogleCloudFunctionsV2StateMessage.mapping),
+        "state_messages": S("stateMessages", default=[]) >> ForallBend(GcpCloudFunctionsStateMessage.mapping),
         "update_time": S("updateTime"),
         "upgrade_info": S("upgradeInfo", default={}) >> Bend(GcpUpgradeInfo.mapping),
         "url": S("url"),
@@ -292,10 +295,10 @@ class GcpFunction(GcpResource):
     satisfies_pzs: Optional[bool] = field(default=None)
     service_config: Optional[GcpServiceConfig] = field(default=None)
     state: Optional[str] = field(default=None)
-    state_messages: Optional[List[GcpGoogleCloudFunctionsV2StateMessage]] = field(default=None)
+    state_messages: Optional[List[GcpCloudFunctionsStateMessage]] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
     upgrade_info: Optional[GcpUpgradeInfo] = field(default=None)
     url: Optional[str] = field(default=None)
 
 
-resources: List[Type[GcpResource]] = [GcpFunction]
+resources: List[Type[GcpResource]] = [GcpCloudFunction]
