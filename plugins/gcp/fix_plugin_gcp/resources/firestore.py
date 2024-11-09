@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from typing import ClassVar, Dict, Optional, List, Any
+from typing import ClassVar, Dict, Optional, List, Any, Type
 
 from attr import define, field
 
@@ -19,8 +19,8 @@ service_name = "firestore"
 
 
 @define(eq=False, slots=False)
-class GcpGoogleFirestoreAdminV1CmekConfig:
-    kind: ClassVar[str] = "gcp_google_firestore_admin_v1_cmek_config"
+class GcpFirestoreCmekConfig:
+    kind: ClassVar[str] = "gcp_firestore_cmek_config"
     mapping: ClassVar[Dict[str, Bender]] = {
         "active_key_version": S("activeKeyVersion", default=[]),
         "kms_key_name": S("kmsKeyName"),
@@ -30,8 +30,8 @@ class GcpGoogleFirestoreAdminV1CmekConfig:
 
 
 @define(eq=False, slots=False)
-class GcpGoogleFirestoreAdminV1SourceInfo:
-    kind: ClassVar[str] = "gcp_google_firestore_admin_v1_source_info"
+class GcpFirestoreSourceInfo:
+    kind: ClassVar[str] = "gcp_firestore_source_info"
     mapping: ClassVar[Dict[str, Bender]] = {"backup": S("backup", "backup"), "operation": S("operation")}
     backup: Optional[str] = field(default=None)
     operation: Optional[str] = field(default=None)
@@ -60,7 +60,7 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
         "app_engine_integration_mode": S("appEngineIntegrationMode"),
-        "cmek_config": S("cmekConfig", default={}) >> Bend(GcpGoogleFirestoreAdminV1CmekConfig.mapping),
+        "cmek_config": S("cmekConfig", default={}) >> Bend(GcpFirestoreCmekConfig.mapping),
         "concurrency_mode": S("concurrencyMode"),
         "create_time": S("createTime"),
         "delete_protection_state": S("deleteProtectionState"),
@@ -71,14 +71,14 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
         "location_id": S("locationId"),
         "point_in_time_recovery_enablement": S("pointInTimeRecoveryEnablement"),
         "previous_id": S("previousId"),
-        "source_info": S("sourceInfo", default={}) >> Bend(GcpGoogleFirestoreAdminV1SourceInfo.mapping),
+        "source_info": S("sourceInfo", default={}) >> Bend(GcpFirestoreSourceInfo.mapping),
         "type": S("type"),
         "uid": S("uid"),
         "update_time": S("updateTime"),
         "version_retention_period": S("versionRetentionPeriod"),
     }
     app_engine_integration_mode: Optional[str] = field(default=None)
-    cmek_config: Optional[GcpGoogleFirestoreAdminV1CmekConfig] = field(default=None)
+    cmek_config: Optional[GcpFirestoreCmekConfig] = field(default=None)
     concurrency_mode: Optional[str] = field(default=None)
     create_time: Optional[datetime] = field(default=None)
     delete_protection_state: Optional[str] = field(default=None)
@@ -89,7 +89,7 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
     location_id: Optional[str] = field(default=None)
     point_in_time_recovery_enablement: Optional[str] = field(default=None)
     previous_id: Optional[str] = field(default=None)
-    source_info: Optional[GcpGoogleFirestoreAdminV1SourceInfo] = field(default=None)
+    source_info: Optional[GcpFirestoreSourceInfo] = field(default=None)
     type: Optional[str] = field(default=None)
     uid: Optional[str] = field(default=None)
     update_time: Optional[datetime] = field(default=None)
@@ -196,8 +196,8 @@ class GcpFirestoreDocument(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpGoogleFirestoreAdminV1Stats:
-    kind: ClassVar[str] = "gcp_google_firestore_admin_v1_stats"
+class GcpFirestoreStats:
+    kind: ClassVar[str] = "gcp_firestore_stats"
     mapping: ClassVar[Dict[str, Bender]] = {
         "document_count": S("documentCount"),
         "index_count": S("indexCount"),
@@ -230,19 +230,19 @@ class GcpFirestoreBackup(GcpResource):
         "link": S("selfLink"),
         "label_fingerprint": S("labelFingerprint"),
         "deprecation_status": S("deprecated", default={}) >> Bend(GcpDeprecationStatus.mapping),
-        "database": S("database"),
+        "database_name": S("database"),
         "database_uid": S("databaseUid"),
         "expire_time": S("expireTime"),
         "snapshot_time": S("snapshotTime"),
         "state": S("state"),
-        "stats": S("stats", default={}) >> Bend(GcpGoogleFirestoreAdminV1Stats.mapping),
+        "backup_stats": S("stats", default={}) >> Bend(GcpFirestoreStats.mapping),
     }
-    database: Optional[str] = field(default=None)
+    database_name: Optional[str] = field(default=None)
     database_uid: Optional[str] = field(default=None)
     expire_time: Optional[datetime] = field(default=None)
     snapshot_time: Optional[datetime] = field(default=None)
     state: Optional[str] = field(default=None)
-    stats: Optional[GcpGoogleFirestoreAdminV1Stats] = field(default=None)
+    backup_stats: Optional[GcpFirestoreStats] = field(default=None)
 
 
-resources = [GcpFirestoreDatabase, GcpFirestoreDocument, GcpFirestoreBackup]
+resources: List[Type[GcpResource]] = [GcpFirestoreDatabase, GcpFirestoreDocument, GcpFirestoreBackup]
