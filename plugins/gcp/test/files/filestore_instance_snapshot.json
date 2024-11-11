@@ -1,0 +1,22 @@
+{
+    "snapshots": [
+        {
+            "id": "projects/sample-project/locations/us-central1/snapshots/snapshot-1",
+            "name": "snapshot-1",
+            "ctime": "2024-10-15T09:00:00Z",
+            "description": "Snapshot before maintenance",
+            "link": "https://www.googleapis.com/filestore/v1/projects/sample-project/locations/us-central1/snapshots/snapshot-1",
+            "label_fingerprint": "ghi789",
+            "deprecation_status": {
+                "state": "ACTIVE",
+                "deleted": null,
+                "deprecated": null,
+                "obsolete": null,
+                "replacement": null
+            },
+            "create_time": "2024-10-15T09:00:00Z",
+            "filesystem_used_bytes": "1073741824",
+            "state": "READY"
+        }
+    ]
+}

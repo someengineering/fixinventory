@@ -1,0 +1,31 @@
+{
+    "backups": [
+        {
+            "id": "projects/sample-project/locations/us-central1/backups/backup-1",
+            "name": "backup-1",
+            "ctime": "2024-11-11T08:30:00Z",
+            "description": "Daily backup for critical data",
+            "link": "https://www.googleapis.com/filestore/v1/projects/sample-project/locations/us-central1/backups/backup-1",
+            "label_fingerprint": "abc123",
+            "deprecation_status": {
+                "state": "ACTIVE",
+                "deleted": null,
+                "deprecated": null,
+                "obsolete": null,
+                "replacement": null
+            },
+            "capacity_gb": "1024",
+            "create_time": "2024-11-11T08:30:00Z",
+            "download_bytes": "5368709120",
+            "file_system_protocol": "NFSv3",
+            "kms_key": "projects/sample-project/locations/us-central1/keyRings/sample-ring/cryptoKeys/sample-key",
+            "satisfies_pzi": true,
+            "satisfies_pzs": false,
+            "source_file_share": "share-1",
+            "source_instance": "projects/sample-project/locations/us-central1/instances/instance-1",
+            "source_instance_tier": "STANDARD",
+            "state": "READY",
+            "storage_bytes": "5368709120"
+        }
+    ]
+}

@@ -511,6 +511,7 @@ known_api_parameters = {
         "parent": "projects/{project}/locations/{region}",
     },
     "firestore": {"parent": "projects/{project_id}/databases/{database_id}/documents", "collectionId": "", "name": ""},
+    "file": {"name": "", "parent": "projects/{projectId}/locations/-"},
 }
 
 # See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
@@ -520,9 +521,10 @@ apis = [
     # ("container", "v1", "Container", ["UsableSubnetwork"]),
     # ("sqladmin", "v1", "Sql", ["Tier"]),
     # ("cloudbilling", "v1", "", []),
-    # ("storage", "v1", "", [])
-    # ("aiplatform", "v1", "", [])
-    ("firestore", "v1", "", []),
+    # ("storage", "v1", "", []),
+    # # ("aiplatform", "v1", "", []),
+    # ("firestore", "v1", "", []),
+    ("file", "v1", "", [])
 ]
 
 
