@@ -113,6 +113,7 @@ class AwsCognitoUser(AwsResource, BaseUser):
         "enabled": S("Enabled"),
         "user_status": S("UserStatus"),
         "mfa_options": S("MFAOptions", default=[]) >> ForallBend(AwsCognitoMFAOptionType.mapping),
+        "username": S("Username"),
     }
     user_attributes: List[AwsCognitoAttributeType] = field(factory=list)
     enabled: Optional[bool] = field(default=None)

@@ -40,7 +40,7 @@ from fixlib.baseresources import (
     EdgeType,
     PhantomBaseResource,
 )
-from fixlib.json_bender import F, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber, Upper, Lower
+from fixlib.json_bender import F, MapValue, Bender, S, Bend, ForallBend, AsInt, StringToUnitNumber, Upper, Lower
 from fixlib.types import Json
 
 service_name = "networking"
@@ -6791,7 +6791,15 @@ class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
         "resolution_virtual_networks": S("properties")
         >> S("resolutionVirtualNetworks", default=[])
         >> ForallBend(S("id")),
-        "zone_type": S("properties", "zoneType"),
+        "private_zone": S("properties", "zoneType")
+        >> MapValue(
+            {
+                "Public": False,
+                "Private": True,
+            },
+            default=False,
+        ),
+        "zone_resource_record_set_count": S("properties", "maxNumberOfRecordSets"),
     }
     max_number_of_record_sets: Optional[int] = field(default=None, metadata={'description': 'The maximum number of record sets that can be created in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
     max_number_of_records_per_record_set: Optional[int] = field(default=None, metadata={'description': 'The maximum number of records per record set that can be created in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
@@ -6799,7 +6807,6 @@ class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
     number_of_record_sets: Optional[int] = field(default=None, metadata={'description': 'The current number of record sets in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
     registration_virtual_networks: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to virtual networks that register hostnames in this DNS zone. This is a only when ZoneType is Private.'})  # fmt: skip
     resolution_virtual_networks: Optional[List[str]] = field(default=None, metadata={'description': 'A list of references to virtual networks that resolve records in this DNS zone. This is a only when ZoneType is Private.'})  # fmt: skip
-    zone_type: Optional[str] = field(default=None, metadata={'description': 'The type of this DNS zone (Public or Private).'})  # fmt: skip
 
     def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         def collect_record_sets() -> None:

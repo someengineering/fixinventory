@@ -23,7 +23,6 @@ from fix_plugin_aws.resource.iam import AwsIamInstanceProfile
 from fix_plugin_aws.resource.kms import AwsKmsKey
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import ToDict, TagsValue
-from fix_plugin_aws.aws_client import AwsClient
 from fixlib.baseresources import (
     BaseInstance,
     BaseKeyPair,

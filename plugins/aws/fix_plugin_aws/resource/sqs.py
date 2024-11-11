@@ -80,6 +80,8 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
         "sqs_delay_seconds": S("DelaySeconds") >> AsInt(),
         "sqs_receive_message_wait_time_seconds": S("ReceiveMessageWaitTimeSeconds") >> AsInt(),
         "sqs_managed_sse_enabled": S("SqsManagedSseEnabled") >> AsBool(),
+        "message_retention_period": S("MessageRetentionPeriod") >> AsInt(),
+        "approximate_message_count": S("ApproximateNumberOfMessages") >> AsInt(),
     }
     sqs_queue_url: Optional[str] = field(default=None)
     sqs_approximate_number_of_messages: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
@@ -118,7 +120,7 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
         ]
 
     @classmethod
-    def collect(cls: Type[AwsResource], json: List[Json], builder: GraphBuilder) -> None:
+    def collect(cls, json: List[Json], builder: GraphBuilder) -> None:
         def add_instance(queue_url: str) -> None:
             queue_attributes = builder.client.get(
                 service_name, "get-queue-attributes", "Attributes", QueueUrl=queue_url, AttributeNames=["All"]
@@ -126,8 +128,12 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
             if queue_attributes is not None:
                 queue_attributes["QueueUrl"] = queue_url
                 queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
-                if instance := cls.from_api(queue_attributes, builder):
+                if instance := AwsSqsQueue.from_api(queue_attributes, builder):
                     builder.add_node(instance, queue_attributes)
+                    if instance.sqs_fifo_queue:
+                        instance.queue_type = "FIFO"
+                    else:
+                        instance.queue_type = "default"
                     builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:

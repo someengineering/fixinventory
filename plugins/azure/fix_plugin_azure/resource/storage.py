@@ -27,7 +27,7 @@ from fixlib.baseresources import (
     ModelReference,
     PhantomBaseResource,
 )
-from fixlib.json_bender import Bender, S, ForallBend, Bend, AsBool
+from fixlib.json_bender import K, Bender, S, ForallBend, Bend, AsBool
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -318,10 +318,11 @@ class AzureStorageQueue(MicrosoftResource, BaseQueue):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "approximate_message_count": S("properties", "approximateMessageCount"),
         "queue_metadata": S("properties", "metadata"),
+        "queue_type": K("default"),
+        "message_retention_period": K(7),
+        "approximate_message_count": S("properties", "approximateMessageCount"),
     }
-    approximate_message_count: Optional[int] = field(default=None, metadata={'description': 'Integer indicating an approximate number of messages in the queue. This number is not lower than the actual number of messages in the queue, but could be higher.'})  # fmt: skip
     queue_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'A name-value pair that represents queue metadata.'})  # fmt: skip
 
 

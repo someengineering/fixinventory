@@ -1100,6 +1100,11 @@ class BaseQueue(BaseResource):
     _kind_description: ClassVar[str] = "A storage queue."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
     _categories: ClassVar[List[Category]] = [Category.storage]
+    # Type of queue (e.g., standard, FIFO)
+    queue_type: Optional[str] = None
+    approximate_message_count: Optional[int] = None
+    # Message retention period in seconds
+    message_retention_period: Optional[int] = None
 
 
 @define(eq=False, slots=False)
@@ -1339,6 +1344,8 @@ class BaseUser(BaseResource):
     _kind_description: ClassVar[str] = "A user."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     _categories: ClassVar[List[Category]] = [Category.access_control]
+    # Name associated with the user account
+    username: Optional[str] = None
 
 
 @define(eq=False, slots=False)
@@ -1383,8 +1390,8 @@ class BaseAccessKey(BaseResource):
     _kind_display: ClassVar[str] = "Access Key"
     _kind_description: ClassVar[str] = "An access key."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
-    access_key_status: str = ""
     _categories: ClassVar[List[Category]] = [Category.access_control, Category.security]
+    access_key_status: str = ""
 
 
 @define(eq=False, slots=False)
@@ -1413,10 +1420,10 @@ class BaseStack(BaseResource):
     _kind_display: ClassVar[str] = "Stack"
     _kind_description: ClassVar[str] = "A stack."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
+    _categories: ClassVar[List[Category]] = [Category.devops, Category.management]
     stack_status: str = ""
     stack_status_reason: str = ""
     stack_parameters: Dict[str, str] = field(factory=dict)
-    _categories: ClassVar[List[Category]] = [Category.devops, Category.management]
 
 
 @define(eq=False, slots=False)
@@ -1462,6 +1469,8 @@ class BaseDNSZone(BaseResource):
     _kind_description: ClassVar[str] = "A DNS zone."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.dns, Category.networking]
+    private_zone: Optional[bool] = None
+    zone_resource_record_set_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
 
 
 @define(eq=False, slots=False)
