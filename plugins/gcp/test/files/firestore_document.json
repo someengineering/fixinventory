@@ -1,0 +1,37 @@
+{
+    "documents": [
+        {
+            "id": "projects/my-project/databases/(default)/documents/collection/doc1",
+            "tags": {
+                "documentType": "user-data"
+            },
+            "name": "projects/my-project/databases/(default)/documents/collection/doc1",
+            "ctime": "2023-07-15T14:30:00.000Z",
+            "description": "User profile document",
+            "link": "https://www.googleapis.com/firestore/v1/projects/my-project/databases/(default)/documents/collection/doc1",
+            "label_fingerprint": "abcd1234efgh5678",
+            "deprecation_status": {
+                "state": "ACTIVE"
+            },
+            "create_time": "2023-07-15T14:30:00.000Z",
+            "fields": {
+                "name": {
+                    "string_value": "John Doe"
+                },
+                "age": {
+                    "integer_value": "30"
+                },
+                "isActive": {
+                    "boolean_value": true
+                },
+                "location": {
+                    "geo_point_value": {
+                        "latitude": 37.7749,
+                        "longitude": -122.4194
+                    }
+                }
+            },
+            "update_time": "2023-07-16T08:45:00.000Z"
+        }
+    ]
+}

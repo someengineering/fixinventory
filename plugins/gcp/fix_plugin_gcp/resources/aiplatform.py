@@ -1886,19 +1886,6 @@ class GcpVertexAIIndex(AIPlatformRegionFilter, GcpResource):
 @define(eq=False, slots=False)
 class GcpVertexAIArtifact:
     kind: ClassVar[str] = "gcp_vertex_ai_artifact"
-    _kind_display = ""
-    _kind_service = ""
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="aiplatform",
-        version="v1",
-        service_with_region_prefix=True,
-        accessors=["projects", "locations", "metadataStores", "artifacts"],
-        action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}"},
-        request_parameter_in={"project", "region"},
-        response_path="artifacts",
-        response_regional_sub_path=None,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
@@ -2519,19 +2506,6 @@ class GcpVertexAIPipelineTaskDetailPipelineTaskStatus:
 @define(eq=False, slots=False)
 class GcpVertexAIExecution:
     kind: ClassVar[str] = "gcp_vertex_ai_execution"
-    _kind_display = ""
-    _kind_service = ""
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="aiplatform",
-        version="v1",
-        service_with_region_prefix=True,
-        accessors=["projects", "locations", "metadataStores", "executions"],
-        action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}"},
-        request_parameter_in={"project", "location"},
-        response_path="executions",
-        response_regional_sub_path=None,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
@@ -2597,19 +2571,6 @@ class GcpVertexAIPipelineTaskDetail:
 @define(eq=False, slots=False)
 class GcpVertexAIContext:
     kind: ClassVar[str] = "gcp_vertex_ai_context"
-    _kind_display = ""
-    _kind_service = ""
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service="aiplatform",
-        version="v1",
-        service_with_region_prefix=True,
-        accessors=["projects", "locations", "metadataStores", "contexts"],
-        action="list",
-        request_parameter={"parent": "projects/{project}/locations/{region}"},
-        request_parameter_in={"project", "location"},
-        response_path="contexts",
-        response_regional_sub_path=None,
-    )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
         "tags": S("labels", default={}),
