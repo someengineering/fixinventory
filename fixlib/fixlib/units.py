@@ -11,10 +11,6 @@ reg.define("Mi = 1 MiB")
 reg.define("Ki = 1 KiB")
 reg.define("KB = 1000 B")
 
-# globally define or register units
-
-bytes_u: pint.Quantity = reg.byte
-
 
 def parse(s: str) -> pint.Quantity:
     return reg.parse_expression(s)
