@@ -12,7 +12,8 @@ from fix_plugin_gcp.resources import (
     storage,
     aiplatform,
     firestore,
-    filestore, cloudfunctions,
+    filestore,
+    cloudfunctions,
 )
 from fix_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from fix_plugin_gcp.utils import Credentials

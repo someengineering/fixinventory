@@ -525,10 +525,10 @@ apis = [
     # ("container", "v1", "Container", ["UsableSubnetwork"]),
     # ("sqladmin", "v1", "Sql", ["Tier"]),
     # ("cloudbilling", "v1", "", []),
-    # ("storage", "v1", "", []),,
-    # # # ("aiplatform", "v1", "", []),,
-    # # ("firestore", "v1", "", []),
-    ("cloudfunctions", "v2", "", [])
+    # ("storage", "v1", "", []),
+    # ("aiplatform", "v1", "", []),
+    # ("firestore", "v1", "", []),
+    # ("cloudfunctions", "v2", "", []),
     ("file", "v1", "", [])
 ]
 
