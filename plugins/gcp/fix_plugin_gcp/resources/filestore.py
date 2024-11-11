@@ -57,7 +57,7 @@ class GcpFilestoreBackup(GcpResource):
         "source_instance_tier": S("sourceInstanceTier"),
         "state": S("state"),
         "storage_bytes": S("storageBytes"),
-        "tags": S("tags"),
+        "tags": S("tags", default={}),
     }
     capacity_gb: Optional[str] = field(default=None)
     create_time: Optional[datetime] = field(default=None)
@@ -188,7 +188,7 @@ class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
     _reference_kinds: ClassVar[ModelReference] = {
         "successors": {
             "default": [
-                "gcp_filestore_snapshot",
+                "gcp_filestore_instance_snapshot",
             ],
         },
     }
@@ -227,7 +227,7 @@ class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
         "state": S("state"),
         "status_message": S("statusMessage"),
         "suspension_reasons": S("suspensionReasons", default=[]),
-        "tags": S("tags"),
+        "tags": S("tags", default={}),
         "tier": S("tier"),
     }
     configurable_performance_enabled: Optional[bool] = field(default=None)
@@ -283,21 +283,21 @@ class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
                 spec.service,
                 graph_builder.region.safe_name if graph_builder.region else None,
                 set(),
-                f" in {graph_builder.project.id} kind {GcpFilestoreSnapshot.kind}",
+                f" in {graph_builder.project.id} kind {GcpFilestoreInstanceSnapshot.kind}",
             ):
                 items = graph_builder.client.list(spec)
-                snapshots = GcpFilestoreSnapshot.collect(items, graph_builder)
+                snapshots = GcpFilestoreInstanceSnapshot.collect(items, graph_builder)
                 for snapshot in snapshots:
                     graph_builder.add_edge(self, node=snapshot)
-                log.info(f"[GCP:{graph_builder.project.id}] finished collecting: {GcpFilestoreSnapshot.kind}")
+                log.info(f"[GCP:{graph_builder.project.id}] finished collecting: {GcpFilestoreInstanceSnapshot.kind}")
 
         graph_builder.submit_work(collect_snapshots)
 
 
 @define(eq=False, slots=False)
-class GcpFilestoreSnapshot(GcpResource):
+class GcpFilestoreInstanceSnapshot(GcpResource):
     # collected via GcpFilestoreInstance()
-    kind: ClassVar[str] = "gcp_filestore_snapshot"
+    kind: ClassVar[str] = "gcp_filestore_instance_snapshot"
     _kind_display: ClassVar[str] = "GCP Filestore Snapshot"
     _kind_description: ClassVar[str] = (
         "GCP Filestore Snapshot is a point-in-time copy of a Filestore instance, allowing you to restore"
@@ -317,11 +317,11 @@ class GcpFilestoreSnapshot(GcpResource):
         "create_time": S("createTime"),
         "filesystem_used_bytes": S("filesystemUsedBytes"),
         "state": S("state"),
-        "tags": S("tags"),
+        "tags": S("tags", default={}),
     }
     create_time: Optional[datetime] = field(default=None)
     filesystem_used_bytes: Optional[str] = field(default=None)
     state: Optional[str] = field(default=None)
 
 
-resources: List[Type[GcpResource]] = [GcpFilestoreBackup, GcpFilestoreInstance, GcpFilestoreSnapshot]
+resources: List[Type[GcpResource]] = [GcpFilestoreBackup, GcpFilestoreInstance, GcpFilestoreInstanceSnapshot]
