@@ -29,7 +29,6 @@ from typing import (
     Optional,
     Any,
     AsyncIterator,
-    Iterable,
     Callable,
     Awaitable,
     cast,
@@ -46,9 +45,6 @@ import jq
 import yaml
 from aiofiles.tempfile import TemporaryDirectory
 from aiohttp import ClientTimeout, JsonPayload, BasicAuth
-from aiostream import stream, pipe
-from aiostream.aiter_utils import is_async_iterable
-from aiostream.core import Stream
 from attr import evolve, frozen
 from attrs import define, field
 from dateutil import parser as date_parser
@@ -178,6 +174,7 @@ from fixcore.web.content_renderer import (
     respond_cytoscape,
 )
 from fixcore.worker_task_queue import WorkerTask, WorkerTaskName
+from fixlib.asynchronous.stream import Stream
 from fixlib.core import CLIEnvelope
 from fixlib.durations import parse_duration
 from fixlib.parse_util import (
@@ -946,14 +943,13 @@ class AggregateCommand(SearchCLIPart):
             return result
 
         async def aggregate_data(content: JsStream) -> AsyncIterator[JsonElement]:
-            async with content.stream() as in_stream:
-                for key, value in (await self.aggregate_in(in_stream, var_names, aggregate.group_func)).items():
-                    entry: Json = {"group": group(key)}
-                    for fn_name, (fn_val, fn_count) in value.fn_values.items():
-                        if fn_by_name.get(fn_name) == "avg" and fn_val is not None and fn_count > 0:
-                            fn_val = fn_val / fn_count  # type: ignore
-                        entry[fn_name] = fn_val
-                    yield entry
+            for key, value in (await self.aggregate_in(content, var_names, aggregate.group_func)).items():
+                entry: Json = {"group": group(key)}
+                for fn_name, (fn_val, fn_count) in value.fn_values.items():
+                    if fn_by_name.get(fn_name) == "avg" and fn_val is not None and fn_count > 0:
+                        fn_val = fn_val / fn_count  # type: ignore
+                    entry[fn_name] = fn_val
+                yield entry
 
         # noinspection PyTypeChecker
         return CLIFlow(aggregate_data)
@@ -1000,7 +996,7 @@ class HeadCommand(SearchCLIPart):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         size = self.parse_size(arg)
-        return CLIFlow(lambda in_stream: in_stream | pipe.take(size))
+        return CLIFlow(lambda in_stream: Stream(in_stream).take(size))
 
     def args_info(self) -> ArgsInfo:
         return [ArgInfo(expects_value=True, help_text="number of elements to take")]
@@ -1054,7 +1050,7 @@ class TailCommand(SearchCLIPart):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         size = HeadCommand.parse_size(arg)
-        return CLIFlow(lambda in_stream: in_stream | pipe.takelast(size))
+        return CLIFlow(lambda in_stream: Stream(in_stream).take_last(size))
 
 
 class CountCommand(SearchCLIPart):
@@ -1145,9 +1141,8 @@ class CountCommand(SearchCLIPart):
         fn = inc_prop if arg else inc_identity
 
         async def count_in_stream(content: JsStream) -> AsyncIterator[JsonElement]:
-            async with content.stream() as in_stream:
-                async for element in in_stream:
-                    fn(element)
+            async for element in content:
+                fn(element)
 
             for key, value in sorted(counter.items(), key=lambda x: x[1]):
                 yield f"{key}: {value}"
@@ -1194,7 +1189,7 @@ class EchoCommand(CLICommand):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
         return CLISource.single(
-            lambda: stream.just(strip_quotes(arg if arg else "")), required_permissions={Permission.read}
+            lambda: Stream.just(strip_quotes(arg if arg else "")), required_permissions={Permission.read}
         )
 
 
@@ -1256,7 +1251,7 @@ class JsonCommand(CLICommand):
         else:
             raise AttributeError(f"json does not understand {arg}.")
         return CLISource.with_count(
-            lambda: stream.iterate(elements), len(elements), required_permissions={Permission.read}
+            lambda: Stream.iterate(elements), len(elements), required_permissions={Permission.read}
         )
 
 
@@ -1339,19 +1334,17 @@ class AggregateToCountCommand(CLICommand, InternalPart):
         async def to_count(in_stream: JsStream) -> AsyncIterator[JsonElement]:
             null_value = 0
             total = 0
-            in_streamer = in_stream if isinstance(in_stream, Stream) else stream.iterate(in_stream)
-            async with in_streamer.stream() as streamer:
-                async for elem in streamer:
-                    name = js_value_at(elem, name_path)
-                    count = js_value_get(elem, count_path, 0)
-                    if name is None:
-                        null_value = count
-                    else:
-                        total += count
-                        yield f"{name}: {count}"
-                tm, tu = (total, null_value) if arg else (null_value + total, 0)
-                yield f"total matched: {tm}"
-                yield f"total unmatched: {tu}"
+            async for elem in in_stream:
+                name = js_value_at(elem, name_path)
+                count = js_value_get(elem, count_path, 0)
+                if name is None:
+                    null_value = count
+                else:
+                    total += count
+                    yield f"{name}: {count}"
+            tm, tu = (total, null_value) if arg else (null_value + total, 0)
+            yield f"total matched: {tm}"
+            yield f"total unmatched: {tu}"
 
         return CLIFlow(to_count)
 
@@ -1550,7 +1543,7 @@ class EnvCommand(CLICommand):
         return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLISource:
-        return CLISource.with_count(lambda: stream.just(ctx.env), len(ctx.env), required_permissions={Permission.read})
+        return CLISource.with_count(lambda: Stream.just(ctx.env), len(ctx.env), required_permissions={Permission.read})
 
 
 class ChunkCommand(CLICommand):
@@ -1599,7 +1592,10 @@ class ChunkCommand(CLICommand):
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
         size = int(arg) if arg else 100
-        return CLIFlow(lambda in_stream: in_stream | pipe.chunks(size), required_permissions={Permission.read})
+        return CLIFlow(
+            lambda in_stream: Stream(in_stream).chunks(size),
+            required_permissions={Permission.read},
+        )
 
 
 class FlattenCommand(CLICommand):
@@ -1646,13 +1642,7 @@ class FlattenCommand(CLICommand):
         return []
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIFlow:
-        def iterable(it: Any) -> bool:
-            return False if isinstance(it, str) else isinstance(it, Iterable)
-
-        def iterate(it: Any) -> JsGen:
-            return stream.iterate(it) if is_async_iterable(it) or iterable(it) else stream.just(it)
-
-        return CLIFlow(lambda i: i | pipe.flatmap(iterate), required_permissions={Permission.read})  # type: ignore
+        return CLIFlow(lambda i: Stream(i).flatten(), required_permissions={Permission.read})
 
 
 class UniqCommand(CLICommand):
@@ -1709,7 +1699,7 @@ class UniqCommand(CLICommand):
                 visited.add(item)
                 return True
 
-        return CLIFlow(lambda in_stream: stream.filter(in_stream, has_not_seen), required_permissions={Permission.read})
+        return CLIFlow(lambda in_stream: Stream(in_stream).filter(has_not_seen), required_permissions={Permission.read})
 
 
 class JqCommand(CLICommand, OutputTransformer):
@@ -1809,7 +1799,7 @@ class JqCommand(CLICommand, OutputTransformer):
             result = out[0] if len(out) == 1 else out
             return cast(Json, result)
 
-        return CLIFlow(lambda i: i | pipe.map(process), required_permissions={Permission.read})  # type: ignore
+        return CLIFlow(lambda i: Stream(i).map(process), required_permissions={Permission.read})
 
 
 class KindsCommand(CLICommand, PreserveOutputFormat):
@@ -1962,16 +1952,16 @@ class KindsCommand(CLICommand, PreserveOutputFormat):
                 result: JsonElement = (
                     kind_to_js(model, model[kind]) if kind in model else f"No kind with this name: {kind}"
                 )
-                return 1, stream.just(result)
+                return 1, Stream.just(result)
             elif args.property_path:
                 no_section = Section.without_section(args.property_path)
                 result = kind_to_js(model, model.kind_by_path(no_section))
                 if appears_in := property_defined_in(model, no_section):
                     result["appears_in"] = appears_in
-                return 1, stream.just(result)
+                return 1, Stream.just(result)
             else:
                 result = sorted([k.fqn for k in model.kinds.values() if isinstance(k, ComplexKind) and show(k)])
-                return len(model.kinds), stream.iterate(result)
+                return len(model.kinds), Stream.iterate(result)
 
         return CLISource.only_count(source, required_permissions={Permission.read})
 
@@ -1986,7 +1976,8 @@ class SetDesiredStateBase(CLICommand, EntityProvider, ABC):
         buffer_size = 1000
         func = partial(self.set_desired, arg, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(
-            lambda i: i | pipe.chunks(buffer_size) | pipe.flatmap(func), required_permissions={Permission.write}
+            lambda i: Stream(i).chunks(buffer_size).flatmap(func, task_limit=10, ordered=False),
+            required_permissions={Permission.write},
         )
 
     async def set_desired(
@@ -2124,7 +2115,8 @@ class SetMetadataStateBase(CLICommand, EntityProvider, ABC):
         buffer_size = 1000
         func = partial(self.set_metadata, ctx.graph_name, self.patch(arg, ctx))
         return CLIFlow(
-            lambda i: i | pipe.chunks(buffer_size) | pipe.flatmap(func), required_permissions={Permission.write}
+            lambda i: Stream(i).chunks(buffer_size).flatmap(func, task_limit=10, ordered=False),
+            required_permissions={Permission.write},
         )
 
     async def set_metadata(self, graph_name: GraphName, patch: Json, items: List[Json]) -> AsyncIterator[JsonElement]:
@@ -2331,9 +2323,8 @@ class FormatCommand(CLICommand, OutputTransformer):
             use = next(iter(format_to_use))
 
         async def render_single(converter: ConvertFn, iss: JsStream) -> JsGen:
-            async with iss.stream() as streamer:
-                async for elem in converter(streamer):
-                    yield elem
+            async for elem in converter(iss):
+                yield elem
 
         async def format_stream(in_stream: JsStream) -> JsGen:
             if use:
@@ -2344,7 +2335,7 @@ class FormatCommand(CLICommand, OutputTransformer):
                 else:
                     raise ValueError(f"Unknown format: {use}")
             elif formatting_string:
-                return in_stream | pipe.map(ctx.formatter(arg)) if arg else in_stream  # type: ignore
+                return in_stream.map(ctx.formatter(arg)) if arg else in_stream  # type: ignore
             else:
                 return in_stream
 
@@ -2817,14 +2808,13 @@ class ListCommand(CLICommand, OutputTransformer):
             header_values = [prop.name for prop in props]
             yield to_csv_string(header_values)
 
-            async with in_stream.stream() as s:
-                async for elem in s:
-                    if is_node(elem) or is_aggregate:
-                        result = []
-                        for prop in props:
-                            value = prop.value(elem)
-                            result.append(value)
-                        yield to_csv_string(result)
+            async for elem in in_stream:
+                if is_node(elem) or is_aggregate:
+                    result = []
+                    for prop in props:
+                        value = prop.value(elem)
+                        result.append(value)
+                    yield to_csv_string(result)
 
         async def json_table_stream(in_stream: JsStream, model: QueryModel) -> JsGen:
             def kind_of(path: str) -> Kind:
@@ -2857,13 +2847,12 @@ class ListCommand(CLICommand, OutputTransformer):
                 ],
             }
             # data columns
-            async with in_stream.stream() as s:
-                async for elem in s:
-                    if isinstance(elem, dict) and (is_node(elem) or is_aggregate):
-                        yield {
-                            "id": None if is_aggregate else elem["id"],  # aggregates have no id
-                            "row": {prop.name: render_prop(prop.value(elem)) for prop in props},
-                        }
+            async for elem in in_stream:
+                if isinstance(elem, dict) and (is_node(elem) or is_aggregate):
+                    yield {
+                        "id": None if is_aggregate else elem["id"],  # aggregates have no id
+                        "row": {prop.name: render_prop(prop.value(elem)) for prop in props},
+                    }
 
         def markdown_stream(in_stream: JsStream) -> JsGen:
             chunk_size = 500
@@ -2922,12 +2911,11 @@ class ListCommand(CLICommand, OutputTransformer):
 
             # noinspection PyUnresolvedReferences
             markdown_chunks = (
-                in_stream
-                | pipe.filter(lambda x: is_node(x) or is_aggregate)
-                | pipe.map(extract_values)  # type: ignore
-                | pipe.chunks(chunk_size)
-                | pipe.enumerate()
-                | pipe.flatmap(generate_markdown)  # type: ignore
+                in_stream.filter(lambda x: is_node(x) or is_aggregate)
+                .map(extract_values)
+                .chunks(chunk_size)
+                .enumerate()
+                .flatmap(generate_markdown)
             )
 
             return markdown_chunks
@@ -2943,12 +2931,9 @@ class ListCommand(CLICommand, OutputTransformer):
                     model = await self.dependencies.model_handler.load_model(ctx.graph_name)
                     return QueryModel(ctx.query or Query.empty(), model, ctx.env)
 
-                return stream.call(load_model) | pipe.flatmap(partial(json_table_stream, in_stream))  # type: ignore
+                return Stream.call(load_model).flatmap(partial(json_table_stream, in_stream))  # type: ignore
             else:
-                return stream.map(
-                    in_stream,
-                    lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem),  # type: ignore
-                )
+                return Stream(in_stream).map(lambda elem: fmt_json(elem) if isinstance(elem, dict) else str(elem))
 
         return CLIFlow(fmt, produces=MediaType.String, required_permissions={Permission.read})
 
@@ -3208,7 +3193,7 @@ class JobsCommand(CLICommand, PreserveOutputFormat):
 
         async def running_jobs() -> Tuple[int, JsStream]:
             tasks = await self.dependencies.task_handler.running_tasks()
-            return len(tasks), stream.iterate(
+            return len(tasks), Stream.iterate(
                 {"job": t.descriptor.id, "started_at": to_json(t.task_started_at), "task-id": t.id}
                 for t in tasks
                 if isinstance(t.descriptor, Job)
@@ -3271,7 +3256,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
                 await self.dependencies.forked_tasks.put((result_task, f"WorkerTask {task_name}:{task.id}"))
                 return f"Spawned WorkerTask {task_name}:{task.id}"
 
-        return in_stream | pipe.starmap(send_to_queue, ordered=False, task_limit=self.task_limit())  # type: ignore
+        return in_stream.starmap(send_to_queue, ordered=False, task_limit=self.task_limit())
 
     def load_by_id_merged(
         self,
@@ -3307,7 +3292,7 @@ class SendWorkerTaskCommand(CLICommand, ABC):
                     async for a in crs:
                         yield a
 
-        return stream.chunks(in_stream, 1000) | pipe.flatmap(load_element)  # type: ignore
+        return in_stream.chunks(1000).flatmap(load_element, task_limit=10)
 
     async def no_update(self, _: WorkerTask, future_result: Future[Json]) -> Json:
         return await future_result
@@ -3448,17 +3433,17 @@ class ExecuteTaskCommand(SendWorkerTaskCommand, InternalPart):
             def with_dependencies(model: Model) -> JsStream:
                 load = self.load_by_id_merged(model, in_stream, variables, allowed_on_kind, **ctx.env)
                 handler = self.update_node_in_graphdb(model, **ctx.env) if expect_node_result else self.no_update
-                return self.send_to_queue_stream(load | pipe.map(fn), handler, True)  # type: ignore
+                return self.send_to_queue_stream(load.map(fn), handler, True)  # type: ignore
 
             # dependencies are not resolved directly (no async function is allowed here)
             async def load_model() -> Model:
                 return await self.dependencies.model_handler.load_model(ctx.graph_name)
 
-            return stream.call(load_model) | pipe.flatmap(with_dependencies)  # type: ignore
+            return Stream.call(load_model).flatmap(with_dependencies)  # type: ignore
 
         def setup_source() -> JsStream:
             arg = {"args": args_parts_unquoted_parser.parse(formatter({}))}
-            return self.send_to_queue_stream(stream.just((command_name, {}, arg)), self.no_update, True)
+            return self.send_to_queue_stream(Stream.just((command_name, {}, arg)), self.no_update, True)
 
         return (
             CLISource.single(setup_source, required_permissions={Permission.write})
@@ -3575,13 +3560,13 @@ class TagCommand(SendWorkerTaskCommand):
             def with_dependencies(model: Model) -> JsStream:
                 load = self.load_by_id_merged(model, in_stream, variables, **ctx.env)
                 result_handler = self.update_node_in_graphdb(model, **ctx.env)
-                return self.send_to_queue_stream(load | pipe.map(fn), result_handler, not ns.nowait)  # type: ignore
+                return self.send_to_queue_stream(load.map(fn), result_handler, not ns.nowait)  # type: ignore
 
             async def load_model() -> Model:
                 return await self.dependencies.model_handler.load_model(ctx.graph_name)
 
             # dependencies are not resolved directly (no async function is allowed here)
-            return stream.call(load_model) | pipe.flatmap(with_dependencies)  # type: ignore
+            return Stream.call(load_model).flatmap(with_dependencies)  # type: ignore
 
         return CLIFlow(setup_stream, required_permissions={Permission.write})
 
@@ -3594,7 +3579,7 @@ class FileCommand(CLICommand, InternalPart):
             elif not os.path.exists(arg):
                 raise AttributeError(f"file does not exist: {arg}!")
             else:
-                return stream.just(arg if arg else "")
+                return Stream.just(arg if arg else "")
 
         return CLISource.single(file_command, MediaType.FilePath, required_permissions={Permission.admin})
 
@@ -3618,7 +3603,7 @@ class UploadCommand(CLICommand, InternalPart):
         def upload_command() -> JsStream:
             if file_id in ctx.uploaded_files:
                 file = ctx.uploaded_files[file_id]
-                return stream.just(f"Received file {file} of size {os.path.getsize(file)}")
+                return Stream.just(f"Received file {file} of size {os.path.getsize(file)}")
             else:
                 raise AttributeError(f"file was not uploaded: {arg}!")
 
@@ -3932,19 +3917,17 @@ class WriteCommand(CLICommand, NoTerminalOutput):
         async with TemporaryDirectory() as temp_dir:
             path = file_name if ctx.intern else os.path.join(temp_dir, uuid_str())
             async with aiofiles.open(path, "w") as f:
-                async with in_stream.stream() as streamer:
-                    async for out in streamer:
-                        if isinstance(out, str):
-                            await f.write(out + "\n")
-                        else:
-                            raise AttributeError("No output format is defined! Consider to use the format command.")
+                async for out in in_stream:
+                    if isinstance(out, str):
+                        await f.write(out + "\n")
+                    else:
+                        raise AttributeError("No output format is defined! Consider to use the format command.")
             yield FilePath.user_local(user=file_name, local=path).json()
 
     @staticmethod
     async def already_file_stream(in_stream: JsStream, file_name: str) -> AsyncIterator[JsonElement]:
-        async with in_stream.stream() as streamer:
-            async for out in streamer:
-                yield evolve(FilePath.from_path(out), user=Path(file_name)).json()
+        async for out in in_stream:
+            yield evolve(FilePath.from_path(out), user=Path(file_name)).json()
 
     def parse(self, arg: Optional[str] = None, ctx: CLIContext = EmptyContext, **kwargs: Any) -> CLIAction:
         if arg is None:
@@ -4040,7 +4023,7 @@ class TemplatesCommand(CLICommand, PreserveOutputFormat):
 
         async def list_templates() -> Tuple[int, Stream[str]]:
             templates = await self.dependencies.template_expander.list_templates()
-            return len(templates), stream.iterate(template_str(t) for t in templates)
+            return len(templates), Stream.iterate(template_str(t) for t in templates)
 
         async def put_template(name: str, template_query: str) -> AsyncIterator[str]:
             # try to render_console the template with dummy values and see if the search can be parsed
@@ -4283,10 +4266,9 @@ class HttpCommand(CLICommand):
 
         async def iterate_stream(in_stream: JsStream) -> AsyncIterator[JsonElement]:
             results: Dict[int, int] = defaultdict(lambda: 0)
-            async with in_stream.stream() as streamer:
-                async for elem in streamer:
-                    status_code = await perform_request(elem)
-                    results[status_code] += 1
+            async for elem in in_stream:
+                status_code = await perform_request(elem)
+                results[status_code] += 1
             summary = ", ".join(f"{count} requests with status {status}" for status, count in results.items())
             if results:
                 yield f"{summary} sent."
@@ -4514,18 +4496,18 @@ class WorkflowsCommand(CLICommand):
                     **progress,
                 }
 
-            return len(tasks), stream.iterate(info(t) for t in tasks if isinstance(t.descriptor, Workflow))
+            return len(tasks), Stream.iterate(info(t) for t in tasks if isinstance(t.descriptor, Workflow))
 
         async def show_log(wf_id: str) -> Tuple[int, JsStream]:
             rtd = await self.dependencies.db_access.running_task_db.get(wf_id)
             if rtd:
                 messages = [msg.info() for msg in rtd.info_messages()]
                 if messages:
-                    return len(messages), stream.iterate(messages)
+                    return len(messages), Stream.iterate(messages)
                 else:
-                    return 0, stream.just("No error messages for this run.")
+                    return 0, Stream.just("No error messages for this run.")
             else:
-                return 0, stream.just(f"No workflow task with this id: {wf_id}")
+                return 0, Stream.just(f"No workflow task with this id: {wf_id}")
 
         def running_task_data(rtd: RunningTaskData) -> Json:
             result = {
@@ -4539,7 +4521,7 @@ class WorkflowsCommand(CLICommand):
 
         async def history_aggregation() -> JsStream:
             info = await self.dependencies.db_access.running_task_db.aggregated_history()
-            return stream.just(info)
+            return Stream.just(info)
 
         async def history_of(history_args: List[str]) -> Tuple[int, JsStream]:
             parser = NoExitArgumentParser()
@@ -4558,7 +4540,7 @@ class WorkflowsCommand(CLICommand):
             )
             cursor: AsyncCursor = context.cursor
             try:
-                return cursor.count() or 0, stream.map(cursor, running_task_data)  # type: ignore
+                return cursor.count() or 0, Stream(cursor).map(running_task_data)
             finally:
                 cursor.close()
 
@@ -4591,7 +4573,7 @@ class WorkflowsCommand(CLICommand):
             return CLISource.only_count(list_workflows, required_permissions={Permission.read})
         else:
             return CLISource.single(
-                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
+                lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
             )
 
 
@@ -4763,7 +4745,7 @@ class ConfigsCommand(CLICommand):
 
         async def list_configs() -> Tuple[int, JsStream]:
             ids = [i async for i in self.dependencies.config_handler.list_config_ids()]
-            return len(ids), stream.iterate(ids)
+            return len(ids), Stream.iterate(ids)
 
         args = re.split("\\s+", arg, maxsplit=2) if arg else []
         if arg and len(args) == 2 and (args[0] == "show" or args[0] == "get"):
@@ -4800,7 +4782,7 @@ class ConfigsCommand(CLICommand):
             return CLISource.only_count(list_configs, required_permissions={Permission.read})
         else:
             return CLISource.single(
-                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
+                lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
             )
 
 
@@ -4889,7 +4871,7 @@ class WelcomeCommand(CLICommand, InternalPart):
             res = ctx.render_console(grid)
             return res
 
-        return CLISource.single(lambda: stream.just(welcome()), required_permissions={Permission.read})  # type: ignore
+        return CLISource.single(lambda: Stream.just(welcome()), required_permissions={Permission.read})
 
 
 class TipOfTheDayCommand(CLICommand):
@@ -4926,7 +4908,7 @@ class TipOfTheDayCommand(CLICommand):
             res = ctx.render_console(info)
             return res
 
-        return CLISource.single(lambda: stream.just(totd()), required_permissions={Permission.read})  # type: ignore
+        return CLISource.single(lambda: Stream.just(totd()), required_permissions={Permission.read})
 
 
 class CertificateCommand(CLICommand):
@@ -5004,7 +4986,7 @@ class CertificateCommand(CLICommand):
             )
         else:
             return CLISource.single(
-                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
+                lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
             )
 
 
@@ -5435,9 +5417,8 @@ class AppsCommand(CLICommand):
                 raise ValueError(f"Config {config} not found.")
 
             async def stream_to_iterator() -> AsyncIterator[JsonElement]:
-                async with in_stream.stream() as streamer:
-                    async for item in streamer:
-                        yield item
+                async for item in in_stream:
+                    yield item
 
             stdin = stream_to_iterator()
             if dry_run:
@@ -5531,7 +5512,7 @@ class AppsCommand(CLICommand):
                 return CLISource.no_count(
                     partial(
                         app_run,
-                        in_stream=stream.empty(),
+                        in_stream=Stream.empty(),
                         app_name=InfraAppName(parsed.app_name),
                         dry_run=parsed.dry_run,
                         config=parsed.config,
@@ -5552,7 +5533,7 @@ class AppsCommand(CLICommand):
                 )
         else:
             return CLISource.single(
-                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
+                lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
             )
 
 
@@ -5757,7 +5738,7 @@ class UserCommand(CLICommand):
             return CLISource.no_count(partial(self.show_user, args[1]), required_permissions={Permission.read})
         else:
             return CLISource.single(
-                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
+                lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
             )
 
 
@@ -5950,7 +5931,7 @@ class GraphCommand(CLICommand):
 
         else:
             return CLISource.single(
-                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
+                lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
             )
 
 
@@ -6102,7 +6083,7 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     async with await graph_db.search_graph_gen(
                         QueryModel(query, fix_model, ctx.env), timeout=timedelta(weeks=200000)
                     ) as cursor:
-                        await sync_fn(query=query, in_stream=stream.iterate(cursor))
+                        await sync_fn(query=query, in_stream=Stream.iterate(cursor))
 
                 if file_output is not None:
                     assert p.database, "No database name provided. Use the --database <name> argument."
@@ -6160,11 +6141,10 @@ class DbCommand(CLICommand, PreserveOutputFormat):
                     kind_by_id[node["id"]] = node["reported"]["kind"]
                     return cast(str, node["reported"]["kind"])
 
-            async with in_stream.stream() as streamer:
-                batched = BatchStream(streamer, key_fn, engine_config.batch_size, engine_config.batch_size * 10)
-                await update_sql(
-                    engine_config, rcm, batched, edges, swap_temp_tables=True, drop_existing_tables=drop_existing_tables
-                )
+            batched = BatchStream(in_stream, key_fn, engine_config.batch_size, engine_config.batch_size * 10)
+            await update_sql(
+                engine_config, rcm, batched, edges, swap_temp_tables=True, drop_existing_tables=drop_existing_tables
+            )
 
         args = arg.split(maxsplit=1) if arg else []
         if len(args) == 2 and args[0] == "sync":
@@ -6339,16 +6319,16 @@ class TimeSeriesCommand(CLICommand):
 
         async def list_ts() -> Tuple[int, JsGen]:
             ts = await self.dependencies.db_access.time_series_db.list_time_series()
-            return len(ts), stream.iterate([to_js(a) for a in ts])
+            return len(ts), Stream.iterate([to_js(a) for a in ts])
 
         async def downsample() -> Tuple[int, JsGen]:
             ts = await self.dependencies.db_access.time_series_db.downsample()
             if isinstance(ts, str):
-                return 1, stream.just(ts)
+                return 1, Stream.just(ts)
             elif ts:
-                return len(ts), stream.iterate([{k: v} for k, v in ts.items()])
+                return len(ts), Stream.iterate([{k: v} for k, v in ts.items()])
             else:
-                return 1, stream.just("No time series to downsample.")
+                return 1, Stream.just("No time series to downsample.")
 
         args = re.split("\\s+", arg, maxsplit=1) if arg else []
         if arg and len(args) == 2 and args[0] == "snapshot":
@@ -6363,7 +6343,7 @@ class TimeSeriesCommand(CLICommand):
             return CLISource.only_count(downsample, required_permissions={Permission.read})
         else:
             return CLISource.single(
-                lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
+                lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read}
             )
 
 
@@ -6459,29 +6439,28 @@ class DetectSecretsCommand(CLICommand):
                     if r.startswith("True"):
                         yield el, secret
 
-        async def detect_secrets_in(content: JsStream) -> JsGen:
+        async def detect_secrets_in(in_stream: JsStream) -> JsGen:
             self.configure_detect()  # make sure all plugins are loaded
-            async with content.stream() as in_stream:
-                async for element in in_stream:
-                    paths = [p for pl in parsed.path for p in pl]
-                    paths = paths or [PropertyPath.from_list([ctx.section]) if is_node(element) else EmptyPath]
-                    found_secrets = False
-                    for path in paths:
-                        if to_check_js := path.value_in(element):
-                            for secret_string, possible_secret in walk_element(to_check_js):
-                                found_secrets = True
-                                if isinstance(element, dict):
-                                    element["info"] = {
-                                        "secret_detected": True,
-                                        "potential_secret": secret_string,
-                                        "secret_type": possible_secret.type,
-                                    }
-                                yield element
-                                break
-                        if found_secrets:
-                            break  # no need to check other paths
-                    if not found_secrets and not parsed.with_secrets:
-                        yield element
+            async for element in in_stream:
+                paths = [p for pl in parsed.path for p in pl]
+                paths = paths or [PropertyPath.from_list([ctx.section]) if is_node(element) else EmptyPath]
+                found_secrets = False
+                for path in paths:
+                    if to_check_js := path.value_in(element):
+                        for secret_string, possible_secret in walk_element(to_check_js):
+                            found_secrets = True
+                            if isinstance(element, dict):
+                                element["info"] = {
+                                    "secret_detected": True,
+                                    "potential_secret": secret_string,
+                                    "secret_type": possible_secret.type,
+                                }
+                            yield element
+                            break
+                    if found_secrets:
+                        break  # no need to check other paths
+                if not found_secrets and not parsed.with_secrets:
+                    yield element
 
         return CLIFlow(detect_secrets_in)
 
@@ -6535,7 +6514,7 @@ class RefineResourceDataCommand(CLICommand, InternalPart):
 
         def setup_stream(in_stream: JsStream) -> JsStream:
             def with_dependencies(model: Model) -> JsStream:
-                async def process_element(el: JsonElement) -> JsonElement:
+                def process_element(el: JsonElement) -> JsonElement:
                     if (
                         is_node(el)
                         and (fqn := value_in_path(el, NodePath.reported_kind))
@@ -6546,9 +6525,9 @@ class RefineResourceDataCommand(CLICommand, InternalPart):
                                 set_value_in_path(refinement.value, refinement.path, el)  # type: ignore
                     return el
 
-                return in_stream | pipe.map(process_element)  # type: ignore
+                return in_stream.map(process_element)
 
-            return stream.call(load_model) | pipe.flatmap(with_dependencies)  # type: ignore
+            return Stream.call(load_model).flatmap(with_dependencies)  # type: ignore
 
         return CLIFlow(setup_stream, required_permissions={Permission.read})
 
@@ -6590,7 +6569,7 @@ class NodeCommand(CLICommand):
                     fn=partial(delete_node, node_id=parsed.node_id, keep_history=parsed.keep_history),
                     required_permissions={Permission.write},
                 )
-        return CLISource.single(lambda: stream.just(self.rendered_help(ctx)), required_permissions={Permission.read})
+        return CLISource.single(lambda: Stream.just(self.rendered_help(ctx)), required_permissions={Permission.read})
 
 
 def all_commands(d: TenantDependencies) -> List[CLICommand]:

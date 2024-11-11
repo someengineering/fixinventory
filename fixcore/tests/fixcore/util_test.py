@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 
 import pytest
 import pytz
-from aiostream import stream
 
 from fixcore.util import (
     AccessJson,
@@ -21,6 +20,7 @@ from fixcore.util import (
     utc_str,
     parse_utc,
 )
+from fixlib.asynchronous.stream import Stream
 
 
 def not_in_path(name: str, *other: str) -> bool:
@@ -107,17 +107,9 @@ def test_del_value_in_path() -> None:
 
 @pytest.mark.asyncio
 async def test_async_gen() -> None:
-    async with stream.empty().stream() as empty:
-        async for _ in await force_gen(empty):
-            pass
-
-    with pytest.raises(Exception):
-        async with stream.throw(Exception(";)")).stream() as err:
-            async for _ in await force_gen(err):
-                pass
-
-    async with stream.iterate(range(0, 100)).stream() as elems:
-        assert [x async for x in await force_gen(elems)] == list(range(0, 100))
+    async for _ in await force_gen(Stream.empty()):
+        pass
+    assert [x async for x in await force_gen(Stream.iterate(range(0, 100)))] == list(range(0, 100))
 
 
 def test_deep_merge() -> None:
