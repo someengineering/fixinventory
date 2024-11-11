@@ -1,0 +1,28 @@
+{
+    "backups": [
+        {
+            "id": "projects/my-project/locations/us-central1/backups/backup-1",
+            "tags": {
+                "backupType": "daily"
+            },
+            "name": "backup-1",
+            "ctime": "2023-07-13T00:00:00.000Z",
+            "description": "Daily backup for disaster recovery",
+            "link": "https://www.googleapis.com/firestore/v1/projects/my-project/locations/us-central1/backups/backup-1",
+            "label_fingerprint": "abcd1234efgh5678",
+            "deprecation_status": {
+                "state": "ACTIVE"
+            },
+            "database_name": "projects/my-project/databases/(default)",
+            "database_uid": "db-uid-1234",
+            "expire_time": "2023-07-20T00:00:00.000Z",
+            "snapshot_time": "2023-07-13T00:00:00.000Z",
+            "state": "COMPLETED",
+            "backup_stats": {
+                "document_count": "5000",
+                "index_count": "15",
+                "size_bytes": "104857600"
+            }
+        }
+    ]
+}
