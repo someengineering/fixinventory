@@ -1,0 +1,159 @@
+{
+    "functions": [
+        {
+            "id": "projects/sample-project/locations/us-central1/functions/my-function",
+            "tags": {
+                "env": "production",
+                "version": "v1.0"
+            },
+            "name": "my-function",
+            "ctime": "2023-07-15T10:35:00Z",
+            "description": "This is a sample GCP cloud function for processing data.",
+            "link": "https://cloudfunctions.googleapis.com/v1/projects/sample-project/locations/us-central1/functions/my-function",
+            "label_fingerprint": "abc123fingerprint",
+            "deprecation_status": {
+                "state": "DEPRECATED",
+                "deleted": "2024-01-01T00:00:00Z"
+            },
+            "build_config": {
+                "automatic_update_policy": {
+                    "policyName": "autoUpdateEnabled"
+                },
+                "build": "gcr.io/sample-project/build-image:latest",
+                "docker_registry": "gcr.io",
+                "docker_repository": "sample-project-repo",
+                "entry_point": "main",
+                "environment_variables": {
+                    "VAR1": "value1",
+                    "VAR2": "value2"
+                },
+                "on_deploy_update_policy": "runtimeVersion",
+                "runtime": "nodejs16",
+                "service_account": "service-account@sample-project.iam.gserviceaccount.com",
+                "source": {
+                    "git_uri": "https://github.com/example/repo.git",
+                    "repo_source": {
+                        "branch_name": "main",
+                        "commit_sha": "abc123commitsha",
+                        "dir": "/src",
+                        "project_id": "sample-project",
+                        "repo_name": "example-repo",
+                        "tag_name": null
+                    },
+                    "storage_source": null
+                },
+                "source_provenance": {
+                    "git_uri": "https://github.com/example/repo.git",
+                    "resolved_repo_source": {
+                        "branch_name": "main",
+                        "commit_sha": "abc123commitsha",
+                        "dir": "/src",
+                        "project_id": "sample-project",
+                        "repo_name": "example-repo",
+                        "tag_name": null
+                    },
+                    "resolved_storage_source": null
+                },
+                "source_token": "token123",
+                "worker_pool": "projects/sample-project/workerPools/pool1"
+            },
+            "create_time": "2023-07-15T10:35:00Z",
+            "environment": "GEN_2",
+            "event_trigger": {
+                "channel": "projects/sample-project/topics/my-topic",
+                "event_filters": [
+                    {
+                        "attribute": "type",
+                        "operator": "=",
+                        "value": "google.cloud.pubsub.topic.publish"
+                    }
+                ],
+                "event_type": "google.pubsub.topic.publish",
+                "pubsub_topic": "projects/sample-project/topics/my-topic",
+                "retry_policy": "RETRY_POLICY_DEFAULT",
+                "service": "pubsub.googleapis.com",
+                "service_account_email": "service-account@sample-project.iam.gserviceaccount.com",
+                "trigger": "projects/sample-project/locations/us-central1/triggers/my-trigger",
+                "trigger_region": "us-central1"
+            },
+            "kms_key_name": "projects/sample-project/locations/us-central1/keyRings/my-key-ring/cryptoKeys/my-key",
+            "satisfies_pzs": true,
+            "service_config": {
+                "all_traffic_on_latest_revision": true,
+                "available_cpu": "2",
+                "available_memory": "512Mi",
+                "binary_authorization_policy": "ALLOW",
+                "environment_variables": {
+                    "SERVICE_ENV": "production"
+                },
+                "ingress_settings": "ALLOW_ALL",
+                "max_instance_count": 5,
+                "max_instance_request_concurrency": 1,
+                "min_instance_count": 1,
+                "revision": "my-function-rev1",
+                "secret_environment_variables": [
+                    {
+                        "key": "DB_PASSWORD",
+                        "project_id": "sample-project",
+                        "secret": "db-password",
+                        "version": "latest"
+                    }
+                ],
+                "secret_volumes": [
+                    {
+                        "mount_path": "/etc/secrets",
+                        "project_id": "sample-project",
+                        "secret": "config-secrets",
+                        "versions": [
+                            {
+                                "path": "config.json",
+                                "version": "1"
+                            }
+                        ]
+                    }
+                ],
+                "security_level": "SECURE",
+                "service": "my-function-service",
+                "service_account_email": "service-account@sample-project.iam.gserviceaccount.com",
+                "timeout_seconds": 300,
+                "uri": "https://us-central1-my-function.cloudfunctions.net/my-function",
+                "vpc_connector": "projects/sample-project/locations/us-central1/connectors/my-connector",
+                "vpc_connector_egress_settings": "ALL_TRAFFIC"
+            },
+            "state": "ACTIVE",
+            "state_messages": [
+                {
+                    "message": "Function deployed successfully.",
+                    "severity": "INFO",
+                    "type": "DEPLOYMENT_STATUS"
+                }
+            ],
+            "update_time": "2024-01-10T15:20:00Z",
+            "upgrade_info": {
+                "build_config": {
+                    "automatic_update_policy": {
+                        "policyName": "autoUpdateEnabled"
+                    },
+                    "build": "gcr.io/sample-project/build-image:latest",
+                    "docker_registry": "gcr.io",
+                    "docker_repository": "sample-project-repo",
+                    "entry_point": "main",
+                    "environment_variables": {
+                        "UPGRADE_VAR": "newValue"
+                    },
+                    "on_deploy_update_policy": "runtimeVersion",
+                    "runtime": "nodejs18",
+                    "service_account": "upgrade-service-account@sample-project.iam.gserviceaccount.com",
+                    "source": null,
+                    "source_provenance": null,
+                    "source_token": null,
+                    "worker_pool": null
+                },
+                "event_trigger": null,
+                "service_config": null,
+                "upgrade_state": "UPGRADE_AVAILABLE"
+            },
+            "url": "https://us-central1-my-function.cloudfunctions.net/my-function"
+        }
+    ]
+}
