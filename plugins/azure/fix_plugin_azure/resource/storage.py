@@ -27,7 +27,7 @@ from fixlib.baseresources import (
     ModelReference,
     PhantomBaseResource,
 )
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import Bender, S, ForallBend, Bend, AsBool
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -165,6 +165,8 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
         "public_access": S("properties", "publicAccess"),
         "remaining_retention_days": S("properties", "remainingRetentionDays"),
         "version": S("properties", "version"),
+        "encryption_enabled": S("properties", "defaultEncryptionScope") >> AsBool(),
+        "versioning_enabled": S("properties", "immutableStorageWithVersioning") >> AsBool(),
     }
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     default_encryption_scope: Optional[str] = field(default=None, metadata={'description': 'Default the container to use specified encryption scope for all writes.'})  # fmt: skip
@@ -186,10 +188,6 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
     public_access: Optional[str] = field(default=None, metadata={'description': 'Specifies whether data in the container may be accessed publicly and the level of access.'})  # fmt: skip
     remaining_retention_days: Optional[int] = field(default=None, metadata={'description': 'Remaining retention days for soft deleted blob container.'})  # fmt: skip
     version: Optional[str] = field(default=None, metadata={'description': 'The version of the deleted blob container.'})  # fmt: skip
-
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
-        self.encryption_enabled = bool(self.default_encryption_scope)
-        self.versioning_enabled = bool(self.blob_immutable_storage_with_versioning)
 
 
 @define(eq=False, slots=False)
