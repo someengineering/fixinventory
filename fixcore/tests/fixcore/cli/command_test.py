@@ -13,9 +13,9 @@ import yaml
 from _pytest.logging import LogCaptureFixture
 from aiohttp import ClientTimeout
 from aiohttp.web import Request
-from aiostream import stream, pipe
 from attrs import evolve
 from pytest import fixture
+
 from fixcore import version
 from fixcore.cli import is_node, JsStream, list_sink
 from fixcore.cli.cli import CLIService
@@ -48,6 +48,7 @@ from fixcore.types import JsonElement, Json
 from fixcore.user import UsersConfigId
 from fixcore.util import AccessJson, utc_str, utc
 from fixcore.worker_task_queue import WorkerTask
+from fixlib.asynchronous.stream import Stream
 from tests.fixcore.util_test import not_in_path
 
 
@@ -279,7 +280,7 @@ async def test_list_sink(cli: CLI, dependencies: TenantDependencies) -> None:
 async def test_flat_sink(cli: CLI) -> None:
     parsed = await cli.evaluate_cli_command("json [1,2,3] | dump; json [4,5,6] | dump; json [7,8,9] | dump")
     expected = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert await stream.list(stream.iterate((await p.execute())[1] for p in parsed) | pipe.concat()) == expected
+    assert expected == await Stream.iterate(await (await p.execute())[1].collect() for p in parsed).flatten().collect()  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -315,7 +316,7 @@ async def test_format(cli: CLI) -> None:
 async def test_workflows_command(cli: CLIService, task_handler: TaskHandlerService, test_workflow: Workflow) -> None:
     async def execute(cmd: str) -> List[JsonElement]:
         ctx = CLIContext(cli.cli_env)
-        return (await cli.execute_cli_command(cmd, list_sink, ctx))[0]  # type: ignore
+        return (await cli.execute_cli_command(cmd, list_sink, ctx))[0]
 
     assert await execute("workflows list") == ["sleep_workflow", "wait_for_collect_done", "test_workflow"]
     assert await execute("workflows show test_workflow") == [to_js(test_workflow)]
@@ -754,15 +755,14 @@ async def test_aggregation_to_count_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_system_backup_command(cli: CLI) -> None:
     async def check_backup(res: JsStream) -> None:
-        async with res.stream() as streamer:
-            only_one = True
-            async for s in streamer:
-                path = FilePath.from_path(s)
-                assert path.local.exists()
-                # backup should have size between 30k and 1500k (adjust size if necessary)
-                assert 30000 < path.local.stat().st_size < 1500000
-                assert only_one
-                only_one = False
+        only_one = True
+        async for s in res:
+            path = FilePath.from_path(s)
+            assert path.local.exists()
+            # backup should have size between 30k and 1500k (adjust size if necessary)
+            assert 30000 < path.local.stat().st_size < 1500000
+            assert only_one
+            only_one = False
 
     await cli.execute_cli_command("system backup create", check_backup)
 
@@ -781,10 +781,9 @@ async def test_system_restore_command(cli: CLI, tmp_directory: str) -> None:
     backup = os.path.join(tmp_directory, "backup")
 
     async def move_backup(res: JsStream) -> None:
-        async with res.stream() as streamer:
-            async for s in streamer:
-                path = FilePath.from_path(s)
-                os.rename(path.local, backup)
+        async for s in res:
+            path = FilePath.from_path(s)
+            os.rename(path.local, backup)
 
     await cli.execute_cli_command("system backup create", move_backup)
     ctx = CLIContext(uploaded_files={"backup": backup})
@@ -802,11 +801,10 @@ async def test_configs_command(cli: CLI, tmp_directory: str) -> None:
     config_file = os.path.join(tmp_directory, "config.yml")
 
     async def check_file_is_yaml(res: JsStream) -> None:
-        async with res.stream() as streamer:
-            async for s in streamer:
-                assert isinstance(s, str)
-                with open(s, "r") as file:
-                    yaml.safe_load(file.read())
+        async for s in res:
+            assert isinstance(s, str)
+            with open(s, "r") as file:
+                yaml.safe_load(file.read())
 
     # create a new config entry
     create_result = await cli.execute_cli_command("configs set test_config t1=1, t2=2, t3=3 ", list_sink)
@@ -865,19 +863,18 @@ async def test_templates_command(cli: CLI) -> None:
 @pytest.mark.asyncio
 async def test_write_command(cli: CLI) -> None:
     async def check_file(res: JsStream, check_content: Optional[str] = None) -> None:
-        async with res.stream() as streamer:
-            only_one = True
-            async for s in streamer:
-                fp = FilePath.from_path(s)
-                assert fp.local.exists() and fp.local.is_file()
-                assert 1 < fp.local.stat().st_size < 100000
-                assert fp.user.name.startswith("write_test")
-                assert only_one
-                only_one = False
-                if check_content:
-                    with open(fp.local, "r") as file:
-                        data = file.read()
-                        assert data == check_content
+        only_one = True
+        async for s in res:
+            fp = FilePath.from_path(s)
+            assert fp.local.exists() and fp.local.is_file()
+            assert 1 < fp.local.stat().st_size < 100000
+            assert fp.user.name.startswith("write_test")
+            assert only_one
+            only_one = False
+            if check_content:
+                with open(fp.local, "r") as file:
+                    data = file.read()
+                    assert data == check_content
 
     # result can be read as json
     await cli.execute_cli_command("search all limit 3 | format --json | write write_test.json ", check_file)
@@ -1095,14 +1092,12 @@ async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
 
 @pytest.mark.asyncio
 async def test_aggregate(dependencies: TenantDependencies) -> None:
-    in_stream = stream.iterate(
-        [{"a": 1, "b": 1, "c": 1}, {"a": 2, "b": 1, "c": 1}, {"a": 3, "b": 2, "c": 1}, {"a": 4, "b": 2, "c": 1}]
-    )
-
-    async def aggregate(agg_str: str) -> List[JsonElement]:  # type: ignore
+    async def aggregate(agg_str: str) -> List[JsonElement]:
+        in_stream = Stream.iterate(
+            [{"a": 1, "b": 1, "c": 1}, {"a": 2, "b": 1, "c": 1}, {"a": 3, "b": 2, "c": 1}, {"a": 4, "b": 2, "c": 1}]
+        )
         res = AggregateCommand(dependencies).parse(agg_str)
-        async with (await res.flow(in_stream)).stream() as flow:
-            return [s async for s in flow]
+        return [s async for s in (await res.flow(in_stream))]
 
     assert await aggregate("b as bla, c, r.d.f.name: sum(1) as count, min(a) as min, max(a) as max") == [
         {"group": {"bla": 1, "c": 1, "r.d.f.name": None}, "count": 2, "min": 1, "max": 2},
@@ -1161,11 +1156,10 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
         return cast(List[T], result[0])
 
     async def check_file_is_yaml(res: JsStream) -> None:
-        async with res.stream() as streamer:
-            async for s in streamer:
-                assert isinstance(s, str)
-                with open(s, "r") as file:
-                    yaml.safe_load(file.read())
+        async for s in res:
+            assert isinstance(s, str)
+            with open(s, "r") as file:
+                yaml.safe_load(file.read())
 
     # install a package
     assert "installed successfully" in (await execute("apps install cleanup-untagged", str))[0]
@@ -1235,7 +1229,7 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
 async def test_user(cli: CLI) -> None:
     async def execute(cmd: str) -> List[JsonElement]:
         all_results = await cli.execute_cli_command(cmd, list_sink)
-        return all_results[0]  # type: ignore
+        return all_results[0]
 
     # remove all existing users
     await cli.dependencies.config_handler.delete_config(UsersConfigId)
@@ -1355,10 +1349,9 @@ async def test_graph(cli: CLI, graph_manager: GraphManager, tmp_directory: str) 
     dump = os.path.join(tmp_directory, "dump")
 
     async def move_dump(res: JsStream) -> None:
-        async with res.stream() as streamer:
-            async for s in streamer:
-                fp = FilePath.from_path(s)
-                os.rename(fp.local, dump)
+        async for s in res:
+            fp = FilePath.from_path(s)
+            os.rename(fp.local, dump)
 
     # graph export works
     await cli.execute_cli_command("graph export graphtest dump", move_dump)
@@ -1387,28 +1380,27 @@ async def test_db(cli: CLI) -> None:
     ) -> Json:
         result: List[Json] = []
 
-        async def check(in_: JsStream) -> None:
-            async with in_.stream() as streamer:
-                async for s in streamer:
-                    assert isinstance(s, dict)
-                    path = FilePath.from_path(s)
-                    # open sqlite database
-                    conn = sqlite3.connect(path.local)
-                    c = conn.cursor()
-                    tables = {
-                        row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()
-                    }
-                    if expected_tables is not None:
-                        assert tables == expected_tables
-                    if expected_table_count is not None:
-                        assert len(tables) == expected_table_count
-                    if expected_table is not None:
-                        for table in tables:
-                            count = c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-                            assert expected_table(table, count), f"Table {table} has {count} rows"
-                    c.close()
-                    conn.close()
-                    result.append(s)
+        async def check(streamer: JsStream) -> None:
+            async for s in streamer:
+                assert isinstance(s, dict)
+                path = FilePath.from_path(s)
+                # open sqlite database
+                conn = sqlite3.connect(path.local)
+                c = conn.cursor()
+                tables = {
+                    row[0] for row in c.execute("SELECT tbl_name FROM sqlite_master WHERE type='table'").fetchall()
+                }
+                if expected_tables is not None:
+                    assert tables == expected_tables
+                if expected_table_count is not None:
+                    assert len(tables) == expected_table_count
+                if expected_table is not None:
+                    for table in tables:
+                        count = c.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                        assert expected_table(table, count), f"Table {table} has {count} rows"
+                c.close()
+                conn.close()
+                result.append(s)
 
         await cli.execute_cli_command(cmd, check)
         assert len(result) == 1

@@ -206,6 +206,7 @@ class AzureStorageAccountDeleted(MicrosoftResource, PhantomBaseResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
+        expected_error_codes={"ProviderError": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -1085,7 +1086,7 @@ class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=AzureBaseUsage._expected_error_codes,
+        expected_error_codes=AzureBaseUsage._expected_error_codes | {"SubscriptionNotFound": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("name", "value"),
