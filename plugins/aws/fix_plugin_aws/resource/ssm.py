@@ -383,6 +383,29 @@ class AwsSSMResourceCompliance(AwsResource, PhantomBaseResource):
     execution_summary: Optional[AwsSSMComplianceExecutionSummary] = field(default=None, metadata={"description": "A summary for the compliance item. The summary includes an execution ID, the execution type (for example, command), and the execution time."})  # fmt: skip
     compliance_details: Optional[Dict[str, str]] = field(default=None, metadata={"description": "A Key:Value tag combination for the compliance item."})  # fmt: skip
 
+    @classmethod
+    def collect_resources(cls, builder: GraphBuilder) -> None:
+        # Default behavior: in case the class has an ApiSpec, call the api and call collect.
+        log.debug(f"Collecting {cls.__name__} in region {builder.region.name}")
+        if spec := cls.api_spec:
+            try:
+                kwargs = spec.parameter or {}
+                items = builder.client.list(
+                    aws_service=spec.service,
+                    action=spec.api_action,
+                    result_name=spec.result_property,
+                    **kwargs,
+                )
+                cls.collect(items, builder)
+            except Boto3Error as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.error(msg, log)
+                raise
+            except Exception as e:
+                msg = f"Error while collecting {cls.__name__} in region {builder.region.name}: {e}"
+                builder.core_feedback.info(msg, log)
+                raise
+
     def parse_finding(self) -> Finding:
         title = self.title or ""
         severity = SEVERITY_MAPPING.get(self.severity or "", Severity.medium)
@@ -403,7 +426,7 @@ class AwsSSMResourceCompliance(AwsResource, PhantomBaseResource):
 
         def collect_compliance_items(jsons: List[Json]) -> None:
             spec = AwsApiSpec("ssm", "list-compliance-items", "ComplianceItems")
-            compliance_ids = [item["Id"] for item in jsons]
+            compliance_ids = [item["ResourceId"] for item in jsons]
             for result in builder.client.list(
                 aws_service="ssm",
                 action=spec.api_action,
