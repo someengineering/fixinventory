@@ -1099,6 +1099,7 @@ class QueueType(Enum):
     STANDARD = "standard"
     FIFO = "fifo"
 
+
 @define(eq=False, slots=False)
 class BaseQueue(BaseResource):
     kind: ClassVar[str] = "queue"
