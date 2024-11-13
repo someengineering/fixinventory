@@ -1472,7 +1472,7 @@ class BaseDNSZone(BaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.dns, Category.networking]
     private_zone: Optional[bool] = None
-    zone_resource_record_set_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
+    record_count: Optional[int] = field(default=None, metadata=dict(ignore_history=True))
 
 
 @define(eq=False, slots=False)

@@ -83,7 +83,7 @@ class AwsRoute53Zone(AwsResource, BaseDNSZone):
         "zone_config": S("Config") >> Bend(AwsRoute53ZoneConfig.mapping),
         "zone_linked_service": S("LinkedService") >> Bend(AwsRoute53LinkedService.mapping),
         "private_zone": S("Config", "PrivateZone"),
-        "zone_resource_record_set_count": S("ResourceRecordSetCount"),
+        "record_count": S("ResourceRecordSetCount"),
     }
     zone_caller_reference: Optional[str] = field(default=None)
     zone_config: Optional[AwsRoute53ZoneConfig] = field(default=None)

@@ -6800,7 +6800,7 @@ class AzureNetworkDNSZone(MicrosoftResource, BaseDNSZone):
             },
             default=False,
         ),
-        "zone_resource_record_set_count": S("properties", "maxNumberOfRecordSets"),
+        "record_count": S("properties", "maxNumberOfRecordSets"),
     }
     max_number_of_record_sets: Optional[int] = field(default=None, metadata={'description': 'The maximum number of record sets that can be created in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
     max_number_of_records_per_record_set: Optional[int] = field(default=None, metadata={'description': 'The maximum number of records per record set that can be created in this DNS zone. This is a read-only property and any attempt to set this value will be ignored.'})  # fmt: skip
