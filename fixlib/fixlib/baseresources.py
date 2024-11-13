@@ -1093,6 +1093,12 @@ class BaseBucket(BaseResource):
     versioning_enabled: Optional[bool] = None
 
 
+@unique
+class QueueType(Enum):
+    kind: ClassVar[str] = "queue_type"
+    STANDARD = "standard"
+    FIFO = "fifo"
+
 @define(eq=False, slots=False)
 class BaseQueue(BaseResource):
     kind: ClassVar[str] = "queue"
@@ -1100,10 +1106,8 @@ class BaseQueue(BaseResource):
     _kind_description: ClassVar[str] = "A storage queue."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
     _categories: ClassVar[List[Category]] = [Category.storage]
-    # Type of queue (e.g., standard, FIFO)
-    queue_type: Optional[str] = None
+    queue_type: Optional[QueueType] = None
     approximate_message_count: Optional[int] = None
-    # Message retention period in seconds
     message_retention_period: Optional[int] = None
 
 
@@ -1344,8 +1348,6 @@ class BaseUser(BaseResource):
     _kind_description: ClassVar[str] = "A user."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "user", "group": "access_control"}
     _categories: ClassVar[List[Category]] = [Category.access_control]
-    # Name associated with the user account
-    username: Optional[str] = None
 
 
 @define(eq=False, slots=False)
@@ -1391,7 +1393,7 @@ class BaseAccessKey(BaseResource):
     _kind_description: ClassVar[str] = "An access key."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
     _categories: ClassVar[List[Category]] = [Category.access_control, Category.security]
-    access_key_status: str = ""
+    access_key_status: Optional[str] = None
 
 
 @define(eq=False, slots=False)

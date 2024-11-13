@@ -15,6 +15,7 @@ from fixlib.baseresources import (
     ModelReference,
     PolicySource,
     PolicySourceKind,
+    QueueType,
 )
 from fixlib.graph import Graph
 from fixlib.json_bender import F, Bender, S, AsInt, AsBool, Bend, ParseJson, Sorted
@@ -130,10 +131,7 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
                 queue_attributes["QueueName"] = queue_url.rsplit("/", 1)[-1]
                 if instance := AwsSqsQueue.from_api(queue_attributes, builder):
                     builder.add_node(instance, queue_attributes)
-                    if instance.sqs_fifo_queue:
-                        instance.queue_type = "FIFO"
-                    else:
-                        instance.queue_type = "default"
+                    instance.queue_type = QueueType.FIFO if instance.sqs_fifo_queue else QueueType.STANDARD
                     builder.submit_work(service_name, add_tags, instance)
 
         def add_tags(queue: AwsSqsQueue) -> None:

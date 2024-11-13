@@ -320,7 +320,7 @@ class AzureStorageQueue(MicrosoftResource, BaseQueue):
         "tags": S("tags", default={}),
         "name": S("name"),
         "queue_metadata": S("properties", "metadata"),
-        "queue_type": K("default"),
+        "queue_type": K("standard"),
         "message_retention_period": K(7),
         "approximate_message_count": S("properties", "approximateMessageCount"),
     }
