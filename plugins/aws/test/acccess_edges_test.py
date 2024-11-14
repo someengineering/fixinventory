@@ -18,6 +18,8 @@ from fix_plugin_aws.access_edges import (
     FixStatementDetail,
     ActionToCheck,
     get_actions_matching_arn,
+    PrincipalTree,
+    ArnResourceValueKind
 )
 
 from fixlib.baseresources import PolicySourceKind, PolicySource, PermissionLevel
@@ -1017,3 +1019,251 @@ def test_compute_permissions_role_inline_policy_allow() -> None:
     assert s.source.kind == PolicySourceKind.principal
     assert s.source.uri == role.arn
     assert s.constraints == ("arn:aws:s3:::my-test-bucket",)
+
+
+def test_principal_tree_add_allow_all_wildcard() -> None:
+    """Test adding wildcard (*) permission to the principal tree."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    
+    tree._add_allow_all_wildcard(principal_arn)
+    
+    # Verify the wildcard partition exists
+    assert len(tree.partitions) == 1
+    partition = tree.partitions[0]
+    assert partition.value == "*"
+    assert partition.wildcard is True
+    assert principal_arn in partition.principal_arns
+
+
+def test_principal_tree_add_resource() -> None:
+    """Test adding a resource ARN to the principal tree."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    resource_arn = "arn:aws:s3:::my-bucket/my-object"
+    
+    tree._add_resource(resource_arn, principal_arn)
+    
+    # Verify the partition structure
+    assert len(tree.partitions) == 1
+    partition = tree.partitions[0]
+    assert partition.value == "aws"
+    assert not partition.wildcard
+    
+    # Verify service level
+    assert len(partition.children) == 1
+    service = partition.children[0]
+    assert service.value == "s3"
+    
+    # Verify region level
+    assert len(service.children) == 1
+    region = service.children[0]
+    assert region.value == "*"
+    assert region.wildcard
+    
+    # Verify account level
+    assert len(region.children) == 1
+    account = region.children[0]
+    assert account.value == "*"
+    assert account.wildcard
+    
+    # Verify resource level
+    assert len(account.children) == 1
+    resource = account.children[0]
+    assert resource.value == "my-bucket/my-object"
+    assert resource.kind == ArnResourceValueKind.Static
+    assert principal_arn in resource.principal_arns
+    assert not resource.not_resource
+
+
+def test_principal_tree_add_resource_with_wildcard() -> None:
+    """Test adding a resource ARN with wildcards to the principal tree."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    resource_arn = "arn:aws:s3:::my-bucket/*"
+    
+    tree._add_resource(resource_arn, principal_arn)
+    
+    # Verify the resource level has correct wildcard pattern
+    partition = tree.partitions[0]
+    service = partition.children[0]
+    region = service.children[0]
+    account = region.children[0]
+    resource = account.children[0]
+    
+    assert resource.value == "my-bucket/*"
+    assert resource.kind == ArnResourceValueKind.Pattern
+    assert principal_arn in resource.principal_arns
+
+
+def test_principal_tree_add_not_resource() -> None:
+    """Test adding a NotResource ARN to the principal tree."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    resource_arn = "arn:aws:s3:::my-bucket/private/*"
+    
+    tree._add_resource(resource_arn, principal_arn, nr=True)
+    
+    # Verify the NotResource flag is set correctly through the tree
+    partition = tree.partitions[0]
+    service = partition.children[0]
+    region = service.children[0]
+    account = region.children[0]
+    resource = account.children[0]
+    assert resource.not_resource
+
+
+def test_principal_tree_add_service() -> None:
+    """Test adding a service to the principal tree."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    service_prefix = "s3"
+    
+    tree._add_service(service_prefix, principal_arn)
+    
+    # Verify service is added under wildcard partition
+    assert len(tree.partitions) == 1
+    partition = tree.partitions[0]
+    assert partition.value == "*"
+    
+    assert len(partition.children) == 1
+    service = partition.children[0]
+    assert service.value == "s3"
+    assert principal_arn in service.principal_arns
+
+
+def test_principal_tree_add_principal_policy() -> None:
+    """Test adding a principal with policy documents to the principal tree."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    
+    policy_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["s3:GetObject"],
+                "Resource": "arn:aws:s3:::my-bucket/*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": ["s3:ListAllMyBuckets"],
+                "Resource": "*"
+            }
+        ]
+    }
+    
+    policy_doc = FixPolicyDocument(policy_json)
+    tree.add_principal(principal_arn, [policy_doc])
+    
+    # Verify both the specific resource and wildcard permissions are added
+    assert any(
+        p.value == "aws" and 
+        any(s.value == "s3" and
+            any(r.value == "*" and
+                any(a.value == "*" and
+                    any(res.value == "my-bucket/*"
+                        for res in a.children)
+                    for a in r.children)
+                for r in s.children)
+            for s in p.children)
+        for p in tree.partitions
+    )
+
+
+def test_principal_tree_list_principals() -> None:
+    """Test listing principals that have access to a given ARN."""
+    tree = PrincipalTree()
+    principal1 = "arn:aws:iam::123456789012:user/test-user1"
+    principal2 = "arn:aws:iam::123456789012:user/test-user2"
+    
+    # Add different types of permissions
+    policy_doc1 = FixPolicyDocument({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["s3:GetObject"],
+            "Resource": "arn:aws:s3:::my-bucket/*"
+        }]
+    })
+    
+    policy_doc2 = FixPolicyDocument({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["s3:ListAllMyBuckets"],
+            "Resource": "*"
+        }]
+    })
+    
+    tree.add_principal(principal1, [policy_doc1])
+    tree.add_principal(principal2, [policy_doc2])
+    
+    # Test specific resource access
+    resource_arn = ARN("arn:aws:s3:::my-bucket/test.txt")
+    matching_principals = tree.list_principals(resource_arn)
+    
+    assert principal1 in matching_principals  # Has specific access
+    assert principal2 in matching_principals  # Has wildcard access
+
+
+def test_principal_tree_add_multiple_statements() -> None:
+    """Test adding multiple statements for the same principal."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    
+    policy_doc = FixPolicyDocument({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["s3:GetObject"],
+                "Resource": "arn:aws:s3:::bucket1/*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": ["s3:PutObject"],
+                "Resource": "arn:aws:s3:::bucket2/*"
+            }
+        ]
+    })
+    
+    tree.add_principal(principal_arn, [policy_doc])
+    
+    # Test access to both buckets
+    bucket1_arn = ARN("arn:aws:s3:::bucket1/test.txt")
+    bucket2_arn = ARN("arn:aws:s3:::bucket2/test.txt")
+    
+    assert principal_arn in tree.list_principals(bucket1_arn)
+    assert principal_arn in tree.list_principals(bucket2_arn)
+
+
+def test_principal_tree_not_resource() -> None:
+    """Test NotResource handling in the principal tree."""
+    tree = PrincipalTree()
+    principal_arn = "arn:aws:iam::123456789012:user/test-user"
+    
+    policy_doc = FixPolicyDocument({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["s3:GetObject"],
+            "NotResource": ["arn:aws:s3:::private-bucket/*"]
+        }]
+    })
+    
+    tree.add_principal(principal_arn, [policy_doc])
+    
+    # Test access is denied to private bucket
+    private_arn = ARN("arn:aws:s3:::private-bucket/secret.txt")
+    public_arn = ARN("arn:aws:s3:::public-bucket/public.txt")
+    ec2 = ARN("arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0")
+    
+    matching_principals = tree.list_principals(private_arn)
+    assert principal_arn not in matching_principals
+    
+    matching_principals = tree.list_principals(public_arn)
+    assert principal_arn in matching_principals
+
+    matching_principals = tree.list_principals(ec2)
+    assert len(matching_principals) == 0

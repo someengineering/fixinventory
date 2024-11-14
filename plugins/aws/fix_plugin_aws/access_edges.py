@@ -1,4 +1,5 @@
 from enum import Enum
+import enum
 from functools import lru_cache
 from attr import frozen
 import networkx
@@ -88,6 +89,215 @@ class ActionToCheck:
     action_name: str
 
 
+class ArnResourceValueKind(enum.Enum):
+    Static = 1 # the segment is a fixed value, e.g. "s3", "vpc/vpc-0e9801d129EXAMPLE", 
+    Pattern = 2 # the segment is a pattern, e.g. "my_corporate_bucket/*",
+    Any = 3 # the segment is missing, e.g. "::" or it is a wildcard, e.g. "*"
+
+@frozen(slots=True)
+class ArnResource:
+    value: str
+    principal_arns: Set[str]
+    kind: ArnResourceValueKind
+    not_resource: bool
+
+    def matches(self, segment: str) -> bool:
+        _match = False
+        match self.kind:
+            case ArnResourceValueKind.Any:
+                _match = True
+            case ArnResourceValueKind.Pattern:
+                _match = fnmatch.fnmatch(segment, self.value)
+            case ArnResourceValueKind.Static:
+                _match = segment == self.value
+
+        
+        if self.not_resource:
+            _match = not _match
+
+
+        return _match
+
+
+
+@frozen(slots=True)
+class ArnAccountId:
+    value: str
+    wildcard: bool # if the account is a wildcard, e.g. "*" or "::"
+    principal_arns: Set[str]
+    children: List[ArnResource]
+
+    def matches(self, segment: str) -> bool:
+        return self.wildcard or self.value == segment
+
+
+@frozen(slots=True)
+class ArnRegion:
+    value: str
+    wildcard: bool # if the region is a wildcard, e.g. "*" or "::"
+    principal_arns: Set[str]
+    children: List[ArnAccountId]
+
+    def matches(self, segment: str) -> bool:
+        return self.wildcard or self.value == segment
+
+
+@frozen(slots=True)
+class ArnService:
+    value: str
+    principal_arns: Set[str]
+    children: List[ArnRegion]
+
+    def matches(self, segment: str) -> bool:
+        return self.value == segment
+        
+
+@frozen(slots=True)
+class ArnPartition:
+    value: str
+    wildcard: bool # for the cases like "Allow": "*" on all resources
+    principal_arns: Set[str]
+    children: List[ArnService]
+
+    def matches(self, segment: str) -> bool:
+        return self.wildcard or segment == self.value
+
+
+def is_wildcard(segment: str) -> bool:
+    return segment == "*" or segment == ""
+
+
+class PrincipalTree:
+    def __init__(self) -> None:
+        self.partitions: List[ArnPartition] = []
+
+    
+    def _add_allow_all_wildcard(self, principal_arn: str) -> None:
+        partition = next((p for p in self.partitions if p.value == "*"), None)
+        if not partition:
+            partition = ArnPartition(value="*", wildcard=True, principal_arns=set(), children=[])
+            self.partitions.append(partition)
+
+        partition.principal_arns.add(principal_arn)
+
+    def _add_resource(self, resource_constraint: str, principal_arn: str, nr: bool = False) -> None:
+        """
+        _add resource will add the principal arn at the resource level
+        """
+
+
+        try:
+            arn = ARN(resource_constraint)
+            # Find existing or create partition
+            partition = next((p for p in self.partitions if p.value == arn.partition), None)
+            if not partition:
+                partition = ArnPartition(value=arn.partition, wildcard=False, principal_arns=set(), children=[])
+                self.partitions.append(partition)
+
+            # Find or create service
+            service = next((s for s in partition.children if s.value == arn.service_prefix), None)
+            if not service:
+                service = ArnService(value=arn.service_prefix, principal_arns=set(), children=[])
+                partition.children.append(service)
+
+            # Find or create region
+            region_wildcard = arn.region == "*" or not arn.region
+            region = next((r for r in service.children if r.value == (arn.region or "*")), None)
+            if not region:
+                region = ArnRegion(value=arn.region or "*", wildcard=region_wildcard, principal_arns=set(), children=[])
+                service.children.append(region)
+
+            # Find or create account
+            account_wildcard = arn.account == "*" or not arn.account
+            account = next((a for a in region.children if a.value == (arn.account or "*")), None)
+            if not account:
+                account = ArnAccountId(value=arn.account or "*", wildcard=account_wildcard, principal_arns=set(), children=[])
+                region.children.append(account)
+
+            # Add resource
+            resource = next((r for r in account.children if r.value == arn.resource_string and r.not_resource == nr), None) 
+            if not resource:
+                if arn.resource_string == "*":
+                    resource_kind = ArnResourceValueKind.Any
+                elif "*" in arn.resource_string:
+                    resource_kind = ArnResourceValueKind.Pattern
+                else:
+                    resource_kind = ArnResourceValueKind.Static
+                resource = ArnResource(value=arn.resource_string, principal_arns=set(), kind=resource_kind, not_resource=nr)
+                account.children.append(resource)
+
+            resource.principal_arns.add(principal_arn)
+
+        except Exception as e:
+            log.error(f"Error parsing ARN {principal_arn}: {e}")
+            pass
+
+
+    def _add_service(self, service_prefix: str, principal_arn: str) -> None:
+        # Find existing or create partition
+        partition = next((p for p in self.partitions if p.value == "*"), None)
+        if not partition:
+            partition = ArnPartition(value="*", wildcard=True, principal_arns=set(), children=[])
+            self.partitions.append(partition)
+
+        # Find or create service
+        service = next((s for s in partition.children if s.value == service_prefix), None)
+        if not service:
+            service = ArnService(value=service_prefix, principal_arns=set(), children=[])
+            partition.children.append(service)
+
+        service.principal_arns.add(principal_arn)
+
+
+
+    def add_principal(self, principal_arn: str, policy_documents: List[FixPolicyDocument]) -> None:
+        """
+        This method iterates over every policy statement and adds corresponding arns to principal tree. 
+        """
+
+        for policy_doc in policy_documents:
+            for statement in policy_doc.fix_statements:
+                if statement.effect_allow:
+                    has_wildcard_resource = False
+                    for resource in statement.resources:
+                        if resource == "*":
+                            has_wildcard_resource = True
+                            continue
+                        self._add_resource(resource, principal_arn)
+                    for not_resource in statement.not_resource:
+                        self._add_resource(not_resource, principal_arn, nr=True)
+                    
+                    if has_wildcard_resource or (not statement.resources and not statement.not_resource):
+                        for ap in statement.actions_patterns:
+                            if ap.kind == WildcardKind.any:
+                                self._add_allow_all_wildcard(principal_arn)
+                            self._add_service(ap.service, principal_arn)
+
+
+    def list_principals(self, resource_arn: ARN) -> Set[str]:
+        """
+        this will be called for every resource and it must be fast
+        """
+        principals = set()
+
+        matching_partitions = [p for p in self.partitions if p.value if p.matches(resource_arn.partition)]
+
+        matching_services = [s for p in matching_partitions for s in p.children if s.matches(resource_arn.service_prefix)]
+        principals.update([arn for s in matching_services for arn in s.principal_arns])
+
+        matching_regions = [r for s in matching_services for r in s.children if r.matches(resource_arn.region)]
+        principals.update([arn for r in matching_regions for arn in r.principal_arns])
+
+        matching_account_ids = [a for r in matching_regions for a in r.children if r.matches(resource_arn.account)]
+        principals.update([arn for a in matching_account_ids for arn in a.principal_arns])
+
+        matching_resources = [r for a in matching_account_ids for r in a.children if r.matches(resource_arn.resource_string)]
+        principals.update([arn for r in matching_resources for arn in r.principal_arns])
+
+        return principals
+
+
+
 @frozen(slots=True)
 class IamRequestContext:
     principal: AwsResource
@@ -96,7 +306,7 @@ class IamRequestContext:
     # all service control policies applicable to the principal,
     # starting from the root, then all org units, then the account
     service_control_policy_levels: Tuple[Tuple[FixPolicyDocument, ...], ...]
-    # technically we should also add a list of session policies here, but they don't exist in the collector context
+
 
     def all_policies(
         self, resource_based_policies: Optional[Tuple[Tuple[PolicySource, FixPolicyDocument], ...]] = None
