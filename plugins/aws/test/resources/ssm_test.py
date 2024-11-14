@@ -1,3 +1,4 @@
+from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.ssm import (
     AwsSSMInstance,
     AwsSSMDocument,
@@ -6,6 +7,8 @@ from fix_plugin_aws.resource.ssm import (
 )
 from test.resources import round_trip_for
 
+from fixlib.baseresources import Severity
+
 
 def test_instances() -> None:
     first, builder = round_trip_for(AwsSSMInstance)
@@ -13,7 +16,10 @@ def test_instances() -> None:
 
 
 def test_resource_compliance() -> None:
-    round_trip_for(AwsSSMResourceCompliance)
+    collected, _ = round_trip_for(AwsEc2Instance, region_name="global", collect_also=[AwsSSMResourceCompliance])
+    asseessments = collected._assessments
+    assert asseessments[0].findings[0].title == "State Manager Association Compliance"
+    assert asseessments[0].findings[0].severity == Severity.high
 
 
 def test_documents() -> None:
