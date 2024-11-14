@@ -360,7 +360,7 @@ class AwsSSMResourceCompliance(AwsResource, PhantomBaseResource):
         "ssm",
         "list-resource-compliance-summaries",
         "ResourceComplianceSummaryItems",
-        {"Filters": [{"Key": "Status", "Values": ["COMPLIANT"], "Type": "EQUAL"}]},
+        {"Filters": [{"Key": "Status", "Values": ["NON_COMPLIANT"], "Type": "EQUAL"}]},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("Id"),
