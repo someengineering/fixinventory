@@ -251,6 +251,7 @@ class AwsLambdaFunction(AwsResource, BaseServerlessFunction, HasResourcePolicy):
         "function_signing_job_arn": S("SigningJobArn"),
         "function_architectures": S("Architectures", default=[]),
         "function_ephemeral_storage": S("EphemeralStorage", "Size"),
+        "memory_size": S("MemorySize"),
     }
     function_runtime: Optional[str] = field(default=None)
     function_role: Optional[str] = field(default=None)

@@ -1089,6 +1089,16 @@ class BaseBucket(BaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "bucket", "group": "storage"}
     _categories: ClassVar[List[Category]] = [Category.storage]
 
+    encryption_enabled: Optional[bool] = None
+    versioning_enabled: Optional[bool] = None
+
+
+@unique
+class QueueType(Enum):
+    kind: ClassVar[str] = "queue_type"
+    STANDARD = "standard"
+    FIFO = "fifo"
+
 
 @define(eq=False, slots=False)
 class BaseQueue(BaseResource):
@@ -1097,6 +1107,9 @@ class BaseQueue(BaseResource):
     _kind_description: ClassVar[str] = "A storage queue."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "queue", "group": "storage"}
     _categories: ClassVar[List[Category]] = [Category.storage]
+    queue_type: Optional[QueueType] = None
+    approximate_message_count: Optional[int] = None
+    message_retention_period: Optional[int] = None
 
 
 @define(eq=False, slots=False)
@@ -1125,6 +1138,8 @@ class BaseServerlessFunction(BaseResource):
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "function", "group": "compute"}
     _categories: ClassVar[List[Category]] = [Category.compute]
 
+    memory_size: Optional[int] = None
+
 
 @define(eq=False, slots=False)
 class BaseNetwork(BaseResource):
@@ -1133,6 +1148,8 @@ class BaseNetwork(BaseResource):
     _kind_description: ClassVar[str] = "A network."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "network", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
+
+    cidr_blocks: List[str] = field(factory=list)
 
 
 @define(eq=False, slots=False)
@@ -1214,6 +1231,8 @@ class BaseSubnet(BaseResource):
     _kind_description: ClassVar[str] = "A subnet."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "subnet", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.networking]
+
+    cidr_block: Optional[str] = None
 
 
 @define(eq=False, slots=False)
@@ -1374,8 +1393,8 @@ class BaseAccessKey(BaseResource):
     _kind_display: ClassVar[str] = "Access Key"
     _kind_description: ClassVar[str] = "An access key."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "key", "group": "access_control"}
-    access_key_status: str = ""
     _categories: ClassVar[List[Category]] = [Category.access_control, Category.security]
+    access_key_status: Optional[str] = None
 
 
 @define(eq=False, slots=False)
@@ -1404,10 +1423,10 @@ class BaseStack(BaseResource):
     _kind_display: ClassVar[str] = "Stack"
     _kind_description: ClassVar[str] = "A stack."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "stack", "group": "management"}
+    _categories: ClassVar[List[Category]] = [Category.devops, Category.management]
     stack_status: str = ""
     stack_status_reason: str = ""
     stack_parameters: Dict[str, str] = field(factory=dict)
-    _categories: ClassVar[List[Category]] = [Category.devops, Category.management]
 
 
 @define(eq=False, slots=False)
@@ -1453,6 +1472,7 @@ class BaseDNSZone(BaseResource):
     _kind_description: ClassVar[str] = "A DNS zone."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _categories: ClassVar[List[Category]] = [Category.dns, Category.networking]
+    private_zone: Optional[bool] = None
 
 
 @define(eq=False, slots=False)
@@ -1574,6 +1594,19 @@ class BaseManagedKubernetesClusterProvider(BaseResource):
     endpoint: Optional[str] = field(default=None, metadata={"description": "The kubernetes API endpoint"})
 
 
+class AIJobStatus(Enum):
+    PENDING = "pending"
+    PREPARING = "preparing"
+    RUNNING = "running"
+    STOPPING = "stopping"
+    STOPPED = "stopped"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    PAUSED = "paused"
+    UNKNOWN = "unknown"
+
+
 @define(eq=False, slots=False)
 class BaseAIResource(BaseResource):
     kind: ClassVar[str] = "ai_resource"
@@ -1589,6 +1622,8 @@ class BaseAIJob(BaseAIResource):
     _kind_display: ClassVar[str] = "AI Job"
     _kind_description: ClassVar[str] = "An AI Job resource."
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "job", "group": "ai"}
+
+    ai_job_status: Optional[AIJobStatus] = field(default=None, metadata={"description": "Current status of the AI job"})
 
 
 @define(eq=False, slots=False)

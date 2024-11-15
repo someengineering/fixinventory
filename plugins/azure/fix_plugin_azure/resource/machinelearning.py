@@ -26,9 +26,16 @@ from fix_plugin_azure.resource.microsoft_graph import MicrosoftGraphServicePrinc
 from fix_plugin_azure.resource.network import AzureNetworkSubnet, AzureNetworkVirtualNetwork
 from fix_plugin_azure.resource.storage import AzureStorageAccount
 from fix_plugin_azure.resource.web import AzureWebApp
-from fixlib.baseresources import BaseInstanceType, ModelReference, BaseAIJob, BaseAIModel, PhantomBaseResource
+from fixlib.baseresources import (
+    BaseInstanceType,
+    ModelReference,
+    BaseAIJob,
+    AIJobStatus,
+    BaseAIModel,
+    PhantomBaseResource,
+)
 from fixlib.graph import BySearchCriteria
-from fixlib.json_bender import Bender, S, ForallBend, Bend, K
+from fixlib.json_bender import MapEnum, Bender, S, ForallBend, Bend, K
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -54,6 +61,24 @@ class CheckVersionIsArchived:
                     if (added := builder.add_node(instance, js)) is not None:
                         result.append(added)
         return result
+
+
+AZURE_ML_JOB_STATUS_MAPPING = {
+    "CancelRequested": AIJobStatus.STOPPING,
+    "Canceled": AIJobStatus.CANCELLED,
+    "Completed": AIJobStatus.COMPLETED,
+    "Failed": AIJobStatus.FAILED,
+    "Finalizing": AIJobStatus.STOPPING,
+    "NotResponding": AIJobStatus.UNKNOWN,
+    "NotStarted": AIJobStatus.PENDING,
+    "Paused": AIJobStatus.PAUSED,
+    "Preparing": AIJobStatus.PREPARING,
+    "Provisioning": AIJobStatus.PREPARING,
+    "Queued": AIJobStatus.PENDING,
+    "Running": AIJobStatus.RUNNING,
+    "Starting": AIJobStatus.PREPARING,
+    "Unknown": AIJobStatus.UNKNOWN,
+}
 
 
 @define(eq=False, slots=False)
@@ -1495,7 +1520,7 @@ class AzureMachineLearningJob(BaseAIJob, MicrosoftResource, AzureProxyResource):
         "job_type": S("properties", "jobType"),
         "notification_setting": S("properties", "notificationSetting") >> Bend(AzureNotificationSetting.mapping),
         "services": S("properties", "services"),
-        "status": S("properties", "status"),
+        "status": S("properties", "status") >> MapEnum(AZURE_ML_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "description": S("properties", "description"),
         "properties": S("properties", "properties"),
     }
@@ -1510,7 +1535,6 @@ class AzureMachineLearningJob(BaseAIJob, MicrosoftResource, AzureProxyResource):
     job_type: Optional[str] = field(default=None, metadata={"description": "Enum to determine the type of job."})
     notification_setting: Optional[AzureNotificationSetting] = field(default=None, metadata={'description': 'Configuration for notification.'})  # fmt: skip
     services: Optional[Dict[str, AzureJobService]] = field(default=None, metadata={'description': 'List of JobEndpoints. For local jobs, a job endpoint will have an endpoint value of FileStreamObject.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The status of a job."})
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if compute_id := self.compute_id:
@@ -1660,7 +1684,7 @@ class AzureMachineLearningLabelingJob(BaseAIJob, MicrosoftResource):
         "progress_metrics": S("properties", "progressMetrics") >> Bend(AzureProgressMetrics.mapping),
         "job_project_id": S("properties", "projectId"),
         "properties": S("properties", "properties"),
-        "status": S("properties", "status"),
+        "status": S("properties", "status") >> MapEnum(AZURE_ML_JOB_STATUS_MAPPING, AIJobStatus.UNKNOWN),
         "status_messages": S("properties", "statusMessages") >> ForallBend(AzureStatusMessage.mapping),
         "system_data": S("systemData") >> Bend(AzureSystemData.mapping),
     }
@@ -1673,7 +1697,6 @@ class AzureMachineLearningLabelingJob(BaseAIJob, MicrosoftResource):
     progress_metrics: Optional[AzureProgressMetrics] = field(default=None, metadata={'description': 'Progress metrics for a labeling job.'})  # fmt: skip
     job_project_id: Optional[str] = field(default=None, metadata={'description': 'Internal id of the job(Previously called project).'})  # fmt: skip
     properties: Optional[Dict[str, Any]] = field(default=None, metadata={'description': 'The job property dictionary. Properties can be added, but not removed or altered.'})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The status of a job."})
     status_messages: Optional[List[AzureStatusMessage]] = field(default=None, metadata={'description': 'Status messages of the job.'})  # fmt: skip
     system_data: Optional[AzureSystemData] = field(default=None, metadata={'description': 'Metadata pertaining to creation and last modification of the resource.'})  # fmt: skip
 
