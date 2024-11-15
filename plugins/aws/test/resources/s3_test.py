@@ -1,9 +1,14 @@
-from fixlib.graph import Graph
-from test.resources import round_trip_for
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 from types import SimpleNamespace
-from typing import cast, Any, Callable
+from typing import cast, Any, Callable, List
+from fix_plugin_aws.resource.base import AwsRegion, GraphBuilder
+from fix_plugin_aws.resource.cloudwatch import update_resource_metrics, AwsCloudwatchMetricData, AwsCloudwatchQuery
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.resource.s3 import AwsS3Bucket, AwsS3AccountSettings
+from fixlib.threading import ExecutorQueue
+from fixlib.graph import Graph
+from test.resources import round_trip_for
 
 
 def test_buckets() -> None:
@@ -62,14 +67,42 @@ def test_deletion() -> None:
     bucket.delete_resource(client, Graph())
 
 
-# TODO: fix 'RuntimeError: cannot schedule new futures after shutdown'
-# def test_s3_usage_metrics(account_collector: AwsAccountCollector) -> None:
-#     bucket, builder = round_trip_for(AwsS3Bucket)
-#     builder.all_regions.update({"us-east-1": AwsRegion(id="us-east-1", name="us-east-1")})
-#     account_collector.collect_usage_metrics(builder)
-#     bucket.complete_graph(builder, {})
-#     assert bucket._resource_usage["standard_storage_bucket_size_bytes"]["avg"] == 1.0
-#     assert bucket._resource_usage["intelligent_tiering_storage_bucket_size_bytes"]["avg"] == 2.0
-#     assert bucket._resource_usage["standard_ia_storage_bucket_size_bytes"]["avg"] == 3.0
-#     # This values is computed internally using the other values. If the number does not match, the logic is broken!
-#     assert bucket._resource_usage["bucket_size_bytes"]["avg"] == 6.0
+def test_s3_usage_metrics() -> None:
+    bucket, builder = round_trip_for(AwsS3Bucket, "bucket_lifecycle_policy")
+    builder.all_regions.update({"us-east-1": AwsRegion(id="us-east-1", name="us-east-1")})
+    queries = bucket.collect_usage_metrics(builder)
+    lookup_map = {}
+    lookup_map[bucket.id] = bucket
+
+    # simulates the `collect_usage_metrics` method found in `AwsAccountCollector`.
+    def collect_and_set_metrics(start_at: datetime, region: AwsRegion, queries: List[AwsCloudwatchQuery]) -> None:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            queue = ExecutorQueue(executor, tasks_per_key=lambda _: 1, name="test")
+            g_builder = GraphBuilder(
+                builder.graph,
+                builder.cloud,
+                builder.account,
+                region,
+                {region.id: region},
+                builder.client,
+                queue,
+                builder.core_feedback,
+                last_run_started_at=builder.last_run_started_at,
+            )
+            result = AwsCloudwatchMetricData.query_for_multiple(
+                g_builder, start_at, start_at + timedelta(hours=2), queries
+            )
+            update_resource_metrics(lookup_map, result)
+            # compute bucket_size_bytes
+            for after_collect in builder.after_collect_actions:
+                after_collect()
+
+    start = datetime(2020, 5, 30, 15, 45, 30)
+
+    collect_and_set_metrics(start, AwsRegion(id="us-east-1", name="us-east-1"), queries)
+
+    assert bucket._resource_usage["standard_storage_bucket_size_bytes"]["avg"] == 1.0
+    assert bucket._resource_usage["intelligent_tiering_storage_bucket_size_bytes"]["avg"] == 2.0
+    assert bucket._resource_usage["standard_ia_storage_bucket_size_bytes"]["avg"] == 3.0
+    # This values is computed internally using the other values. If the number does not match, the logic is broken!
+    assert bucket._resource_usage["bucket_size_bytes"]["avg"] == 6.0
