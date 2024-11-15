@@ -50,8 +50,6 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
     scp,
-    guardduty,
-    inspector,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -71,6 +69,7 @@ from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
 from .utils import global_region_by_partition
+from pyinstrument import Profiler
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -106,7 +105,6 @@ regional_resources: List[Type[AwsResource]] = (
     + elb.resources
     + elbv2.resources
     + glacier.resources
-    + guardduty.resources
     + kinesis.resources
     + kms.resources
     + lambda_.resources
@@ -121,7 +119,6 @@ regional_resources: List[Type[AwsResource]] = (
     + backup.resources
     + amazonq.resources
     + bedrock.resources
-    + inspector.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
@@ -248,10 +245,6 @@ class AwsAccountCollector:
                     )
             shared_queue.wait_for_submitted_work()
 
-            # call all registered after collect hooks
-            for after_collect in global_builder.after_collect_actions:
-                after_collect()
-
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
@@ -271,12 +264,18 @@ class AwsAccountCollector:
                     log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
-            access_edge_collection_enabled = os.environ.get("ACCESS_EDGE_COLLECTION_ENABLED", "false").lower() == "true"
+            access_edge_collection_enabled = True
             if access_edge_collection_enabled and global_builder.config.collect_access_edges:
                 # add access edges
+                profiler = Profiler()
+                profiler.start()
                 log.info(f"[Aws:{self.account.id}] Create access edges.")
                 access_edge_creator = AccessEdgeCreator(global_builder)
                 access_edge_creator.add_access_edges()
+                profiler.stop()
+                html_output = profiler.output_html()
+                with open(f"profiler_{self.account.id}.html", "w") as f:
+                    f.write(html_output)
 
             # final hook when the graph is complete
             for node, data in list(self.graph.nodes(data=True)):

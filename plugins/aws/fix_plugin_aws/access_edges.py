@@ -281,17 +281,29 @@ class PrincipalTree:
         principals = set()
 
         matching_partitions = [p for p in self.partitions if p.value if p.matches(resource_arn.partition)]
+        if not matching_partitions:
+            return principals
 
         matching_services = [s for p in matching_partitions for s in p.children if s.matches(resource_arn.service_prefix)]
+        if not matching_services:
+            return principals
         principals.update([arn for s in matching_services for arn in s.principal_arns])
 
+
         matching_regions = [r for s in matching_services for r in s.children if r.matches(resource_arn.region)]
+        if not matching_regions:
+            return principals
         principals.update([arn for r in matching_regions for arn in r.principal_arns])
 
         matching_account_ids = [a for r in matching_regions for a in r.children if r.matches(resource_arn.account)]
+        if not matching_account_ids:
+            return principals
         principals.update([arn for a in matching_account_ids for arn in a.principal_arns])
 
         matching_resources = [r for a in matching_account_ids for r in a.children if r.matches(resource_arn.resource_string)]
+        if not matching_resources:
+            return principals
+        
         principals.update([arn for r in matching_resources for arn in r.principal_arns])
 
         return principals
@@ -1093,6 +1105,8 @@ class AccessEdgeCreator:
         self.principals: List[IamRequestContext] = []
         self._init_principals()
         self.actions_for_resource: Dict[str, set[IamAction]] = self._compute_actions_for_resource()
+        self.principal_tree = self._build_principal_tree()
+        self.arn_to_context = {context.principal.arn: context for context in self.principals}
 
     def _init_principals(self) -> None:
 
@@ -1154,6 +1168,21 @@ class AccessEdgeCreator:
                 )
 
                 self.principals.append(request_context)
+
+    def _build_principal_tree(self) -> PrincipalTree:
+
+        tree = PrincipalTree()
+
+        for context in self.principals:
+            principal_arn = context.principal.arn
+            if not principal_arn:
+                continue
+
+            principal_policies = context.all_policies()
+            tree.add_principal(principal_arn, principal_policies)
+
+        return tree
+
 
     def _compute_actions_for_resource(self) -> Dict[str, set[IamAction]]:
 
@@ -1263,32 +1292,54 @@ class AccessEdgeCreator:
 
         for node in self.builder.nodes(clazz=AwsResource, filter=lambda r: r.arn is not None):
             assert node.arn
-            for context in self.principals:
-                if context.principal.arn == node.arn:
-                    # small graph cycles avoidance optimization
-                    continue
+            resource_arn = ARN(node.arn)
 
-                resource_policies: List[Tuple[PolicySource, FixPolicyDocument]] = []
-                if isinstance(node, HasResourcePolicy):
+
+            if not isinstance(node, HasResourcePolicy):
+                # here we have identity-based policies only and can prune some principals
+                for arn in self.principal_tree.list_principals(resource_arn):
+                    context = self.arn_to_context.get(arn)
+                    if not context:
+                        raise ValueError(f"Principal {arn} not found in the context")
+                    
+                    permissions = compute_permissions(
+                        resource_arn, context, tuple(), self.actions_for_resource.get(node.arn, set())
+                    )
+
+                    if not permissions:
+                        continue
+
+                    access: Dict[PermissionLevel, bool] = {}
+                    for permission in permissions:
+                        access[permission.level] = True
+                    reported = to_json({"permissions": permissions} | access, strip_nulls=True)
+                    self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
+
+            else:
+                # here we have resource-based policies and must check all principals.
+                for context in self.principals:
+                    if context.principal.arn == node.arn:
+                        # small graph cycles avoidance optimization
+                        continue
+
+                    resource_policies: List[Tuple[PolicySource, FixPolicyDocument]] = []
                     for source, json_policy in node.resource_policy(self.builder):
                         resource_policies.append((source, FixPolicyDocument(json_policy)))
 
-                resource_arn = ARN(node.arn)
-                permissions = compute_permissions(
-                    resource_arn, context, tuple(resource_policies), self.actions_for_resource.get(node.arn, set())
-                )
+                    permissions = compute_permissions(
+                        resource_arn, context, tuple(resource_policies), self.actions_for_resource.get(node.arn, set())
+                    )
 
-                if not permissions:
-                    continue
+                    if not permissions:
+                        continue
 
-                access: Dict[PermissionLevel, bool] = {}
+                    access: Dict[PermissionLevel, bool] = {}
+                    for permission in permissions:
+                        access[permission.level] = True
+                    reported = to_json({"permissions": permissions} | access, strip_nulls=True)
+                    self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
 
-                for permission in permissions:
-                    access[permission.level] = True
 
-                reported = to_json({"permissions": permissions} | access, strip_nulls=True)
-
-                self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
 
         all_principal_arns = {p.principal.arn for p in self.principals if p.principal.arn}
 
