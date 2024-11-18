@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Type, List, Any, Optional
@@ -20,6 +21,8 @@ from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import Cloud
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
+from fixlib.json import value_in_path
+from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
@@ -58,6 +61,7 @@ class GcpProjectCollector:
         cloud: Cloud,
         project: GcpProject,
         core_feedback: CoreFeedback,
+        task_data: Json,
         max_resources_per_account: Optional[int] = None,
     ) -> None:
         self.config = config
@@ -67,6 +71,7 @@ class GcpProjectCollector:
         self.error_accumulator = ErrorAccumulator()
         self.graph = Graph(root=self.project, max_nodes=max_resources_per_account)
         self.credentials = Credentials.get(self.project.id)
+        self.task_data = task_data
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
@@ -77,7 +82,20 @@ class GcpProjectCollector:
             # It should only be used in scenarios, where it is safe to do so.
             # This executor is shared between all regions.
             shared_queue = ExecutorQueue(executor, self.project.safe_name)
+
+            def get_last_run() -> Optional[datetime]:
+                td = self.task_data
+                if not td:
+                    return None
+                timestamp = value_in_path(td, ["timing", td.get("step", ""), "started_at"])
+
+                if timestamp is None:
+                    return None
+
+                return datetime.fromtimestamp(timestamp, timezone.utc)
+
             project_global_region = GcpRegion.fallback_global_region(self.project)
+            last_run = get_last_run()
             global_builder = GraphBuilder(
                 self.graph,
                 self.cloud,
@@ -87,6 +105,8 @@ class GcpProjectCollector:
                 self.core_feedback,
                 self.error_accumulator,
                 project_global_region,
+                config=self.config,
+                last_run_started_at=last_run,
             )
             global_builder.add_node(project_global_region, {})
 
@@ -113,6 +133,13 @@ class GcpProjectCollector:
 
             self.error_accumulator.report_all(global_builder.core_feedback)
 
+            if global_builder.config.collect_usage_metrics:
+                try:
+                    log.info(f"[GCP:{self.project.id}] Collect usage metrics.")
+                    self.collect_usage_metrics(global_builder)
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics in project {self.project.id}: {e}")
+            shared_queue.wait_for_submitted_work()
             log.info(f"[GCP:{self.project.id}] Connect resources and create edges.")
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
@@ -130,6 +157,40 @@ class GcpProjectCollector:
 
             self.core_feedback.progress_done(self.project.id, 1, 1, context=[self.cloud.id])
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> None:
+        metrics_queries = defaultdict(list)
+        two_hours = timedelta(hours=2)
+        thirty_minutes = timedelta(minutes=30)
+        lookup_map = {}
+        for resource in builder.graph.nodes:
+            if not isinstance(resource, AwsResource):
+                continue
+            # region can be overridden in the query: s3 is global, but need to be queried per region
+            if region := cast(AwsRegion, resource.region()):
+                lookup_map[resource.id] = resource
+                resource_queries: List[cloudwatch.AwsCloudwatchQuery] = resource.collect_usage_metrics(builder)
+                for query in resource_queries:
+                    query_region = query.region or region
+                    start = query.start_delta or builder.metrics_delta
+                    if query.period and query.period < thirty_minutes:
+                        start = min(start, two_hours)
+                    metrics_queries[(query_region, start)].append(query)
+        for (region, start), queries in metrics_queries.items():
+
+            def collect_and_set_metrics(
+                start: timedelta, region: AwsRegion, queries: List[cloudwatch.AwsCloudwatchQuery]
+            ) -> None:
+                start_at = builder.created_at - start
+                try:
+                    result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(
+                        builder.for_region(region), start_at, builder.created_at, queries
+                    )
+                    cloudwatch.update_resource_metrics(lookup_map, result)
+                except Exception as e:
+                    log.warning(f"Error occurred in region {region}: {e}")
+
+            builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
 
     def remove_unconnected_nodes(self, builder: GraphBuilder) -> None:
         def rm_leaf_nodes(clazz: Any, ignore_kinds: Optional[Type[Any]] = None) -> None:

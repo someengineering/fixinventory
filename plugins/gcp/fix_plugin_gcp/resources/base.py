@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import json
 import logging
 from concurrent.futures import Future
@@ -8,6 +9,7 @@ from types import TracebackType
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set, Tuple
 
 from attr import define, field
+from fix_plugin_gcp.config import GcpConfig
 from google.auth.credentials import Credentials as GoogleAuthCredentials
 from googleapiclient.errors import HttpError
 
@@ -31,6 +33,8 @@ from fixlib.json_bender import bend, Bender, S, Bend, MapDict, F
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
 from fixinventorydata.cloud import regions as cloud_region_data
+
+from fixlib.utils import utc
 
 log = logging.getLogger("fix.plugins.gcp")
 
@@ -81,7 +85,9 @@ class GraphBuilder:
         core_feedback: CoreFeedback,
         error_accumulator: ErrorAccumulator,
         fallback_global_region: GcpRegion,
+        config: GcpConfig,
         region: Optional[GcpRegion] = None,
+        last_run_started_at: Optional[datetime] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
     ) -> None:
@@ -95,11 +101,37 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.error_accumulator = error_accumulator
         self.fallback_global_region = fallback_global_region
+        self.config = config
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
         self.zone_by_name: Dict[str, GcpZone] = {}
+        self.last_run_started_at = last_run_started_at
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
+
+        if last_run_started_at:
+            now = utc()
+
+            # limit the metrics to the last hour
+            if now - last_run_started_at > timedelta(hours=2):
+                start = now - timedelta(hours=2)
+            else:
+                start = last_run_started_at
+
+            delta = now - start
+
+            min_delta = max(delta, timedelta(seconds=60))
+            # in case the last collection happened too quickly, raise the metrics timedelta to 60s,
+            if min_delta != delta:
+                start = now - min_delta
+                delta = min_delta
+        else:
+            now = utc()
+            delta = timedelta(hours=1)
+            start = now - delta
+
+        self.metrics_start = start
+        self.metrics_delta = delta
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
