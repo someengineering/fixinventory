@@ -102,17 +102,18 @@ class GraphBuilder:
         self.error_accumulator = error_accumulator
         self.fallback_global_region = fallback_global_region
         self.config = config
+        self.created_at = utc()
+        self.last_run_started_at = last_run_started_at
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
         self.zone_by_name: Dict[str, GcpZone] = {}
-        self.last_run_started_at = last_run_started_at
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
 
         if last_run_started_at:
             now = utc()
 
-            # limit the metrics to the last hour
+            # limit the metrics to the last 2 hours
             if now - last_run_started_at > timedelta(hours=2):
                 start = now - timedelta(hours=2)
             else:
@@ -405,6 +406,10 @@ class GcpResource(BaseResource):
         Default: do nothing.
         """
         pass
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List:  # type: ignore
+        # Default behavior: do nothing
+        return []
 
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:

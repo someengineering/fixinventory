@@ -1,8 +1,9 @@
 import os
 import socket
 from datetime import datetime
-from typing import Iterable, List, Union, Callable, Any, Dict, Optional
+from typing import Iterable, TypeVar, List, Union, Callable, Any, Dict, Optional
 
+from attrs import frozen
 from google.oauth2 import service_account
 from googleapiclient import discovery
 from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
@@ -11,7 +12,7 @@ from retrying import retry
 from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
 import fixlib.logger
-from fixlib.baseresources import BaseResource
+from fixlib.baseresources import BaseResource, MetricName, MetricUnit, StatName
 from fixlib.config import Config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
@@ -19,6 +20,7 @@ from fixlib.lock import RWLock
 
 log = fixlib.logger.getLogger("fix." + __name__)
 fixlib.logger.getLogger("googleapiclient").setLevel(fixlib.logger.ERROR)
+T = TypeVar("T")
 
 
 SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
@@ -246,3 +248,19 @@ def gcp_resource(resource: BaseResource, graph: Graph = None):
     service = gcp_service(resource, graph)
     gr = getattr(service, resource._client_method)
     return gr()
+
+
+def identity(x: T) -> T:
+    return x
+
+
+@frozen(kw_only=True)
+class MetricNormalization:
+    metric_name: MetricName
+    unit: MetricUnit
+    stat_map: Dict[str, StatName] = {
+        "minimum": StatName.min,
+        "average": StatName.avg,
+        "maximum": StatName.max,
+    }
+    normalize_value: Callable[[float], float] = identity

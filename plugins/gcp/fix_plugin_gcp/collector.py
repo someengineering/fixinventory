@@ -1,7 +1,8 @@
-from datetime import datetime, timezone
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Type, List, Any, Optional
+from typing import Type, List, Any, Optional, cast
 
 from fix_plugin_gcp.config import GcpConfig
 from fix_plugin_gcp.gcp_client import GcpApiSpec
@@ -15,6 +16,7 @@ from fix_plugin_gcp.resources import (
     firestore,
     filestore,
     cloudfunctions,
+    monitoring,
 )
 from fix_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from fix_plugin_gcp.utils import Credentials
@@ -164,33 +166,33 @@ class GcpProjectCollector:
         thirty_minutes = timedelta(minutes=30)
         lookup_map = {}
         for resource in builder.graph.nodes:
-            if not isinstance(resource, AwsResource):
+            if not isinstance(resource, GcpResource):
                 continue
             # region can be overridden in the query: s3 is global, but need to be queried per region
-            if region := cast(AwsRegion, resource.region()):
+            if region := cast(GcpRegion, resource.region()):
                 lookup_map[resource.id] = resource
-                resource_queries: List[cloudwatch.AwsCloudwatchQuery] = resource.collect_usage_metrics(builder)
+                resource_queries: List[monitoring.GcpMonitoringQuery] = resource.collect_usage_metrics(builder)
                 for query in resource_queries:
                     query_region = query.region or region
-                    start = query.start_delta or builder.metrics_delta
+                    start = builder.metrics_delta
                     if query.period and query.period < thirty_minutes:
                         start = min(start, two_hours)
                     metrics_queries[(query_region, start)].append(query)
         for (region, start), queries in metrics_queries.items():
 
             def collect_and_set_metrics(
-                start: timedelta, region: AwsRegion, queries: List[cloudwatch.AwsCloudwatchQuery]
+                start: timedelta, region: GcpRegion, queries: List[monitoring.GcpMonitoringQuery]
             ) -> None:
                 start_at = builder.created_at - start
                 try:
-                    result = cloudwatch.AwsCloudwatchMetricData.query_for_multiple(
-                        builder.for_region(region), start_at, builder.created_at, queries
+                    result = monitoring.GcpMonitoringMetricData.query_for(
+                        builder.for_region(region), queries, start_at, builder.created_at
                     )
-                    cloudwatch.update_resource_metrics(lookup_map, result)
+                    monitoring.update_resource_metrics(lookup_map, result)
                 except Exception as e:
                     log.warning(f"Error occurred in region {region}: {e}")
 
-            builder.submit_work("cloudwatch", collect_and_set_metrics, start, region, queries)
+            builder.submit_work(collect_and_set_metrics, start, region, queries)
 
     def remove_unconnected_nodes(self, builder: GraphBuilder) -> None:
         def rm_leaf_nodes(clazz: Any, ignore_kinds: Optional[Type[Any]] = None) -> None:
