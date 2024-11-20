@@ -80,6 +80,7 @@ class AwsAcmCertificate(AwsResource, BaseCertificate):
         "tags": S("Tags", default=[]) >> ToDict(),
         "name": S("DomainName"),
         "ctime": S("CreatedAt"),
+        "mtime": S("RenewalSummary", "UpdatedAt"),
         "arn": S("CertificateArn"),
         "subject_alternative_names": S("SubjectAlternativeNames", default=[]),
         "domain_validation_options": S("DomainValidationOptions", default=[])

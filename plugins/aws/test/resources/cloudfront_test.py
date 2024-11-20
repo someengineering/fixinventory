@@ -46,14 +46,14 @@ def test_tagging() -> None:
 
 
 def test_functions() -> None:
-    first, builder = round_trip_for(AwsCloudFrontFunction)
+    first, builder = round_trip_for(AwsCloudFrontFunction, "memory_size")
     assert len(builder.resources_of(AwsCloudFrontFunction)) == 1
     assert len(first.tags) == 1
     assert first.arn == "arn"
 
 
 def test_function_deletion() -> None:
-    func, _ = round_trip_for(AwsCloudFrontFunction)
+    func, _ = round_trip_for(AwsCloudFrontFunction, "memory_size")
 
     def validate_delete_args(**kwargs: Any) -> Any:
         assert kwargs["action"] == "delete-function"

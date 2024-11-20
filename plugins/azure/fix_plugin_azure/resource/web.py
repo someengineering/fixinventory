@@ -1481,6 +1481,7 @@ class AzureWebApp(MicrosoftResource, BaseServerlessFunction):
         "vnet_image_pull_enabled": S("properties", "vnetImagePullEnabled"),
         "vnet_route_all_enabled": S("properties", "vnetRouteAllEnabled"),
         "workload_profile_name": S("properties", "workloadProfileName"),
+        "memory_size": S("properties", "siteConfig", "limits", "maxMemoryInMb"),
     }
     availability_state: Optional[str] = field(default=None, metadata={'description': 'Management information availability state for the app.'})  # fmt: skip
     client_affinity_enabled: Optional[bool] = field(default=None, metadata={'description': '<code>true</code> to enable client affinity; <code>false</code> to stop sending session affinity cookies, which route client requests in the same session to the same instance. Default is <code>true</code>.'})  # fmt: skip

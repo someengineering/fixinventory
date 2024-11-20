@@ -826,6 +826,7 @@ class MicrosoftGraphUser(MicrosoftGraphEntity, BaseUser):
         "usage_location": S("usageLocation"),
         "user_principal_name": S("userPrincipalName"),
         "user_type": S("userType"),
+        "username": S("displayName"),
     }
     account_enabled: Optional[bool] = field(default=None, metadata={'description': 'true if the account is enabled; otherwise, false. This property is required when a user is created. Supports $filter (eq, ne, not, and in).'})  # fmt: skip
     age_group: Optional[str] = field(default=None, metadata={'description': 'Sets the age group of the user. Allowed values: null, Minor, NotAdult, and Adult. For more information, see legal age group property definitions. Supports $filter (eq, ne, not, and in).'})  # fmt: skip

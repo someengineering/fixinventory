@@ -1,7 +1,7 @@
 aiodns==3.2.0
 aiofiles==24.1.0
 aiohappyeyeballs==2.4.3
-aiohttp[speedups]==3.10.10
+aiohttp[speedups]==3.10.11
 aiohttp-jinja2==1.6
 aiohttp-swagger3==0.9.0
 aiosignal==1.3.1
@@ -15,8 +15,8 @@ azure-mgmt-core==1.5.0
 azure-mgmt-resource==23.2.0
 backoff==2.2.1
 beautifulsoup4==4.12.3
-boto3==1.35.57
-botocore==1.35.57
+boto3==1.35.65
+botocore==1.35.65
 brotli==1.1.0
 cached-property==2.0.1
 cachetools==5.5.0
@@ -33,7 +33,7 @@ cloudsplaining==0.7.0
 cryptography==43.0.3
 deepdiff==8.0.1
 defusedxml==0.7.1
-deprecated==1.2.14
+deprecated==1.2.15
 detect-secrets==1.5.0
 durationpy==0.9
 fastjsonschema==2.19.1
@@ -45,11 +45,11 @@ flexcache==0.3
 flexparser==0.4
 frozendict==2.4.6
 frozenlist==1.5.0
-google-api-core==2.22.0
-google-api-python-client==2.151.0
+google-api-core==2.23.0
+google-api-python-client==2.153.0
 google-auth==2.36.0
 google-auth-httplib2==0.2.0
-googleapis-common-protos==1.65.0
+googleapis-common-protos==1.66.0
 hcloud==2.2.0
 httplib2==0.22.0
 idna==3.10
@@ -70,7 +70,7 @@ markupsafe==3.0.2
 mdurl==0.1.2
 monotonic==1.6
 more-itertools==10.5.0
-msal==1.31.0
+msal==1.31.1
 msal-extensions==1.2.0
 mstache==0.2.0
 multidict==6.1.0
@@ -88,7 +88,7 @@ platformdirs==4.3.6
 policy-sentry==0.13.1
 portalocker==2.10.1
 portend==3.2.0
-posthog==3.7.0
+posthog==3.7.2
 prometheus-client==0.21.0
 prompt-toolkit==3.0.48
 propcache==0.2.0
@@ -101,7 +101,7 @@ pycares==4.4.0
 pycparser==2.22
 pygithub==2.5.0
 pygments==2.18.0
-pyjwt[crypto]==2.9.0
+pyjwt[crypto]==2.10.0
 pynacl==1.5.0
 pyparsing==3.2.0
 python-arango==8.1.2
@@ -117,9 +117,9 @@ rich==13.9.4
 rsa==4.9
 s3transfer==0.10.3
 schema==0.7.7
-setuptools==75.3.0
+setuptools==75.5.0
 six==1.16.0
-slack-sdk==3.33.3
+slack-sdk==3.33.4
 soupsieve==2.6
 sqlalchemy==1.4.54
 tempora==5.7.0
@@ -137,6 +137,6 @@ ustache==0.1.6
 wcwidth==0.2.13
 websocket-client==1.8.0
 wrapt==1.16.0
-yarl==1.17.1
+yarl==1.17.2
 zc-lockfile==3.0.post1
 zipp==3.21.0
