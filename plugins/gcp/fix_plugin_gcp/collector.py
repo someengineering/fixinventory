@@ -168,7 +168,7 @@ class GcpProjectCollector:
         for resource in builder.graph.nodes:
             if not isinstance(resource, GcpResource):
                 continue
-            # region can be overridden in the query: s3 is global, but need to be queried per region
+            # region can be overridden in the query
             if region := cast(GcpRegion, resource.region()):
                 resource_queries: List[monitoring.GcpMonitoringQuery] = resource.collect_usage_metrics(builder)
                 if resource_queries:
