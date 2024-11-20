@@ -10,7 +10,6 @@ from attr import define, field, frozen
 
 from fix_plugin_gcp.gcp_client import GcpClient
 from fix_plugin_gcp.resources.base import GcpApiSpec, GcpResource, GraphBuilder, GcpRegion
-from fix_plugin_gcp.utils import MetricNormalization
 from fixlib.baseresources import MetricName, MetricUnit, ModelReference, BaseResource, StatName
 from fixlib.durations import duration_str
 from fixlib.graph import Graph
@@ -21,6 +20,38 @@ from fixlib.utils import utc_str
 
 service_name = "monitoring"
 log = logging.getLogger("fix.plugins.gcp")
+T = TypeVar("T")
+
+
+def identity(x: T) -> T:
+    return x
+
+
+@frozen(kw_only=True)
+class MetricNormalization:
+    unit: MetricUnit
+    # Use Tuple instead of Dict for stat_map because it should be immutable
+    stat_map: Tuple[Tuple[str, StatName], Tuple[str, StatName], Tuple[str, StatName]] = (
+        ("ALIGN_MIN", StatName.min),
+        ("ALIGN_MEAN", StatName.avg),
+        ("ALIGN_MAX", StatName.max),
+    )
+    normalize_value: Callable[[float], float] = identity
+
+    def get_stat_value(self, key: str) -> Optional[StatName]:
+        """
+        Get the value from stat_map based on the given key.
+
+        Args:
+            key: The key to search for in the stat_map.
+
+        Returns:
+            The corresponding value from stat_map.
+        """
+        for stat_key, value in self.stat_map:
+            if stat_key == key:
+                return value
+        return None
 
 
 @define(hash=True, frozen=True)
@@ -32,6 +63,7 @@ class GcpMonitoringQuery:
     ref_id: str  # reference ID for the resource (e.g., instance ID)
     metric_id: str  # unique metric identifier (metric_name + instance_id)
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
+    label_type: str
     normalization: Optional[MetricNormalization] = None  # normalization info
     region: Optional[GcpRegion] = None
 
@@ -44,6 +76,7 @@ class GcpMonitoringQuery:
         resource_name: str,
         metric_name: Union[str, MetricName],
         stat: str,
+        label_type: str,
         normalization: Optional[MetricNormalization] = None,
         region: Optional[GcpRegion] = None,
     ) -> "GcpMonitoringQuery":
@@ -57,6 +90,7 @@ class GcpMonitoringQuery:
             ref_id=ref_id,
             resource_name=resource_name,
             metric_id=metric_id,
+            label_type=label_type,
             stat=stat,
             region=region,
             normalization=normalization,
@@ -64,31 +98,18 @@ class GcpMonitoringQuery:
 
 
 @define(eq=False, slots=False)
-class GcpMonitoringMetricDataPoint:
-    kind: ClassVar[str] = "gcp_monitoring_metric_data_point"
-    mapping: ClassVar[Dict[str, Bender]] = {
-        "start_time": S("interval", "startTime"),
-        "end_time": S("interval", "endTime"),
-        "value": S("value", "doubleValue"),
-    }
-    start_time: Optional[datetime] = field(default=None)
-    end_time: Optional[datetime] = field(default=None)
-    value: Optional[float] = field(default=None)
-
-
-@define(eq=False, slots=False)
 class GcpMonitoringMetricData:
     kind: ClassVar[str] = "gcp_monitoring_metric_data"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("metric", "type") + K("/") + S("metric", "labels", "instance_name"),
-        "metric_points": S("points", default=[]) >> Bend(GcpMonitoringMetricDataPoint.mapping),
+        "metric_values": S("points", default=[]) >> ForallBend(S("value", "doubleValue")),
         "metric_kind": S("metricKind"),
         "value_type": S("valueType"),
+        "metric_type": S("metric", "type"),
     }
-    id: Optional[str] = field(default=None)
-    metric_points: List[GcpMonitoringMetricDataPoint] = field(factory=list)
+    metric_values: List[float] = field(factory=list)
     metric_kind: Optional[str] = field(default=None)
     value_type: Optional[str] = field(default=None)
+    metric_type: Optional[str] = field(default=None)
 
     @classmethod
     def called_collect_apis(cls) -> List[GcpApiSpec]:
@@ -139,7 +160,7 @@ class GcpMonitoringMetricData:
 
         for query in queries:
             api_spec.request_parameter["filter"] = (
-                f"metric.type = {query.query_name} AND metric.labels.instance_name = {query.resource_name}"
+                f"metric.type = {query.query_name} AND metric.labels.{query.label_type} = {query.resource_name}"
             )
             api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
             api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
@@ -147,13 +168,14 @@ class GcpMonitoringMetricData:
                 GcpMonitoringMetricData._query_for_chunk,
                 builder,
                 api_spec,
+                query,
             )
             futures.append(future)
         # Retrieve results from submitted queries and populate the result dictionary
         for future in as_completed(futures):
             try:
-                metric_query_result = future.result()
-                for metric, metric_id in metric_query_result:
+                metric_query_result: List[Tuple[str, GcpMonitoringMetricData]] = future.result()
+                for metric_id, metric in metric_query_result:
                     if metric is not None and metric_id is not None:
                         result[lookup[metric_id]] = metric
             except Exception as e:
@@ -165,14 +187,14 @@ class GcpMonitoringMetricData:
     def _query_for_chunk(
         builder: GraphBuilder,
         api_spec: GcpApiSpec,
-    ) -> "List[Tuple[GcpMonitoringMetricData, str]]":
+        query: GcpMonitoringQuery,
+    ) -> "List[Tuple[str, GcpMonitoringMetricData]]":
         query_result = []
         try:
             part = builder.client.list(api_spec)
             for single in part:
                 metric = from_json(bend(GcpMonitoringMetricData.mapping, single), GcpMonitoringMetricData)
-                if metric.id:
-                    query_result.append((metric, metric.id))
+                query_result.append((query.metric_id, metric))
             return query_result
         except Exception as e:
             raise e
@@ -183,9 +205,9 @@ V = TypeVar("V", bound=BaseResource)
 
 def update_resource_metrics(
     resources_map: Dict[str, V],
-    cloudwatch_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
+    monitoring_metric_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
 ) -> None:
-    for query, metric in cloudwatch_result.items():
+    for query, metric in monitoring_metric_result.items():
         resource = resources_map.get(query.ref_id)
         if resource is None:
             continue
@@ -195,16 +217,17 @@ def update_resource_metrics(
         if not normalizer:
             continue
 
-        for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
-            try:
-                metric_name = query.metric_name
-                if not metric_name:
-                    continue
-                name = metric_name + "_" + normalizer.unit
-                value = normalizer.normalize_value(metric_value)
-                stat_name = maybe_stat_name or normalizer.get_stat_value(query.stat)
-                if stat_name:
-                    resource._resource_usage[name][str(stat_name)] = value
-            except KeyError as e:
-                log.warning(f"An error occured while setting metric values: {e}")
-                raise
+        most_recent_value = metric.metric_values[0]
+
+        try:
+            metric_name = query.metric_name
+            if not metric_name:
+                continue
+            name = metric_name + "_" + normalizer.unit
+            value = normalizer.normalize_value(most_recent_value)
+            stat_name = normalizer.get_stat_value(query.stat)
+            if stat_name:
+                resource._resource_usage[name][str(stat_name)] = value
+        except KeyError as e:
+            log.warning(f"An error occured while setting metric values: {e}")
+            raise

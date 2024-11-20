@@ -1,7 +1,7 @@
 import os
 import socket
 from datetime import datetime
-from typing import Iterable, TypeVar, List, Union, Callable, Any, Dict, Optional
+from typing import Iterable, Tuple, TypeVar, List, Union, Callable, Any, Dict, Optional
 
 from attrs import frozen
 from google.oauth2 import service_account
@@ -248,19 +248,3 @@ def gcp_resource(resource: BaseResource, graph: Graph = None):
     service = gcp_service(resource, graph)
     gr = getattr(service, resource._client_method)
     return gr()
-
-
-def identity(x: T) -> T:
-    return x
-
-
-@frozen(kw_only=True)
-class MetricNormalization:
-    metric_name: MetricName
-    unit: MetricUnit
-    stat_map: Dict[str, StatName] = {
-        "minimum": StatName.min,
-        "average": StatName.avg,
-        "maximum": StatName.max,
-    }
-    normalize_value: Callable[[float], float] = identity
