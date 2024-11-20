@@ -3556,6 +3556,8 @@ class GcpInstance(GcpResource, BaseInstance):
             )
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        if self.instance_status != InstanceStatus.RUNNING:
+            return []
         queries: List[GcpMonitoringQuery] = []
         queries = []
         delta = builder.metrics_delta
@@ -3588,7 +3590,7 @@ class GcpInstance(GcpResource, BaseInstance):
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [
-                    ("compute.googleapis.com/instance/network/received_bytes_count ", MetricName.NetworkIn),
+                    ("compute.googleapis.com/instance/network/received_bytes_count", MetricName.NetworkIn),
                     ("compute.googleapis.com/instance/network/sent_bytes_count", MetricName.NetworkOut),
                 ]
             ]

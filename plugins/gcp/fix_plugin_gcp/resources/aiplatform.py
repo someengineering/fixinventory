@@ -36,7 +36,6 @@ class AIPlatformRegionFilter:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
         if issubclass(cls, GcpResource):
             region_name = "global" if not builder.region else builder.region.safe_name
-            log.info(f"[GCP:{builder.project.id}:{region_name}] Collecting {cls.kind}")
             if spec := cls.api_spec:
                 expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set()) | {"HttpError:none:none"}
                 with GcpErrorHandler(

@@ -1,22 +1,17 @@
 from copy import deepcopy
-from functools import cached_property, lru_cache
+from functools import cached_property
 import logging
-import re
 from datetime import datetime, timedelta
-from typing import Callable, ClassVar, Dict, List, Optional, Type, Tuple, TypeVar, Any, Union
+from typing import Callable, ClassVar, Dict, List, Optional, Tuple, TypeVar, Union
 from concurrent.futures import as_completed
-from json import loads as json_loads
 
 from attr import define, field, frozen
 
-from fix_plugin_gcp.gcp_client import GcpClient
-from fix_plugin_gcp.resources.base import GcpApiSpec, GcpResource, GraphBuilder, GcpRegion
-from fixlib.baseresources import MetricName, MetricUnit, ModelReference, BaseResource, StatName
+from fix_plugin_gcp.resources.base import GcpApiSpec, GraphBuilder, GcpRegion
+from fixlib.baseresources import MetricName, MetricUnit, BaseResource, StatName
 from fixlib.durations import duration_str
-from fixlib.graph import Graph
-from fixlib.json import from_json, sort_json
-from fixlib.json_bender import S, K, Bend, Bender, ForallBend, bend, F, SecondsFromEpochToDatetime
-from fixlib.types import Json
+from fixlib.json import from_json
+from fixlib.json_bender import S, Bender, ForallBend, bend
 from fixlib.utils import utc_str
 
 service_name = "monitoring"
@@ -84,8 +79,8 @@ class GcpMonitoringQuery:
         normalization: Optional[MetricNormalization] = None,
         region: Optional[GcpRegion] = None,
     ) -> "GcpMonitoringQuery":
-        # Metric ID generation: metric query name + resource ID
-        metric_id = f"{query_name}/{ref_id}"
+        # Metric ID generation: metric query name + resource ID + stat
+        metric_id = f"{query_name}/{ref_id}/{stat}"
 
         return GcpMonitoringQuery(
             metric_name=metric_name,
@@ -197,11 +192,11 @@ class GcpMonitoringMetricData:
     ) -> "List[Tuple[str, GcpMonitoringMetricData]]":
         query_result = []
         local_api_spec = deepcopy(api_spec)
-        local_api_spec.request_parameters["filter"] = (
+        local_api_spec.request_parameter["filter"] = (
             f'metric.type = "{query.query_name}" AND metric.labels.{query.label_name} = "{query.resource_name}"'
         )
-        local_api_spec.request_parameters["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
-        local_api_spec.request_parameters["aggregation_perSeriesAligner"] = query.stat
+        local_api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
+        local_api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
 
         try:
             part = builder.client.list(local_api_spec)
