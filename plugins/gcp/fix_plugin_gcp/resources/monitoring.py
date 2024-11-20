@@ -23,6 +23,9 @@ log = logging.getLogger("fix.plugins.gcp")
 T = TypeVar("T")
 
 
+STAT_LIST: List[str] = ["ALIGN_MIN", "ALIGN_MEAN", "ALIGN_MAX"]
+
+
 def identity(x: T) -> T:
     return x
 
@@ -63,7 +66,7 @@ class GcpMonitoringQuery:
     ref_id: str  # reference ID for the resource (e.g., instance ID)
     metric_id: str  # unique metric identifier (metric_name + instance_id)
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
-    label_type: str
+    label_name: str
     normalization: Optional[MetricNormalization] = None  # normalization info
     region: Optional[GcpRegion] = None
 
@@ -76,12 +79,12 @@ class GcpMonitoringQuery:
         resource_name: str,
         metric_name: Union[str, MetricName],
         stat: str,
-        label_type: str,
+        label_name: str,
         normalization: Optional[MetricNormalization] = None,
         region: Optional[GcpRegion] = None,
     ) -> "GcpMonitoringQuery":
-        # Metric ID generation: metric name + resource ID
-        metric_id = f"{metric_name}/{ref_id}"
+        # Metric ID generation: metric query name + resource ID
+        metric_id = f"{query_name}/{ref_id}"
 
         return GcpMonitoringQuery(
             metric_name=metric_name,
@@ -90,7 +93,7 @@ class GcpMonitoringQuery:
             ref_id=ref_id,
             resource_name=resource_name,
             metric_id=metric_id,
-            label_type=label_type,
+            label_name=label_name,
             stat=stat,
             region=region,
             normalization=normalization,
@@ -133,6 +136,12 @@ class GcpMonitoringMetricData:
         start_time: datetime,
         end_time: datetime,
     ) -> "Dict[GcpMonitoringQuery, GcpMonitoringMetricData]":
+        if builder.region:
+            log.info(
+                f"[{builder.region.safe_name}|{start_time}|{duration_str(end_time - start_time)}] Query for {len(queries)} metrics."
+            )
+        else:
+            log.info(f"[global|{start_time}|{duration_str(end_time - start_time)}] Query for {len(queries)} metrics.")
         lookup = {q.metric_id: q for q in queries}
         result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData] = {}
         futures = []
@@ -160,7 +169,7 @@ class GcpMonitoringMetricData:
 
         for query in queries:
             api_spec.request_parameter["filter"] = (
-                f"metric.type = {query.query_name} AND metric.labels.{query.label_type} = {query.resource_name}"
+                f"metric.type = {query.query_name} AND metric.labels.{query.label_name} = {query.resource_name}"
             )
             api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
             api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
@@ -231,3 +240,57 @@ def update_resource_metrics(
         except KeyError as e:
             log.warning(f"An error occured while setting metric values: {e}")
             raise
+
+
+class NormalizerFactory:
+    @cached_property
+    def count(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Count,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def bytes(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Bytes,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def bytes_per_second(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.BytesPerSecond,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def iops(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.IOPS,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def seconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Seconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def milliseconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Milliseconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def percent(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Percent,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+
+normalizer_factory = NormalizerFactory()

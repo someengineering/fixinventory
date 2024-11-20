@@ -116,8 +116,7 @@ class ResourceChanges:
         return changes
 
 
-# todo: replace to StrEnum once resoto is on 3.11
-class MetricName(str, Enum):
+class MetricName(StrEnum):
     def __str__(self) -> str:
         return self.value
 

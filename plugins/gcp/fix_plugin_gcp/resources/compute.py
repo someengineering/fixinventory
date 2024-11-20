@@ -9,6 +9,7 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
 from fix_plugin_gcp.resources.billing import GcpSku
+from fix_plugin_gcp.resources.monitoring import GcpMonitoringQuery, STAT_LIST, normalizer_factory
 from fixlib.baseresources import (
     BaseAutoScalingGroup,
     BaseBucket,
@@ -24,6 +25,7 @@ from fixlib.baseresources import (
     BaseSubnet,
     BaseTunnel,
     BaseVolumeType,
+    MetricName,
     ModelReference,
     BaseVolume,
     VolumeStatus,
@@ -3552,6 +3554,86 @@ class GcpInstance(GcpResource, BaseInstance):
             builder.dependant_node(
                 self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=nic.subnetwork
             )
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        queries = []
+        delta = builder.metrics_delta
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="compute.googleapis.com/instance/cpu/utilization",
+                    period=delta,
+                    ref_id=self.id,
+                    resource_name=self.id,
+                    metric_name=MetricName.CpuUtilization,
+                    normalization=normalizer_factory.percent,
+                    stat=stat,
+                    label_name="instance_name",
+                )
+                for stat in STAT_LIST
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=self.id,
+                    resource_name=self.id,
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    label_name="instance_name",
+                )
+                for stat in STAT_LIST
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/network/received_bytes_count ", MetricName.NetworkIn),
+                    ("compute.googleapis.com/instance/network/sent_bytes_count", MetricName.NetworkOut),
+                ]
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=self.id,
+                    resource_name=self.id,
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    label_name="instance_name",
+                )
+                for stat in STAT_LIST
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=self.id,
+                    resource_name=self.id,
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    label_name="instance_name",
+                )
+                for stat in STAT_LIST
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+        return queries
 
     @classmethod
     def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
