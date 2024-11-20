@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import cached_property, lru_cache
 import logging
 import re
@@ -104,12 +105,13 @@ class GcpMonitoringQuery:
 class GcpMonitoringMetricData:
     kind: ClassVar[str] = "gcp_monitoring_metric_data"
     mapping: ClassVar[Dict[str, Bender]] = {
-        "metric_values": S("points", default=[]) >> ForallBend(S("value", "doubleValue")),
+        "metric_values": S("points")
+        >> ForallBend(S("value", "doubleValue").or_else(S("value", "int64Value", default=0.0))),
         "metric_kind": S("metricKind"),
         "value_type": S("valueType"),
         "metric_type": S("metric", "type"),
     }
-    metric_values: List[float] = field(factory=list)
+    metric_values: Optional[List[float]] = field(factory=list)
     metric_kind: Optional[str] = field(default=None)
     value_type: Optional[str] = field(default=None)
     metric_type: Optional[str] = field(default=None)
@@ -168,11 +170,6 @@ class GcpMonitoringMetricData:
         )
 
         for query in queries:
-            api_spec.request_parameter["filter"] = (
-                f"metric.type = {query.query_name} AND metric.labels.{query.label_name} = {query.resource_name}"
-            )
-            api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
-            api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
             future = builder.submit_work(
                 GcpMonitoringMetricData._query_for_chunk,
                 builder,
@@ -199,8 +196,15 @@ class GcpMonitoringMetricData:
         query: GcpMonitoringQuery,
     ) -> "List[Tuple[str, GcpMonitoringMetricData]]":
         query_result = []
+        local_api_spec = deepcopy(api_spec)
+        local_api_spec.request_parameters["filter"] = (
+            f'metric.type = "{query.query_name}" AND metric.labels.{query.label_name} = "{query.resource_name}"'
+        )
+        local_api_spec.request_parameters["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
+        local_api_spec.request_parameters["aggregation_perSeriesAligner"] = query.stat
+
         try:
-            part = builder.client.list(api_spec)
+            part = builder.client.list(local_api_spec)
             for single in part:
                 metric = from_json(bend(GcpMonitoringMetricData.mapping, single), GcpMonitoringMetricData)
                 query_result.append((query.metric_id, metric))
@@ -220,7 +224,7 @@ def update_resource_metrics(
         resource = resources_map.get(query.ref_id)
         if resource is None:
             continue
-        if len(metric.metric_values) == 0:
+        if not metric.metric_values or len(metric.metric_values) == 0:
             continue
         normalizer = query.normalization
         if not normalizer:
