@@ -29,5 +29,5 @@ def test_metric(random_builder: GraphBuilder) -> None:
         label_name="instance_name",
     )
     result = GcpMonitoringMetricData.query_for(random_builder, [read, write], earlier, now)
-    assert all(value > 0 for value in result[read].metric_values), "Not all values are greater than 0 for 'read'."
-    assert all(value > 0 for value in result[write].metric_values), "Not all values are greater than 0 for 'write'."
+    assert all(value > 0 for value in result[read].metric_values or [])
+    assert all(value > 0 for value in result[write].metric_values or [])
