@@ -64,7 +64,9 @@ class AIPlatformRegionFilter:
                     if builder.region:
                         items = builder.client.list(spec, **kwargs)
                         collected_resources = cls.collect(items, builder)
-                        log.info(f"[GCP:{builder.project.id}] finished collecting: {cls.kind}")
+                        log.info(
+                            f"[GCP:{builder.project.id}:{builder.region.safe_name}] finished collecting: {cls.kind}"
+                        )
                         return collected_resources
         return []
 
