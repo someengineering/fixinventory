@@ -1,7 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import timedelta, datetime
 import json
 import os
+from typing import List
 
 from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion
 from fix_plugin_gcp.resources.compute import *
@@ -194,7 +195,7 @@ def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
                 random_builder.graph,
                 random_builder.cloud,
                 random_builder.project,
-                AnonymousCredentials(),
+                AnonymousCredentials(),  # type: ignore
                 queue,
                 random_builder.core_feedback,
                 random_builder.error_accumulator,

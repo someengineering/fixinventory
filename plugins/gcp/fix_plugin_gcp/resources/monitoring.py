@@ -7,7 +7,8 @@ from concurrent.futures import as_completed
 
 from attr import define, field, frozen
 
-from fix_plugin_gcp.resources.base import GcpApiSpec, GraphBuilder, GcpRegion
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion
+from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fixlib.baseresources import MetricName, MetricUnit, BaseResource, StatName
 from fixlib.durations import duration_str
 from fixlib.json import from_json

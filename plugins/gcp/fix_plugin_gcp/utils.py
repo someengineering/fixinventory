@@ -1,9 +1,8 @@
 import os
 import socket
 from datetime import datetime
-from typing import Iterable, Tuple, TypeVar, List, Union, Callable, Any, Dict, Optional
+from typing import Iterable, TypeVar, List, Union, Callable, Any, Dict, Optional
 
-from attrs import frozen
 from google.oauth2 import service_account
 from googleapiclient import discovery
 from googleapiclient.discovery_cache.base import Cache as GoogleApiClientCache
@@ -12,7 +11,7 @@ from retrying import retry
 from tenacity import Retrying, stop_after_attempt, retry_if_exception_type
 
 import fixlib.logger
-from fixlib.baseresources import BaseResource, MetricName, MetricUnit, StatName
+from fixlib.baseresources import BaseResource
 from fixlib.config import Config
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph
