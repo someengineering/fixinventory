@@ -194,6 +194,8 @@ class MetricName(StrEnum):
     DiskQueueDepth = "disk_queue_depth"
     NetworkReceiveThroughput = "network_receive_throughput"
     NetworkTransmitThroughput = "network_transmit_throughput"
+    NetworkBytesSent = "network_bytes_sent"
+    NetworkBytesReceived = "network_bytes_received"
 
     # serverless
     Invocations = "invocations"

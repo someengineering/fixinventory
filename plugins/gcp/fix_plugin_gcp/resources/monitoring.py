@@ -64,6 +64,7 @@ class GcpMonitoringQuery:
     metric_id: str  # unique metric identifier (metric_name + instance_id)
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
     label_name: str
+    metric_lable_query: bool  # `metric` by default. can be `resource` label
     normalization: Optional[MetricNormalization] = None  # normalization info
     region: Optional[GcpRegion] = None
 
@@ -77,6 +78,7 @@ class GcpMonitoringQuery:
         metric_name: Union[str, MetricName],
         stat: str,
         label_name: str,
+        metric_lable_query: bool = True,
         normalization: Optional[MetricNormalization] = None,
         region: Optional[GcpRegion] = None,
     ) -> "GcpMonitoringQuery":
@@ -91,6 +93,7 @@ class GcpMonitoringQuery:
             resource_name=resource_name,
             metric_id=metric_id,
             label_name=label_name,
+            metric_lable_query=metric_lable_query,
             stat=stat,
             region=region,
             normalization=normalization,
@@ -194,7 +197,7 @@ class GcpMonitoringMetricData:
         query_result = []
         local_api_spec = deepcopy(api_spec)
         local_api_spec.request_parameter["filter"] = (
-            f'metric.type = "{query.query_name}" AND metric.labels.{query.label_name} = "{query.resource_name}"'
+            f'metric.type = "{query.query_name}" AND {"metric" if query.metric_lable_query else "resource"}.labels.{query.label_name} = "{query.resource_name}"'
         )
         local_api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
         local_api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
