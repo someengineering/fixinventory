@@ -226,14 +226,14 @@ def update_resource_metrics(
         if not normalizer:
             continue
 
-        most_recent_value = metric.metric_values[0]
+        average_value = sum(metric.metric_values) / len(metric.metric_values)
 
         try:
             metric_name = query.metric_name
             if not metric_name:
                 continue
             name = metric_name + "_" + normalizer.unit
-            value = normalizer.normalize_value(most_recent_value)
+            value = normalizer.normalize_value(average_value)
             stat_name = normalizer.get_stat_value(query.stat)
             if stat_name:
                 resource._resource_usage[name][str(stat_name)] = value

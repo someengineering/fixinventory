@@ -1205,6 +1205,67 @@ class GcpDisk(GcpResource, BaseVolume):
             builder.dependant_node(self, clazz=GcpInstance, link=user, reverse=True, delete_same_as_default=False)
         builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
 
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        queries = []
+        delta = builder.metrics_delta
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="compute.googleapis.com/instance/disk/average_io_queue_depth",
+                    period=delta,
+                    ref_id=self.id,
+                    resource_name=self.id,
+                    metric_name=MetricName.VolumeQueueLength,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    label_name="device_name",
+                )
+                for stat in STAT_LIST
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=self.id,
+                    resource_name=self.id,
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    label_name="device_name",
+                )
+                for stat in STAT_LIST
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=self.id,
+                    resource_name=self.id,
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    label_name="device_name",
+                )
+                for stat in STAT_LIST
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+        return queries
+
 
 @define(eq=False, slots=False)
 class GcpExternalVpnGatewayInterface:
