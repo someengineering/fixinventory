@@ -1214,7 +1214,7 @@ class GcpDisk(GcpResource, BaseVolume):
                 GcpMonitoringQuery.create(
                     query_name="compute.googleapis.com/instance/disk/average_io_queue_depth",
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=self.id,
                     metric_name=MetricName.VolumeQueueLength,
                     normalization=normalizer_factory.count,
@@ -1230,7 +1230,7 @@ class GcpDisk(GcpResource, BaseVolume):
                 GcpMonitoringQuery.create(
                     query_name=name,
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
@@ -1250,7 +1250,7 @@ class GcpDisk(GcpResource, BaseVolume):
                 GcpMonitoringQuery.create(
                     query_name=name,
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
@@ -3627,7 +3627,7 @@ class GcpInstance(GcpResource, BaseInstance):
                 GcpMonitoringQuery.create(
                     query_name="compute.googleapis.com/instance/cpu/utilization",
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=self.id,
                     metric_name=MetricName.CpuUtilization,
                     normalization=normalizer_factory.percent,
@@ -3642,7 +3642,7 @@ class GcpInstance(GcpResource, BaseInstance):
                 GcpMonitoringQuery.create(
                     query_name=name,
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
@@ -3662,7 +3662,7 @@ class GcpInstance(GcpResource, BaseInstance):
                 GcpMonitoringQuery.create(
                     query_name=name,
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
@@ -3682,7 +3682,7 @@ class GcpInstance(GcpResource, BaseInstance):
                 GcpMonitoringQuery.create(
                     query_name=name,
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,

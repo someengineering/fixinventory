@@ -776,7 +776,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                 GcpMonitoringQuery.create(
                     query_name="cloudsql.googleapis.com/database/cpu/utilization",
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=f"{builder.project.id}:{self.id}",
                     metric_name=MetricName.CpuUtilization,
                     normalization=normalizer_factory.percent,
@@ -792,7 +792,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                 GcpMonitoringQuery.create(
                     query_name=name,
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=f"{builder.project.id}:{self.id}",
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
@@ -813,7 +813,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                 GcpMonitoringQuery.create(
                     query_name=name,
                     period=delta,
-                    ref_id=self.id,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     resource_name=f"{builder.project.id}:{self.id}",
                     metric_name=metric_name,
                     normalization=normalizer_factory.iops,

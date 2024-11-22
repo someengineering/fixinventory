@@ -60,7 +60,8 @@ class GcpMonitoringQuery:
     query_name: str  # name of the metric (e.g., GCP metric type)
     resource_name: str  # name of resource
     period: timedelta  # period of the metric
-    ref_id: str  # reference ID for the resource (e.g., instance ID)
+    ref_id: str  # A unique identifier for the resource, formatted as `{resource_kind}/{resource_id}/{resource_region}`.
+    # Example: "gcp_instance/12345/us-central1". This is used to uniquely reference resources across kinds and regions.
     metric_id: str  # unique metric identifier (metric_name + instance_id)
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
     label_name: str
@@ -219,6 +220,7 @@ def update_resource_metrics(
     resources_map: Dict[str, V],
     monitoring_metric_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
 ) -> None:
+    a = None
     for query, metric in monitoring_metric_result.items():
         resource = resources_map.get(query.ref_id)
         if resource is None:

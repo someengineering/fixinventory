@@ -172,7 +172,8 @@ class GcpProjectCollector:
             if region := cast(GcpRegion, resource.region()):
                 resource_queries: List[monitoring.GcpMonitoringQuery] = resource.collect_usage_metrics(builder)
                 if resource_queries:
-                    lookup_map[resource.id] = resource
+                    # set unique GcpMonitoringQuery.ref_id
+                    lookup_map[f"{resource.kind}/{resource.id}/{region.id}"] = resource
                 for query in resource_queries:
                     query_region = query.region or region
                     start = builder.metrics_delta
