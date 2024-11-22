@@ -185,7 +185,7 @@ def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
     random_builder.region = GcpRegion(id="us-east1", name="us-east1")
     queries = gcp_instance.collect_usage_metrics(random_builder)
     lookup_map = {}
-    lookup_map[gcp_instance.id] = gcp_instance
+    lookup_map[f"{gcp_instance.kind}/{gcp_instance.id}/{gcp_instance.region().id}"] = gcp_instance
 
     # simulates the `collect_usage_metrics` method found in `GcpAccountCollector`.
     def collect_and_set_metrics(start_at: datetime, region: GcpRegion, queries: List[GcpMonitoringQuery]) -> None:
