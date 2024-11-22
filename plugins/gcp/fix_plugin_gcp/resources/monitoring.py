@@ -220,7 +220,6 @@ def update_resource_metrics(
     resources_map: Dict[str, V],
     monitoring_metric_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
 ) -> None:
-    a = None
     for query, metric in monitoring_metric_result.items():
         resource = resources_map.get(query.ref_id)
         if resource is None:
