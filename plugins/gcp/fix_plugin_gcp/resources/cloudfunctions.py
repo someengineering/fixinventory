@@ -4,8 +4,9 @@ from typing import ClassVar, Dict, Optional, List, Type, Any
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
-from fixlib.baseresources import BaseServerlessFunction
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from fix_plugin_gcp.resources.monitoring import GcpMonitoringQuery, normalizer_factory, STAT_LIST
+from fixlib.baseresources import BaseServerlessFunction, MetricName
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
 
@@ -299,6 +300,58 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
     update_time: Optional[datetime] = field(default=None)
     upgrade_info: Optional[GcpUpgradeInfo] = field(default=None)
     url: Optional[str] = field(default=None)
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        queries = []
+        delta = builder.metrics_delta
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        **(
+                            {"metric.labels.status": "error"}
+                            if metric_name == MetricName.Errors
+                            else {"metric.labels.status": "ok"}
+                        ),
+                        "resource.labels.function_name": self.resource_raw_name,
+                        "resource.labels.region": self.region().id,
+                        "resource.type": "cloud_function",
+                    },
+                )
+                for stat in STAT_LIST
+                for name, metric_name in [
+                    ("cloudfunctions.googleapis.com/function/execution_count", MetricName.Invocations),
+                    ("cloudfunctions.googleapis.com/function/execution_count", MetricName.Errors),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="cloudfunctions.googleapis.com/function/execution_times",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.Duration,
+                    normalization=normalizer_factory.milliseconds,
+                    stat="ALIGN_NONE",
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.function_name": self.resource_raw_name,
+                        "resource.labels.region": self.region().id,
+                        "resource.type": "cloud_function",
+                    },
+                )
+            ]
+        )
+        return queries
 
 
 resources: List[Type[GcpResource]] = [GcpCloudFunction]

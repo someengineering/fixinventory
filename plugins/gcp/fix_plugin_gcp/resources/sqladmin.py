@@ -777,12 +777,14 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                     query_name="cloudsql.googleapis.com/database/cpu/utilization",
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=f"{builder.project.id}:{self.id}",
                     metric_name=MetricName.CpuUtilization,
                     normalization=normalizer_factory.percent,
                     stat=stat,
-                    label_name="database_id",
-                    metric_lable_query=False,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.database_id": f"{builder.project.id}:{self.id}",
+                        "resource.labels.region": self.region().id,
+                    },
                 )
                 for stat in STAT_LIST
             ]
@@ -793,12 +795,14 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                     query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=f"{builder.project.id}:{self.id}",
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
-                    label_name="database_id",
-                    metric_lable_query=False,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.database_id": f"{builder.project.id}:{self.id}",
+                        "resource.labels.region": self.region().id,
+                    },
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [
@@ -814,12 +818,14 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                     query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=f"{builder.project.id}:{self.id}",
                     metric_name=metric_name,
                     normalization=normalizer_factory.iops,
                     stat=stat,
-                    label_name="database_id",
-                    metric_lable_query=False,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.database_id": f"{builder.project.id}:{self.id}",
+                        "resource.labels.region": self.region().id,
+                    },
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [

@@ -58,16 +58,18 @@ class MetricNormalization:
 class GcpMonitoringQuery:
     metric_name: Union[str, MetricName]  # final name of the metric
     query_name: str  # name of the metric (e.g., GCP metric type)
-    resource_name: str  # name of resource
+    # resource_name: str  # name of resource
     period: timedelta  # period of the metric
     ref_id: str  # A unique identifier for the resource, formatted as `{resource_kind}/{resource_id}/{resource_region}`.
     # Example: "gcp_instance/12345/us-central1". This is used to uniquely reference resources across kinds and regions.
     metric_id: str  # unique metric identifier (metric_name + instance_id)
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
-    label_name: str
-    metric_lable_query: bool  # `metric` by default. can be `resource` label
+    # label_name: str
+    # metric_lable_query: bool  # `metric` by default. can be `resource` label
+    project_id: str  # GCP project name
     normalization: Optional[MetricNormalization] = None  # normalization info
     region: Optional[GcpRegion] = None
+    metric_filters: Optional[Tuple[Tuple[str, str], ...]] = None  # Immutable structure
 
     @staticmethod
     def create(
@@ -75,29 +77,33 @@ class GcpMonitoringQuery:
         query_name: str,
         period: timedelta,
         ref_id: str,
-        resource_name: str,
+        # resource_name: str,
         metric_name: Union[str, MetricName],
         stat: str,
-        label_name: str,
-        metric_lable_query: bool = True,
+        # label_name: str,
+        # metric_lable_query: bool = True,
+        project_id: str,
         normalization: Optional[MetricNormalization] = None,
         region: Optional[GcpRegion] = None,
+        metric_filters: Optional[Dict[str, str]] = None,
     ) -> "GcpMonitoringQuery":
         # Metric ID generation: metric query name + resource ID + stat
         metric_id = f"{query_name}/{ref_id}/{stat}"
-
+        immutable_filters = tuple(metric_filters.items()) if metric_filters else None
         return GcpMonitoringQuery(
             metric_name=metric_name,
             query_name=query_name,
             period=period,
             ref_id=ref_id,
-            resource_name=resource_name,
+            # resource_name=resource_name,
             metric_id=metric_id,
-            label_name=label_name,
-            metric_lable_query=metric_lable_query,
+            # label_name=label_name,
+            # metric_lable_query=metric_lable_query,
             stat=stat,
             region=region,
             normalization=normalization,
+            project_id=project_id,
+            metric_filters=immutable_filters,
         )
 
 
@@ -160,7 +166,7 @@ class GcpMonitoringMetricData:
                 "interval_endTime": utc_str(end_time),
                 "interval_startTime": utc_str(start_time),
                 "view": "FULL",
-                # set parametes below dynamically
+                # Below parameters are intended to be set dynamically
                 # "aggregation_alignmentPeriod": None,
                 # "aggregation_perSeriesAligner": None,
                 # "filter": None,
@@ -197,9 +203,19 @@ class GcpMonitoringMetricData:
     ) -> "List[Tuple[str, GcpMonitoringMetricData]]":
         query_result = []
         local_api_spec = deepcopy(api_spec)
-        local_api_spec.request_parameter["filter"] = (
-            f'metric.type = "{query.query_name}" AND {"metric" if query.metric_lable_query else "resource"}.labels.{query.label_name} = "{query.resource_name}"'
-        )
+
+        # Base filter
+        filters = [
+            f'metric.type = "{query.query_name}"',
+            f'resource.labels.project_id="{query.project_id}"',
+        ]
+
+        # Add additional filters
+        if query.metric_filters:
+            filters.extend(f'{key} = "{value}"' for key, value in query.metric_filters)
+
+        # Join filters with " AND " to form the final filter string
+        local_api_spec.request_parameter["filter"] = " AND ".join(filters)
         local_api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
         local_api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
 

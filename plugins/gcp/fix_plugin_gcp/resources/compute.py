@@ -1215,11 +1215,11 @@ class GcpDisk(GcpResource, BaseVolume):
                     query_name="compute.googleapis.com/instance/disk/average_io_queue_depth",
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=self.id,
                     metric_name=MetricName.VolumeQueueLength,
                     normalization=normalizer_factory.count,
                     stat=stat,
-                    label_name="device_name",
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
                 )
                 for stat in STAT_LIST
             ]
@@ -1231,11 +1231,11 @@ class GcpDisk(GcpResource, BaseVolume):
                     query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
-                    label_name="device_name",
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [
@@ -1251,11 +1251,11 @@ class GcpDisk(GcpResource, BaseVolume):
                     query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
-                    label_name="device_name",
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.device_name": self.id},
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [
@@ -3628,11 +3628,11 @@ class GcpInstance(GcpResource, BaseInstance):
                     query_name="compute.googleapis.com/instance/cpu/utilization",
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=self.id,
                     metric_name=MetricName.CpuUtilization,
                     normalization=normalizer_factory.percent,
                     stat=stat,
-                    label_name="instance_name",
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
                 for stat in STAT_LIST
             ]
@@ -3643,11 +3643,11 @@ class GcpInstance(GcpResource, BaseInstance):
                     query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
-                    label_name="instance_name",
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [
@@ -3663,11 +3663,11 @@ class GcpInstance(GcpResource, BaseInstance):
                     query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
-                    label_name="instance_name",
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [
@@ -3683,11 +3683,11 @@ class GcpInstance(GcpResource, BaseInstance):
                     query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    resource_name=self.id,
                     metric_name=metric_name,
                     normalization=normalizer_factory.count,
                     stat=stat,
-                    label_name="instance_name",
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
                 for stat in STAT_LIST
                 for name, metric_name in [

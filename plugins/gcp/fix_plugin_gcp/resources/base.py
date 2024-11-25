@@ -9,10 +9,10 @@ from types import TracebackType
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set, Tuple
 
 from attr import define, field
-from fix_plugin_gcp.config import GcpConfig
 from google.auth.credentials import Credentials as GoogleAuthCredentials
 from googleapiclient.errors import HttpError
 
+from fix_plugin_gcp.config import GcpConfig
 from fix_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
 from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import (
@@ -32,9 +32,8 @@ from fixlib.json import from_json as from_js, value_in_path
 from fixlib.json_bender import bend, Bender, S, Bend, MapDict, F
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
-from fixinventorydata.cloud import regions as cloud_region_data
-
 from fixlib.utils import utc
+from fixinventorydata.cloud import regions as cloud_region_data
 
 log = logging.getLogger("fix.plugins.gcp")
 
@@ -334,6 +333,16 @@ class GcpResource(BaseResource):
         if self.link is not None:
             return tuple(list(super()._keys()) + [self.link])
         return super()._keys()
+
+    @property
+    def resource_raw_name(self) -> str:
+        """
+        Extracts the last segment of the GCP resource ID.
+
+        Returns:
+            str: The last segment of the resource ID (e.g., "function-1" from "projects/{project}/locations/{location}/functions/function-1").
+        """
+        return self.id.strip().split("/")[-1]
 
     def delete(self, graph: Graph) -> bool:
         if not self.api_spec:
