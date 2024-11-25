@@ -203,11 +203,20 @@ class GraphBuilder:
         if node._region:
             self.add_edge(node, node=node._region, reverse=True)
             return True
-        if "locations" in node.id:
-            parts = node.id.split("/")
-            loc_index = parts.index("locations")
-            if loc_index + 1 < len(parts):
-                location_name = parts[loc_index + 1]
+
+        parts = node.id.split("/")
+        if len(parts) > 3 and parts[0] == "projects":
+            location_types = ["locations", "zones", "regions"]
+            if parts[2] in location_types:
+                location_name = parts[3]
+                # Check for zone first
+                if zone := self.zone_by_name.get(location_name):
+                    node._zone = zone
+                    node._region = self.region_by_zone_name.get(zone.id)
+                    self.add_edge(node, node=zone, reverse=True)
+                    return True
+
+                # Then check for region
                 if region := self.region_by_name.get(location_name):
                     node._region = region
                     self.add_edge(node, node=region, reverse=True)
