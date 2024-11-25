@@ -28,7 +28,7 @@ from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
-    compute.resources
+    # compute.resources
     # + container.resources
     # + billing.resources
     # + sqladmin.resources
@@ -36,7 +36,7 @@ all_resources: List[Type[GcpResource]] = (
     # + aiplatform.resources
     # + firestore.resources
     # + filestore.resources
-    + cloudfunctions.resources
+    cloudfunctions.resources
 )
 
 
@@ -175,7 +175,7 @@ class GcpProjectCollector:
                     # set unique GcpMonitoringQuery.ref_id
                     lookup_map[f"{resource.kind}/{resource.id}/{region.id}"] = resource
                 for query in resource_queries:
-                    query_region = query.region or region
+                    query_region = region
                     start = builder.metrics_delta
                     if query.period and query.period < thirty_minutes:
                         start = min(start, two_hours)

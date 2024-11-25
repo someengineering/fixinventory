@@ -203,6 +203,15 @@ class GraphBuilder:
         if node._region:
             self.add_edge(node, node=node._region, reverse=True)
             return True
+        if "locations" in node.id:
+            parts = node.id.split("/")
+            loc_index = parts.index("locations")
+            if loc_index + 1 < len(parts):
+                location_name = parts[loc_index + 1]
+                if region := self.region_by_name.get(location_name):
+                    node._region = region
+                    self.add_edge(node, node=region, reverse=True)
+                    return True
 
         if source is not None:
             if InternalZoneProp in source:

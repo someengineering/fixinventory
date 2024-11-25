@@ -316,11 +316,7 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                     stat=stat,
                     project_id=builder.project.id,
                     metric_filters={
-                        **(
-                            {"metric.labels.status": "error"}
-                            if metric_name == MetricName.Errors
-                            else {"metric.labels.status": "ok"}
-                        ),
+                        "metric.labels.status": "ok",
                         "resource.labels.function_name": self.resource_raw_name,
                         "resource.labels.region": self.region().id,
                         "resource.type": "cloud_function",
@@ -329,8 +325,27 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                 for stat in STAT_LIST
                 for name, metric_name in [
                     ("cloudfunctions.googleapis.com/function/execution_count", MetricName.Invocations),
-                    ("cloudfunctions.googleapis.com/function/execution_count", MetricName.Errors),
                 ]
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="cloudfunctions.googleapis.com/function/execution_count",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.Errors,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "metric.labels.status": "error",
+                        "resource.labels.function_name": self.resource_raw_name,
+                        "resource.labels.region": self.region().id,
+                        "resource.type": "cloud_function",
+                    },
+                )
+                for stat in STAT_LIST
             ]
         )
         queries.extend(

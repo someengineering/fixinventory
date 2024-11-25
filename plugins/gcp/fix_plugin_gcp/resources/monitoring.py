@@ -58,17 +58,13 @@ class MetricNormalization:
 class GcpMonitoringQuery:
     metric_name: Union[str, MetricName]  # final name of the metric
     query_name: str  # name of the metric (e.g., GCP metric type)
-    # resource_name: str  # name of resource
     period: timedelta  # period of the metric
     ref_id: str  # A unique identifier for the resource, formatted as `{resource_kind}/{resource_id}/{resource_region}`.
     # Example: "gcp_instance/12345/us-central1". This is used to uniquely reference resources across kinds and regions.
     metric_id: str  # unique metric identifier (metric_name + instance_id)
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
-    # label_name: str
-    # metric_lable_query: bool  # `metric` by default. can be `resource` label
     project_id: str  # GCP project name
     normalization: Optional[MetricNormalization] = None  # normalization info
-    region: Optional[GcpRegion] = None
     metric_filters: Optional[Tuple[Tuple[str, str], ...]] = None  # Immutable structure
 
     @staticmethod
@@ -77,15 +73,11 @@ class GcpMonitoringQuery:
         query_name: str,
         period: timedelta,
         ref_id: str,
-        # resource_name: str,
         metric_name: Union[str, MetricName],
         stat: str,
-        # label_name: str,
-        # metric_lable_query: bool = True,
         project_id: str,
+        metric_filters: Dict[str, str],
         normalization: Optional[MetricNormalization] = None,
-        region: Optional[GcpRegion] = None,
-        metric_filters: Optional[Dict[str, str]] = None,
     ) -> "GcpMonitoringQuery":
         # Metric ID generation: metric query name + resource ID + stat
         metric_id = f"{query_name}/{ref_id}/{stat}"
@@ -95,12 +87,8 @@ class GcpMonitoringQuery:
             query_name=query_name,
             period=period,
             ref_id=ref_id,
-            # resource_name=resource_name,
             metric_id=metric_id,
-            # label_name=label_name,
-            # metric_lable_query=metric_lable_query,
             stat=stat,
-            region=region,
             normalization=normalization,
             project_id=project_id,
             metric_filters=immutable_filters,
