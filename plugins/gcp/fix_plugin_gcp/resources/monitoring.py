@@ -79,9 +79,10 @@ class GcpMonitoringQuery:
         metric_filters: Dict[str, str],
         normalization: Optional[MetricNormalization] = None,
     ) -> "GcpMonitoringQuery":
-        # Metric ID generation: metric query name + resource ID + stat
-        metric_id = f"{query_name}/{ref_id}/{stat}"
-        immutable_filters = tuple(metric_filters.items()) if metric_filters else None
+        sorted_filters = sorted(metric_filters.items())
+        filter_suffix = "/" + "/".join(f"{key}={value}" for key, value in sorted_filters)
+        metric_id = f"{query_name}/{ref_id}/{stat}{filter_suffix}"
+        immutable_filters = tuple(sorted_filters)
         return GcpMonitoringQuery(
             metric_name=metric_name,
             query_name=query_name,
@@ -242,9 +243,8 @@ def update_resource_metrics(
                 continue
             name = metric_name + "_" + normalizer.unit
             value = normalizer.normalize_value(average_value)
-            stat_name = normalizer.get_stat_value(query.stat)
-            if stat_name:
-                resource._resource_usage[name][str(stat_name)] = value
+            stat_name = normalizer.get_stat_value(query.stat) if normalizer.get_stat_value(query.stat) else "avg"
+            resource._resource_usage[name][str(stat_name)] = value
         except KeyError as e:
             log.warning(f"An error occured while setting metric values: {e}")
             raise
