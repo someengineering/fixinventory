@@ -11,22 +11,22 @@ def test_metric(random_builder: GraphBuilder) -> None:
     read = GcpMonitoringQuery.create(
         query_name="compute.googleapis.com/instance/disk/read_ops_count",
         period=timedelta(hours=1),
-        ref_id="random_instance",
-        resource_name="random_instance",
+        ref_id="gcp_instance/random_instance/global",
         metric_name=MetricName.DiskRead,
         normalization=normalizer_factory.count,
         stat="ALIGN_MIN",
-        label_name="instance_name",
+        project_id=random_builder.project.id,
+        metric_filters={"metric.labels.instance_name": "random_instance", "resource.labels.zone": "global"},
     )
     write = GcpMonitoringQuery.create(
         query_name="compute.googleapis.com/instance/disk/write_ops_count",
         period=timedelta(hours=1),
-        ref_id="random_instance",
-        resource_name="random_instance",
+        ref_id="gcp_instance/random_instance/global",
         metric_name=MetricName.DiskWrite,
         normalization=normalizer_factory.count,
         stat="ALIGN_MIN",
-        label_name="instance_name",
+        project_id=random_builder.project.id,
+        metric_filters={"metric.labels.instance_name": "random_instance", "resource.labels.zone": "global"},
     )
     result = GcpMonitoringMetricData.query_for(random_builder, [read, write], earlier, now)
     assert all(value > 0 for value in result[read].metric_values or [])

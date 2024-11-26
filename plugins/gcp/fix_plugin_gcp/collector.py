@@ -28,15 +28,15 @@ from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
-    # compute.resources
-    # + container.resources
-    # + billing.resources
-    # + sqladmin.resources
-    # + storage.resources
-    # + aiplatform.resources
-    # + firestore.resources
-    # + filestore.resources
-    cloudfunctions.resources
+    compute.resources
+    + container.resources
+    + billing.resources
+    + sqladmin.resources
+    + storage.resources
+    + aiplatform.resources
+    + firestore.resources
+    + filestore.resources
+    + cloudfunctions.resources
 )
 
 
