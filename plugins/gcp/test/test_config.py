@@ -1,4 +1,3 @@
-from fixlib.proc import num_default_threads
 from fixlib.config import Config
 from fix_plugin_gcp import GCPCollectorPlugin
 

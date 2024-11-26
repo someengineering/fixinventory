@@ -242,11 +242,11 @@ class AwsAccountCollector:
                 try:
                     log.info(f"[Aws:{self.account.id}] Collect usage metrics.")
                     self.collect_usage_metrics(global_builder)
+                    shared_queue.wait_for_submitted_work()
                 except Exception as e:
                     log.warning(
                         f"Failed to collect usage metrics on account {self.account.id} in region {global_builder.region.id}: {e}"
                     )
-            shared_queue.wait_for_submitted_work()
 
             # call all registered after collect hooks
             for after_collect in global_builder.after_collect_actions:
