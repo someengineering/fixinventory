@@ -1,4 +1,3 @@
-from fixlib.proc import num_default_threads
 from attrs import define, field
 from typing import List, ClassVar, Optional
 
@@ -17,7 +16,7 @@ class GcpConfig:
         metadata={"description": "GCP services to exclude (default: none)"},
     )
     project_pool_size: int = field(
-        factory=num_default_threads,
+        default=64,
         metadata={"description": "GCP project thread/process pool size"},
     )
     fork_process: bool = field(

@@ -139,9 +139,9 @@ class GcpProjectCollector:
                 try:
                     log.info(f"[GCP:{self.project.id}] Collect usage metrics.")
                     self.collect_usage_metrics(global_builder)
+                    global_builder.executor.wait_for_submitted_work()
                 except Exception as e:
                     log.warning(f"Failed to collect usage metrics in project {self.project.id}: {e}")
-            shared_queue.wait_for_submitted_work()
             log.info(f"[GCP:{self.project.id}] Connect resources and create edges.")
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
@@ -161,10 +161,6 @@ class GcpProjectCollector:
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> None:
-        metrics_queries = defaultdict(list)
-        two_hours = timedelta(hours=2)
-        thirty_minutes = timedelta(minutes=30)
-        lookup_map = {}
         for resource in builder.graph.nodes:
             if not isinstance(resource, GcpResource):
                 continue
@@ -172,29 +168,24 @@ class GcpProjectCollector:
             if region := cast(GcpRegion, resource.region()):
                 resource_queries: List[monitoring.GcpMonitoringQuery] = resource.collect_usage_metrics(builder)
                 if resource_queries:
-                    # set unique GcpMonitoringQuery.ref_id
-                    lookup_map[f"{resource.kind}/{resource.id}/{region.id}"] = resource
-                for query in resource_queries:
-                    query_region = region
                     start = builder.metrics_delta
-                    if query.period and query.period < thirty_minutes:
-                        start = min(start, two_hours)
-                    metrics_queries[(query_region, start)].append(query)
-        for (region, start), queries in metrics_queries.items():
 
-            def collect_and_set_metrics(
-                start: timedelta, region: GcpRegion, queries: List[monitoring.GcpMonitoringQuery]
-            ) -> None:
-                start_at = builder.created_at - start
-                try:
-                    result = monitoring.GcpMonitoringMetricData.query_for(
-                        builder.for_region(region), queries, start_at, builder.created_at
-                    )
-                    monitoring.update_resource_metrics(lookup_map, result)
-                except Exception as e:
-                    log.warning(f"Error occurred in region {region}: {e}")
+                    def collect_and_set_metrics(
+                        start: timedelta,
+                        region: GcpRegion,
+                        queries: List[monitoring.GcpMonitoringQuery],
+                        resource: GcpResource,
+                    ) -> None:
+                        start_at = builder.created_at - start
+                        try:
+                            result = monitoring.GcpMonitoringMetricData.query_for(
+                                builder.for_region(region), queries, start_at, builder.created_at
+                            )
+                            monitoring.update_resource_metrics(resource, result)
+                        except Exception as e:
+                            log.warning(f"Error occurred in region {region}: {e}")
 
-            builder.submit_work(collect_and_set_metrics, start, region, queries)
+                    builder.submit_work(collect_and_set_metrics, start, region, resource_queries, resource)
 
     def remove_unconnected_nodes(self, builder: GraphBuilder) -> None:
         def rm_leaf_nodes(clazz: Any, ignore_kinds: Optional[Type[Any]] = None) -> None:

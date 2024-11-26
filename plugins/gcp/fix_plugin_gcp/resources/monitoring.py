@@ -7,7 +7,7 @@ from concurrent.futures import as_completed
 
 from attr import define, field, frozen
 
-from fix_plugin_gcp.resources.base import GraphBuilder
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpResource
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fixlib.baseresources import MetricName, MetricUnit, BaseResource, StatName
 from fixlib.durations import duration_str
@@ -230,13 +230,10 @@ V = TypeVar("V", bound=BaseResource)
 
 
 def update_resource_metrics(
-    resources_map: Dict[str, V],
+    resource: GcpResource,
     monitoring_metric_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
 ) -> None:
     for query, metric in monitoring_metric_result.items():
-        resource = resources_map.get(query.ref_id)
-        if resource is None:
-            continue
         if len(metric.metric_values) == 0:
             continue
         normalizer = query.normalization

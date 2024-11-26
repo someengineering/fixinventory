@@ -184,11 +184,9 @@ def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
 
     random_builder.region = GcpRegion(id="us-east1", name="us-east1")
     queries = gcp_instance.collect_usage_metrics(random_builder)
-    lookup_map = {}
-    lookup_map[f"{gcp_instance.kind}/{gcp_instance.id}/{gcp_instance.region().id}"] = gcp_instance
 
     # simulates the `collect_usage_metrics` method found in `GcpAccountCollector`.
-    def collect_and_set_metrics(start_at: datetime, region: GcpRegion, queries: List[GcpMonitoringQuery]) -> None:
+    def collect_and_set_metrics(start_at: datetime, _: GcpRegion, queries: List[GcpMonitoringQuery]) -> None:
         with ThreadPoolExecutor(max_workers=1) as executor:
             queue = ExecutorQueue(executor, tasks_per_key=lambda _: 1, name="test")
             g_builder = GraphBuilder(
@@ -204,7 +202,7 @@ def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
                 last_run_started_at=random_builder.last_run_started_at,
             )
             result = GcpMonitoringMetricData.query_for(g_builder, queries, start_at, start_at + timedelta(hours=2))
-            update_resource_metrics(lookup_map, result)
+            update_resource_metrics(gcp_instance, result)
 
     start = datetime(2020, 5, 30, 15, 45, 30)
 
