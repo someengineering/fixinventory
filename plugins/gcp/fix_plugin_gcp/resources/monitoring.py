@@ -1,5 +1,4 @@
 import logging
-from concurrent.futures import Future
 from copy import deepcopy
 from datetime import datetime
 from functools import cached_property
