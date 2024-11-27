@@ -9,7 +9,7 @@ from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GraphBuilder, GcpResource, GcpMonitoringQuery, MetricNormalization
-from fixlib.baseresources import MetricUnit, BaseResource, StatName
+from fixlib.baseresources import MetricUnit, StatName
 from fixlib.durations import duration_str
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bender, ForallBend, bend, K
@@ -18,7 +18,6 @@ from fixlib.utils import utc_str
 service_name = "monitoring"
 log = logging.getLogger("fix.plugins.gcp")
 T = TypeVar("T")
-V = TypeVar("V", bound=BaseResource)
 
 STAT_MAP: Dict[str, StatName] = {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
 
