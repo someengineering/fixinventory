@@ -1,5 +1,5 @@
 import logging
-from concurrent.futures import as_completed
+from concurrent.futures import Future
 from copy import deepcopy
 from datetime import datetime
 from functools import cached_property
@@ -8,8 +8,8 @@ from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpResource, GcpMonitoringQuery, MetricNormalization
-from fixlib.baseresources import MetricUnit, StatName
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpMonitoringQuery, MetricNormalization
+from fixlib.baseresources import MetricUnit, StatName, BaseResource
 from fixlib.durations import duration_str
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bender, ForallBend, bend, K
@@ -18,6 +18,7 @@ from fixlib.utils import utc_str
 service_name = "monitoring"
 log = logging.getLogger("fix.plugins.gcp")
 T = TypeVar("T")
+V = TypeVar("V", bound=BaseResource)
 
 STAT_MAP: Dict[str, StatName] = {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
 
@@ -58,15 +59,15 @@ class GcpMonitoringMetricData:
         queries: List[GcpMonitoringQuery],
         start_time: datetime,
         end_time: datetime,
-    ) -> "Dict[GcpMonitoringQuery, GcpMonitoringMetricData]":
+    ) -> List[Future[List[Tuple[str, "GcpMonitoringMetricData"]]]]:
         if builder.region:
             log.info(
                 f"[{builder.region.safe_name}|{start_time}|{duration_str(end_time - start_time)}] Query for {len(queries)} metrics."
             )
         else:
             log.info(f"[global|{start_time}|{duration_str(end_time - start_time)}] Query for {len(queries)} metrics.")
-        lookup = {q.metric_id: q for q in queries}
-        result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData] = {}
+        # lookup = {q.metric_id: q for q in queries}
+        # result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData] = {}
         futures = []
 
         api_spec = GcpApiSpec(
@@ -76,7 +77,6 @@ class GcpMonitoringMetricData:
             action="list",
             request_parameter={
                 "name": "projects/{project}",
-                "aggregation_groupByFields": "",
                 "interval_endTime": utc_str(end_time),
                 "interval_startTime": utc_str(start_time),
                 "view": "FULL",
@@ -99,16 +99,16 @@ class GcpMonitoringMetricData:
             )
             futures.append(future)
         # Retrieve results from submitted queries and populate the result dictionary
-        for future in as_completed(futures):
-            try:
-                metric_query_result: List[Tuple[str, GcpMonitoringMetricData]] = future.result()
-                for metric_id, metric in metric_query_result:
-                    if metric is not None and metric_id is not None:
-                        result[lookup[metric_id]] = metric
-            except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
-                raise e
-        return result
+        # for future in as_completed(futures):
+        #     try:
+        #         metric_query_result: List[Tuple[str, GcpMonitoringMetricData]] = future.result()
+        #         for metric_id, metric in metric_query_result:
+        #             if metric is not None and metric_id is not None:
+        #                 result[lookup[metric_id]] = metric
+        #     except Exception as e:
+        #         log.warning(f"An error occurred while processing a metric query: {e}")
+        #         raise e
+        return futures
 
     @staticmethod
     def _query_for_chunk(
@@ -146,10 +146,13 @@ class GcpMonitoringMetricData:
 
 
 def update_resource_metrics(
-    resource: GcpResource,
+    resources_map: Dict[str, V],
     monitoring_metric_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
 ) -> None:
     for query, metric in monitoring_metric_result.items():
+        resource = resources_map.get(query.ref_id)
+        if resource is None:
+            continue
         if len(metric.metric_values) == 0:
             continue
         normalizer = query.normalization

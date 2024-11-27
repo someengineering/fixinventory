@@ -349,6 +349,7 @@ class GcpMonitoringQuery:
     metric_name: MetricName  # final name of the metric
     query_name: str  # name of the metric (e.g., GCP metric type)
     period: timedelta  # period of the metric
+    ref_id: str  # unique id of the resource
     metric_id: str  # unique metric identifier
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
     project_id: str  # GCP project name
@@ -375,6 +376,7 @@ class GcpMonitoringQuery:
             metric_name=metric_name,
             query_name=query_name,
             period=period,
+            ref_id=ref_id,
             metric_id=metric_id,
             stat=stat,
             normalization=normalization,

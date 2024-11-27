@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta, datetime
 import json
 import os
@@ -183,34 +183,46 @@ def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
     gcp_instance.instance_status = InstanceStatus.RUNNING
 
     random_builder.region = GcpRegion(id="us-east1", name="us-east1")
+    random_builder.created_at = datetime(2020, 5, 30, 15, 45, 30)
+    random_builder.metrics_delta = timedelta(hours=1)
+
     queries = gcp_instance.collect_usage_metrics(random_builder)
+    mq_lookup = {q.metric_id: q for q in queries}
+    resources_map = {f"{gcp_instance.kind}/{gcp_instance.id}/{gcp_instance.region().id}": gcp_instance}
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        queue = ExecutorQueue(executor, tasks_per_key=lambda _: 10, name="test")
+        g_builder = GraphBuilder(
+            random_builder.graph,
+            random_builder.cloud,
+            random_builder.project,
+            AnonymousCredentials(),  # type: ignore
+            queue,
+            random_builder.core_feedback,
+            random_builder.error_accumulator,
+            GcpRegion(id="global", name="global"),
+            random_builder.config,
+            last_run_started_at=random_builder.last_run_started_at,
+        )
+        metric_data_futures = GcpMonitoringMetricData.query_for(
+            g_builder, queries, random_builder.created_at, random_builder.created_at + random_builder.metrics_delta
+        )
 
-    # simulates the `collect_usage_metrics` method found in `GcpAccountCollector`.
-    def collect_and_set_metrics(start_at: datetime, _: GcpRegion, queries: List[GcpMonitoringQuery]) -> None:
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            queue = ExecutorQueue(executor, tasks_per_key=lambda _: 1, name="test")
-            g_builder = GraphBuilder(
-                random_builder.graph,
-                random_builder.cloud,
-                random_builder.project,
-                AnonymousCredentials(),  # type: ignore
-                queue,
-                random_builder.core_feedback,
-                random_builder.error_accumulator,
-                GcpRegion(id="global", name="global"),
-                random_builder.config,
-                last_run_started_at=random_builder.last_run_started_at,
-            )
-            result = GcpMonitoringMetricData.query_for(g_builder, queries, start_at, start_at + timedelta(hours=2))
-            update_resource_metrics(gcp_instance, result)
+        result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData] = {}
 
-    start = datetime(2020, 5, 30, 15, 45, 30)
+        for metric_data in as_completed(metric_data_futures):
+            try:
+                metric_query_result: List[Tuple[str, GcpMonitoringMetricData]] = metric_data.result()
+                for metric_id, metric in metric_query_result:
+                    if metric is not None and metric_id is not None:
+                        result[mq_lookup[metric_id]] = metric
+            except Exception as e:
+                log.warning(f"An error occurred while processing a metric query: {e}")
 
-    collect_and_set_metrics(start, GcpRegion(id="us-east-1", name="us-east-1"), queries)
+            update_resource_metrics(resources_map, result)
 
-    assert gcp_instance._resource_usage["cpu_utilization_percent"]["avg"] > 0.0
-    assert gcp_instance._resource_usage["network_in_count"]["avg"] > 0.0
-    assert gcp_instance._resource_usage["disk_read_count"]["avg"] > 0.0
+        assert gcp_instance._resource_usage["cpu_utilization_percent"]["avg"] > 0.0
+        assert gcp_instance._resource_usage["network_in_count"]["avg"] > 0.0
+        assert gcp_instance._resource_usage["disk_read_count"]["avg"] > 0.0
 
 
 def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:

@@ -1,4 +1,6 @@
+from concurrent.futures import as_completed
 from datetime import timedelta, datetime, timezone
+from typing import List, Tuple, Dict
 
 from fix_plugin_gcp.resources.base import GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.monitoring import GcpMonitoringMetricData, normalizer_factory
@@ -28,6 +30,13 @@ def test_metric(random_builder: GraphBuilder) -> None:
         project_id=random_builder.project.id,
         metric_filters={"metric.labels.instance_name": "random_instance", "resource.labels.zone": "global"},
     )
-    result = GcpMonitoringMetricData.query_for(random_builder, [read, write], earlier, now)
+    queries = GcpMonitoringMetricData.query_for(random_builder, [read, write], earlier, now)
+    mq_lookup = {q.metric_id: q for q in [read, write]}
+    result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData] = {}
+    for metric_data in as_completed(queries):
+        metric_query_result: List[Tuple[str, GcpMonitoringMetricData]] = metric_data.result()
+        for metric_id, metric in metric_query_result:
+            if metric is not None and metric_id is not None:
+                result[mq_lookup[metric_id]] = metric
     assert all(value > 0 for value in result[read].metric_values or [])
     assert all(value > 0 for value in result[write].metric_values or [])
