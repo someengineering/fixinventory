@@ -136,6 +136,8 @@ def update_resource_metrics(
     query: GcpMonitoringQuery,
     metric: GcpMonitoringMetricData,
 ) -> None:
+    if len(metric.metric_values) == 0:
+        return
     normalizer = query.normalization
     for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
         try:

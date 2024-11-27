@@ -1,7 +1,7 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from typing import Tuple, Type, List, Any, Optional, cast, Dict
+from typing import Type, List, Any, Optional, cast
 
 from fix_plugin_gcp.config import GcpConfig
 from fix_plugin_gcp.gcp_client import GcpApiSpec
