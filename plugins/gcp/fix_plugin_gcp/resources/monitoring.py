@@ -66,8 +66,7 @@ class GcpMonitoringMetricData:
             )
         else:
             log.info(f"[global|{start_time}|{duration_str(end_time - start_time)}] Query for {len(queries)} metrics.")
-        # lookup = {q.metric_id: q for q in queries}
-        # result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData] = {}
+
         futures = []
 
         api_spec = GcpApiSpec(
@@ -98,16 +97,7 @@ class GcpMonitoringMetricData:
                 query,
             )
             futures.append(future)
-        # Retrieve results from submitted queries and populate the result dictionary
-        # for future in as_completed(futures):
-        #     try:
-        #         metric_query_result: List[Tuple[str, GcpMonitoringMetricData]] = future.result()
-        #         for metric_id, metric in metric_query_result:
-        #             if metric is not None and metric_id is not None:
-        #                 result[lookup[metric_id]] = metric
-        #     except Exception as e:
-        #         log.warning(f"An error occurred while processing a metric query: {e}")
-        #         raise e
+
         return futures
 
     @staticmethod
