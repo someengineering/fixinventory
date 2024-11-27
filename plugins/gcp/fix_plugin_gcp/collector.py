@@ -162,18 +162,14 @@ class GcpProjectCollector:
     def collect_usage_metrics(self, builder: GraphBuilder) -> None:
         for resource in builder.graph.nodes:
             if isinstance(resource, GcpResource) and (mq := resource.collect_usage_metrics(builder)):
-
-                def collect_and_set_metrics() -> None:
-                    start_at = builder.created_at - builder.metrics_delta
-                    region = cast(GcpRegion, resource.region())
-                    try:
-                        rb = builder.for_region(region)
-                        result = monitoring.GcpMonitoringMetricData.query_for(rb, mq, start_at, builder.created_at)
-                        monitoring.update_resource_metrics(resource, result)
-                    except Exception as e:
-                        log.warning(f"Error occurred in region {region}: {e}")
-
-                builder.submit_work(collect_and_set_metrics)
+                start_at = builder.created_at - builder.metrics_delta
+                region = cast(GcpRegion, resource.region())
+                try:
+                    rb = builder.for_region(region)
+                    result = monitoring.GcpMonitoringMetricData.query_for(rb, mq, start_at, builder.created_at)
+                    monitoring.update_resource_metrics(resource, result)
+                except Exception as e:
+                    log.warning(f"Error occurred in region {region}: {e}")
 
     def remove_unconnected_nodes(self, builder: GraphBuilder) -> None:
         def rm_leaf_nodes(clazz: Any, ignore_kinds: Optional[Type[Any]] = None) -> None:

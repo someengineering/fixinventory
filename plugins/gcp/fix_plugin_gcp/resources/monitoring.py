@@ -8,7 +8,7 @@ from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpResource, GcpMonitoringQuery, MetricNormalization
+from fix_plugin_gcp.resources.base import STAT_MAP, GraphBuilder, GcpResource, GcpMonitoringQuery, MetricNormalization
 from fixlib.baseresources import MetricUnit, BaseResource, StatName
 from fixlib.durations import duration_str
 from fixlib.json import from_json
@@ -168,7 +168,7 @@ def update_resource_metrics(
                     continue
                 name = metric_name + "_" + normalizer.unit
                 value = normalizer.normalize_value(metric_value)
-                stat_name = maybe_stat_name or normalizer.stat_map[query.stat]
+                stat_name = maybe_stat_name or STAT_MAP[query.stat]
                 resource._resource_usage[name][str(stat_name)] = value
             except KeyError as e:
                 log.warning(f"An error occured while setting metric values: {e}")

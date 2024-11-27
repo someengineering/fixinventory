@@ -337,12 +337,12 @@ class GraphBuilder:
         )
 
 
+STAT_MAP: Dict[str, StatName] = {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
+
+
 @frozen(kw_only=True)
 class MetricNormalization:
     unit: MetricUnit
-    stat_map: frozendict[str, StatName] = frozendict(
-        {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
-    )
     normalize_value: Callable[[float], float] = lambda x: x
     compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = lambda x: [(sum(x) / len(x), None)]
 
