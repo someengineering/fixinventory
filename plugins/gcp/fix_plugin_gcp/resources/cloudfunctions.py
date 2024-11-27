@@ -355,7 +355,7 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     metric_name=MetricName.Duration,
                     normalization=normalizer_factory.milliseconds,
-                    stat="ALIGN_NONE",
+                    stat="ALIGN_DELTA",
                     project_id=builder.project.id,
                     metric_filters={
                         "resource.labels.function_name": self.resource_raw_name,

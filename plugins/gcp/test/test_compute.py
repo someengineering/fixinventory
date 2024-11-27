@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta, datetime
 import json
 import os
-from typing import List
+from typing import List, Dict, Tuple
 
 from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion, GcpMonitoringQuery
 from fix_plugin_gcp.resources.compute import *
