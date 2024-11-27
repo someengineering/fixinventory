@@ -354,6 +354,7 @@ class GcpMonitoringQuery:
     project_id: str  # GCP project name
     normalization: Optional[MetricNormalization]  # normalization info
     metric_filters: frozendict[str, str]  # filters for the metric
+    cross_series_reducer: str  # default REDUCE_NONE
 
     @staticmethod
     def create(
@@ -366,6 +367,7 @@ class GcpMonitoringQuery:
         project_id: str,
         metric_filters: Dict[str, str],
         normalization: Optional[MetricNormalization] = None,
+        cross_series_reducer: str = "REDUCE_NONE",
     ) -> "GcpMonitoringQuery":
         filter_suffix = "/" + "/".join(f"{key}={value}" for key, value in sorted(metric_filters.items()))
         metric_id = f"{query_name}/{ref_id}/{stat}{filter_suffix}"
@@ -378,6 +380,7 @@ class GcpMonitoringQuery:
             normalization=normalization,
             project_id=project_id,
             metric_filters=frozendict(metric_filters),
+            cross_series_reducer=cross_series_reducer,
         )
 
 

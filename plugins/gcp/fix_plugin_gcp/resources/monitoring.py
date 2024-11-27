@@ -28,9 +28,7 @@ class GcpMonitoringMetricData:
     kind: ClassVar[str] = "gcp_monitoring_metric_data"
     mapping: ClassVar[Dict[str, Bender]] = {
         "metric_values": S("points")
-        >> ForallBend(
-            S("value", "doubleValue").or_else(S("value", "int64Value")).or_else(S("value", "distributionValue", "mean"))
-        ).or_else(K([])),
+        >> ForallBend(S("value", "doubleValue").or_else(S("value", "int64Value"))).or_else(K([])),
         "metric_kind": S("metricKind"),
         "value_type": S("valueType"),
         "metric_type": S("metric", "type"),
@@ -79,14 +77,14 @@ class GcpMonitoringMetricData:
             action="list",
             request_parameter={
                 "name": "projects/{project}",
-                "aggregation_crossSeriesReducer": "REDUCE_NONE",
-                "aggregation_groupByFields": "[]",
+                "aggregation_groupByFields": "",
                 "interval_endTime": utc_str(end_time),
                 "interval_startTime": utc_str(start_time),
                 "view": "FULL",
                 # Below parameters are intended to be set dynamically
                 # "aggregation_alignmentPeriod": None,
                 # "aggregation_perSeriesAligner": None,
+                # "aggregation_crossSeriesReducer": None,
                 # "filter": None,
             },
             request_parameter_in={"project"},
@@ -134,6 +132,7 @@ class GcpMonitoringMetricData:
 
         # Join filters with " AND " to form the final filter string
         local_api_spec.request_parameter["filter"] = " AND ".join(filters)
+        local_api_spec.request_parameter["aggregation_crossSeriesReducer"] = f"{query.cross_series_reducer}"
         local_api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
         local_api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
 
@@ -213,7 +212,8 @@ class NormalizerFactory:
         return MetricNormalization(
             unit=MetricUnit.Milliseconds,
             compute_stats=calculate_min_max_avg,
-            normalize_value=lambda x: round(x, ndigits=4),
+            # convert nanoseconds to milliseconds
+            normalize_value=lambda x: round(x / 1_000_000, ndigits=4),
         )
 
     @cached_property

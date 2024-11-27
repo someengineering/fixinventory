@@ -362,6 +362,7 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                         "resource.labels.region": self.region().id,
                         "resource.type": "cloud_function",
                     },
+                    cross_series_reducer="REDUCE_PERCENTILE_50",
                 )
             ]
         )
