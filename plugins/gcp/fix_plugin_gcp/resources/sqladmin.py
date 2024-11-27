@@ -5,9 +5,9 @@ from typing import Any, ClassVar, Dict, Optional, List, Tuple, Type
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.compute import GcpSslCertificate
-from fix_plugin_gcp.resources.monitoring import GcpMonitoringQuery, normalizer_factory, STAT_LIST
+from fix_plugin_gcp.resources.monitoring import normalizer_factory, STAT_LIST
 from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, MetricName, ModelReference
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum, AsInt
 from fixlib.types import Json

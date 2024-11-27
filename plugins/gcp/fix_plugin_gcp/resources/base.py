@@ -9,6 +9,8 @@ from types import TracebackType
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set, Tuple
 
 from attr import define, field
+from attrs import frozen
+from frozendict import frozendict
 from google.auth.credentials import Credentials as GoogleAuthCredentials
 from googleapiclient.errors import HttpError
 
@@ -24,6 +26,9 @@ from fixlib.baseresources import (
     BaseZone,
     ModelReference,
     PhantomBaseResource,
+    MetricName,
+    MetricUnit,
+    StatName,
 )
 from fixlib.config import Config
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -204,22 +209,21 @@ class GraphBuilder:
             self.add_edge(node, node=node._region, reverse=True)
             return True
 
-        parts = node.id.split("/")
+        parts = node.id.split("/", maxsplit=4)
         if len(parts) > 3 and parts[0] == "projects":
-            location_types = ["locations", "zones", "regions"]
-            if parts[2] in location_types:
+            if parts[2] in ["locations", "zones", "regions"]:
                 location_name = parts[3]
                 # Check for zone first
                 if zone := self.zone_by_name.get(location_name):
                     node._zone = zone
                     node._region = self.region_by_zone_name.get(zone.id)
-                    self.add_edge(node, node=zone, reverse=True)
+                    self.add_edge(zone, node=node)
                     return True
 
                 # Then check for region
                 if region := self.region_by_name.get(location_name):
                     node._region = region
-                    self.add_edge(node, node=region, reverse=True)
+                    self.add_edge(region, node=node)
                     return True
 
         if source is not None:
@@ -333,6 +337,53 @@ class GraphBuilder:
         )
 
 
+@frozen(kw_only=True)
+class MetricNormalization:
+    unit: MetricUnit
+    stat_map: frozendict[str, StatName] = frozendict(
+        {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
+    )
+    normalize_value: Callable[[float], float] = lambda x: x
+    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = lambda x: [(sum(x) / len(x), None)]
+
+
+@define(hash=True, frozen=True)
+class GcpMonitoringQuery:
+    metric_name: MetricName  # final name of the metric
+    query_name: str  # name of the metric (e.g., GCP metric type)
+    period: timedelta  # period of the metric
+    metric_id: str  # unique metric identifier
+    stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
+    project_id: str  # GCP project name
+    normalization: Optional[MetricNormalization]  # normalization info
+    metric_filters: frozendict[str, str]  # filters for the metric
+
+    @staticmethod
+    def create(
+        *,
+        query_name: str,
+        period: timedelta,
+        ref_id: str,
+        metric_name: MetricName,
+        stat: str,
+        project_id: str,
+        metric_filters: Dict[str, str],
+        normalization: Optional[MetricNormalization] = None,
+    ) -> "GcpMonitoringQuery":
+        filter_suffix = "/" + "/".join(f"{key}={value}" for key, value in sorted(metric_filters.items()))
+        metric_id = f"{query_name}/{ref_id}/{stat}{filter_suffix}"
+        return GcpMonitoringQuery(
+            metric_name=metric_name,
+            query_name=query_name,
+            period=period,
+            metric_id=metric_id,
+            stat=stat,
+            normalization=normalization,
+            project_id=project_id,
+            metric_filters=frozendict(metric_filters),
+        )
+
+
 @define(eq=False, slots=False)
 class GcpResource(BaseResource):
     kind: ClassVar[str] = "gcp_resource"
@@ -436,7 +487,7 @@ class GcpResource(BaseResource):
         """
         pass
 
-    def collect_usage_metrics(self, builder: GraphBuilder) -> List:  # type: ignore
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
         # Default behavior: do nothing
         return []
 

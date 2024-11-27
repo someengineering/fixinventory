@@ -4,10 +4,10 @@ import json
 import os
 from typing import List
 
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion, GcpMonitoringQuery
 from fix_plugin_gcp.resources.compute import *
 from fix_plugin_gcp.resources.billing import GcpSku
-from fix_plugin_gcp.resources.monitoring import GcpMonitoringQuery, GcpMonitoringMetricData, update_resource_metrics
+from fix_plugin_gcp.resources.monitoring import GcpMonitoringMetricData, update_resource_metrics
 from fixlib.threading import ExecutorQueue
 from fixlib.baseresources import InstanceStatus
 

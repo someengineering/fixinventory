@@ -1,7 +1,7 @@
 from datetime import timedelta, datetime, timezone
 
-from fix_plugin_gcp.resources.base import GraphBuilder
-from fix_plugin_gcp.resources.monitoring import GcpMonitoringQuery, GcpMonitoringMetricData, normalizer_factory
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpMonitoringQuery
+from fix_plugin_gcp.resources.monitoring import GcpMonitoringMetricData, normalizer_factory
 from fixlib.baseresources import MetricName
 
 

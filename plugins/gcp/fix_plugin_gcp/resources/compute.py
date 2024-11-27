@@ -7,9 +7,9 @@ from urllib.parse import urlparse
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.billing import GcpSku
-from fix_plugin_gcp.resources.monitoring import GcpMonitoringQuery, STAT_LIST, normalizer_factory
+from fix_plugin_gcp.resources.monitoring import STAT_LIST, normalizer_factory
 from fixlib.baseresources import (
     BaseAutoScalingGroup,
     BaseBucket,

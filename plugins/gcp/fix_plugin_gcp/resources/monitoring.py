@@ -1,15 +1,15 @@
-from copy import deepcopy
-from functools import cached_property
 import logging
-from datetime import datetime, timedelta
-from typing import Callable, ClassVar, Dict, List, Optional, Tuple, TypeVar, Union
 from concurrent.futures import as_completed
+from copy import deepcopy
+from datetime import datetime
+from functools import cached_property
+from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar
 
-from attr import define, field, frozen
+from attr import define, field
 
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpResource
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fixlib.baseresources import MetricName, MetricUnit, BaseResource, StatName
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpResource, GcpMonitoringQuery, MetricNormalization
+from fixlib.baseresources import MetricUnit, BaseResource, StatName
 from fixlib.durations import duration_str
 from fixlib.json import from_json
 from fixlib.json_bender import S, Bender, ForallBend, bend, K
@@ -21,85 +21,6 @@ T = TypeVar("T")
 
 
 STAT_LIST: List[str] = ["ALIGN_MIN", "ALIGN_MEAN", "ALIGN_MAX"]
-
-
-def identity(x: T) -> T:
-    return x
-
-
-def compute_stats(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
-    return [(sum(values) / len(values), None)]
-
-
-@frozen(kw_only=True)
-class MetricNormalization:
-    unit: MetricUnit
-    # Use Tuple instead of Dict for stat_map because it should be immutable
-    stat_map: Tuple[Tuple[str, StatName], Tuple[str, StatName], Tuple[str, StatName]] = (
-        ("ALIGN_MIN", StatName.min),
-        ("ALIGN_MEAN", StatName.avg),
-        ("ALIGN_MAX", StatName.max),
-    )
-    normalize_value: Callable[[float], float] = identity
-
-    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = compute_stats
-
-    def get_stat_value(self, key: str) -> Optional[StatName]:
-        """
-        Get the value from stat_map based on the given key.
-
-        Args:
-            key: The key to search for in the stat_map.
-
-        Returns:
-            The corresponding value from stat_map.
-        """
-        for stat_key, value in self.stat_map:
-            if stat_key == key:
-                return value
-        return None
-
-
-@define(hash=True, frozen=True)
-class GcpMonitoringQuery:
-    metric_name: Union[str, MetricName]  # final name of the metric
-    query_name: str  # name of the metric (e.g., GCP metric type)
-    period: timedelta  # period of the metric
-    ref_id: str  # A unique identifier for the resource, formatted as `{resource_kind}/{resource_id}/{resource_region}`.
-    # Example: "gcp_instance/12345/us-central1". This is used to uniquely reference resources across kinds and regions.
-    metric_id: str  # unique metric identifier
-    stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
-    project_id: str  # GCP project name
-    normalization: Optional[MetricNormalization] = None  # normalization info
-    metric_filters: Optional[Tuple[Tuple[str, str], ...]] = None  # Immutable structure
-
-    @staticmethod
-    def create(
-        *,
-        query_name: str,
-        period: timedelta,
-        ref_id: str,
-        metric_name: Union[str, MetricName],
-        stat: str,
-        project_id: str,
-        metric_filters: Dict[str, str],
-        normalization: Optional[MetricNormalization] = None,
-    ) -> "GcpMonitoringQuery":
-        sorted_filters = sorted(metric_filters.items())
-        filter_suffix = "/" + "/".join(f"{key}={value}" for key, value in sorted_filters)
-        metric_id = f"{query_name}/{ref_id}/{stat}{filter_suffix}"
-        immutable_filters = tuple(sorted_filters)
-        return GcpMonitoringQuery(
-            metric_name=metric_name,
-            query_name=query_name,
-            period=period,
-            ref_id=ref_id,
-            metric_id=metric_id,
-            stat=stat,
-            normalization=normalization,
-            project_id=project_id,
-            metric_filters=immutable_filters,
-        )
 
 
 @define(eq=False, slots=False)
@@ -209,7 +130,7 @@ class GcpMonitoringMetricData:
 
         # Add additional filters
         if query.metric_filters:
-            filters.extend(f'{key} = "{value}"' for key, value in query.metric_filters)
+            filters.extend(f'{key} = "{value}"' for key, value in query.metric_filters.items())
 
         # Join filters with " AND " to form the final filter string
         local_api_spec.request_parameter["filter"] = " AND ".join(filters)
@@ -247,9 +168,8 @@ def update_resource_metrics(
                     continue
                 name = metric_name + "_" + normalizer.unit
                 value = normalizer.normalize_value(metric_value)
-                stat_name = maybe_stat_name or normalizer.get_stat_value(query.stat)
-                if stat_name:
-                    resource._resource_usage[name][str(stat_name)] = value
+                stat_name = maybe_stat_name or normalizer.stat_map[query.stat]
+                resource._resource_usage[name][str(stat_name)] = value
             except KeyError as e:
                 log.warning(f"An error occured while setting metric values: {e}")
                 raise

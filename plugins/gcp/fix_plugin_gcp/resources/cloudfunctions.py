@@ -4,8 +4,8 @@ from typing import ClassVar, Dict, Optional, List, Type, Any
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from fix_plugin_gcp.resources.monitoring import GcpMonitoringQuery, normalizer_factory, STAT_LIST
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
+from fix_plugin_gcp.resources.monitoring import normalizer_factory, STAT_LIST
 from fixlib.baseresources import BaseServerlessFunction, MetricName
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
@@ -303,7 +303,6 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
         queries: List[GcpMonitoringQuery] = []
-        queries = []
         delta = builder.metrics_delta
         queries.extend(
             [
