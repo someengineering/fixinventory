@@ -9,7 +9,7 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.billing import GcpSku
-from fix_plugin_gcp.resources.monitoring import STAT_LIST, normalizer_factory
+from fix_plugin_gcp.resources.monitoring import STAT_MAP, normalizer_factory
 from fixlib.baseresources import (
     BaseAutoScalingGroup,
     BaseBucket,
@@ -1221,7 +1221,7 @@ class GcpDisk(GcpResource, BaseVolume):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
             ]
         )
 
@@ -1237,7 +1237,7 @@ class GcpDisk(GcpResource, BaseVolume):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
@@ -1257,7 +1257,7 @@ class GcpDisk(GcpResource, BaseVolume):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.device_name": self.id},
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),
@@ -3634,7 +3634,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
             ]
         )
         queries.extend(
@@ -3649,7 +3649,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/network/received_bytes_count", MetricName.NetworkIn),
                     ("compute.googleapis.com/instance/network/sent_bytes_count", MetricName.NetworkOut),
@@ -3669,7 +3669,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
@@ -3689,7 +3689,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),

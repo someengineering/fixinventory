@@ -337,9 +337,6 @@ class GraphBuilder:
         )
 
 
-STAT_MAP: Dict[str, StatName] = {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
-
-
 @frozen(kw_only=True)
 class MetricNormalization:
     unit: MetricUnit

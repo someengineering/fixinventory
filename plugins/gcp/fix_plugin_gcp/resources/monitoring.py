@@ -8,7 +8,7 @@ from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import STAT_MAP, GraphBuilder, GcpResource, GcpMonitoringQuery, MetricNormalization
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpResource, GcpMonitoringQuery, MetricNormalization
 from fixlib.baseresources import MetricUnit, BaseResource, StatName
 from fixlib.durations import duration_str
 from fixlib.json import from_json
@@ -18,9 +18,9 @@ from fixlib.utils import utc_str
 service_name = "monitoring"
 log = logging.getLogger("fix.plugins.gcp")
 T = TypeVar("T")
+V = TypeVar("V", bound=BaseResource)
 
-
-STAT_LIST: List[str] = ["ALIGN_MIN", "ALIGN_MEAN", "ALIGN_MAX"]
+STAT_MAP: Dict[str, StatName] = {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
 
 
 @define(eq=False, slots=False)
@@ -147,9 +147,6 @@ class GcpMonitoringMetricData:
             raise e
 
 
-V = TypeVar("V", bound=BaseResource)
-
-
 def update_resource_metrics(
     resource: GcpResource,
     monitoring_metric_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
@@ -171,7 +168,7 @@ def update_resource_metrics(
                 stat_name = maybe_stat_name or STAT_MAP[query.stat]
                 resource._resource_usage[name][str(stat_name)] = value
             except KeyError as e:
-                log.warning(f"An error occured while setting metric values: {e}")
+                log.warning(f"An error occurred while setting metric values: {e}")
                 raise
 
 

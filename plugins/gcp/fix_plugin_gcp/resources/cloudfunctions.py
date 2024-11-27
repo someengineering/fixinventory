@@ -5,7 +5,7 @@ from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
-from fix_plugin_gcp.resources.monitoring import normalizer_factory, STAT_LIST
+from fix_plugin_gcp.resources.monitoring import normalizer_factory, STAT_MAP
 from fixlib.baseresources import BaseServerlessFunction, MetricName
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
@@ -321,7 +321,7 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                         "resource.type": "cloud_function",
                     },
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
                 for name, metric_name in [
                     ("cloudfunctions.googleapis.com/function/execution_count", MetricName.Invocations),
                 ]
@@ -344,7 +344,7 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                         "resource.type": "cloud_function",
                     },
                 )
-                for stat in STAT_LIST
+                for stat in STAT_MAP
             ]
         )
         queries.extend(
