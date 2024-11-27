@@ -353,7 +353,7 @@ class GcpMonitoringQuery:
     metric_id: str  # unique metric identifier
     stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
     project_id: str  # GCP project name
-    normalization: Optional[MetricNormalization]  # normalization info
+    normalization: MetricNormalization  # normalization info
     metric_filters: frozendict[str, str]  # filters for the metric
     cross_series_reducer: str  # default REDUCE_NONE
 
@@ -367,7 +367,7 @@ class GcpMonitoringQuery:
         stat: str,
         project_id: str,
         metric_filters: Dict[str, str],
-        normalization: Optional[MetricNormalization] = None,
+        normalization: MetricNormalization,
         cross_series_reducer: str = "REDUCE_NONE",
     ) -> "GcpMonitoringQuery":
         filter_suffix = "/" + "/".join(f"{key}={value}" for key, value in sorted(metric_filters.items()))

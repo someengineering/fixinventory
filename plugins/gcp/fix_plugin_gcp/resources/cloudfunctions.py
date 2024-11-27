@@ -307,10 +307,10 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
         queries.extend(
             [
                 GcpMonitoringQuery.create(
-                    query_name=name,
+                    query_name="cloudfunctions.googleapis.com/function/execution_count",
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    metric_name=metric_name,
+                    metric_name=MetricName.Invocations,
                     normalization=normalizer_factory.count,
                     stat=stat,
                     project_id=builder.project.id,
@@ -322,9 +322,6 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                     },
                 )
                 for stat in STAT_MAP
-                for name, metric_name in [
-                    ("cloudfunctions.googleapis.com/function/execution_count", MetricName.Invocations),
-                ]
             ]
         )
         queries.extend(

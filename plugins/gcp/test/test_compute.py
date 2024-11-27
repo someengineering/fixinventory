@@ -1,13 +1,13 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta, datetime
 import json
 import os
-from typing import List, Dict, Tuple
+from typing import List
 
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion, GcpMonitoringQuery
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion
 from fix_plugin_gcp.resources.compute import *
 from fix_plugin_gcp.resources.billing import GcpSku
-from fix_plugin_gcp.resources.monitoring import GcpMonitoringMetricData, update_resource_metrics
+from fix_plugin_gcp.resources.monitoring import GcpMonitoringMetricData
 from fixlib.threading import ExecutorQueue
 from fixlib.baseresources import InstanceStatus
 
@@ -187,8 +187,6 @@ def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
     random_builder.metrics_delta = timedelta(hours=1)
 
     queries = gcp_instance.collect_usage_metrics(random_builder)
-    mq_lookup = {q.metric_id: q for q in queries}
-    resources_map = {f"{gcp_instance.kind}/{gcp_instance.id}/{gcp_instance.region().id}": gcp_instance}
     with ThreadPoolExecutor(max_workers=1) as executor:
         queue = ExecutorQueue(executor, tasks_per_key=lambda _: 10, name="test")
         g_builder = GraphBuilder(
@@ -203,26 +201,18 @@ def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
             random_builder.config,
             last_run_started_at=random_builder.last_run_started_at,
         )
-        metric_data_futures = GcpMonitoringMetricData.query_for(
-            g_builder, queries, random_builder.created_at, random_builder.created_at + random_builder.metrics_delta
+        GcpMonitoringMetricData.query_for(
+            g_builder,
+            gcp_instance,
+            queries,
+            random_builder.created_at,
+            random_builder.created_at + random_builder.metrics_delta,
         )
-
-        result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData] = {}
-
-        for metric_data in as_completed(metric_data_futures):
-            try:
-                metric_query_result: List[Tuple[str, GcpMonitoringMetricData]] = metric_data.result()
-                for metric_id, metric in metric_query_result:
-                    if metric is not None and metric_id is not None:
-                        result[mq_lookup[metric_id]] = metric
-            except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
-
-            update_resource_metrics(resources_map, result)
+        g_builder.executor.wait_for_submitted_work()
 
         assert gcp_instance._resource_usage["cpu_utilization_percent"]["avg"] > 0.0
-        assert gcp_instance._resource_usage["network_in_count"]["avg"] > 0.0
-        assert gcp_instance._resource_usage["disk_read_count"]["avg"] > 0.0
+        assert gcp_instance._resource_usage["network_in_bytes"]["avg"] > 0.0
+        assert gcp_instance._resource_usage["disk_read_iops"]["avg"] > 0.0
 
 
 def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:

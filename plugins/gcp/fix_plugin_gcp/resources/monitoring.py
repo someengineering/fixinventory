@@ -8,7 +8,7 @@ from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpMonitoringQuery, MetricNormalization
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpMonitoringQuery, MetricNormalization, GcpResource
 from fixlib.baseresources import MetricUnit, StatName, BaseResource
 from fixlib.durations import duration_str
 from fixlib.json import from_json
@@ -56,18 +56,17 @@ class GcpMonitoringMetricData:
     @staticmethod
     def query_for(
         builder: GraphBuilder,
+        resource: GcpResource,
         queries: List[GcpMonitoringQuery],
         start_time: datetime,
         end_time: datetime,
-    ) -> List[Future[List[Tuple[str, "GcpMonitoringMetricData"]]]]:
+    ) -> None:
         if builder.region:
             log.info(
                 f"[{builder.region.safe_name}|{start_time}|{duration_str(end_time - start_time)}] Query for {len(queries)} metrics."
             )
         else:
             log.info(f"[global|{start_time}|{duration_str(end_time - start_time)}] Query for {len(queries)} metrics.")
-
-        futures = []
 
         api_spec = GcpApiSpec(
             service="monitoring",
@@ -90,23 +89,21 @@ class GcpMonitoringMetricData:
         )
 
         for query in queries:
-            future = builder.submit_work(
+            builder.submit_work(
                 GcpMonitoringMetricData._query_for_chunk,
                 builder,
+                resource,
                 api_spec,
                 query,
             )
-            futures.append(future)
-
-        return futures
 
     @staticmethod
     def _query_for_chunk(
         builder: GraphBuilder,
+        resource: GcpResource,
         api_spec: GcpApiSpec,
         query: GcpMonitoringQuery,
-    ) -> "List[Tuple[str, GcpMonitoringMetricData]]":
-        query_result = []
+    ) -> None:
         local_api_spec = deepcopy(api_spec)
 
         # Base filter
@@ -129,38 +126,29 @@ class GcpMonitoringMetricData:
             part = builder.client.list(local_api_spec)
             for single in part:
                 metric = from_json(bend(GcpMonitoringMetricData.mapping, single), GcpMonitoringMetricData)
-                query_result.append((query.metric_id, metric))
-            return query_result
+                update_resource_metrics(resource, query, metric)
         except Exception as e:
-            raise e
+            log.warning(f"An error occurred while processing a metric data: {e}")
 
 
 def update_resource_metrics(
-    resources_map: Dict[str, V],
-    monitoring_metric_result: Dict[GcpMonitoringQuery, GcpMonitoringMetricData],
+    resource: GcpResource,
+    query: GcpMonitoringQuery,
+    metric: GcpMonitoringMetricData,
 ) -> None:
-    for query, metric in monitoring_metric_result.items():
-        resource = resources_map.get(query.ref_id)
-        if resource is None:
-            continue
-        if len(metric.metric_values) == 0:
-            continue
-        normalizer = query.normalization
-        if not normalizer:
-            continue
-
-        for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
-            try:
-                metric_name = query.metric_name
-                if not metric_name:
-                    continue
-                name = metric_name + "_" + normalizer.unit
-                value = normalizer.normalize_value(metric_value)
-                stat_name = maybe_stat_name or STAT_MAP[query.stat]
-                resource._resource_usage[name][str(stat_name)] = value
-            except KeyError as e:
-                log.warning(f"An error occurred while setting metric values: {e}")
-                raise
+    normalizer = query.normalization
+    for metric_value, maybe_stat_name in normalizer.compute_stats(metric.metric_values):
+        try:
+            metric_name = query.metric_name
+            if not metric_name:
+                continue
+            name = metric_name + "_" + normalizer.unit
+            value = normalizer.normalize_value(metric_value)
+            stat_name = maybe_stat_name or STAT_MAP[query.stat]
+            resource._resource_usage[name][str(stat_name)] = value
+        except KeyError as e:
+            log.warning(f"An error occurred while setting metric values: {e}")
+            raise
 
 
 class NormalizerFactory:

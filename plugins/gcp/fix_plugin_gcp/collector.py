@@ -160,31 +160,12 @@ class GcpProjectCollector:
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> None:
-        metric_data_futures = []
-        mq_lookup = {}
-        resources_map = {}
-        result: Dict[monitoring.GcpMonitoringQuery, monitoring.GcpMonitoringMetricData] = {}
         for resource in builder.graph.nodes:
             if isinstance(resource, GcpResource) and (mq := resource.collect_usage_metrics(builder)):
-                mq_lookup.update({q.metric_id: q for q in mq})
                 start_at = builder.created_at - builder.metrics_delta
                 region = cast(GcpRegion, resource.region())
                 rb = builder.for_region(region)
-                resources_map[f"{resource.kind}/{resource.id}/{resource.region().id}"] = resource
-                metric_data_futures.extend(
-                    monitoring.GcpMonitoringMetricData.query_for(rb, mq, start_at, builder.created_at)
-                )
-
-        for metric_data in as_completed(metric_data_futures):
-            try:
-                metric_query_result: List[Tuple[str, monitoring.GcpMonitoringMetricData]] = metric_data.result()
-                for metric_id, metric in metric_query_result:
-                    if metric is not None and metric_id is not None:
-                        result[mq_lookup[metric_id]] = metric
-            except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
-
-        monitoring.update_resource_metrics(resources_map, result)
+                monitoring.GcpMonitoringMetricData.query_for(rb, resource, mq, start_at, builder.created_at)
 
     def remove_unconnected_nodes(self, builder: GraphBuilder) -> None:
         def rm_leaf_nodes(clazz: Any, ignore_kinds: Optional[Type[Any]] = None) -> None:
