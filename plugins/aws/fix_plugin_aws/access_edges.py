@@ -92,9 +92,9 @@ class ActionToCheck:
 
 
 class ArnResourceValueKind(enum.Enum):
-    Static = 1 # the segment is a fixed value, e.g. "s3", "vpc/vpc-0e9801d129EXAMPLE", 
-    Pattern = 2 # the segment is a pattern, e.g. "my_corporate_bucket/*",
-    Any = 3 # the segment is missing, e.g. "::" or it is a wildcard, e.g. "*"
+    Static = 1  # the segment is a fixed value, e.g. "s3", "vpc/vpc-0e9801d129EXAMPLE",
+    Pattern = 2  # the segment is a pattern, e.g. "my_corporate_bucket/*",
+    Any = 3  # the segment is missing, e.g. "::" or it is a wildcard, e.g. "*"
 
     @staticmethod
     def from_str(value: str) -> "ArnResourceValueKind":
@@ -103,6 +103,7 @@ class ArnResourceValueKind(enum.Enum):
         if "*" in value:
             return ArnResourceValueKind.Pattern
         return ArnResourceValueKind.Static
+
 
 @frozen(slots=True)
 class ArnResource:
@@ -121,19 +122,16 @@ class ArnResource:
             case ArnResourceValueKind.Static:
                 _match = segment == self.value
 
-        
         if self.not_resource:
             _match = not _match
 
-
         return _match
-
 
 
 @frozen(slots=True)
 class ArnAccountId:
     value: str
-    wildcard: bool # if the account is a wildcard, e.g. "*" or "::"
+    wildcard: bool  # if the account is a wildcard, e.g. "*" or "::"
     principal_arns: Set[str]
     children: List[ArnResource]
 
@@ -144,7 +142,7 @@ class ArnAccountId:
 @frozen(slots=True)
 class ArnRegion:
     value: str
-    wildcard: bool # if the region is a wildcard, e.g. "*" or "::"
+    wildcard: bool  # if the region is a wildcard, e.g. "*" or "::"
     principal_arns: Set[str]
     children: List[ArnAccountId]
 
@@ -160,12 +158,12 @@ class ArnService:
 
     def matches(self, segment: str) -> bool:
         return self.value == segment
-        
+
 
 @frozen(slots=True)
 class ArnPartition:
     value: str
-    wildcard: bool # for the cases like "Allow": "*" on all resources
+    wildcard: bool  # for the cases like "Allow": "*" on all resources
     principal_arns: Set[str]
     children: List[ArnService]
 
@@ -181,7 +179,6 @@ class PrincipalTree:
     def __init__(self) -> None:
         self.partitions: List[ArnPartition] = []
 
-    
     def _add_allow_all_wildcard(self, principal_arn: str) -> None:
         partition = next((p for p in self.partitions if p.value == "*"), None)
         if not partition:
@@ -194,7 +191,6 @@ class PrincipalTree:
         """
         _add resource will add the principal arn at the resource level
         """
-
 
         try:
             arn = ARN(resource_constraint)
@@ -221,11 +217,15 @@ class PrincipalTree:
             account_wildcard = arn.account == "*" or not arn.account
             account = next((a for a in region.children if a.value == (arn.account or "*")), None)
             if not account:
-                account = ArnAccountId(value=arn.account or "*", wildcard=account_wildcard, principal_arns=set(), children=[])
+                account = ArnAccountId(
+                    value=arn.account or "*", wildcard=account_wildcard, principal_arns=set(), children=[]
+                )
                 region.children.append(account)
 
             # Add resource
-            resource = next((r for r in account.children if r.value == arn.resource_string and r.not_resource == nr), None) 
+            resource = next(
+                (r for r in account.children if r.value == arn.resource_string and r.not_resource == nr), None
+            )
             if not resource:
                 if arn.resource_string == "*":
                     resource_kind = ArnResourceValueKind.Any
@@ -233,7 +233,9 @@ class PrincipalTree:
                     resource_kind = ArnResourceValueKind.Pattern
                 else:
                     resource_kind = ArnResourceValueKind.Static
-                resource = ArnResource(value=arn.resource_string, principal_arns=set(), kind=resource_kind, not_resource=nr)
+                resource = ArnResource(
+                    value=arn.resource_string, principal_arns=set(), kind=resource_kind, not_resource=nr
+                )
                 account.children.append(resource)
 
             resource.principal_arns.add(principal_arn)
@@ -241,7 +243,6 @@ class PrincipalTree:
         except Exception as e:
             log.error(f"Error parsing ARN {principal_arn}: {e}")
             pass
-
 
     def _add_service(self, service_prefix: str, principal_arn: str) -> None:
         # Find existing or create partition
@@ -258,11 +259,9 @@ class PrincipalTree:
 
         service.principal_arns.add(principal_arn)
 
-
-
     def add_principal(self, principal_arn: str, policy_documents: List[FixPolicyDocument]) -> None:
         """
-        This method iterates over every policy statement and adds corresponding arns to principal tree. 
+        This method iterates over every policy statement and adds corresponding arns to principal tree.
         """
 
         for policy_doc in policy_documents:
@@ -276,29 +275,29 @@ class PrincipalTree:
                         self._add_resource(resource, principal_arn)
                     for not_resource in statement.not_resource:
                         self._add_resource(not_resource, principal_arn, nr=True)
-                    
+
                     if has_wildcard_resource or (not statement.resources and not statement.not_resource):
                         for ap in statement.actions_patterns:
                             if ap.kind == WildcardKind.any:
                                 self._add_allow_all_wildcard(principal_arn)
                             self._add_service(ap.service, principal_arn)
 
-
     def list_principals(self, resource_arn: ARN) -> Set[str]:
         """
         this will be called for every resource and it must be fast
         """
-        principals = set()
+        principals: Set[str] = set()
 
         matching_partitions = [p for p in self.partitions if p.value if p.matches(resource_arn.partition)]
         if not matching_partitions:
             return principals
 
-        matching_services = [s for p in matching_partitions for s in p.children if s.matches(resource_arn.service_prefix)]
+        matching_services = [
+            s for p in matching_partitions for s in p.children if s.matches(resource_arn.service_prefix)
+        ]
         if not matching_services:
             return principals
         principals.update([arn for s in matching_services for arn in s.principal_arns])
-
 
         matching_regions = [r for s in matching_services for r in s.children if r.matches(resource_arn.region)]
         if not matching_regions:
@@ -310,20 +309,21 @@ class PrincipalTree:
             return principals
         principals.update([arn for a in matching_account_ids for arn in a.principal_arns])
 
-        matching_resources = [r for a in matching_account_ids for r in a.children if r.matches(resource_arn.resource_string)]
+        matching_resources = [
+            r for a in matching_account_ids for r in a.children if r.matches(resource_arn.resource_string)
+        ]
         if not matching_resources:
             return principals
-        
+
         principals.update([arn for r in matching_resources for arn in r.principal_arns])
 
         return principals
 
 
-
 @frozen(slots=True)
 class ResourceWildcardPattern:
     raw_value: str
-    partition: str | None # None in case the whole string is "*"
+    partition: str | None  # None in case the whole string is "*"
     service: str
     region: str
     region_value_kind: ArnResourceValueKind
@@ -332,22 +332,21 @@ class ResourceWildcardPattern:
     resource: str
     resource_value_kind: ArnResourceValueKind
 
-
     @staticmethod
     def from_str(value: str) -> "ResourceWildcardPattern":
         if value == "*":
             return ResourceWildcardPattern(
                 raw_value=value,
-                partition=None, 
-                service="*", 
+                partition=None,
+                service="*",
                 region="*",
-                region_value_kind=ArnResourceValueKind.Any, 
+                region_value_kind=ArnResourceValueKind.Any,
                 account="*",
-                account_value_kind=ArnResourceValueKind.Any, 
-                resource="*", 
-                resource_value_kind=ArnResourceValueKind.Any
+                account_value_kind=ArnResourceValueKind.Any,
+                resource="*",
+                resource_value_kind=ArnResourceValueKind.Any,
             )
-        
+
         try:
             splitted = value.split(":", 5)
             if len(splitted) != 6:
@@ -363,11 +362,12 @@ class ResourceWildcardPattern:
                 account=account,
                 account_value_kind=ArnResourceValueKind.from_str(account),
                 resource=resource,
-                resource_value_kind=ArnResourceValueKind.from_str(resource)
+                resource_value_kind=ArnResourceValueKind.from_str(resource),
             )
         except Exception as e:
             log.error(f"Error parsing resource pattern {value}: {e}")
             raise e
+
 
 @frozen(slots=True)
 class IamRequestContext:
@@ -377,7 +377,6 @@ class IamRequestContext:
     # all service control policies applicable to the principal,
     # starting from the root, then all org units, then the account
     service_control_policy_levels: Tuple[Tuple[FixPolicyDocument, ...], ...]
-
 
     def all_policies(
         self, resource_based_policies: Optional[Tuple[Tuple[PolicySource, FixPolicyDocument], ...]] = None
@@ -391,6 +390,7 @@ class IamRequestContext:
 
 
 IamAction = str
+
 
 @lru_cache(maxsize=4096)
 def find_allowed_action(policy_document: FixPolicyDocument, service_prefix: str) -> Set[IamAction]:
@@ -592,29 +592,28 @@ def match_pattern(resource_segment: str, wildcard_segment: str, wildcard_segment
             return resource_segment == wildcard_segment
 
 
-
 def expand_arn_wildcards_and_match(identifier: ARN, wildcard_string: ResourceWildcardPattern) -> bool:
 
     # if wildard is *, we can shortcut here
     if wildcard_string.partition is None:
         return True
-    
+
     # go through the ARN segments and match them
     if not wildcard_string.partition == identifier.partition:
         return False
-    
+
     if not wildcard_string.service == identifier.service_prefix:
         return False
-    
+
     if not match_pattern(identifier.region, wildcard_string.region, wildcard_string.region_value_kind):
         return False
-    
+
     if not match_pattern(identifier.account, wildcard_string.account, wildcard_string.account_value_kind):
         return False
-    
+
     if not match_pattern(identifier.resource_string, wildcard_string.resource, wildcard_string.resource_value_kind):
         return False
-    
+
     return True
 
 
@@ -966,11 +965,11 @@ def check_identity_based_policies(
 
     return check_identity_policies_closure
 
+
 @lru_cache(maxsize=4096)
 def check_permission_boundaries(
     request_context: IamRequestContext, action: ActionToCheck
 ) -> Callable[[ARN], Union[Literal["Denied", "NextStep"], List[Json]]]:
-
 
     matching_fns = []
 
@@ -995,7 +994,7 @@ def check_permission_boundaries(
 
         # no matching permission boundaries that allow access
         return "Denied"
-    
+
     return check_permission_boundaries_closure
 
 
@@ -1185,7 +1184,6 @@ def check_non_resource_policies(
         # comes from the resource based policies and identity based policies
         allowed_scopes: List[PermissionScope] = []
 
-
         # 1. check for explicit deny. If denied, we can abort immediately
         result = explicit_deny_fn(resource)
         if result == "Denied":
@@ -1197,14 +1195,14 @@ def check_non_resource_policies(
                 # satisfying any of the conditions above will deny the action
                 deny_conditions.append(c)
 
-
-
         # 2. check for organization SCPs # todo: move it outside the loop
-        if len(request_context.service_control_policy_levels) > 0 and not is_service_linked_role(request_context.principal):
+        if len(request_context.service_control_policy_levels) > 0 and not is_service_linked_role(
+            request_context.principal
+        ):
             org_scp_allowed = scp_allowed(request_context, action, resource)
             if not org_scp_allowed:
                 return None
-            
+
         # 3. skip resource based policies because the resource has none
 
         # 4. to make it a bit simpler, we check the permission boundaries before checking identity based policies
@@ -1252,7 +1250,6 @@ def check_non_resource_policies(
             scopes=tuple(final_scopes),
         )
 
-    
     return check_non_resource_policies_closure
 
 
@@ -1379,7 +1376,6 @@ class AccessEdgeCreator:
 
         return tree
 
-
     def _compute_actions_for_resource(self) -> Dict[str, set[IamAction]]:
 
         actions_for_resource: Dict[str, set[IamAction]] = {}
@@ -1490,14 +1486,13 @@ class AccessEdgeCreator:
             assert node.arn
             resource_arn = ARN(node.arn)
 
-
             if not isinstance(node, HasResourcePolicy):
                 # here we have identity-based policies only and can prune some principals
                 for arn in self.principal_tree.list_principals(resource_arn):
                     context = self.arn_to_context.get(arn)
                     if not context:
                         raise ValueError(f"Principal {arn} not found in the context")
-                    
+
                     permissions = compute_permissions(
                         resource_arn, context, tuple(), self.actions_for_resource.get(node.arn, set())
                     )
@@ -1509,7 +1504,9 @@ class AccessEdgeCreator:
                     for permission in permissions:
                         access[permission.level] = True
                     reported = to_json({"permissions": permissions} | access, strip_nulls=True)
-                    self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
+                    self.builder.add_edge(
+                        from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node
+                    )
 
             else:
                 # here we have resource-based policies and must check all principals.
@@ -1529,13 +1526,13 @@ class AccessEdgeCreator:
                     if not permissions:
                         continue
 
-                    access: Dict[PermissionLevel, bool] = {}
+                    access = {}
                     for permission in permissions:
                         access[permission.level] = True
                     reported = to_json({"permissions": permissions} | access, strip_nulls=True)
-                    self.builder.add_edge(from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node)
-
-
+                    self.builder.add_edge(
+                        from_node=context.principal, edge_type=EdgeType.iam, reported=reported, node=node
+                    )
 
         all_principal_arns = {p.principal.arn for p in self.principals if p.principal.arn}
 

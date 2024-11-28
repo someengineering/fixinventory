@@ -2,7 +2,6 @@ import logging
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-import os
 from typing import List, Type, Optional, Union, cast, Any
 
 from fix_plugin_aws.access_edges import AccessEdgeCreator
@@ -69,7 +68,6 @@ from fixlib.proc import set_thread_name
 from fixlib.threading import ExecutorQueue, GatherFutures
 from fixlib.types import Json
 from .utils import global_region_by_partition
-from pyinstrument import Profiler
 
 log = logging.getLogger("fix.plugins.aws")
 
@@ -264,18 +262,12 @@ class AwsAccountCollector:
                     log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
-            access_edge_collection_enabled = True
+            access_edge_collection_enabled = False
             if access_edge_collection_enabled and global_builder.config.collect_access_edges:
                 # add access edges
-                profiler = Profiler()
-                profiler.start()
                 log.info(f"[Aws:{self.account.id}] Create access edges.")
                 access_edge_creator = AccessEdgeCreator(global_builder)
                 access_edge_creator.add_access_edges()
-                profiler.stop()
-                html_output = profiler.output_html()
-                with open(f"profiler_{self.account.id}.html", "w") as f:
-                    f.write(html_output)
 
             # final hook when the graph is complete
             for node, data in list(self.graph.nodes(data=True)):
