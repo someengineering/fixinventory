@@ -15,13 +15,12 @@ from typing import (
     AsyncIterable,
 )
 
-from aiostream import stream
-from aiostream.core import Stream
 from parsy import Parser, regex, string
 
 from fixcore.model.graph_access import Section
 from fixcore.types import JsonElement, Json
 from fixcore.util import utc, parse_utc, AnyT
+from fixlib.asynchronous.stream import Stream
 from fixlib.durations import parse_duration, DurationRe
 from fixlib.parse_util import (
     make_parser,
@@ -47,7 +46,7 @@ JsGen = AsyncIterable[JsonElement]
 # A sink function takes a stream and creates a result
 Sink = Callable[[JsStream], Awaitable[T]]
 
-list_sink: Callable[[JsGen], Awaitable[Any]] = stream.list  # type: ignore
+list_sink: Callable[[JsGen], Awaitable[List[Any]]] = Stream.as_list
 
 
 @make_parser

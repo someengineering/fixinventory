@@ -654,6 +654,7 @@ class AwsIamUser(AwsResource, BaseUser, BaseIamPrincipal):
         "arn": S("Arn"),
         "user_policies": S("UserPolicyList", default=[]) >> ForallBend(AwsIamPolicyDetail.mapping),
         "user_permissions_boundary": S("PermissionsBoundary") >> Bend(AwsIamAttachedPermissionsBoundary.mapping),
+        "username": S("UserName"),
     }
     path: Optional[str] = field(default=None)
     user_policies: List[AwsIamPolicyDetail] = field(factory=list)

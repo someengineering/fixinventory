@@ -1,0 +1,44 @@
+{
+    "databases": [
+        {
+            "id": "projects/my-project/databases/(default)",
+            "tags": {
+                "env": "production",
+                "team": "backend"
+            },
+            "name": "projects/my-project/databases/(default)",
+            "ctime": "2023-07-14T10:22:33.123Z",
+            "description": "Main production database",
+            "link": "https://www.googleapis.com/firestore/v1/projects/my-project/databases/(default)",
+            "label_fingerprint": "abcd1234efgh5678",
+            "deprecation_status": {
+                "state": "ACTIVE"
+            },
+            "app_engine_integration_mode": "DEFAULT",
+            "cmek_config": {
+                "active_key_version": [
+                    "projects/my-project/locations/global/keyRings/my-keyring/cryptoKeys/my-key/cryptoKeyVersions/1"
+                ],
+                "kms_key_name": "projects/my-project/locations/global/keyRings/my-keyring/cryptoKeys/my-key"
+            },
+            "concurrency_mode": "PESSIMISTIC",
+            "create_time": "2023-07-14T10:22:33.123Z",
+            "delete_protection_state": "ENABLED",
+            "delete_time": null,
+            "earliest_version_time": "2023-07-14T10:22:33.123Z",
+            "etag": "etag12345",
+            "key_prefix": "db-prefix",
+            "location_id": "us-central1",
+            "point_in_time_recovery_enablement": "ENABLED",
+            "previous_id": "prev-db-id",
+            "source_info": {
+                "backup": "projects/my-project/locations/us-central1/backups/backup-1",
+                "operation": "projects/my-project/operations/operation-123"
+            },
+            "type": "FIRESTORE_NATIVE",
+            "uid": "db-uid-1234",
+            "update_time": "2023-07-15T12:34:56.789Z",
+            "version_retention_period": "7d"
+        }
+    ]
+}

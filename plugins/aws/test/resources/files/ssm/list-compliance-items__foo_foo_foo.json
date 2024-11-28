@@ -1,0 +1,23 @@
+{
+    "ComplianceItems": [
+        {
+            "ComplianceType": "Association",
+            "ResourceType": "ManagedInstance",
+            "ResourceId": "i-1",
+            "Id": "SSM-Association-1",
+            "Title": "State Manager Association Compliance",
+            "Status": "NON_COMPLIANT",
+            "Severity": "HIGH",
+            "ExecutionSummary": {
+                "ExecutionTime": "2024-10-01T12:34:56Z",
+                "ExecutionId": "xyz5678-execution-id",
+                "ExecutionType": "Association"
+            },
+            "Details": {
+                "LastExecutionStatus": "Failed",
+                "ErrorDetails": "Failed to apply association"
+            }
+        }
+    ],
+    "NextToken": "next-token-value"
+}

@@ -291,7 +291,7 @@ async def test_merge_graph(graph_db: ArangoGraphDB, foo_model: Model) -> None:
         expected = {"min": 42, "avg": 42, "max": 42}
         return node_usage == expected
 
-    await eventually(check_usage)
+    await eventually(check_usage, timeout=timedelta(seconds=30))
 
     # exactly the same graph is updated: expect no changes
     assert await graph_db.merge_graph(create("yes or no"), foo_model) == (p, GraphUpdate(0, 0, 0, 0, 0, 0))

@@ -1,0 +1,86 @@
+{
+    "instances": [
+        {
+            "id": "projects/sample-project/locations/us-central1/instances/instance-1",
+            "name": "instance-1",
+            "ctime": "2024-10-01T14:00:00Z",
+            "description": "Primary file storage instance",
+            "link": "https://www.googleapis.com/filestore/v1/projects/sample-project/locations/us-central1/instances/instance-1",
+            "label_fingerprint": "def456",
+            "deprecation_status": {
+                "state": "ACTIVE",
+                "deleted": null,
+                "deprecated": null,
+                "obsolete": null,
+                "replacement": null
+            },
+            "configurable_performance_enabled": true,
+            "create_time": "2024-10-01T14:00:00Z",
+            "deletion_protection_enabled": false,
+            "deletion_protection_reason": null,
+            "etag": "etag-789",
+            "file_shares": [
+                {
+                    "capacity_gb": "2048",
+                    "name": "file-share-1",
+                    "nfs_export_options": [
+                        {
+                            "access_mode": "READ_WRITE",
+                            "anon_gid": "65534",
+                            "anon_uid": "65534",
+                            "ip_ranges": [
+                                "192.168.1.0/24"
+                            ],
+                            "squash_mode": "NO_ROOT_SQUASH"
+                        }
+                    ],
+                    "source_backup": "projects/sample-project/locations/us-central1/backups/backup-1"
+                }
+            ],
+            "kms_key_name": "projects/sample-project/locations/us-central1/keyRings/sample-ring/cryptoKeys/sample-key",
+            "networks": [
+                {
+                    "connect_mode": "PRIVATE_SERVICE_ACCESS",
+                    "ip_addresses": [
+                        "10.1.2.3"
+                    ],
+                    "modes": [
+                        "MODE_IPV4"
+                    ],
+                    "network": "projects/sample-project/global/networks/default",
+                    "reserved_ip_range": "10.1.0.0/24"
+                }
+            ],
+            "performance_config": {
+                "fixed_iops": "1000",
+                "iops_per_tb": "300"
+            },
+            "performance_limits": {
+                "max_read_iops": "3000",
+                "max_read_throughput_bps": "104857600",
+                "max_write_iops": "2000",
+                "max_write_throughput_bps": "52428800"
+            },
+            "protocol": "NFSv3",
+            "replication": {
+                "replicas": [
+                    {
+                        "last_active_sync_time": "2024-11-01T12:00:00Z",
+                        "peer_instance": "projects/sample-project/locations/us-central1/instances/replica-1",
+                        "state": "ACTIVE",
+                        "state_reasons": [
+                            "Synced successfully"
+                        ]
+                    }
+                ],
+                "role": "PRIMARY"
+            },
+            "satisfies_pzi": true,
+            "satisfies_pzs": true,
+            "state": "READY",
+            "status_message": "Instance is operating normally",
+            "suspension_reasons": [],
+            "tier": "STANDARD"
+        }
+    ]
+}

@@ -35,7 +35,6 @@ dependencies = [
     "aiohttp-jinja2",
     "aiohttp-swagger3",
     "aiohttp[speedups]",
-    "aiostream",
     "cryptography",
     "deepdiff",
     "detect_secrets",

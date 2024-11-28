@@ -7,7 +7,7 @@ from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, get_client
 from fixlib.baseresources import BaseBucket
 from fixlib.graph import Graph
-from fixlib.json_bender import Bender, S, Bend, ForallBend
+from fixlib.json_bender import Bender, S, Bend, ForallBend, AsBool
 
 service_name = "storage"
 
@@ -391,6 +391,7 @@ class GcpBucket(GcpResource, BaseBucket):
         "updated": S("updated"),
         "versioning_enabled": S("versioning", "enabled"),
         "bucket_website": S("website", default={}) >> Bend(GcpWebsite.mapping),
+        "encryption_enabled": S("encryption", "defaultKmsKeyName") >> AsBool(),
     }
     acl: Optional[List[GcpBucketAccessControl]] = field(default=None)
     autoclass: Optional[GcpAutoclass] = field(default=None)
@@ -415,7 +416,6 @@ class GcpBucket(GcpResource, BaseBucket):
     updated: Optional[datetime] = field(default=None)
     bucket_website: Optional[GcpWebsite] = field(default=None)
     requester_pays: Optional[bool] = field(default=None)
-    versioning_enabled: Optional[bool] = field(default=None)
     lifecycle_rule: List[GcpRule] = field(factory=list)
 
     def pre_delete(self, graph: Graph) -> bool:

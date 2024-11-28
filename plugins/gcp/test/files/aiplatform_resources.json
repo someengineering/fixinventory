@@ -1,0 +1,740 @@
+{
+    "resources": [
+        {
+            "id": "projects/1234567890/locations/us-central1/models/my-model",
+            "tags": {
+                "env": "prod"
+            },
+            "name": "projects/1234567890/locations/us-central1/models/my-model",
+            "ctime": "2024-07-26T12:00:00Z",
+            "description": "My trained model",
+            "link": "https://console.cloud.google.com/vertex-ai/locations/us-central1/models/my-model",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE",
+                "end_time": null
+            },
+            "artifact_uri": "gs://my-bucket/model-artifact",
+            "base_model_source": {
+                "model_garden_source": null,
+                "genie_source": "projects/my-project/locations/us-central1/models/my-base-model@1"
+            },
+            "container_spec": {
+                "image_uri": "us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-8:latest",
+                "command": [],
+                "args": [],
+                "env": [],
+                "ports": [],
+                "predict_route": "",
+                "health_route": "",
+                "grpc_ports": [],
+                "startup_probe": null,
+                "health_probe": null,
+                "deployment_timeout": null,
+                "shared_memory_size_mb": null
+            },
+            "create_time": "2024-07-26T12:00:00Z",
+            "data_stats": {
+                "training_data_items_count": "1000",
+                "validation_data_items_count": "200",
+                "test_data_items_count": "100",
+                "training_annotations_count": null,
+                "validation_annotations_count": null,
+                "test_annotations_count": null
+            },
+            "endpoint_deployed_model_refs": [
+                {
+                    "deployed_model_id": "12345",
+                    "endpoint": "projects/.../locations/.../endpoints/my-endpoint"
+                }
+            ],
+            "display_name": "My Model",
+            "encryption_spec": "projects/1234567890/locations/global/keyRings/my-keyring/cryptoKeys/my-key",
+            "etag": "abcdef123456",
+            "explanation_spec": {
+                "_metadata": {
+                    "inputs": {
+                        "input_1": {
+                            "input_tensor_name": "input_tensor"
+                        }
+                    }
+                },
+                "parameters": {
+                    "sampled_shapley_attribution": null,
+                    "integrated_gradients_attribution": null,
+                    "xrai_attribution": null,
+                    "examples": null,
+                    "top_k": 10
+                }
+            }
+        },
+        {
+            "id": "projects/12345/locations/us-central1/datasets/my-dataset",
+            "tags": {
+                "purpose": "training"
+            },
+            "name": "projects/12345/locations/us-central1/datasets/my-dataset",
+            "ctime": "2024-08-07T15:00:00Z",
+            "description": "Dataset for image classification",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-07T15:00:00Z",
+            "data_item_count": "10000",
+            "display_name": "Image Classification Dataset",
+            "encryption_spec": null,
+            "etag": "abcdef123456",
+            "_metadata": {},
+            "metadata_artifact": null,
+            "metadata_schema_uri": "gs://my-bucket/dataset_schema.json",
+            "model_reference": null,
+            "saved_queries": [],
+            "update_time": "2024-08-07T16:00:00Z"
+        },
+        {
+            "id": "projects/12345/locations/us-central1/datasets/my-dataset/versions/v1",
+            "tags": {},
+            "name": "projects/12345/locations/us-central1/datasets/my-dataset/versions/v1",
+            "ctime": "2024-08-07T16:30:00Z",
+            "description": "Version 1 of the dataset",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "big_query_dataset_name": null,
+            "create_time": "2024-08-07T16:30:00Z",
+            "display_name": "v1",
+            "etag": "abcdef123456",
+            "_metadata": {},
+            "model_reference": null,
+            "update_time": "2024-08-07T16:30:00Z"
+        },
+        {
+            "id": "projects/12345/locations/us-central1/endpoints/my-endpoint",
+            "tags": {
+                "team": "ml-team"
+            },
+            "name": "projects/12345/locations/us-central1/endpoints/my-endpoint",
+            "ctime": "2024-08-08T10:00:00Z",
+            "description": "Endpoint for image classification model",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-08T10:00:00Z",
+            "deployed_models": [
+                {
+                    "automatic_resources": null,
+                    "create_time": "2024-08-08T10:15:00Z",
+                    "dedicated_resources": {
+                        "machine_spec": {
+                            "machine_type": "n1-standard-2",
+                            "accelerator_type": null,
+                            "accelerator_count": null
+                        },
+                        "min_replica_count": 1,
+                        "max_replica_count": 3,
+                        "autoscaling_metric_specs": []
+                    },
+                    "deployed_index_auth_config": null,
+                    "deployment_group": null,
+                    "disable_container_logging": false,
+                    "disable_explanations": false,
+                    "display_name": "Deployed Model 1",
+                    "enable_access_logging": true,
+                    "explanation_spec": null,
+                    "id": "67890",
+                    "model": "projects/12345/locations/us-central1/models/my-model",
+                    "model_version_id": "1",
+                    "private_endpoints": null,
+                    "service_account": "vertex-ai@my-project.iam.gserviceaccount.com",
+                    "shared_resources": null
+                }
+            ],
+            "display_name": "Image Classifier Endpoint",
+            "enable_private_service_connect": false,
+            "encryption_spec": null,
+            "etag": "abcdef123456",
+            "model_deployment_monitoring_job": null,
+            "network": null,
+            "predict_request_response_logging_config": null,
+            "private_service_connect_config": null,
+            "traffic_split": {},
+            "update_time": "2024-08-08T11:00:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/schedules/my-schedule",
+            "tags": {
+                "owner": "john.doe"
+            },
+            "name": "projects/my-project/locations/us-central1/schedules/my-schedule",
+            "ctime": "2024-08-09T14:00:00Z",
+            "description": "Schedule for daily batch prediction",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "allow_queueing": false,
+            "catch_up": false,
+            "create_pipeline_job_request": {
+                "parent": "projects/my-project/locations/us-central1",
+                "pipeline_job": "projects/my-project/locations/us-central1/pipelineJobs/my-pipeline",
+                "pipeline_job_id": "my-pipeline-job-id"
+            },
+            "create_time": "2024-08-09T14:00:00Z",
+            "cron": "0 0 * * *",
+            "display_name": "Daily Prediction",
+            "end_time": null,
+            "last_pause_time": null,
+            "last_resume_time": null,
+            "last_scheduled_run_response": {
+                "run_response": "projects/my-project/locations/us-central1/batchPredictionJobs/my-batch-job",
+                "scheduled_run_time": "2024-08-09T00:00:00Z"
+            },
+            "max_concurrent_run_count": 1,
+            "max_run_count": null,
+            "next_run_time": "2024-08-10T00:00:00Z",
+            "start_time": "2024-08-09T14:00:00Z",
+            "started_run_count": 10,
+            "state": "ACTIVE",
+            "update_time": "2024-08-09T14:30:00Z"
+        },
+        {
+            "id": "projects/12345/locations/us-central1/featureGroups/my-feature-group",
+            "tags": {
+                "department": "sales"
+            },
+            "name": "projects/12345/locations/us-central1/featureGroups/my-feature-group",
+            "ctime": "2024-08-10T09:00:00Z",
+            "description": "Feature group for customer data",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "big_query": {
+                "big_query_source": "bq://my-project.my_dataset.my_table",
+                "entity_id_columns": [
+                    "customer_id"
+                ]
+            },
+            "create_time": "2024-08-10T09:00:00Z",
+            "etag": "abcdef123456",
+            "update_time": "2024-08-10T09:30:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/featureGroups/my-feature-group/features/customer_age",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/featureGroups/my-feature-group/features/customer_age",
+            "ctime": "2024-08-10T10:00:00Z",
+            "description": "Age of the customer",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-10T10:00:00Z",
+            "disable_monitoring": false,
+            "etag": "abcdef123456",
+            "monitoring_stats_anomalies": [],
+            "point_of_contact": "data-scientist@example.com",
+            "update_time": "2024-08-10T10:30:00Z",
+            "value_type": "INT64",
+            "version_column_name": null
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/featurestores/my-featurestore",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/featurestores/my-featurestore",
+            "ctime": "2024-08-11T08:00:00Z",
+            "description": "My Feature Store",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-11T08:00:00Z",
+            "encryption_spec": null,
+            "etag": "abcdef123456",
+            "online_serving_config": {
+                "fixed_node_count": 2,
+                "scaling": {
+                    "min_node_count": 1,
+                    "max_node_count": 5,
+                    "cpu_utilization_target": 70
+                }
+            },
+            "online_storage_ttl_days": 7,
+            "state": "ACTIVE",
+            "update_time": "2024-08-11T08:30:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/trainingPipelines/my-training-pipeline",
+            "tags": {
+                "model_type": "image_classifier"
+            },
+            "name": "projects/my-project/locations/us-central1/trainingPipelines/my-training-pipeline",
+            "ctime": "2024-08-12T12:00:00Z",
+            "description": "Training pipeline for image classification",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-12T12:00:00Z",
+            "display_name": "Image Classifier Training",
+            "encryption_spec": null,
+            "end_time": "2024-08-12T14:00:00Z",
+            "error": null,
+            "input_data_config": {
+                "dataset_id": "my-dataset",
+                "fraction_split": {
+                    "training_fraction": 0.8,
+                    "validation_fraction": 0.1,
+                    "test_fraction": 0.1
+                },
+                "gcs_destination": "gs://my-bucket/training_data",
+                "annotation_schema_uri": null,
+                "annotations_filter": null,
+                "bigquery_destination": null,
+                "filter_split": null,
+                "persist_ml_use_assignment": null,
+                "predefined_split": null,
+                "saved_query_id": null,
+                "stratified_split": null,
+                "timestamp_split": null
+            },
+            "model_id": null,
+            "model_to_upload": "projects/my-project/locations/us-central1/models/my-trained-model",
+            "parent_model": null,
+            "start_time": "2024-08-12T12:30:00Z",
+            "state": "SUCCEEDED",
+            "training_task_definition": "gs://google-cloud-aiplatform/schema/trainingjob/definition/automl_image_classification_1.0.0.yaml",
+            "training_task_inputs": {},
+            "training_task_metadata": {},
+            "update_time": "2024-08-12T14:00:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/batchPredictionJobs/my-batch-job",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/batchPredictionJobs/my-batch-job",
+            "ctime": "2024-08-13T09:00:00Z",
+            "description": "Batch prediction job",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "completion_stats": {
+                "successful_count": "1000",
+                "failed_count": "10",
+                "incomplete_count": "0",
+                "successful_forecast_point_count": null
+            },
+            "create_time": "2024-08-13T09:00:00Z",
+            "dedicated_resources": null,
+            "disable_container_logging": false,
+            "display_name": "My Batch Prediction",
+            "encryption_spec": null,
+            "end_time": "2024-08-13T10:00:00Z",
+            "error": null,
+            "explanation_spec": null,
+            "generate_explanation": false,
+            "input_config": {
+                "gcs_source": {
+                    "uris": [
+                        "gs://my-bucket/input-data.jsonl"
+                    ]
+                },
+                "instances_format": "jsonl",
+                "bigquery_source": null
+            },
+            "instance_config": null,
+            "manual_batch_tuning_parameters": null,
+            "model": "projects/my-project/locations/us-central1/models/my-model",
+            "model_parameters": {},
+            "model_version_id": "1",
+            "output_config": {
+                "gcs_destination": "gs://my-bucket/output-predictions",
+                "predictions_format": "jsonl",
+                "bigquery_destination": null
+            },
+            "output_info": {
+                "bigquery_output_dataset": null,
+                "bigquery_output_table": null,
+                "gcs_output_directory": "gs://my-bucket/output-predictions"
+            },
+            "partial_failures": [],
+            "resources_consumed": 1.5,
+            "service_account": null,
+            "start_time": "2024-08-13T09:15:00Z",
+            "state": "SUCCEEDED",
+            "unmanaged_container_model": null,
+            "update_time": "2024-08-13T10:00:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/models/my-model/evaluations/eval123",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/models/my-model/evaluations/eval123",
+            "ctime": "2024-08-14T11:00:00Z",
+            "description": "Evaluation of model performance",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "annotation_schema_uri": null,
+            "create_time": "2024-08-14T11:00:00Z",
+            "data_item_schema_uri": null,
+            "display_name": "Model Eval 1",
+            "explanation_specs": [],
+            "_metadata": {},
+            "metrics": {
+                "accuracy": 0.95,
+                "precision": 0.92
+            },
+            "metrics_schema_uri": null,
+            "model_explanation": null,
+            "slice_dimensions": []
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/featurestores/my-featurestore",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/featurestores/my-featurestore",
+            "ctime": "2024-08-11T08:00:00Z",
+            "description": "My Feature Store",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-11T08:00:00Z",
+            "encryption_spec": null,
+            "etag": "abcdef123456",
+            "online_serving_config": {
+                "fixed_node_count": 2
+            },
+            "online_storage_ttl_days": 7,
+            "state": "ACTIVE",
+            "update_time": "2024-08-11T08:30:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/hyperparameterTuningJobs/my-tuning-job",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/hyperparameterTuningJobs/my-tuning-job",
+            "ctime": "2024-08-15T15:00:00Z",
+            "description": "Hyperparameter tuning job",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-15T15:00:00Z",
+            "display_name": "My Tuning Job",
+            "encryption_spec": null,
+            "end_time": "2024-08-15T17:00:00Z",
+            "error": null,
+            "max_failed_trial_count": 3,
+            "max_trial_count": 10,
+            "parallel_trial_count": 2,
+            "start_time": "2024-08-15T15:15:00Z",
+            "state": "SUCCEEDED",
+            "study_spec": {
+                "algorithm": "ALGORITHM_UNSPECIFIED",
+                "convex_automated_stopping_spec": null,
+                "decay_curve_stopping_spec": null,
+                "measurement_selection_type": "BEST_MEASUREMENT",
+                "median_automated_stopping_spec": null,
+                "metrics": [
+                    {
+                        "goal": "MAXIMIZE",
+                        "metric_id": "accuracy",
+                        "safety_config": null
+                    }
+                ],
+                "observation_noise": "OBSERVATION_NOISE_UNSPECIFIED",
+                "parameters": [],
+                "study_stopping_config": null
+            },
+            "trial_job_spec": null,
+            "trials": [],
+            "update_time": "2024-08-15T17:00:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/customJobs/my-custom-job",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/customJobs/my-custom-job",
+            "ctime": "2024-08-16T10:00:00Z",
+            "description": "Custom training job",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-16T10:00:00Z",
+            "display_name": "My Custom Training",
+            "encryption_spec": null,
+            "end_time": "2024-08-16T12:00:00Z",
+            "error": null,
+            "job_spec": {
+                "base_output_directory": "gs://my-bucket/custom-job-output",
+                "enable_dashboard_access": true,
+                "enable_web_access": null,
+                "experiment": null,
+                "experiment_run": null,
+                "models": [],
+                "network": null,
+                "persistent_resource_id": null,
+                "protected_artifact_location_id": null,
+                "reserved_ip_ranges": [],
+                "scheduling": {
+                    "disable_retries": null,
+                    "restart_job_on_worker_restart": null,
+                    "timeout": null
+                },
+                "service_account": "custom-job-sa@my-project.iam.gserviceaccount.com",
+                "tensorboard": null,
+                "worker_pool_specs": [
+                    {
+                        "container_spec": {
+                            "image_uri": "gcr.io/my-project/my-custom-training-image",
+                            "args": [],
+                            "command": [],
+                            "env": []
+                        },
+                        "python_package_spec": null,
+                        "machine_spec": null,
+                        "disk_spec": null,
+                        "nfs_mounts": [],
+                        "replica_count": "1"
+                    }
+                ]
+            },
+            "start_time": "2024-08-16T10:15:00Z",
+            "state": "SUCCEEDED",
+            "update_time": "2024-08-16T12:00:00Z",
+            "web_access_uris": {}
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/pipelineJobs/my-pipeline-job",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/pipelineJobs/my-pipeline-job",
+            "ctime": "2024-08-17T14:00:00Z",
+            "description": "My pipeline job",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-17T14:00:00Z",
+            "display_name": "My Pipeline",
+            "encryption_spec": null,
+            "end_time": "2024-08-17T16:00:00Z",
+            "error": null,
+            "job_detail": {
+                "pipeline_context": {},
+                "pipeline_run_context": {},
+                "task_details": []
+            },
+            "network": null,
+            "pipeline_spec": {},
+            "preflight_validations": null,
+            "reserved_ip_ranges": [],
+            "runtime_config": {
+                "failure_policy": null,
+                "gcs_output_directory": null,
+                "input_artifacts": {},
+                "parameter_values": {},
+                "parameters": {}
+            },
+            "schedule_name": null,
+            "service_account": "pipeline-sa@my-project.iam.gserviceaccount.com",
+            "start_time": "2024-08-17T14:30:00Z",
+            "state": "SUCCEEDED",
+            "template_metadata": "1",
+            "template_uri": "gs://my-bucket/pipeline.json",
+            "update_time": "2024-08-17T16:00:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/tensorboards/my-tensorboard",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/tensorboards/my-tensorboard",
+            "ctime": "2024-08-18T11:30:00Z",
+            "description": "My Tensorboard instance",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "blob_storage_path_prefix": "gs://my-bucket/tensorboard-logs",
+            "create_time": "2024-08-18T11:30:00Z",
+            "display_name": "My Tensorboard",
+            "encryption_spec": null,
+            "etag": "abcdef123456",
+            "isDefault": false,
+            "run_count": 5,
+            "satisfiesPzi": false,
+            "satisfiesPzs": false,
+            "update_time": "2024-08-18T12:00:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/indexes/my-index",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/indexes/my-index",
+            "ctime": "2024-08-19T16:00:00Z",
+            "description": "Index for vector similarity search",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-19T16:00:00Z",
+            "deployed_indexes": [],
+            "display_name": "My Vector Index",
+            "encryption_spec": null,
+            "etag": "abcdef123456",
+            "index_stats": {
+                "vectors_count": "10000",
+                "shards_count": 4,
+                "sparse_vectors_count": null
+            },
+            "index_update_method": "BATCH_UPDATE",
+            "_metadata": {},
+            "metadata_schema_uri": "gs://my-bucket/index_metadata_schema.json",
+            "update_time": "2024-08-19T16:30:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/indexEndpoints/my-index-endpoint",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/indexEndpoints/my-index-endpoint",
+            "ctime": "2024-08-20T09:00:00Z",
+            "description": "Endpoint for vector similarity search",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "create_time": "2024-08-20T09:00:00Z",
+            "deployed_indexes": [
+                {
+                    "automatic_resources": null,
+                    "deployed_index_auth_config": null,
+                    "deployment_group": null,
+                    "create_time": "2024-08-20T09:15:00Z",
+                    "dedicated_resources": {
+                        "machine_spec": {
+                            "machine_type": "n1-standard-4",
+                            "accelerator_type": null,
+                            "accelerator_count": null,
+                            "tpu_topology": null
+                        },
+                        "min_replica_count": 2,
+                        "max_replica_count": 4,
+                        "autoscaling_metric_specs": []
+                    },
+                    "display_name": "My Deployed Index",
+                    "enable_access_logging": null,
+                    "id": "deployed-index-123",
+                    "index": "projects/my-project/locations/us-central1/indexes/my-index",
+                    "index_sync_time": "2024-08-20T09:20:00Z",
+                    "private_endpoints": null,
+                    "reserved_ip_ranges": []
+                }
+            ],
+            "display_name": "My Index Endpoint",
+            "enable_private_service_connect": false,
+            "encryption_spec": null,
+            "etag": "abcdef123456",
+            "network": null,
+            "private_service_connect_config": null,
+            "public_endpoint_domain_name": "my-index-endpoint.aiplatform.googleusercontent.com",
+            "public_endpoint_enabled": true,
+            "update_time": "2024-08-20T09:30:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/modelDeploymentMonitoringJobs/my-monitoring-job",
+            "tags": {},
+            "name": "projects/my-project/locations/us-central1/modelDeploymentMonitoringJobs/my-monitoring-job",
+            "ctime": "2024-08-21T11:00:00Z",
+            "description": "Monitoring job for deployed model",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "analysis_instance_schema_uri": null,
+            "bigquery_tables": [],
+            "create_time": "2024-08-21T11:00:00Z",
+            "display_name": "My Monitoring Job",
+            "enable_monitoring_pipeline_logs": false,
+            "encryption_spec": null,
+            "endpoint": "projects/my-project/locations/us-central1/endpoints/my-endpoint",
+            "error": null,
+            "latest_monitoring_pipeline_metadata": null,
+            "log_ttl": null,
+            "logging_sampling_strategy": null,
+            "model_deployment_monitoring_objective_configs": [],
+            "model_deployment_monitoring_schedule_config": null,
+            "model_monitoring_alert_config": null,
+            "next_schedule_time": null,
+            "predict_instance_schema_uri": null,
+            "sample_predict_instance": {},
+            "schedule_state": null,
+            "state": "JOB_STATE_UNSPECIFIED",
+            "stats_anomalies_base_directory": null,
+            "update_time": "2024-08-21T11:30:00Z"
+        },
+        {
+            "id": "projects/my-project/locations/us-central1/tuningJobs/my-tuning-job-2",
+            "tags": {
+                "experiment_id": "exp123"
+            },
+            "name": "projects/my-project/locations/us-central1/tuningJobs/my-tuning-job-2",
+            "ctime": "2024-08-22T13:00:00Z",
+            "description": "Tuning job for a language model",
+            "link": "https://...",
+            "label_fingerprint": "abcdef123456",
+            "deprecation_status": {
+                "deprecated": false,
+                "state": "LIVE"
+            },
+            "base_model": "projects/my-project/locations/us-central1/models/my-base-model",
+            "create_time": "2024-08-22T13:00:00Z",
+            "encryption_spec": null,
+            "end_time": "2024-08-22T15:00:00Z",
+            "error": null,
+            "experiment": "projects/my-project/locations/us-central1/experiments/exp123",
+            "start_time": "2024-08-22T13:15:00Z",
+            "state": "SUCCEEDED",
+            "supervised_tuning_spec": null,
+            "tuned_model": null,
+            "tuned_model_display_name": null,
+            "tuning_data_stats": null,
+            "update_time": "2024-08-22T15:00:00Z"
+        }
+    ]
+}

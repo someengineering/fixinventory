@@ -1,3 +1,4 @@
+from functools import partial
 import logging
 from collections import defaultdict
 from datetime import timedelta
@@ -234,6 +235,7 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
                     mapped = bend(AwsS3ServerSideEncryptionRule.mapping, raw)
                     if rule := parse_json(mapped, AwsS3ServerSideEncryptionRule, builder):
                         bck.bucket_encryption_rules.append(rule)
+                bck.encryption_enabled = len(bck.bucket_encryption_rules) > 0
 
         def add_bucket_policy(bck: AwsS3Bucket) -> None:
             with builder.suppress(f"{service_name}.get-bucket-policy"):
@@ -266,9 +268,11 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
                 ):
                     bck.bucket_versioning = raw_versioning.get("Status") == "Enabled"
                     bck.bucket_mfa_delete = raw_versioning.get("MFADelete") == "Enabled"
+                    bck.versioning_enabled = bck.bucket_versioning
                 else:
                     bck.bucket_versioning = False
                     bck.bucket_mfa_delete = False
+                    bck.versioning_enabled = False
 
         def add_public_access(bck: AwsS3Bucket) -> None:
             with builder.suppress(f"{service_name}.get-public-access-block"):
@@ -363,9 +367,22 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
         return tags_as_dict(tag_list)  # type: ignore
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AwsCloudwatchQuery]:
+        def _calculate_total_size(bucket_instance: AwsS3Bucket) -> None:
+            # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
+            bucket_size: Dict[str, float] = defaultdict(float)
+            for metric_name, metric_values in bucket_instance._resource_usage.items():
+                if metric_name.endswith("_bucket_size_bytes"):
+                    for name, value in metric_values.items():
+                        bucket_size[name] += value
+            if bucket_size:
+                bucket_instance._resource_usage["bucket_size_bytes"] = dict(bucket_size)
+
         # Filter out metrics with the 'aws-controltower' dimension value
         if "aws-controltower" in self.safe_name:
             return []
+
+        # calculate all bucket sizes after usage metrics collection
+        builder.after_collect_actions.append(partial(_calculate_total_size, self))
         storage_types = {
             "StandardStorage": "standard_storage",
             "IntelligentTieringStorage": "intelligent_tiering_storage",
@@ -414,16 +431,6 @@ class AwsS3Bucket(AwsResource, BaseBucket, HasResourcePolicy):
                     )
                 )
         return queries
-
-    def complete_graph(self, builder: GraphBuilder, source: Json) -> None:
-        # Calculate the total bucket size for each bucket by summing up the sizes of all storage types
-        bucket_size: Dict[str, float] = defaultdict(float)
-        for metric_name, metric_values in self._resource_usage.items():
-            if metric_name.endswith("_bucket_size_bytes"):
-                for name, value in metric_values.items():
-                    bucket_size[name] += value
-        if bucket_size:
-            self._resource_usage["bucket_size_bytes"] = dict(bucket_size)
 
     def update_resource_tag(self, client: AwsClient, key: str, value: str) -> bool:
         tags = self._get_tags(client)

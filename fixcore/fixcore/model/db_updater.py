@@ -13,11 +13,9 @@ from datetime import timedelta, datetime
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
-from typing import Optional, Union, Any, Generator, List, AsyncIterator, Dict
+from typing import Optional, Union, Any, List, AsyncIterator, Dict
 
 import aiofiles
-from aiostream import stream, pipe
-from aiostream.core import Stream
 from attrs import define
 
 from fixcore.analytics import AnalyticsEventSender, InMemoryEventSender, AnalyticsEvent
@@ -36,6 +34,7 @@ from fixcore.service import Service
 from fixcore.system_start import db_access, setup_process, reset_process_start_method
 from fixcore.types import Json
 from fixcore.util import utc, uuid_str, shutdown_process
+from fixlib.asynchronous.stream import Stream
 
 log = logging.getLogger(__name__)
 
@@ -56,9 +55,9 @@ class ReadFile(ProcessAction):
     path: Path
     task_id: Optional[str]
 
-    def jsons(self) -> Generator[Json, Any, None]:
-        with open(self.path, "r", encoding="utf-8") as f:
-            for line in f:
+    async def jsons(self) -> AsyncIterator[Json]:
+        async with aiofiles.open(self.path, "r", encoding="utf-8") as f:
+            async for line in f:
                 if line.strip():
                     yield json.loads(line)
 
@@ -75,8 +74,8 @@ class ReadElement(ProcessAction):
     elements: List[Union[bytes, Json]]
     task_id: Optional[str]
 
-    def jsons(self) -> Generator[Json, Any, None]:
-        return (e if isinstance(e, dict) else json.loads(e) for e in self.elements)
+    def jsons(self) -> AsyncIterator[Json]:
+        return Stream.iterate(self.elements).map(lambda e: e if isinstance(e, dict) else json.loads(e))
 
 
 @define
@@ -125,15 +124,15 @@ BatchSize = 100000
 
 class DbUpdaterProcess(Process):
     """
-    This update class implements Process and is supposed to run as separate process.
+    This update class implements Process and is supposed to run as a separate process.
     Note: default starting method is supposed to be "spawn".
 
     This process has 2 queues to read input from and write output to.
-    All elements in either queues are of type ProcessAction.
+    All elements in all queues are of type ProcessAction.
 
     The parent process should stream the raw commands of graph to this process via ReadElement objects.
     Once the MergeGraph action is received, the graph gets imported.
-    From here the parent expects result messages from the child.
+    From here, the parent expects result messages from the child.
     All events happen in the child are forwarded to the parent via EmitEvent.
     Once the graph update is done, a result is send.
     The result is either an exception in case of failure or a graph update in success case.
@@ -156,8 +155,8 @@ class DbUpdaterProcess(Process):
 
     def next_action(self) -> ProcessAction:
         try:
-            # graph is read into memory. If the sender does not send data in a given amount of time,
-            # we raise an exception and abort the update.
+            # The graph is read into memory.
+            # If the sender does not send data in a given amount of time, we raise an exception and abort the update.
             return self.read_queue.get(True, 90)
         except Empty as ex:
             raise ImportAborted("Merge process did not receive any data for more than 90 seconds. Abort.") from ex
@@ -168,12 +167,12 @@ class DbUpdaterProcess(Process):
         builder = GraphBuilder(model, self.change_id)
         nxt = self.next_action()
         if isinstance(nxt, ReadFile):
-            for element in nxt.jsons():
+            async for element in nxt.jsons():
                 builder.add_from_json(element)
             nxt = self.next_action()
         elif isinstance(nxt, ReadElement):
             while isinstance(nxt, ReadElement):
-                for element in nxt.jsons():
+                async for element in nxt.jsons():
                     builder.add_from_json(element)
                 log.debug(f"Read {int(BatchSize / 1000)}K elements in process")
                 nxt = self.next_action()
@@ -276,16 +275,11 @@ class GraphMerger(Service):
     async def start(self) -> None:
         async def wait_for_update() -> None:
             log.info("Start waiting for graph updates")
-            fl = (
-                stream.call(self.update_queue.get)  # type: ignore
-                | pipe.cycle()
-                | pipe.map(self.__process_item, task_limit=self.config.graph.parallel_imports)  # type: ignore
-            )
+            fl = Stream.for_ever(self.update_queue.get).map(self.__process_item, task_limit=self.config.graph.parallel_imports)  # type: ignore # noqa
             with suppress(CancelledError):
-                async with fl.stream() as streamer:
-                    async for update in streamer:
-                        if isinstance(update, GraphUpdate):
-                            log.info(f"Finished spawned graph merge: {update}")
+                async for update in fl:
+                    if isinstance(update, GraphUpdate):
+                        log.info(f"Finished spawned graph merge: {update}")
 
         self.handler_task = asyncio.create_task(wait_for_update())
 
@@ -373,19 +367,17 @@ class GraphMerger(Service):
             task: Optional[Task[GraphUpdate]] = None
             result: Optional[GraphUpdate] = None
             try:
-                reset_process_start_method()  # other libraries might have tampered the value in the mean time
+                reset_process_start_method()  # other libraries might have tampered the value in the meantime
                 updater.start()
                 task = read_results()  # concurrently read result queue
                 # Either send a file or stream the content directly
                 if isinstance(content, Path):
                     await send_to_child(ReadFile(content, task_id))
                 else:
-                    chunked: Stream[List[Union[bytes, Json]]] = stream.chunks(content, BatchSize)  # type: ignore
-                    async with chunked.stream() as streamer:
-                        async for lines in streamer:
-                            if not await send_to_child(ReadElement(lines, task_id)):
-                                # in case the child is dead, we should stop
-                                break
+                    async for lines in Stream.iterate(content).chunks(BatchSize):
+                        if not await send_to_child(ReadElement(lines, task_id)):
+                            # in case the child is dead, we should stop
+                            break
                 await send_to_child(MergeGraph(db.name, change_id, maybe_batch is not None, task_id))
                 result = await task  # wait for final result
                 await self.model_handler.load_model(db.name, force=True)  # reload model to get the latest changes

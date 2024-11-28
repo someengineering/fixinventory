@@ -1,9 +1,7 @@
 import string
 from datetime import datetime
-from typing import TypeVar, Callable, Any, cast, Optional, List, Generator
+from typing import TypeVar, Any, cast, Optional, List, Generator
 
-from aiostream import stream
-from aiostream.core import Stream
 from hypothesis.strategies import (
     SearchStrategy,
     just,
@@ -20,6 +18,7 @@ from hypothesis.strategies import (
 from fixcore.model.resolve_in_graph import NodePath
 from fixcore.types import JsonElement, Json
 from fixcore.util import value_in_path, interleave
+from fixlib.asynchronous.stream import Stream
 
 T = TypeVar("T")
 
@@ -71,4 +70,4 @@ def graph_stream(node_list: List[Json]) -> Stream[Json]:
         for from_n, to_n in interleave(node_ids):
             yield {"type": "edge", "from": from_n, "to": to_n}
 
-    return stream.iterate(from_node())
+    return Stream.iterate(from_node())

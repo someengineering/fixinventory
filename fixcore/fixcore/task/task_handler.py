@@ -8,7 +8,6 @@ from contextlib import suppress
 from copy import copy
 from datetime import timedelta
 from typing import Optional, Any, Callable, Union, Sequence, Dict, List, Tuple
-from aiostream import stream
 from attrs import evolve
 
 from fixcore.analytics import AnalyticsEventSender, CoreEvent
@@ -57,6 +56,7 @@ from fixcore.task.task_description import (
 )
 from fixcore.util import first, Periodic, group_by, utc_str, utc, partition_by
 from fixcore.types import Json
+from fixlib.asynchronous.stream import Stream
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class TaskHandlerService(TaskHandler, Service):
         # note: the waiting queue is kept in memory and lost when the service is restarted.
         self.start_when_done: Dict[str, TaskDescription] = {}
 
-        # Step1: define all workflows and jobs in code: later it will be persisted and read from database
+        # Step1: define all workflows and jobs in code: later it will be persisted and read from the database
         self.task_descriptions: Sequence[TaskDescription] = [*self.known_workflows(config), *self.known_jobs()]
         self.tasks: Dict[TaskId, RunningTask] = {}
         self.message_bus_watcher: Optional[Task[None]] = None
@@ -496,7 +496,7 @@ class TaskHandlerService(TaskHandler, Service):
                         results[command] = None
                     elif isinstance(command, ExecuteOnCLI):
                         ctx = evolve(self.cli_context, env={**command.env, **wi.descriptor.environment})
-                        result = await self.cli.execute_cli_command(command.command, stream.list, ctx)  # type: ignore
+                        result = await self.cli.execute_cli_command(command.command, Stream.as_list, ctx)
                         results[command] = result
                     else:
                         raise AttributeError(f"Does not understand this command: {wi.descriptor.name}:  {command}")

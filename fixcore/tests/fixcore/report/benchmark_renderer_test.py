@@ -1,16 +1,16 @@
 import pytest
-from aiostream import stream
 
 from fixcore.report.benchmark_renderer import respond_benchmark_result
 from fixcore.report.inspector_service import InspectorService
 from fixcore.ids import GraphName
+from fixlib.asynchronous.stream import Stream
 
 
 @pytest.mark.asyncio
 async def test_benchmark_renderer(inspector_service: InspectorService) -> None:
     bench_results = await inspector_service.perform_benchmarks(GraphName("ns"), ["test"])
     bench_result = bench_results["test"]
-    render_result = [elem async for elem in respond_benchmark_result(stream.iterate(bench_result.to_graph()))]
+    render_result = [elem async for elem in respond_benchmark_result(Stream.iterate(bench_result.to_graph()))]
     assert len(render_result) == 1
     assert (
         render_result[0]

@@ -1,6 +1,5 @@
 from typing import AsyncGenerator, List, AsyncIterable
 
-from aiostream import stream
 from networkx import DiGraph
 from rich._emoji_codes import EMOJI
 
@@ -91,27 +90,26 @@ def render_check_result(check_result: CheckResult, account: str) -> str:
 
 
 async def respond_benchmark_result(gen: AsyncIterable[JsonElement]) -> AsyncGenerator[str, None]:
-    # step 1:  read graph
+    # step 1: read graph
     graph = DiGraph()
-    async with stream.iterate(gen).stream() as streamer:
-        async for item in streamer:
-            if isinstance(item, dict):
-                type_name = item.get("type")
-                if type_name == "node":
-                    uid = value_in_path(item, NodePath.node_id)
-                    reported = value_in_path(item, NodePath.reported)
-                    kind = value_in_path(item, NodePath.reported_kind)
-                    if uid and reported and kind and (reader := kind_reader.get(kind)):
-                        graph.add_node(uid, data=reader(item))
-                elif type_name == "edge":
-                    from_node = value_in_path(item, NodePath.from_node)
-                    to_node = value_in_path(item, NodePath.to_node)
-                    if from_node and to_node:
-                        graph.add_edge(from_node, to_node)
-                else:
-                    raise AttributeError(f"Expect json object but got: {type(item)}: {item}")
+    async for item in gen:
+        if isinstance(item, dict):
+            type_name = item.get("type")
+            if type_name == "node":
+                uid = value_in_path(item, NodePath.node_id)
+                reported = value_in_path(item, NodePath.reported)
+                kind = value_in_path(item, NodePath.reported_kind)
+                if uid and reported and kind and (reader := kind_reader.get(kind)):
+                    graph.add_node(uid, data=reader(item))
+            elif type_name == "edge":
+                from_node = value_in_path(item, NodePath.from_node)
+                to_node = value_in_path(item, NodePath.to_node)
+                if from_node and to_node:
+                    graph.add_edge(from_node, to_node)
             else:
                 raise AttributeError(f"Expect json object but got: {type(item)}: {item}")
+        else:
+            raise AttributeError(f"Expect json object but got: {type(item)}: {item}")
 
     # step 2: read benchmark result from graph
     def traverse(node_id: str, collection: CheckCollectionResult) -> None:

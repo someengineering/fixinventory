@@ -27,7 +27,7 @@ from fixlib.baseresources import (
     ModelReference,
     PhantomBaseResource,
 )
-from fixlib.json_bender import Bender, S, ForallBend, Bend
+from fixlib.json_bender import K, Bender, S, ForallBend, Bend, AsBool
 from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.azure")
@@ -165,6 +165,8 @@ class AzureStorageBlobContainer(MicrosoftResource, BaseBucket):
         "public_access": S("properties", "publicAccess"),
         "remaining_retention_days": S("properties", "remainingRetentionDays"),
         "version": S("properties", "version"),
+        "encryption_enabled": S("properties", "defaultEncryptionScope") >> AsBool(),
+        "versioning_enabled": S("properties", "immutableStorageWithVersioning") >> AsBool(),
     }
     type: Optional[str] = field(default=None, metadata={'description': 'The type of the resource. E.g. Microsoft.Compute/virtualMachines or Microsoft.Storage/storageAccounts '})  # fmt: skip
     default_encryption_scope: Optional[str] = field(default=None, metadata={'description': 'Default the container to use specified encryption scope for all writes.'})  # fmt: skip
@@ -204,6 +206,7 @@ class AzureStorageAccountDeleted(MicrosoftResource, PhantomBaseResource):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
+        expected_error_codes={"ProviderError": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("id"),
@@ -316,10 +319,11 @@ class AzureStorageQueue(MicrosoftResource, BaseQueue):
         "id": S("id"),
         "tags": S("tags", default={}),
         "name": S("name"),
-        "approximate_message_count": S("properties", "approximateMessageCount"),
         "queue_metadata": S("properties", "metadata"),
+        "queue_type": K("standard"),
+        "message_retention_period": K(7),
+        "approximate_message_count": S("properties", "approximateMessageCount"),
     }
-    approximate_message_count: Optional[int] = field(default=None, metadata={'description': 'Integer indicating an approximate number of messages in the queue. This number is not lower than the actual number of messages in the queue, but could be higher.'})  # fmt: skip
     queue_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'A name-value pair that represents queue metadata.'})  # fmt: skip
 
 
@@ -1082,7 +1086,7 @@ class AzureStorageAccountUsage(MicrosoftResource, AzureBaseUsage):
         query_parameters=["api-version"],
         access_path="value",
         expect_array=True,
-        expected_error_codes=AzureBaseUsage._expected_error_codes,
+        expected_error_codes=AzureBaseUsage._expected_error_codes | {"SubscriptionNotFound": None},
     )
     mapping: ClassVar[Dict[str, Bender]] = AzureBaseUsage.mapping | {
         "id": S("name", "value"),

@@ -1,4 +1,5 @@
-import json
+from functools import partial
+from json import loads as json_loads
 import logging
 from datetime import datetime
 from typing import ClassVar, Dict, Optional, List, Type, Any
@@ -12,9 +13,10 @@ from fix_plugin_aws.resource.dynamodb import AwsDynamoDbTable
 from fix_plugin_aws.resource.ec2 import AwsEc2Instance
 from fix_plugin_aws.resource.s3 import AwsS3Bucket
 from fix_plugin_aws.utils import ToDict
-from fixlib.baseresources import ModelReference
-from fixlib.json_bender import Bender, S, Bend, AsDateString, ForallBend, K
+from fixlib.baseresources import SEVERITY_MAPPING, Finding, ModelReference, PhantomBaseResource, Severity
+from fixlib.json_bender import Bender, S, Bend, AsDateString, ForallBend
 from fixlib.types import Json
+from fixlib.utils import chunks
 
 log = logging.getLogger("fix.plugins.aws")
 service_name = "ssm"
@@ -239,7 +241,7 @@ class AwsSSMDocument(AwsResource):
                     and (instance := cls.from_api(js, builder))
                 ):
                     if content_format == "JSON":
-                        instance.content = json.loads(content)
+                        instance.content = json_loads(content)
                     elif content_format == "YAML":
                         instance.content = yaml.safe_load(content)
                     else:
@@ -341,7 +343,7 @@ class AwsSSMNonCompliantSummary:
     severity_summary: Optional[AwsSSMSeveritySummary] = field(default=None, metadata={"description": "A summary of the non-compliance severity by compliance type"})  # fmt: skip
 
 
-ResourceTypeLookup = {
+ResourceTypeLookup: Dict[str, Type[AwsResource]] = {
     "ManagedInstance": AwsEc2Instance,
     "AWS::EC2::Instance": AwsEc2Instance,
     "AWS::DynamoDB::Table": AwsDynamoDbTable,
@@ -351,45 +353,88 @@ ResourceTypeLookup = {
 
 
 @define(eq=False, slots=False)
-class AwsSSMResourceCompliance(AwsResource):
+class AwsSSMResourceCompliance(AwsResource, PhantomBaseResource):
     kind: ClassVar[str] = "aws_ssm_resource_compliance"
-    _kind_display: ClassVar[str] = "AWS SSM Resource Compliance"
-    _kind_description: ClassVar[str] = "AWS SSM Resource Compliance is a feature within AWS Systems Manager that evaluates and reports on the compliance status of AWS resources. It checks resources against predefined or custom rules, identifying non-compliant configurations and security issues. Users can view compliance data, generate reports, and take corrective actions to maintain resource adherence to organizational standards and best practices."  # fmt: skip
-    _docs_url: ClassVar[str] = (
-        "https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-compliance-about.html"
-    )
-    _kind_service: ClassVar[Optional[str]] = service_name
-    _metadata: ClassVar[Dict[str, Any]] = {"icon": "resource", "group": "management"}
-    _aws_metadata: ClassVar[Dict[str, Any]] = {"arn_tpl": "arn:{partition}:ssm:{region}:{account}:resource-compliance/{id}"}  # fmt: skip
+    _model_export: ClassVar[bool] = False  # do not export this class, since there will be no instances of it
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec(
-        "ssm", "list-resource-compliance-summaries", "ResourceComplianceSummaryItems"
+        "ssm",
+        "list-resource-compliance-summaries",
+        "ResourceComplianceSummaryItems",
+        {"Filters": [{"Key": "Status", "Values": ["NON_COMPLIANT"], "Type": "EQUAL"}]},
     )
-    _reference_kinds: ClassVar[ModelReference] = {
-        "successors": {"default": ["aws_ec2_instance", "aws_dynamodb_table", "aws_s3_bucket", "aws_ssm_document"]}
-    }
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("ComplianceType") + K("_") + S("ResourceType") + K("_") + S("ResourceId"),
+        "id": S("Id"),
+        "name": S("title"),
         "compliance_type": S("ComplianceType"),
         "resource_type": S("ResourceType"),
         "resource_id": S("ResourceId"),
+        "title": S("Title"),
         "status": S("Status"),
-        "overall_severity": S("OverallSeverity"),
+        "severity": S("Severity"),
         "execution_summary": S("ExecutionSummary") >> Bend(AwsSSMComplianceExecutionSummary.mapping),
-        "compliant_summary": S("CompliantSummary") >> Bend(AwsSSMCompliantSummary.mapping),
-        "non_compliant_summary": S("NonCompliantSummary") >> Bend(AwsSSMNonCompliantSummary.mapping),
+        "compliance_details": S("Details"),
     }
-    compliance_type: Optional[str] = field(default=None, metadata={"description": "The compliance type."})  # fmt: skip
-    resource_type: Optional[str] = field(default=None, metadata={"description": "The resource type."})  # fmt: skip
-    resource_id: Optional[str] = field(default=None, metadata={"description": "The resource ID."})  # fmt: skip
-    status: Optional[str] = field(default=None, metadata={"description": "The compliance status for the resource."})  # fmt: skip
-    overall_severity: Optional[str] = field(default=None, metadata={"description": "The highest severity item found for the resource. The resource is compliant for this item."})  # fmt: skip
-    execution_summary: Optional[AwsSSMComplianceExecutionSummary] = field(default=None, metadata={"ignore_history": True, "description": "Information about the execution."})  # fmt: skip
-    compliant_summary: Optional[AwsSSMCompliantSummary] = field(default=None, metadata={"description": "A list of items that are compliant for the resource."})  # fmt: skip
-    non_compliant_summary: Optional[AwsSSMNonCompliantSummary] = field(default=None, metadata={"description": "A list of items that aren't compliant for the resource."})  # fmt: skip
+    compliance_type: Optional[str] = field(default=None, metadata={"description": "The compliance type. For example, Association (for a State Manager association), Patch, or Custom:string are all valid compliance types."})  # fmt: skip
+    resource_type: Optional[str] = field(default=None, metadata={"description": "The type of resource. ManagedInstance is currently the only supported resource type."})  # fmt: skip
+    resource_id: Optional[str] = field(default=None, metadata={"description": "An ID for the resource. For a managed node, this is the node ID."})  # fmt: skip
+    title: Optional[str] = field(default=None, metadata={"description": "A title for the compliance item. For example, if the compliance item is a Windows patch, the title could be the title of the KB article for the patch; for example: Security Update for Active Directory Federation Services."})  # fmt: skip
+    status: Optional[str] = field(default=None, metadata={"description": "The status of the compliance item. An item is either COMPLIANT, NON_COMPLIANT, or an empty string (for Windows patches that aren't applicable)."})  # fmt: skip
+    severity: Optional[str] = field(default=None, metadata={"description": "The severity of the compliance status. Severity can be one of the following: Critical, High, Medium, Low, Informational, Unspecified."})  # fmt: skip
+    execution_summary: Optional[AwsSSMComplianceExecutionSummary] = field(default=None, metadata={"description": "A summary for the compliance item. The summary includes an execution ID, the execution type (for example, command), and the execution time."})  # fmt: skip
+    compliance_details: Optional[Dict[str, str]] = field(default=None, metadata={"description": "A Key:Value tag combination for the compliance item."})  # fmt: skip
 
-    def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if (rt := self.resource_type) and (rid := self.resource_id) and (clazz := ResourceTypeLookup.get(rt)):
-            builder.add_edge(self, clazz=clazz, id=rid)
+    def parse_finding(self) -> Finding:
+        title = self.title or ""
+        severity = SEVERITY_MAPPING.get(self.severity or "", Severity.medium)
+        details = self.compliance_details
+        if self.execution_summary:
+            updated_at = self.execution_summary.execution_time
+        else:
+            updated_at = None
+        return Finding(title, severity, None, None, updated_at, details)
+
+    @classmethod
+    def collect(cls, json: List[Json], builder: GraphBuilder) -> None:
+        def add_finding(
+            provider: str, finding: Finding, clazz: Optional[Type[AwsResource]] = None, **node: Any
+        ) -> None:
+            if resource := builder.node(clazz=clazz, **node):
+                resource.add_finding(provider, finding)
+
+        def collect_compliance_items(jsons: List[Json]) -> None:
+            spec = AwsApiSpec("ssm", "list-compliance-items", "ComplianceItems")
+            compliance_ids = [item["ResourceId"] for item in jsons]
+            for result in builder.client.list(
+                aws_service="ssm",
+                action=spec.api_action,
+                result_name=spec.result_property,
+                expected_errors=spec.expected_errors,
+                ResourceIds=compliance_ids,
+            ):
+                if finding := AwsSSMResourceCompliance.from_api(result, builder):
+                    if (
+                        (rt := finding.resource_type)
+                        and (rid := finding.resource_id)
+                        and (clazz := ResourceTypeLookup.get(rt))
+                    ):
+                        # append the finding when all resources have been collected
+                        builder.after_collect_actions.append(
+                            partial(
+                                add_finding,
+                                "amazon_ssm_compliance",
+                                finding.parse_finding(),
+                                clazz,
+                                id=rid,
+                            )
+                        )
+
+        # we can request only 40 items per request
+        for jsons in chunks(json, 39):
+            builder.submit_work("ssm", collect_compliance_items, jsons)
+
+    @classmethod
+    def called_collect_apis(cls) -> List[AwsApiSpec]:
+        return [cls.api_spec, AwsApiSpec("ssm", "list-compliance-items", "ComplianceItems")]
 
 
 resources: List[Type[AwsResource]] = [AwsSSMInstance, AwsSSMDocument, AwsSSMResourceCompliance]

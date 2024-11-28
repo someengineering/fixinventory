@@ -54,7 +54,6 @@ from aiohttp.web_exceptions import HTTPNotFound, HTTPNoContent, HTTPOk, HTTPNotA
 from aiohttp.web_fileresponse import FileResponse
 from aiohttp.web_response import json_response
 from aiohttp_swagger3 import SwaggerFile, SwaggerUiSettings
-from aiostream import stream
 from attrs import evolve
 from dateutil import parser as date_parser
 from multidict import MultiDict
@@ -134,6 +133,7 @@ from fixcore.worker_task_queue import (
     WorkerTaskResult,
     WorkerTaskInProgress,
 )
+from fixlib.asynchronous.stream import Stream
 from fixlib.asynchronous.web.ws_handler import accept_websocket, clean_ws_handler
 from fixlib.durations import parse_duration
 from fixlib.jwt import encode_jwt
@@ -664,7 +664,7 @@ class Api(Service):
         )
         return await single_result(request, to_js(result))
 
-    async def perform_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:  # type: ignore
+    async def perform_benchmark(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         benchmark = request.match_info["benchmark"]
         graph = GraphName(request.match_info["graph_id"])
         acc = request.query.get("accounts")
@@ -677,8 +677,8 @@ class Api(Service):
         else:
             raise ValueError(f"Unknown action {action}. One of run or load is expected.")
         result_graph = results[benchmark].to_graph()
-        async with stream.iterate(result_graph).stream() as streamer:
-            return await self.stream_response_from_gen(request, streamer, count=len(result_graph))
+        stream = Stream.iterate(result_graph)
+        return await self.stream_response_from_gen(request, stream, count=len(result_graph))
 
     async def inspection_checks(self, request: Request, deps: TenantDependencies) -> StreamResponse:
         provider = request.query.get("provider")
@@ -1433,7 +1433,7 @@ class Api(Service):
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    async def execute_parsed(  # type: ignore
+    async def execute_parsed(
         self, request: Request, command: str, parsed: List[ParsedCommandLine], ctx: CLIContext
     ) -> StreamResponse:
         # what is the accepted content type
@@ -1455,43 +1455,41 @@ class Api(Service):
             first_result = parsed[0]
             src_ctx, generator = await first_result.execute()
             # flat the results from 0 or 1
-            async with generator.stream() as streamer:
-                gen = await force_gen(streamer)
-                if first_result.produces.text:
-                    text_gen = ctx.text_generator(first_result, gen)
-                    return await self.stream_response_from_gen(
-                        request,
-                        text_gen,
-                        count=src_ctx.count,
-                        total_count=src_ctx.total_count,
-                        query_stats=src_ctx.stats,
-                        additional_header=first_result.envelope,
-                    )
-                elif first_result.produces.file_path:
-                    await mp_response.prepare(request)
-                    await Api.multi_file_response(first_result, gen, boundary, mp_response)
-                    await Api.close_multi_part_response(mp_response, boundary)
-                    return mp_response
-                else:
-                    raise AttributeError(f"Can not handle type: {first_result.produces}")
+            gen = await force_gen(generator)
+            if first_result.produces.text:
+                text_gen = ctx.text_generator(first_result, gen)
+                return await self.stream_response_from_gen(
+                    request,
+                    text_gen,
+                    count=src_ctx.count,
+                    total_count=src_ctx.total_count,
+                    query_stats=src_ctx.stats,
+                    additional_header=first_result.envelope,
+                )
+            elif first_result.produces.file_path:
+                await mp_response.prepare(request)
+                await Api.multi_file_response(first_result, gen, boundary, mp_response)
+                await Api.close_multi_part_response(mp_response, boundary)
+                return mp_response
+            else:
+                raise AttributeError(f"Can not handle type: {first_result.produces}")
         elif len(parsed) > 1:
             await mp_response.prepare(request)
             for single in parsed:
                 _, generator = await single.execute()
-                async with generator.stream() as streamer:
-                    gen = await force_gen(streamer)
-                    if single.produces.text:
-                        with MultipartWriter(repr(single.produces), boundary) as mp:
-                            text_gen = ctx.text_generator(single, gen)
-                            content_type, result_stream = await result_binary_gen(request, text_gen)
-                            mp.append_payload(
-                                AsyncIterablePayload(result_stream, content_type=content_type, headers=single.envelope)
-                            )
-                            await mp.write(mp_response, close_boundary=False)
-                    elif single.produces.file_path:
-                        await Api.multi_file_response(single, gen, boundary, mp_response)
-                    else:
-                        raise AttributeError(f"Can not handle type: {single.produces}")
+                gen = await force_gen(generator)
+                if single.produces.text:
+                    with MultipartWriter(repr(single.produces), boundary) as mp:
+                        text_gen = ctx.text_generator(single, gen)
+                        content_type, result_stream = await result_binary_gen(request, text_gen)
+                        mp.append_payload(
+                            AsyncIterablePayload(result_stream, content_type=content_type, headers=single.envelope)
+                        )
+                        await mp.write(mp_response, close_boundary=False)
+                elif single.produces.file_path:
+                    await Api.multi_file_response(single, gen, boundary, mp_response)
+                else:
+                    raise AttributeError(f"Can not handle type: {single.produces}")
             await Api.close_multi_part_response(mp_response, boundary)
             return mp_response
         else:
