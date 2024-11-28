@@ -333,8 +333,8 @@ class IamRequestContext:
 
 IamAction = str
 
-
-def find_allowed_action(policy_document: PolicyDocument, service_prefix: str) -> Set[IamAction]:
+@lru_cache(maxsize=4096)
+def find_allowed_action(policy_document: FixPolicyDocument, service_prefix: str) -> Set[IamAction]:
     allowed_actions: Set[IamAction] = set()
     for statement in policy_document.statements:
         if statement.effect_allow:
@@ -887,29 +887,37 @@ def check_identity_based_policies(
 
     return check_identity_policies_closure
 
-
+@lru_cache(maxsize=4096)
 def check_permission_boundaries(
-    request_context: IamRequestContext, resource: ARN, action: ActionToCheck
-) -> Union[Literal["Denied", "NextStep"], List[Json]]:
+    request_context: IamRequestContext, action: ActionToCheck
+) -> Callable[[ARN], Union[Literal["Denied", "NextStep"], List[Json]]]:
 
-    conditions: List[Json] = []
+
+    matching_fns = []
 
     # ignore policy sources and resource constraints because permission boundaries
     # can never allow access to a resource, only restrict it
     for policy in request_context.permission_boundaries:
         matching_fn = collect_matching_statements(policy=policy, effect="Allow", action=action, principal=None)
-        for statement, _ in matching_fn(resource):
-            if statement.condition:
-                assert isinstance(statement.condition, dict)
-                conditions.append(statement.condition)
-            else:  # if there is an allow statement without a condition, the action is allowed
-                return "NextStep"
+        matching_fns.append(matching_fn)
 
-    if len(conditions) > 0:
-        return conditions
+    def check_permission_boundaries_closure(resource: ARN) -> Union[Literal["Denied", "NextStep"], List[Json]]:
+        conditions: List[Json] = []
+        for matching_fn in matching_fns:
+            for statement, _ in matching_fn(resource):
+                if statement.condition:
+                    assert isinstance(statement.condition, dict)
+                    conditions.append(statement.condition)
+                else:  # if there is an allow statement without a condition, the action is allowed
+                    return "NextStep"
 
-    # no matching permission boundaries that allow access
-    return "Denied"
+        if len(conditions) > 0:
+            return conditions
+
+        # no matching permission boundaries that allow access
+        return "Denied"
+    
+    return check_permission_boundaries_closure
 
 
 def is_service_linked_role(principal: AwsResource) -> bool:
@@ -1015,7 +1023,7 @@ def check_policies(
 
     # 4. to make it a bit simpler, we check the permission boundaries before checking identity based policies
     if len(request_context.permission_boundaries) > 0:
-        permission_boundary_result = check_permission_boundaries(request_context, resource, action)
+        permission_boundary_result = check_permission_boundaries(request_context, action)(resource)
         if permission_boundary_result == "Denied":
             return None
         elif permission_boundary_result == "NextStep":
@@ -1065,6 +1073,110 @@ def check_policies(
     )
 
 
+# logic according to https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
+@lru_cache(maxsize=4096)
+def check_non_resource_policies(
+    request_context: IamRequestContext,
+    action: ActionToCheck,
+) -> Callable[[ARN], Optional[AccessPermission]]:
+
+    # step 1: calculate and cache the expensive function calls
+    explicit_deny_fn = check_explicit_deny(request_context, action, ())
+    permission_boundary_fn = None
+    if len(request_context.permission_boundaries) > 0:
+        permission_boundary_fn = check_permission_boundaries(request_context, action)
+    identity_based_fn = check_identity_based_policies(request_context, action)
+
+    # step 2: create the closure
+    def check_non_resource_policies_closure(resource: ARN) -> Optional[AccessPermission]:
+
+        # shortcut: check if any identity based policies are present
+        if len(request_context.identity_policies) == 0:
+            return None
+
+        # when any of the conditions evaluate to true, the action is explicitly denied
+        # comes from any explicit deny statements in all policies
+        deny_conditions: List[Json] = []
+
+        # when any of the conditions evaluate to false, the action is implicitly denied
+        # comes from the permission boundaries
+        restricting_conditions: List[Json] = []
+
+        # when any of the scopes evaluate to true, the action is allowed
+        # comes from the resource based policies and identity based policies
+        allowed_scopes: List[PermissionScope] = []
+
+
+        # 1. check for explicit deny. If denied, we can abort immediately
+        result = explicit_deny_fn(resource)
+        if result == "Denied":
+            return None
+        elif result == "NextStep":
+            pass
+        else:
+            for c in result:
+                # satisfying any of the conditions above will deny the action
+                deny_conditions.append(c)
+
+
+
+        # 2. check for organization SCPs # todo: move it outside the loop
+        if len(request_context.service_control_policy_levels) > 0 and not is_service_linked_role(request_context.principal):
+            org_scp_allowed = scp_allowed(request_context, action, resource)
+            if not org_scp_allowed:
+                return None
+            
+        # 3. skip resource based policies because the resource has none
+
+        # 4. to make it a bit simpler, we check the permission boundaries before checking identity based policies
+        if permission_boundary_fn:
+            permission_boundary_result = permission_boundary_fn(resource)
+            if permission_boundary_result == "Denied":
+                return None
+            elif permission_boundary_result == "NextStep":
+                pass
+            else:
+                restricting_conditions.extend(permission_boundary_result)
+
+        # 5. check identity based policies
+        identity_based_allowed = identity_based_fn(resource)
+        if not identity_based_allowed:
+            return None
+        allowed_scopes.extend(identity_based_allowed)
+
+        # 6. check for session policies
+        # we don't collect session principals and session policies, so this step is skipped
+
+        # 7. if we reached here, the action is allowed
+        level = get_action_level(action.raw)
+
+        final_scopes: Set[PermissionScope] = set()
+        for scope in allowed_scopes:
+            if deny_conditions:
+                scope = scope.with_deny_conditions(deny_conditions)
+            final_scopes.add(scope)
+
+        # if there is a scope with no conditions, we can ignore everything else
+        for scope in final_scopes:
+            if scope.has_no_condititons():
+                final_scopes = {scope}
+                break
+
+        log.debug(
+            f"Found access permission, {action} is allowed for {resource} by {request_context.principal}, level: {level}. Scopes: {len(final_scopes)}"
+        )
+
+        # return the result
+        return AccessPermission(
+            action=action.raw,
+            level=level,
+            scopes=tuple(final_scopes),
+        )
+
+    
+    return check_non_resource_policies_closure
+
+
 def compute_permissions(
     resource: ARN,
     iam_context: IamRequestContext,
@@ -1092,8 +1204,13 @@ def compute_permissions(
         action_to_check = ActionToCheck(
             service=service.lower(), action_name=action_name.lower(), raw_lower=action.lower(), raw=action
         )
-        if p := check_policies(iam_context, resource, action_to_check, resource_based_policies):
-            all_permissions.append(p)
+
+        if resource_based_policies:
+            if p := check_policies(iam_context, resource, action_to_check, resource_based_policies):
+                all_permissions.append(p)
+        else:
+            if p := check_non_resource_policies(iam_context, action_to_check)(resource):
+                all_permissions.append(p)
 
     return all_permissions
 
