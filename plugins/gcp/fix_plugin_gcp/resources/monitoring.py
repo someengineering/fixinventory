@@ -2,7 +2,7 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar, Callable
+from typing import ClassVar, Dict, List, Optional, TypeVar, Callable
 
 from attr import define, field
 
@@ -11,7 +11,7 @@ from fix_plugin_gcp.resources.base import GraphBuilder, GcpMonitoringQuery, Metr
 from fixlib.baseresources import MetricUnit, StatName, BaseResource
 from fixlib.durations import duration_str
 from fixlib.json import from_json
-from fixlib.json_bender import S, Bender, ForallBend, bend, K
+from fixlib.json_bender import S, Bender, ForallBend, bend, K, AsFloat
 from fixlib.utils import utc_str
 
 service_name = "monitoring"
@@ -36,7 +36,7 @@ class GcpMonitoringMetricData:
     kind: ClassVar[str] = "gcp_monitoring_metric_data"
     mapping: ClassVar[Dict[str, Bender]] = {
         "metric_values": S("points")
-        >> ForallBend(S("value", "doubleValue").or_else(S("value", "int64Value"))).or_else(K([])),
+        >> ForallBend((S("value", "doubleValue").or_else(S("value", "int64Value")) >> AsFloat())).or_else(K([])),
         "metric_kind": S("metricKind"),
         "value_type": S("valueType"),
         "metric_type": S("metric", "type"),
@@ -170,14 +170,6 @@ class NormalizerFactory:
         )
 
     @cached_property
-    def count_with_compute(self) -> MetricNormalization:
-        return MetricNormalization(
-            unit=MetricUnit.Count,
-            compute_stats=calculate_min_max_avg,
-            normalize_value=lambda x: round(x, ndigits=4),
-        )
-
-    @cached_property
     def bytes(self) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.Bytes,
@@ -218,14 +210,6 @@ class NormalizerFactory:
             unit=MetricUnit.Percent,
             normalize_value=lambda x: round(x, ndigits=4),
         )
-
-
-def calculate_min_max_avg(values: List[float]) -> List[Tuple[float, Optional[StatName]]]:
-    return [
-        (min(values), StatName.min),
-        (max(values), StatName.max),
-        (sum(values) / len(values), StatName.avg),
-    ]
 
 
 normalizer_factory = NormalizerFactory()

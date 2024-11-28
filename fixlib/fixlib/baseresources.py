@@ -149,6 +149,8 @@ class MetricName(StrEnum):
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit
+    RequestBytesCount = "request_bytes"  # _count will be added to the end because of the unit
+    ResponseBytesCount = "response_bytes"  # _count will be added to the end because of the unit
     ActiveConnectionCount = "active_connection"  # _count will be added to the end because of the unit
     ALBActiveConnectionCount = "alb_active_connection"  # _count will be added to the end because of the unit
     ConnectionAttemptCount = "connection_attempt"  # _count will be added to the end because of the unit

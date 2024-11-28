@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import ipaddress
 from datetime import datetime
@@ -1732,6 +1733,16 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
             )
             builder.add_edge(self, clazz=target_classes, link=self.target)
 
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+        # Calculate the processed bytes
+        total_bytes: Dict[str, float] = defaultdict(float)
+        for metric_name, metric_values in self._resource_usage.items():
+            if metric_name.endswith("_bytes_count"):
+                for name, value in metric_values.items():
+                    total_bytes[name] += value
+        if total_bytes:
+            self._resource_usage["processed_bytes"] = dict(total_bytes)
+
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
         queries: List[GcpMonitoringQuery] = []
         delta = builder.metrics_delta
@@ -1741,18 +1752,27 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
         queries.extend(
             [
                 GcpMonitoringQuery.create(
-                    query_name=f"loadbalancing.googleapis.com/https/{lb_type}/request_count",
+                    query_name=name,
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
-                    metric_name=MetricName.RequestCount,
-                    normalization=normalizer_factory.count_with_compute,
-                    stat="ALIGN_RATE",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
                     project_id=builder.project.id,
                     metric_filters={
                         "resource.label.forwarding_rule_name": self.id,
                         "resource.labels.region": self.region().id,
                     },
                 )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    (f"loadbalancing.googleapis.com/https/{lb_type}/request_count", MetricName.RequestCount),
+                    (f"loadbalancing.googleapis.com/https/{lb_type}/request_bytes_count", MetricName.RequestBytesCount),
+                    (
+                        f"loadbalancing.googleapis.com/https/{lb_type}/response_bytes_count",
+                        MetricName.ResponseBytesCount,
+                    ),
+                ]
             ]
         )
         queries.extend(
@@ -1762,8 +1782,7 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     metric_name=MetricName.Latency,
-                    # convert seconds to milliseconds
-                    normalization=normalizer_factory.milliseconds(lambda x: round(x * 1000, ndigits=4)),
+                    normalization=normalizer_factory.milliseconds(),
                     stat=stat,
                     project_id=builder.project.id,
                     metric_filters={
