@@ -1762,7 +1762,8 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     metric_name=MetricName.Latency,
-                    normalization=normalizer_factory.milliseconds(),
+                    # convert seconds to milliseconds
+                    normalization=normalizer_factory.milliseconds(lambda x: round(x * 1000, ndigits=4)),
                     stat=stat,
                     project_id=builder.project.id,
                     metric_filters={
