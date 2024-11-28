@@ -5,7 +5,7 @@ from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
-from fix_plugin_gcp.resources.monitoring import normalizer_factory, STAT_MAP
+from fix_plugin_gcp.resources.monitoring import normalizer_factory, STANDART_STAT_MAP, PERCENTILE_STAT_MAP
 from fixlib.baseresources import BaseServerlessFunction, MetricName
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
@@ -321,7 +321,7 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                         "resource.type": "cloud_function",
                     },
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
             ]
         )
         queries.extend(
@@ -341,7 +341,7 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                         "resource.type": "cloud_function",
                     },
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
             ]
         )
         queries.extend(
@@ -351,16 +351,17 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     metric_name=MetricName.Duration,
-                    normalization=normalizer_factory.milliseconds,
-                    stat="ALIGN_DELTA",
+                    # convert nanoseconds to milliseconds
+                    normalization=normalizer_factory.milliseconds(lambda x: round(x / 1_000_000, ndigits=4)),
+                    stat=stat,
                     project_id=builder.project.id,
                     metric_filters={
                         "resource.labels.function_name": self.resource_raw_name,
                         "resource.labels.region": self.region().id,
                         "resource.type": "cloud_function",
                     },
-                    cross_series_reducer="REDUCE_PERCENTILE_50",
                 )
+                for stat in PERCENTILE_STAT_MAP
             ]
         )
         return queries

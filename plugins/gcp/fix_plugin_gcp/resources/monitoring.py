@@ -1,8 +1,8 @@
 import logging
 from copy import deepcopy
 from datetime import datetime
-from functools import cached_property
-from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar
+from functools import cached_property, lru_cache
+from typing import ClassVar, Dict, List, Optional, Tuple, TypeVar, Callable
 
 from attr import define, field
 
@@ -19,7 +19,16 @@ log = logging.getLogger("fix.plugins.gcp")
 T = TypeVar("T")
 V = TypeVar("V", bound=BaseResource)
 
-STAT_MAP: Dict[str, StatName] = {"ALIGN_MIN": StatName.min, "ALIGN_MEAN": StatName.avg, "ALIGN_MAX": StatName.max}
+STANDART_STAT_MAP: Dict[str, StatName] = {
+    "ALIGN_MIN": StatName.min,
+    "ALIGN_MEAN": StatName.avg,
+    "ALIGN_MAX": StatName.max,
+}
+PERCENTILE_STAT_MAP: Dict[str, StatName] = {
+    "ALIGN_PERCENTILE_05": StatName.min,
+    "ALIGN_PERCENTILE_50": StatName.avg,
+    "ALIGN_PERCENTILE_99": StatName.max,
+}
 
 
 @define(eq=False, slots=False)
@@ -76,11 +85,11 @@ class GcpMonitoringMetricData:
                 "name": "projects/{project}",
                 "interval_endTime": utc_str(end_time),
                 "interval_startTime": utc_str(start_time),
+                "aggregation_crossSeriesReducer": "REDUCE_NONE",
                 "view": "FULL",
                 # Below parameters are intended to be set dynamically
                 # "aggregation_alignmentPeriod": None,
                 # "aggregation_perSeriesAligner": None,
-                # "aggregation_crossSeriesReducer": None,
                 # "filter": None,
             },
             request_parameter_in={"project"},
@@ -117,7 +126,6 @@ class GcpMonitoringMetricData:
 
         # Join filters with " AND " to form the final filter string
         local_api_spec.request_parameter["filter"] = " AND ".join(filters)
-        local_api_spec.request_parameter["aggregation_crossSeriesReducer"] = f"{query.cross_series_reducer}"
         local_api_spec.request_parameter["aggregation_alignmentPeriod"] = f"{int(query.period.total_seconds())}s"
         local_api_spec.request_parameter["aggregation_perSeriesAligner"] = query.stat
 
@@ -145,8 +153,9 @@ def update_resource_metrics(
                 continue
             name = metric_name + "_" + normalizer.unit
             value = normalizer.normalize_value(metric_value)
-            stat_name = maybe_stat_name or STAT_MAP[query.stat]
-            resource._resource_usage[name][str(stat_name)] = value
+            stat_name = maybe_stat_name or STANDART_STAT_MAP.get(query.stat) or PERCENTILE_STAT_MAP.get(query.stat)
+            if stat_name:
+                resource._resource_usage[name][str(stat_name)] = value
         except KeyError as e:
             log.warning(f"An error occurred while setting metric values: {e}")
             raise
@@ -157,6 +166,14 @@ class NormalizerFactory:
     def count(self) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.Count,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def count_with_compute(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Count,
+            compute_stats=calculate_min_max_avg,
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
@@ -188,13 +205,11 @@ class NormalizerFactory:
             normalize_value=lambda x: round(x, ndigits=4),
         )
 
-    @cached_property
-    def milliseconds(self) -> MetricNormalization:
+    @lru_cache(maxsize=128)
+    def milliseconds(self, normalize_value: Optional[Callable[[float], float]] = None) -> MetricNormalization:
         return MetricNormalization(
             unit=MetricUnit.Milliseconds,
-            compute_stats=calculate_min_max_avg,
-            # convert nanoseconds to milliseconds
-            normalize_value=lambda x: round(x / 1_000_000, ndigits=4),
+            normalize_value=normalize_value or (lambda x: round(x, ndigits=4)),
         )
 
     @cached_property

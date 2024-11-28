@@ -7,7 +7,7 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.compute import GcpSslCertificate
-from fix_plugin_gcp.resources.monitoring import normalizer_factory, STAT_MAP
+from fix_plugin_gcp.resources.monitoring import normalizer_factory, STANDART_STAT_MAP
 from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, MetricName, ModelReference
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum, AsInt
 from fixlib.types import Json
@@ -769,7 +769,6 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
         queries: List[GcpMonitoringQuery] = []
-        queries = []
         delta = builder.metrics_delta
         queries.extend(
             [
@@ -786,7 +785,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                         "resource.labels.region": self.region().id,
                     },
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
             ]
         )
         queries.extend(
@@ -804,7 +803,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                         "resource.labels.region": self.region().id,
                     },
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
                 for name, metric_name in [
                     ("cloudsql.googleapis.com/database/network/connections", MetricName.DatabaseConnections),
                     ("cloudsql.googleapis.com/database/network/sent_bytes_count", MetricName.NetworkBytesSent),
@@ -827,7 +826,7 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                         "resource.labels.region": self.region().id,
                     },
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
                 for name, metric_name in [
                     ("cloudsql.googleapis.com/database/disk/read_ops_count", MetricName.DiskRead),
                     ("cloudsql.googleapis.com/database/disk/write_ops_count", MetricName.DiskWrite),

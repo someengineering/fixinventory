@@ -9,7 +9,7 @@ from attr import define, field
 from fix_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
 from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.billing import GcpSku
-from fix_plugin_gcp.resources.monitoring import STAT_MAP, normalizer_factory
+from fix_plugin_gcp.resources.monitoring import STANDART_STAT_MAP, PERCENTILE_STAT_MAP, normalizer_factory
 from fixlib.baseresources import (
     BaseAutoScalingGroup,
     BaseBucket,
@@ -1207,7 +1207,6 @@ class GcpDisk(GcpResource, BaseVolume):
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
         queries: List[GcpMonitoringQuery] = []
-        queries = []
         delta = builder.metrics_delta
         queries.extend(
             [
@@ -1221,7 +1220,7 @@ class GcpDisk(GcpResource, BaseVolume):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
             ]
         )
 
@@ -1237,7 +1236,7 @@ class GcpDisk(GcpResource, BaseVolume):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
@@ -1257,7 +1256,7 @@ class GcpDisk(GcpResource, BaseVolume):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.device_name": self.id},
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),
@@ -1732,9 +1731,52 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                 GcpTargetPool,
             )
             builder.add_edge(self, clazz=target_classes, link=self.target)
-        self._collect_backends(builder)
 
-    def _collect_backends(self, graph_builder: GraphBuilder) -> None:
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+        if not self.load_balancing_scheme:
+            return []
+        lb_type = "external/regional" if "EXTERNAL" in self.load_balancing_scheme else "internal"
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=f"loadbalancing.googleapis.com/https/{lb_type}/request_count",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.RequestCount,
+                    normalization=normalizer_factory.count_with_compute,
+                    stat="ALIGN_RATE",
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.label.forwarding_rule_name": self.id,
+                        "resource.labels.region": self.region().id,
+                    },
+                )
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=f"loadbalancing.googleapis.com/https/{lb_type}/backend_latencies",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.Latency,
+                    normalization=normalizer_factory.milliseconds(),
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.label.forwarding_rule_name": self.id,
+                        "resource.labels.region": self.region().id,
+                    },
+                )
+                for stat in PERCENTILE_STAT_MAP
+            ]
+        )
+
+        return queries
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
         if not self.target:
             return
         backend_services = graph_builder.nodes(clazz=GcpBackendService)
@@ -1776,7 +1818,7 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                                         if vm_id := item.get("instance"):
                                             self.backends.append(vm_id)
                                 except Exception as e:
-                                    log.warning(f"An error occured while setting backends property: {e}")
+                                    log.warning(f"An error occurred while setting backends property: {e}")
 
                             graph_builder.submit_work(fetch_instances, backend.group)
 
@@ -3620,7 +3662,6 @@ class GcpInstance(GcpResource, BaseInstance):
         if self.instance_status != InstanceStatus.RUNNING:
             return []
         queries: List[GcpMonitoringQuery] = []
-        queries = []
         delta = builder.metrics_delta
         queries.extend(
             [
@@ -3634,7 +3675,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
             ]
         )
         queries.extend(
@@ -3649,7 +3690,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/network/received_bytes_count", MetricName.NetworkIn),
                     ("compute.googleapis.com/instance/network/sent_bytes_count", MetricName.NetworkOut),
@@ -3669,7 +3710,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
@@ -3689,7 +3730,7 @@ class GcpInstance(GcpResource, BaseInstance):
                     project_id=builder.project.id,
                     metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
                 )
-                for stat in STAT_MAP
+                for stat in STANDART_STAT_MAP
                 for name, metric_name in [
                     ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
                     ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),
