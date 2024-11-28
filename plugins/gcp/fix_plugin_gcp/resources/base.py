@@ -410,7 +410,7 @@ class GcpResource(BaseResource):
         Returns:
             str: The last segment of the resource ID (e.g., "function-1" from "projects/{project}/locations/{location}/functions/function-1").
         """
-        return self.id.strip().split("/")[-1]
+        return self.id.rsplit("/", maxsplit=1)[-1]
 
     def delete(self, graph: Graph) -> bool:
         if not self.api_spec:
