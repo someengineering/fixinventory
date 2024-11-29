@@ -2,6 +2,7 @@ from collections import defaultdict
 import logging
 import ipaddress
 from datetime import datetime
+from collections import defaultdict
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from urllib.parse import urlparse
 
@@ -3762,26 +3763,22 @@ class GcpInstance(GcpResource, BaseInstance):
         return queries
 
     @classmethod
-    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+    def collect(cls, raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
         # Additional behavior: iterate over list of collected GcpInstances and for each:
         # - extract machineType if custom
         # - then create GcpMachineType object for each unique custom machine type
         # - add the new objects to the graph
         result: List[GcpInstance] = super().collect(raw, builder)  # type: ignore
         custom_machine_types = list(
-            set(
-                [
-                    instance.machine_type
-                    for instance in result
-                    if instance.machine_type and "custom" in instance.machine_type
-                ]
-            )
+            set([instance.machine_type for instance in result if instance and instance.machine_type])
         )
+        machine_region_with_types: Dict[str, List[str]] = defaultdict(list)
         for machine_type in custom_machine_types:
             # example:
             # https://www.googleapis.com/compute/v1/projects/proj/zones/us-east1-b/machineTypes/e2-custom-medium-1024
             zone, _, name = machine_type.split("/")[-3:]
-            builder.submit_work(GcpMachineType.collect_individual, builder, zone, name)
+            machine_region_with_types[zone].append(name)
+        builder.submit_work(GcpMachineType.collect_individual, builder, machine_region_with_types)
 
         return result  # type: ignore # list is not covariant
 
@@ -4348,25 +4345,15 @@ class GcpMachineType(GcpResource, BaseInstanceType):
     _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/machine-types"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service=service_name,
-        version="v1",
-        accessors=["machineTypes"],
-        action="aggregatedList",
-        request_parameter={"project": "{project}"},
-        request_parameter_in={"project"},
-        response_path="items",
-        response_regional_sub_path="machineTypes",
-        mutate_iam_permissions=[],  # can not be mutated
-    )
+    # collected via GcpInstance()
     collect_individual_api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
         accessors=["machineTypes"],
-        action="get",
-        response_path="",
-        request_parameter={"project": "{project}", "zone": "{zone}", "machineType": "{machineType}"},
-        request_parameter_in={"project", "zone", "machineType"},
+        action="list",
+        response_path="items",
+        request_parameter={"project": "{project}", "zone": "{zone}", "filter": "{filter}"},
+        request_parameter_in={"project", "zone", "filter"},
     )
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_sku"]},
@@ -4399,15 +4386,25 @@ class GcpMachineType(GcpResource, BaseInstanceType):
     scratch_disks: Optional[List[int]] = field(default=None)
 
     @classmethod
-    def collect_individual(cls: Type[GcpResource], builder: GraphBuilder, zone: str, name: str) -> None:
-        result = builder.client.get(
-            GcpMachineType.collect_individual_api_spec,
-            zone=zone,
-            machineType=name,
-        )
-        result[InternalZoneProp] = zone  # `add_node()` picks this up and sets proper zone/region
-        if machine_type_obj := GcpMachineType.from_api(result, builder):
-            builder.add_node(machine_type_obj, result)
+    def collect_individual(
+        cls: Type[GcpResource], builder: GraphBuilder, types_with_regions: Dict[str, List[str]]
+    ) -> None:
+        for zone, names in types_with_regions.items():
+            filter_str = " OR ".join([f"name={name}" for name in names])
+
+            def collect_machine_types(instance_zone: str, filter_str: str) -> None:
+                for machine_type in builder.client.list(
+                    GcpMachineType.collect_individual_api_spec,
+                    zone=instance_zone,
+                    filter=filter_str,
+                ):
+                    machine_type[InternalZoneProp] = (
+                        instance_zone  # `add_node()` picks this up and sets proper zone/region
+                    )
+                    if machine_type_obj := GcpMachineType.from_api(machine_type, builder):
+                        builder.add_node(machine_type_obj, machine_type)
+
+            builder.submit_work(collect_machine_types, zone, filter_str)
 
     def _machine_type_matches_sku_description(self, sku_description: str) -> bool:
         if not self.name:
