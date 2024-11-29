@@ -3,6 +3,7 @@ import logging
 import ipaddress
 from datetime import datetime
 from collections import defaultdict
+from copy import copy
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from urllib.parse import urlparse
 
@@ -1733,6 +1734,7 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                 GcpTargetPool,
             )
             builder.add_edge(self, clazz=target_classes, link=self.target)
+        self.collect_backends(builder)
 
     def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
         # Calculate the processed bytes
@@ -1816,34 +1818,20 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                 if backend_service.backend_service_backends:
                     for backend in backend_service.backend_service_backends:
                         if backend.group:
-
-                            def fetch_instances(group: str) -> None:
-                                api_spec = GcpApiSpec(
-                                    service=service_name,
-                                    version="v1",
-                                    accessors=["instanceGroups"],
-                                    action="listInstances",
-                                    request_parameter={
-                                        "project": "{project}",
-                                        "zone": "{zone}",
-                                        "instanceGroup": "{instanceGroup}",
-                                    },
-                                    request_parameter_in={"project", "zone", "instanceGroup"},
-                                    response_path="items",
-                                )
-                                path_data = urlparse(group).path.split("/")
-                                try:
-                                    zone = path_data[6]
-                                    instance_group = path_data[8]
-
-                                    items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
-                                    for item in items:
-                                        if vm_id := item.get("instance"):
-                                            self.backends.append(vm_id)
-                                except Exception as e:
-                                    log.warning(f"An error occurred while setting backends property: {e}")
-
-                            graph_builder.submit_work(fetch_instances, backend.group)
+                            instance_groups = graph_builder.nodes(clazz=GcpInstanceGroup)
+                            path_data = urlparse(backend.group).path.split("/")
+                            try:
+                                region = path_data[6]
+                                instance_group_name = path_data[8]
+                                for instance_group in instance_groups:
+                                    if (
+                                        instance_group_name == instance_group.id
+                                        and region == instance_group.region().id
+                                    ):
+                                        for instance_name in instance_group._group_instance_names or []:
+                                            self.backends.append(instance_name)
+                            except Exception as e:
+                                log.warning(f"An error occured while setting backends property: {e}")
 
 
 @define(eq=False, slots=False)
@@ -2983,14 +2971,15 @@ class GcpInstanceGroupManager(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpInstanceGroup(GcpResource):
+class GcpInstanceGroup(GcpResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "gcp_instance_group"
     _kind_display: ClassVar[str] = "GCP Instance Group"
     _kind_description: ClassVar[str] = "A GCP Instance Group is a collection of virtual machine instances that operate as a single entity. It manages multiple identical instances, distributes incoming traffic, and automatically adjusts the number of instances based on demand. Instance Groups provide load balancing, auto-scaling, and rolling updates to maintain application availability and performance in Google Cloud Platform."  # fmt: skip
     _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/instance-groups"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
+        "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]},
+        "successors": {"default": ["gcp_instance"], "delete": []},
     }
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -3018,12 +3007,37 @@ class GcpInstanceGroup(GcpResource):
         "network": S("network"),
         "size": S("size"),
         "subnetwork": S("subnetwork"),
+        "max_size": S("size"),
     }
     fingerprint: Optional[str] = field(default=None)
     named_ports: Optional[List[GcpNamedPort]] = field(default=None)
     network: Optional[str] = field(default=None)
     size: Optional[int] = field(default=None)
     subnetwork: Optional[str] = field(default=None)
+    _group_instance_names: Optional[List[str]] = None
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_instances() -> None:
+            api_spec = GcpApiSpec(
+                service=service_name,
+                version="v1",
+                accessors=["instanceGroups"],
+                action="listInstances",
+                request_parameter={"project": "{project}", "zone": "{zone}", "instanceGroup": "{instanceGroup}"},
+                request_parameter_in={"project", "zone", "instanceGroup"},
+                response_path="items",
+            )
+            instances = graph_builder.client.list(api_spec, zone=self.zone().id, instanceGroup=self.id)
+            for instance in instances:
+                instance_link_parts = instance["instance"].rsplit("/", 3)
+                instance_name = instance_link_parts[-1]
+                if not self._group_instance_names:
+                    self._group_instance_names = []
+                self._group_instance_names.append(instance_name)
+                zone = graph_builder.zone_by_name.get(instance_link_parts[-3])
+                graph_builder.add_edge(self, clazz=GcpInstance, _zone=zone, id=instance_name)
+
+        graph_builder.submit_work(collect_instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.network:
