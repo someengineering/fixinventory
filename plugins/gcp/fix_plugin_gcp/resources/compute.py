@@ -3,7 +3,6 @@ import logging
 import ipaddress
 from datetime import datetime
 from collections import defaultdict
-from copy import copy
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from urllib.parse import urlparse
 
@@ -972,6 +971,14 @@ class GcpBackendService(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.network)
 
 
+resource_group_map: Dict[str, str] = {
+    "local-ssd": "LocalSSD",
+    "pd-balanced": "SSD",
+    "pd-ssd": "SSD",
+    "pd-standard": "PDStandard",
+}
+
+
 @define(eq=False, slots=False)
 class GcpDiskType(GcpResource, BaseVolumeType):
     kind: ClassVar[str] = "gcp_disk_type"
@@ -991,6 +998,16 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         response_regional_sub_path="diskTypes",
         mutate_iam_permissions=[],  # can not be mutated
     )
+    # collected via GcpDisk()
+    collect_individual_api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
+        service=service_name,
+        version="v1",
+        accessors=["diskTypes"],
+        action="list",
+        response_path="items",
+        request_parameter={"project": "{project}", "zone": "{zone}", "filter": "{filter}"},
+        request_parameter_in={"project", "zone", "filter"},
+    )
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sku"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1007,12 +1024,24 @@ class GcpDiskType(GcpResource, BaseVolumeType):
     default_disk_size_gb: Optional[int] = field(default=None)
     valid_disk_size: Optional[str] = field(default=None)
 
-    resource_group_map: ClassVar[Dict[str, str]] = {
-        "local-ssd": "LocalSSD",
-        "pd-balanced": "SSD",
-        "pd-ssd": "SSD",
-        "pd-standard": "PDStandard",
-    }
+    @classmethod
+    def collect_individual(
+        cls: Type[GcpResource], builder: GraphBuilder, region_and_types: Dict[str, List[str]]
+    ) -> None:
+        for zone, names in region_and_types.items():
+            filter_str = " OR ".join([f"name={name}" for name in names])
+
+            def collect_disk_types(volume_zone: str, filter_str: str) -> None:
+                for disk_type in builder.client.list(
+                    GcpDiskType.collect_individual_api_spec,
+                    zone=volume_zone,
+                    filter=filter_str,
+                ):
+                    disk_type[InternalZoneProp] = volume_zone  # `add_node()` picks this up and sets proper zone/region
+                    if disk_type_obj := GcpDiskType.from_api(disk_type, builder):
+                        builder.add_node(disk_type_obj, disk_type)
+
+            builder.submit_work(collect_disk_types, zone, filter_str)
 
     def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
         """Adds edges from disk_types type to SKUs and determines ondemand pricing"""
@@ -1020,7 +1049,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
             return
 
         log.debug((f"Looking up pricing for {self.rtdname} in {self.region().rtdname}"))
-        resource_group = self.resource_group_map.get(self.name)
+        resource_group = resource_group_map.get(self.name)
 
         def sku_filter(sku: GcpSku) -> bool:
             if not self.name:
@@ -1207,6 +1236,21 @@ class GcpDisk(GcpResource, BaseVolume):
         for user in source.get("users", []):
             builder.dependant_node(self, clazz=GcpInstance, link=user, reverse=True, delete_same_as_default=False)
         builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
+
+    @classmethod
+    def collect(cls, raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpDisks and for each collect GcpDiskType
+        result: List[GcpDisk] = super().collect(raw, builder)  # type: ignore
+        disk_types = list({disk.type for disk in result if disk and disk.type})
+        disk_region_with_types: Dict[str, List[str]] = defaultdict(list)
+        for disk_type in disk_types:
+            # example:
+            # https://www.googleapis.com/compute/v1/projects/project/zones/us-central1-a/diskTypes/pd-balanced
+            zone, _, name = disk_type.split("/")[-3:]
+            disk_region_with_types[zone].append(name)
+        builder.submit_work(GcpDiskType.collect_individual, builder, disk_region_with_types)
+
+        return result  # type: ignore # list is not covariant
 
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
         queries: List[GcpMonitoringQuery] = []
@@ -3783,11 +3827,10 @@ class GcpInstance(GcpResource, BaseInstance):
         # - then create GcpMachineType object for each unique custom machine type
         # - add the new objects to the graph
         result: List[GcpInstance] = super().collect(raw, builder)  # type: ignore
-        custom_machine_types = list(
-            set([instance.machine_type for instance in result if instance and instance.machine_type])
-        )
+        machine_types = list({instance.machine_type for instance in result if instance and instance.machine_type})
+
         machine_region_with_types: Dict[str, List[str]] = defaultdict(list)
-        for machine_type in custom_machine_types:
+        for machine_type in machine_types:
             # example:
             # https://www.googleapis.com/compute/v1/projects/proj/zones/us-east1-b/machineTypes/e2-custom-medium-1024
             zone, _, name = machine_type.split("/")[-3:]
@@ -4401,9 +4444,9 @@ class GcpMachineType(GcpResource, BaseInstanceType):
 
     @classmethod
     def collect_individual(
-        cls: Type[GcpResource], builder: GraphBuilder, types_with_regions: Dict[str, List[str]]
+        cls: Type[GcpResource], builder: GraphBuilder, region_and_types: Dict[str, List[str]]
     ) -> None:
-        for zone, names in types_with_regions.items():
+        for zone, names in region_and_types.items():
             filter_str = " OR ".join([f"name={name}" for name in names])
 
             def collect_machine_types(instance_zone: str, filter_str: str) -> None:
@@ -7863,7 +7906,7 @@ resources: List[Type[GcpResource]] = [
     GcpNetwork,
     GcpNodeGroup,
     GcpNodeTemplate,
-    GcpNodeType,
+    # GcpNodeType,  # TODO: collect nodes from NodeGroup and connect types
     GcpPacketMirroring,
     GcpPublicAdvertisedPrefix,
     GcpCommitment,
