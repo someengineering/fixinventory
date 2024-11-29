@@ -1743,6 +1743,8 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
         if total_bytes:
             self._resource_usage["processed_bytes"] = dict(total_bytes)
 
+        self.collect_backends(builder)
+
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
         queries: List[GcpMonitoringQuery] = []
         delta = builder.metrics_delta
@@ -1796,7 +1798,7 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
 
         return queries
 
-    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+    def collect_backends(self, graph_builder: GraphBuilder) -> None:
         if not self.target:
             return
         backend_services = graph_builder.nodes(clazz=GcpBackendService)
