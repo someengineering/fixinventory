@@ -187,27 +187,26 @@ class GraphBuilder:
                     result.append(n)
         return result
 
-    def add_node(self, node: GcpResourceType, source: Optional[Json] = None) -> Optional[GcpResourceType]:
+    def add_node(self, node: GcpResourceType, source: Optional[Json] = None) -> GcpResourceType:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.project
 
-        if self._standard_edges(node, source):
-            with self.graph_nodes_access:
-                self.graph.add_node(node, source=source or {})
-            return node
-        return None
+        self.add_region_to_node(node, source)
+        with self.graph_nodes_access:
+            self.graph.add_node(node, source=source or {})
+        return node
 
-    def _standard_edges(self, node: GcpResourceType, source: Optional[Json] = None) -> bool:
+    def add_region_to_node(self, node: GcpResourceType, source: Optional[Json] = None) -> None:
         if isinstance(node, GcpRegion):
             self.add_edge(node, node=self.project, reverse=True)
-            return True
+            return
         if node._zone:
             self.add_edge(node, node=node._zone, reverse=True)
-            return True
+            return
         if node._region:
             self.add_edge(node, node=node._region, reverse=True)
-            return True
+            return
 
         parts = node.id.split("/", maxsplit=4)
         if len(parts) > 3 and parts[0] == "projects":
@@ -233,32 +232,32 @@ class GraphBuilder:
                     node._zone = zone
                     node._region = self.region_by_zone_name[zone_name]
                     self.add_edge(node, node=zone, reverse=True)
-                    return True
+                    return
 
             if InternalZoneProp in source:
                 if zone := self.zone_by_name.get(source[InternalZoneProp]):
                     node._zone = zone
                     node._region = self.region_by_zone_name[source[InternalZoneProp]]
                     self.add_edge(node, node=zone, reverse=True)
-                    return True
+                    return
 
             if RegionProp in source:
                 region_name = source[RegionProp].rsplit("/", 1)[-1]
                 if region := self.region_by_name.get(region_name):
                     node._region = region
                     self.add_edge(node, node=region, reverse=True)
-                    return True
+                    return
 
         # Fallback to GraphBuilder region, i.e. regional collection
         if self.region is not None:
             node._region = self.region
             self.add_edge(node, node=self.region, reverse=True)
-            return True
+            return
 
         # Fallback to global region
         node._region = self.fallback_global_region
         self.add_edge(node, node=self.fallback_global_region, reverse=True)
-        return True
+        return
 
     def add_edge(
         self,
