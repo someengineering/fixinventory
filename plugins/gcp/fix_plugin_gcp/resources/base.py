@@ -257,7 +257,6 @@ class GraphBuilder:
         # Fallback to global region
         node._region = self.fallback_global_region
         self.add_edge(node, node=self.fallback_global_region, reverse=True)
-        return
 
     def add_edge(
         self,
