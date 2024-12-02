@@ -156,6 +156,8 @@ class GcpProjectCollector:
                 if isinstance(node, GcpResource):
                     node.post_process_instance(global_builder, data.get("source", {}))
 
+            global_builder.executor.wait_for_submitted_work()
+
             self.core_feedback.progress_done(self.project.id, 1, 1, context=[self.cloud.id])
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
 
