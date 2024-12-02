@@ -15,7 +15,7 @@ from google.auth.credentials import Credentials as GoogleAuthCredentials
 from googleapiclient.errors import HttpError
 
 from fix_plugin_gcp.config import GcpConfig
-from fix_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
+from fix_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, ZoneProp, RegionProp
 from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import (
     BaseResource,
@@ -227,18 +227,12 @@ class GraphBuilder:
                     return True
 
         if source is not None:
-            if "zone" in source:
-                zone_name = source["zone"].rsplit("/", 1)[-1]
+            if ZoneProp in source:
+                zone_name = source[ZoneProp].rsplit("/", 1)[-1]
                 if zone := self.zone_by_name.get(zone_name):
                     node._zone = zone
                     node._region = self.region_by_zone_name[zone_name]
                     self.add_edge(node, node=zone, reverse=True)
-                    return True
-            if "region" in source:
-                region_name = source["region"].rsplit("/", 1)[-1]
-                if region := self.region_by_name.get(region_name):
-                    node._region = region
-                    self.add_edge(node, node=region, reverse=True)
                     return True
 
             if InternalZoneProp in source:
