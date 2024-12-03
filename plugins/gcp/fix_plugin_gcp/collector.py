@@ -16,6 +16,7 @@ from fix_plugin_gcp.resources import (
     filestore,
     cloudfunctions,
     monitoring,
+    pubsub,
 )
 from fix_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from fix_plugin_gcp.utils import Credentials
@@ -36,6 +37,7 @@ all_resources: List[Type[GcpResource]] = (
     + firestore.resources
     + filestore.resources
     + cloudfunctions.resources
+    + pubsub.resources
 )
 
 

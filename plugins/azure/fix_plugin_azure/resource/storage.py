@@ -26,6 +26,7 @@ from fixlib.baseresources import (
     MetricUnit,
     ModelReference,
     PhantomBaseResource,
+    QueueType,
 )
 from fixlib.json_bender import K, Bender, S, ForallBend, Bend, AsBool
 from fixlib.types import Json
@@ -320,8 +321,8 @@ class AzureStorageQueue(MicrosoftResource, BaseQueue):
         "tags": S("tags", default={}),
         "name": S("name"),
         "queue_metadata": S("properties", "metadata"),
-        "queue_type": K("standard"),
-        "message_retention_period": K(7),
+        "queue_type": K(QueueType.STANDARD),
+        "message_retention_period_days": K(7),
         "approximate_message_count": S("properties", "approximateMessageCount"),
     }
     queue_metadata: Optional[Dict[str, str]] = field(default=None, metadata={'description': 'A name-value pair that represents queue metadata.'})  # fmt: skip

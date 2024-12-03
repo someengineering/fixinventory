@@ -366,12 +366,11 @@ def generate_models(
 ) -> List[GcpFixModel]:
     schemas: Dict[str, Shape] = client._rootDesc["schemas"]
 
-    def result_prop(shape: Shape) -> Tuple[str, str]:
+    def result_prop(shape: Shape) -> Tuple[Optional[str], Optional[str]]:
         for name, prop in shape["properties"].items():
             if prop.get("type") == "array" and (ref := prop.get("items", {}).get("$ref")) is not None:
                 return name, ref
-
-        raise ValueError(f"Could not find result property in shape: {shape}")
+        return None, None
 
     def resource_models(path: List[str], desc: Shape) -> Optional[GcpFixModel]:
         if "aggregatedList" in desc["methods"]:
@@ -393,12 +392,15 @@ def generate_models(
             response = schemas[method["response"]["$ref"]]
             required_parameters = {p: pd for p, pd in method["parameters"].items() if pd.get("required", False)}
             prop, kind = result_prop(response)
-            return GcpFixModel(
-                kind,
-                prefix,
-                adjust_prefix(to_snake(kind)) + "_",
-                api_info=GcpApiInfo(service, version, path, "list", prop, required_parameters),
-            )
+            if prop and kind:
+                return GcpFixModel(
+                    kind,
+                    prefix,
+                    adjust_prefix(to_snake(kind)) + "_",
+                    api_info=GcpApiInfo(service, version, path, "list", prop, required_parameters),
+                )
+            else:
+                return None
         else:
             # print(">>>> NO LIST FOR", resource, " ", list(desc["methods"].keys()))
             return None
@@ -516,6 +518,7 @@ known_api_parameters = {
     },
     "firestore": {"parent": "projects/{project_id}/databases/{database_id}/documents", "collectionId": "", "name": ""},
     "file": {"name": "", "parent": "projects/{projectId}/locations/-"},
+    "pubsub": {"project": "projects/{project}", "parent": ""},
 }
 
 # See https://googleapis.github.io/google-api-python-client/docs/dyn/ for the list of available resources
@@ -529,7 +532,8 @@ apis = [
     # ("aiplatform", "v1", "", []),
     # ("firestore", "v1", "", []),
     # ("cloudfunctions", "v2", "", []),
-    ("file", "v1", "", [])
+    # ("file", "v1", "", []),
+    ("pubsub", "v1", "", [])
 ]
 
 
