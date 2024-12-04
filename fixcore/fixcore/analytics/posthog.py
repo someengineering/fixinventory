@@ -27,7 +27,7 @@ class PostHogEventSender(AnalyticsEventSender):
         system_data: SystemData,
         flush_at: int = 10000,
         interval: timedelta = timedelta(minutes=1),
-        host: str = "https://analytics.some.engineering",
+        host: Optional[str] = None,  # was: "https://analytics.some.engineering",
         client_flush_interval: float = 0.5,
         client_retries: int = 3,
     ):
