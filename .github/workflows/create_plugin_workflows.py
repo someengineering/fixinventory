@@ -138,7 +138,8 @@ for plugin in os.listdir(plugins_path):
                 .replace("@name@", plugin)
                 .replace("@PKGNAME@", f"fixinventory_plugin_{plugin}".upper())
             )
-            if plugin == "aws":
-                yml.write(aws_policygen)
-            elif plugin == "gcp":
-                yml.write(gcp_policygen)
+            # PolicyGen Upload disabled for now. Uncomment when required.
+            # if plugin == "aws":
+            #     yml.write(aws_policygen)
+            # elif plugin == "gcp":
+            #     yml.write(gcp_policygen)
