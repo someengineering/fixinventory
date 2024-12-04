@@ -8,11 +8,11 @@ from .random_client import roundtrip
 
 
 class DefaultDict(dict):  # type: ignore
-    def __init__(self, default_value: Any, *args: Any, **kwargs: Any):
+    def __init__(self, default_value: Any, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.default_value = default_value
 
-    def get(self, key: str, default: Any = None):
+    def get(self, key: str, default: Any = None) -> Any:
         if key in self:
             return super().get(key, default)
         return self.default_value
