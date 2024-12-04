@@ -217,13 +217,13 @@ class GraphBuilder:
                     node._zone = zone
                     node._region = self.region_by_zone_name.get(zone.id)
                     self.add_edge(zone, node=node)
-                    return True
+                    return
 
                 # Then check for region
                 if region := self.region_by_name.get(location_name):
                     node._region = region
                     self.add_edge(region, node=node)
-                    return True
+                    return
 
         if source is not None:
             if ZoneProp in source:
@@ -234,7 +234,7 @@ class GraphBuilder:
                     self.add_edge(node, node=zone, reverse=True)
                     return
                 else:
-                    log.warning(
+                    log.debug(
                         "Zone property '%s' found in the source but no corresponding zone object is available to associate with the node.",
                         zone_name,
                     )
@@ -246,7 +246,7 @@ class GraphBuilder:
                     self.add_edge(node, node=zone, reverse=True)
                     return
                 else:
-                    log.warning(
+                    log.debug(
                         "Internal zone property '%s' exists in the source but no corresponding zone object is available to associate with the node.",
                         source[InternalZoneProp],
                     )
@@ -258,7 +258,7 @@ class GraphBuilder:
                     self.add_edge(node, node=region, reverse=True)
                     return
                 else:
-                    log.warning(
+                    log.debug(
                         "Region property '%s' found in the source but no corresponding region object is available to associate with the node.",
                         region_name,
                     )

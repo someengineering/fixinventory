@@ -2,7 +2,6 @@ from collections import defaultdict
 import logging
 import ipaddress
 from datetime import datetime
-from collections import defaultdict
 from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 from urllib.parse import urlparse
 
