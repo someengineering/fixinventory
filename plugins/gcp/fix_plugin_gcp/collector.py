@@ -9,6 +9,7 @@ from fix_plugin_gcp.resources import (
     compute,
     container,
     billing,
+    scc,
     sqladmin,
     storage,
     aiplatform,
@@ -38,6 +39,7 @@ all_resources: List[Type[GcpResource]] = (
     + filestore.resources
     + cloudfunctions.resources
     + pubsub.resources
+    + scc.resources
 )
 
 
@@ -133,6 +135,10 @@ class GcpProjectCollector:
                     continue
                 global_builder.submit_work(self.collect_region, global_builder.for_region(region))
             global_builder.executor.wait_for_submitted_work()
+
+            # call all registered after collect hooks
+            for after_collect in global_builder.after_collect_actions:
+                after_collect()
 
             self.error_accumulator.report_all(global_builder.core_feedback)
 

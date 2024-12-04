@@ -518,6 +518,7 @@ known_api_parameters = {
     },
     "firestore": {"parent": "projects/{project_id}/databases/{database_id}/documents", "collectionId": "", "name": ""},
     "file": {"name": "", "parent": "projects/{projectId}/locations/-"},
+    "securitycenter": {"parent": "projects/{projectId}", "name": ""},
     "pubsub": {"project": "projects/{project}", "parent": ""},
 }
 
@@ -532,7 +533,8 @@ apis = [
     # ("aiplatform", "v1", "", []),
     # ("firestore", "v1", "", []),
     # ("cloudfunctions", "v2", "", []),
-    # ("file", "v1", "", []),
+    # # ("file", "v1", "", []),
+    ("securitycenter", "v1", "", []),
     ("pubsub", "v1", "", [])
 ]
 
