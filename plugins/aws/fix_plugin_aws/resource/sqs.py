@@ -81,7 +81,7 @@ class AwsSqsQueue(AwsResource, BaseQueue, HasResourcePolicy):
         "sqs_delay_seconds": S("DelaySeconds") >> AsInt(),
         "sqs_receive_message_wait_time_seconds": S("ReceiveMessageWaitTimeSeconds") >> AsInt(),
         "sqs_managed_sse_enabled": S("SqsManagedSseEnabled") >> AsBool(),
-        "message_retention_period": S("MessageRetentionPeriod") >> AsInt(),
+        "message_retention_period_days": S("MessageRetentionPeriod") >> AsInt(),
         "approximate_message_count": S("ApproximateNumberOfMessages") >> AsInt(),
     }
     sqs_queue_url: Optional[str] = field(default=None)
