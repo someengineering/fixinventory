@@ -15,7 +15,7 @@ from google.auth.credentials import Credentials as GoogleAuthCredentials
 from googleapiclient.errors import HttpError
 
 from fix_plugin_gcp.config import GcpConfig
-from fix_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
+from fix_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, ZoneProp, RegionProp
 from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import (
     BaseResource,
@@ -187,27 +187,26 @@ class GraphBuilder:
                     result.append(n)
         return result
 
-    def add_node(self, node: GcpResourceType, source: Optional[Json] = None) -> Optional[GcpResourceType]:
+    def add_node(self, node: GcpResourceType, source: Optional[Json] = None) -> GcpResourceType:
         log.debug(f"{self.name}: add node {node}")
         node._cloud = self.cloud
         node._account = self.project
 
-        if self._standard_edges(node, source):
-            with self.graph_nodes_access:
-                self.graph.add_node(node, source=source or {})
-            return node
-        return None
+        self.add_region_to_node(node, source)
+        with self.graph_nodes_access:
+            self.graph.add_node(node, source=source or {})
+        return node
 
-    def _standard_edges(self, node: GcpResourceType, source: Optional[Json] = None) -> bool:
+    def add_region_to_node(self, node: GcpResourceType, source: Optional[Json] = None) -> None:
         if isinstance(node, GcpRegion):
             self.add_edge(node, node=self.project, reverse=True)
-            return True
+            return
         if node._zone:
             self.add_edge(node, node=node._zone, reverse=True)
-            return True
+            return
         if node._region:
             self.add_edge(node, node=node._region, reverse=True)
-            return True
+            return
 
         parts = node.id.split("/", maxsplit=4)
         if len(parts) > 3 and parts[0] == "projects":
@@ -218,45 +217,61 @@ class GraphBuilder:
                     node._zone = zone
                     node._region = self.region_by_zone_name.get(zone.id)
                     self.add_edge(zone, node=node)
-                    return True
+                    return
 
                 # Then check for region
                 if region := self.region_by_name.get(location_name):
                     node._region = region
                     self.add_edge(region, node=node)
-                    return True
+                    return
 
         if source is not None:
+            if ZoneProp in source:
+                zone_name = source[ZoneProp].rsplit("/", 1)[-1]
+                if zone := self.zone_by_name.get(zone_name):
+                    node._zone = zone
+                    node._region = self.region_by_zone_name[zone_name]
+                    self.add_edge(node, node=zone, reverse=True)
+                    return
+                else:
+                    log.debug(
+                        "Zone property '%s' found in the source but no corresponding zone object is available to associate with the node.",
+                        zone_name,
+                    )
+
             if InternalZoneProp in source:
                 if zone := self.zone_by_name.get(source[InternalZoneProp]):
                     node._zone = zone
                     node._region = self.region_by_zone_name[source[InternalZoneProp]]
                     self.add_edge(node, node=zone, reverse=True)
-                    return True
+                    return
                 else:
-                    log.debug(f"Zone {source[InternalZoneProp]} not found for node: {node}. Ignore resource.")
-                    return False
+                    log.debug(
+                        "Internal zone property '%s' exists in the source but no corresponding zone object is available to associate with the node.",
+                        source[InternalZoneProp],
+                    )
 
             if RegionProp in source:
                 region_name = source[RegionProp].rsplit("/", 1)[-1]
                 if region := self.region_by_name.get(region_name):
                     node._region = region
                     self.add_edge(node, node=region, reverse=True)
-                    return True
+                    return
                 else:
-                    log.debug(f"Region {region_name} not found for node: {node}. Ignore resource.")
-                    return False
+                    log.debug(
+                        "Region property '%s' found in the source but no corresponding region object is available to associate with the node.",
+                        region_name,
+                    )
 
         # Fallback to GraphBuilder region, i.e. regional collection
         if self.region is not None:
             node._region = self.region
             self.add_edge(node, node=self.region, reverse=True)
-            return True
+            return
 
         # Fallback to global region
         node._region = self.fallback_global_region
         self.add_edge(node, node=self.fallback_global_region, reverse=True)
-        return True
 
     def add_edge(
         self,
