@@ -233,6 +233,11 @@ class GraphBuilder:
                     node._region = self.region_by_zone_name[zone_name]
                     self.add_edge(node, node=zone, reverse=True)
                     return
+                else:
+                    log.warning(
+                        "Zone property '%s' found in the source but no corresponding zone object is available to associate with the node.",
+                        zone_name,
+                    )
 
             if InternalZoneProp in source:
                 if zone := self.zone_by_name.get(source[InternalZoneProp]):
@@ -240,6 +245,11 @@ class GraphBuilder:
                     node._region = self.region_by_zone_name[source[InternalZoneProp]]
                     self.add_edge(node, node=zone, reverse=True)
                     return
+                else:
+                    log.warning(
+                        "Internal zone property '%s' exists in the source but no corresponding zone object is available to associate with the node.",
+                        source[InternalZoneProp],
+                    )
 
             if RegionProp in source:
                 region_name = source[RegionProp].rsplit("/", 1)[-1]
@@ -247,6 +257,11 @@ class GraphBuilder:
                     node._region = region
                     self.add_edge(node, node=region, reverse=True)
                     return
+                else:
+                    log.warning(
+                        "Region property '%s' found in the source but no corresponding region object is available to associate with the node.",
+                        region_name,
+                    )
 
         # Fallback to GraphBuilder region, i.e. regional collection
         if self.region is not None:
