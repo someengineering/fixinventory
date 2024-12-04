@@ -534,7 +534,7 @@ apis = [
     # ("firestore", "v1", "", []),
     # ("cloudfunctions", "v2", "", []),
     # # ("file", "v1", "", []),
-    ("securitycenter", "v1", "", []),
+    # ("securitycenter", "v1", "", []),
     ("pubsub", "v1", "", [])
 ]
 
