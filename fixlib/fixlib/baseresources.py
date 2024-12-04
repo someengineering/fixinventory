@@ -1112,7 +1112,7 @@ class BaseQueue(BaseResource):
     _categories: ClassVar[List[Category]] = [Category.storage]
     queue_type: Optional[QueueType] = None
     approximate_message_count: Optional[int] = None
-    message_retention_period: Optional[int] = None
+    message_retention_period_days: Optional[int] = None
 
 
 @define(eq=False, slots=False)
