@@ -148,7 +148,9 @@ class GcpFirestoreDatabase(GcpResource, BaseDatabase):
                 documents = GcpFirestoreDocument.collect(items, graph_builder)
                 for document in documents:
                     graph_builder.add_edge(self, node=document)
-                log.info(f"[GCP:{graph_builder.project.id}] finished collecting: {GcpFirestoreDocument.kind}")
+                log.info(
+                    f"[GCP:{graph_builder.project.id}:{graph_builder.region.safe_name if graph_builder.region else "global"}] finished collecting: {GcpFirestoreDocument.kind}"
+                )
 
         graph_builder.submit_work(collect_documents)
 

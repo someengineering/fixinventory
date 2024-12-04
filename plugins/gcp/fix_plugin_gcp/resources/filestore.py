@@ -289,7 +289,9 @@ class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
                 snapshots = GcpFilestoreInstanceSnapshot.collect(items, graph_builder)
                 for snapshot in snapshots:
                     graph_builder.add_edge(self, node=snapshot)
-                log.info(f"[GCP:{graph_builder.project.id}] finished collecting: {GcpFilestoreInstanceSnapshot.kind}")
+                log.info(
+                    f"[GCP:{graph_builder.project.id}:{graph_builder.region.safe_name if graph_builder.region else "global"}] finished collecting: {GcpFilestoreInstanceSnapshot.kind}"
+                )
 
         graph_builder.submit_work(collect_snapshots)
 

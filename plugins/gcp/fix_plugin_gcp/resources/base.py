@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import json
 import logging
 from concurrent.futures import Future
@@ -8,9 +9,12 @@ from types import TracebackType
 from typing import Callable, List, ClassVar, Optional, TypeVar, Type, Any, Dict, Set, Tuple
 
 from attr import define, field
+from attrs import frozen
+from frozendict import frozendict
 from google.auth.credentials import Credentials as GoogleAuthCredentials
 from googleapiclient.errors import HttpError
 
+from fix_plugin_gcp.config import GcpConfig
 from fix_plugin_gcp.gcp_client import GcpClient, GcpApiSpec, InternalZoneProp, RegionProp
 from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import (
@@ -22,6 +26,9 @@ from fixlib.baseresources import (
     BaseZone,
     ModelReference,
     PhantomBaseResource,
+    MetricName,
+    MetricUnit,
+    StatName,
 )
 from fixlib.config import Config
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
@@ -30,6 +37,7 @@ from fixlib.json import from_json as from_js, value_in_path
 from fixlib.json_bender import bend, Bender, S, Bend, MapDict, F
 from fixlib.threading import ExecutorQueue
 from fixlib.types import Json
+from fixlib.utils import utc
 from fixinventorydata.cloud import regions as cloud_region_data
 
 log = logging.getLogger("fix.plugins.gcp")
@@ -81,7 +89,9 @@ class GraphBuilder:
         core_feedback: CoreFeedback,
         error_accumulator: ErrorAccumulator,
         fallback_global_region: GcpRegion,
+        config: GcpConfig,
         region: Optional[GcpRegion] = None,
+        last_run_started_at: Optional[datetime] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
     ) -> None:
@@ -95,11 +105,38 @@ class GraphBuilder:
         self.core_feedback = core_feedback
         self.error_accumulator = error_accumulator
         self.fallback_global_region = fallback_global_region
+        self.config = config
+        self.created_at = utc()
+        self.last_run_started_at = last_run_started_at
         self.region_by_name: Dict[str, GcpRegion] = {}
         self.region_by_zone_name: Dict[str, GcpRegion] = {}
         self.zone_by_name: Dict[str, GcpZone] = {}
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
+
+        if last_run_started_at:
+            now = utc()
+
+            # limit the metrics to the last 2 hours
+            if now - last_run_started_at > timedelta(hours=2):
+                start = now - timedelta(hours=2)
+            else:
+                start = last_run_started_at
+
+            delta = now - start
+
+            min_delta = max(delta, timedelta(seconds=60))
+            # in case the last collection happened too quickly, raise the metrics timedelta to 60s,
+            if min_delta != delta:
+                start = now - min_delta
+                delta = min_delta
+        else:
+            now = utc()
+            delta = timedelta(hours=1)
+            start = now - delta
+
+        self.metrics_start = start
+        self.metrics_delta = delta
 
     def submit_work(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> Future[T]:
         """
@@ -171,6 +208,23 @@ class GraphBuilder:
         if node._region:
             self.add_edge(node, node=node._region, reverse=True)
             return True
+
+        parts = node.id.split("/", maxsplit=4)
+        if len(parts) > 3 and parts[0] == "projects":
+            if parts[2] in ["locations", "zones", "regions"]:
+                location_name = parts[3]
+                # Check for zone first
+                if zone := self.zone_by_name.get(location_name):
+                    node._zone = zone
+                    node._region = self.region_by_zone_name.get(zone.id)
+                    self.add_edge(zone, node=node)
+                    return True
+
+                # Then check for region
+                if region := self.region_by_name.get(location_name):
+                    node._region = region
+                    self.add_edge(region, node=node)
+                    return True
 
         if source is not None:
             if InternalZoneProp in source:
@@ -275,9 +329,57 @@ class GraphBuilder:
             self.core_feedback,
             self.error_accumulator,
             self.fallback_global_region,
+            self.config,
             region,
+            self.last_run_started_at,
             self.graph_nodes_access,
             self.graph_edges_access,
+        )
+
+
+@frozen(kw_only=True)
+class MetricNormalization:
+    unit: MetricUnit
+    normalize_value: Callable[[float], float] = lambda x: x
+    compute_stats: Callable[[List[float]], List[Tuple[float, Optional[StatName]]]] = lambda x: [(sum(x) / len(x), None)]
+
+
+@define(hash=True, frozen=True)
+class GcpMonitoringQuery:
+    metric_name: MetricName  # final name of the metric
+    query_name: str  # name of the metric (e.g., GCP metric type)
+    period: timedelta  # period of the metric
+    ref_id: str  # unique id of the resource
+    metric_id: str  # unique metric identifier
+    stat: str  # aggregation type, supports ALIGN_MEAN, ALIGN_MAX, ALIGN_MIN
+    project_id: str  # GCP project name
+    normalization: MetricNormalization  # normalization info
+    metric_filters: frozendict[str, str]  # filters for the metric
+
+    @staticmethod
+    def create(
+        *,
+        query_name: str,
+        period: timedelta,
+        ref_id: str,
+        metric_name: MetricName,
+        stat: str,
+        project_id: str,
+        metric_filters: Dict[str, str],
+        normalization: MetricNormalization,
+    ) -> "GcpMonitoringQuery":
+        filter_suffix = "/" + "/".join(f"{key}={value}" for key, value in sorted(metric_filters.items()))
+        metric_id = f"{query_name}/{ref_id}/{stat}{filter_suffix}"
+        return GcpMonitoringQuery(
+            metric_name=metric_name,
+            query_name=query_name,
+            period=period,
+            ref_id=ref_id,
+            metric_id=metric_id,
+            stat=stat,
+            normalization=normalization,
+            project_id=project_id,
+            metric_filters=frozendict(metric_filters),
         )
 
 
@@ -299,6 +401,16 @@ class GcpResource(BaseResource):
         if self.link is not None:
             return tuple(list(super()._keys()) + [self.link])
         return super()._keys()
+
+    @property
+    def resource_raw_name(self) -> str:
+        """
+        Extracts the last segment of the GCP resource ID.
+
+        Returns:
+            str: The last segment of the resource ID (e.g., "function-1" from "projects/{project}/locations/{location}/functions/function-1").
+        """
+        return self.id.rsplit("/", maxsplit=1)[-1]
 
     def delete(self, graph: Graph) -> bool:
         if not self.api_spec:
@@ -374,13 +486,13 @@ class GcpResource(BaseResource):
         """
         pass
 
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        # Default behavior: do nothing
+        return []
+
     @classmethod
     def collect_resources(cls: Type[GcpResource], builder: GraphBuilder, **kwargs: Any) -> List[GcpResource]:
         # Default behavior: in case the class has an ApiSpec, call the api and call collect.
-        if kwargs:
-            log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind} with ({kwargs})")
-        else:
-            log.info(f"[GCP:{builder.project.id}] Collecting {cls.kind}")
         if spec := cls.api_spec:
             expected_errors = GcpExpectedErrorCodes | (spec.expected_errors or set())
             with GcpErrorHandler(
@@ -393,7 +505,9 @@ class GcpResource(BaseResource):
             ):
                 items = builder.client.list(spec, **kwargs)
                 resources = cls.collect(items, builder)
-                log.info(f"[GCP:{builder.project.id}] finished collecting: {cls.kind}")
+                log.info(
+                    f"[GCP:{builder.project.id}:{builder.region.safe_name if builder.region else "global"}] finished collecting: {cls.kind}"
+                )
                 return resources
         return []
 

@@ -10,6 +10,7 @@ from fixlib.config import Config, RunningConfig
 from fixlib.core.actions import CoreFeedback
 from fixlib.graph import Graph, MaxNodesExceeded
 from fixlib.logger import log, setup_logger
+from fixlib.types import Json
 from .collector import GcpProjectCollector
 from .config import GcpConfig
 from .resources.base import GcpProject
@@ -77,10 +78,11 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
                     project_id,
                     feedback,
                     cloud,
+                    self.task_data or {},
                     max_resources_per_account=self.max_resources_per_account,
                     **collect_args,
                 )
-                for project_id in credentials.keys()
+                for project_id in credentials
             ]
             for future in futures.as_completed(wait_for):
                 project_graph = future.result()
@@ -98,6 +100,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
         project_id: str,
         core_feedback: CoreFeedback,
         cloud: Cloud,
+        task_data: Json,
         args: Optional[Namespace] = None,
         running_config: Optional[RunningConfig] = None,
         credentials: Optional[Dict[str, Any]] = None,
@@ -130,7 +133,7 @@ class GCPCollectorPlugin(BaseCollectorPlugin):
 
         try:
             core_feedback.progress_done(project_id, 0, 1)
-            gpc = GcpProjectCollector(Config.gcp, cloud, project, core_feedback, max_resources_per_account)
+            gpc = GcpProjectCollector(Config.gcp, cloud, project, core_feedback, task_data, max_resources_per_account)
             try:
                 gpc.collect()
             except MaxNodesExceeded as ex:

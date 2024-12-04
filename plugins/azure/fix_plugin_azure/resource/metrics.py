@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime, timedelta
 from concurrent.futures import as_completed
 import logging
@@ -271,12 +272,13 @@ class AzureMetricData:
         interval: str,
     ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":
         try:
+            local_api_spec = deepcopy(api_spec)
             # Set the path for the API call based on the instance ID of the query
-            api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
+            local_api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
             # Retrieve metric data from the API
             aggregation = ",".join(query.aggregation)
             part = builder.client.list(
-                api_spec,
+                local_api_spec,
                 metricnames=query.metric_name,
                 metricNamespace=query.metric_namespace,
                 timespan=timespan,

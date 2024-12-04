@@ -1,6 +1,5 @@
-from fixlib.proc import num_default_threads
 from attrs import define, field
-from typing import List, ClassVar
+from typing import List, ClassVar, Optional
 
 
 @define
@@ -17,7 +16,7 @@ class GcpConfig:
         metadata={"description": "GCP services to exclude (default: none)"},
     )
     project_pool_size: int = field(
-        factory=num_default_threads,
+        default=64,
         metadata={"description": "GCP project thread/process pool size"},
     )
     fork_process: bool = field(
@@ -30,6 +29,10 @@ class GcpConfig:
             "description": "Fail the whole account if collecting a resource fails. "
             "If false, the error is logged and the resource is skipped."
         },
+    )
+    collect_usage_metrics: Optional[bool] = field(
+        default=True,
+        metadata={"description": "Collect resource usage metrics via GCP Monitoring, enabled by default"},
     )
 
     def should_collect(self, name: str) -> bool:

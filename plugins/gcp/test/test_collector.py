@@ -24,6 +24,7 @@ def collector_with_graph(graph: Graph) -> GcpProjectCollector:
         cloud=Cloud(id="gcp"),
         project=GcpProject(id="test"),
         core_feedback=CoreFeedback("test", "test", "test", Queue()),
+        task_data={},
     )
     collector.graph = graph
     return collector
@@ -32,7 +33,9 @@ def collector_with_graph(graph: Graph) -> GcpProjectCollector:
 def test_project_collection(random_builder: GraphBuilder) -> None:
     # create the collector from the builder values
     config: GcpConfig = current_config().gcp
-    project = GcpProjectCollector(config, random_builder.cloud, random_builder.project, random_builder.core_feedback)
+    project = GcpProjectCollector(
+        config, random_builder.cloud, random_builder.project, random_builder.core_feedback, {}
+    )
     # use the graph provided by the random builder - it already has regions and zones
     # the random builder will not create new regions or zones during the test
     project.graph = random_builder.graph
