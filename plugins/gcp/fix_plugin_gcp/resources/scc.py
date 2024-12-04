@@ -1,13 +1,21 @@
 from datetime import datetime
 from functools import partial
-from typing import ClassVar, Dict, Optional, List, Type, Any
+from typing import ClassVar, Dict, Optional, List, Tuple, Type, Any
 
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GraphBuilder, GcpErrorHandler, GcpProject, GcpExpectedErrorCodes
+from fix_plugin_gcp.resources.base import (
+    GcpRegion,
+    GcpResource,
+    GcpZone,
+    GraphBuilder,
+    GcpErrorHandler,
+    GcpProject,
+    GcpExpectedErrorCodes,
+)
 from fixlib.baseresources import SEVERITY_MAPPING, Finding, Severity
-from fixlib.json_bender import Bender, S, Bend, ForallBend
+from fixlib.json_bender import Bender, S, Bend
 from fixlib.types import Json
 
 
@@ -16,8 +24,10 @@ class GcpSourceProperties:
     kind: ClassVar[str] = "gcp_source_properties"
     mapping: ClassVar[Dict[str, Bender]] = {
         "recommendation": S("Recommendation"),
+        "explanation": S("Explanation"),
     }
     recommendation: Optional[str] = field(default=None)
+    explanation: Optional[str] = field(default=None)
 
 
 @define(eq=False, slots=False)
@@ -141,14 +151,17 @@ class GcpSccFinding(GcpResource):
     def parse_finding(self, source: Json) -> Optional[Finding]:
         if finding := self.finding_information:
             description = finding.description
-            title = finding.parent_display_name or ""
             if finding.source_properties:
                 remediation = finding.source_properties.recommendation
+                title = finding.source_properties.explanation or "unknown"
             else:
                 remediation = None
-            details = (source.get("finding") or {}).get("sourceProperties", {})
-            aws_metadata = (source.get("resource") or {}).get("awsMetadata", {})
-            azure_metadata = (source.get("resource") or {}).get("azureMetadata", {})
+                title = "unknown"
+            source_finding = source.get("finding", {})
+            source_resource = source.get("resource", {})
+            details = source_finding.get("sourceProperties", {})
+            aws_metadata = source_resource.get("awsMetadata", {})
+            azure_metadata = source_resource.get("azureMetadata", {})
             severity = SEVERITY_MAPPING.get(finding.severity or "") or Severity.medium
             return Finding(
                 title, severity, description, remediation, finding.event_time, details | aws_metadata | azure_metadata
@@ -189,8 +202,17 @@ class GcpSccFinding(GcpResource):
                                         id=r_name,
                                     )
                                 )
-                            elif ri.location:
-                                if zone := builder.zone_by_name.get(ri.location):
+
+                            def resolve_location(
+                                builder: GraphBuilder, location: str
+                            ) -> Tuple[Optional[GcpZone], Optional[GcpRegion]]:
+                                zone = builder.zone_by_name.get(location)
+                                region = builder.region_by_name.get(location)
+                                return zone, region
+
+                            if ri.location:
+                                zone, region = resolve_location(builder, ri.location)
+                                if zone:
                                     builder.after_collect_actions.append(
                                         partial(
                                             add_finding,
@@ -201,7 +223,7 @@ class GcpSccFinding(GcpResource):
                                             _zone=zone,
                                         )
                                     )
-                                if region := builder.region_by_name.get(ri.location):
+                                elif region:
                                     builder.after_collect_actions.append(
                                         partial(
                                             add_finding,
