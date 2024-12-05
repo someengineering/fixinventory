@@ -117,7 +117,7 @@ class GcpMonitoringMetricData:
         # Base filter
         filters = [
             f'metric.type = "{query.query_name}"',
-            f'resource.labels.project_id="{query.project_id}"',
+            f'resource.labels.project_id = "{query.project_id}"',
         ]
 
         # Add additional filters
