@@ -4429,7 +4429,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
         "scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
         "instance_type": S("name"),
-        "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
+        "instance_cores": S("guestCpus") >> F(float),
         "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
     }
     accelerators: Optional[List[GcpAccelerators]] = field(default=None)
