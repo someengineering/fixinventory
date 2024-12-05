@@ -82,7 +82,7 @@ jobs:
         shell: bash
         run: |
           yq '.services.fixcore.environment += "FIXCORE_MODEL_FROM_PLUGINS=true"' docker-compose.yaml > docker-compose-model-gen.yaml
-          PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
+          PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker compose -f docker-compose-model-gen.yaml up -d
           cd ${{ github.workspace }}/docs.fix.security/docs/resources
           python3 ${{ github.workspace }}/docs.fix.security/tools/export_models.py
 
@@ -346,7 +346,7 @@ jobs:
         shell: bash
         run: |
           yq '.services.fixcore.environment += "FIXCORE_MODEL_FROM_PLUGINS=true"' docker-compose.yaml > docker-compose-model-gen.yaml
-          PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker-compose -f docker-compose-model-gen.yaml up -d
+          PSK= FIXCORE_ANALYTICS_OPT_OUT=true docker compose -f docker-compose-model-gen.yaml up -d
           cd ${{ github.workspace }}/inventory.fix.security/versioned_docs/version-${{ steps.release.outputs.docsVersion }}/reference/unified-data-model
           python3 ${{ github.workspace }}/inventory.fix.security/tools/export_models.py
 
