@@ -94,6 +94,7 @@ class GraphBuilder:
         last_run_started_at: Optional[datetime] = None,
         graph_nodes_access: Optional[Lock] = None,
         graph_edges_access: Optional[Lock] = None,
+        after_collect_actions: Optional[List[Callable[[], Any]]] = None,
     ) -> None:
         self.graph = graph
         self.cloud = cloud
@@ -113,6 +114,7 @@ class GraphBuilder:
         self.zone_by_name: Dict[str, GcpZone] = {}
         self.graph_nodes_access = graph_nodes_access or Lock()
         self.graph_edges_access = graph_edges_access or Lock()
+        self.after_collect_actions = after_collect_actions if after_collect_actions is not None else []
 
         if last_run_started_at:
             now = utc()
@@ -349,6 +351,7 @@ class GraphBuilder:
             self.last_run_started_at,
             self.graph_nodes_access,
             self.graph_edges_access,
+            after_collect_actions=self.after_collect_actions,
         )
 
 
