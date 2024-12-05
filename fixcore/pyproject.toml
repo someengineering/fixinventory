@@ -34,7 +34,7 @@ dependencies = [
     "aiofiles",
     "aiohttp-jinja2",
     "aiohttp-swagger3",
-    "aiohttp[speedups]",
+    "aiohttp[speedups] < 3.11",
     "cryptography",
     "deepdiff",
     "detect_secrets",
