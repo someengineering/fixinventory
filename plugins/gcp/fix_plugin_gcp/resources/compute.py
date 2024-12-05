@@ -5419,7 +5419,7 @@ class GcpNotificationEndpointGrpcSettings:
 
 
 @define(eq=False, slots=False)
-class GcpNotificationEndpoint(GcpResource, PhantomBaseResource):
+class GcpNotificationEndpoint(GcpResource):
     kind: ClassVar[str] = "gcp_notification_endpoint"
     _kind_display: ClassVar[str] = "GCP Notification Endpoint"
     _kind_description: ClassVar[str] = "GCP Notification Endpoint is a Google Cloud Platform service that receives and processes notifications from various GCP resources. It acts as a central point for collecting and routing alerts, updates, and event data. Users can configure endpoints to direct notifications to specific destinations like email, SMS, or third-party applications for monitoring and response purposes."  # fmt: skip

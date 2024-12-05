@@ -210,64 +210,57 @@ class GraphBuilder:
             self.add_edge(node, node=node._region, reverse=True)
             return
 
-        def associate_with_zone(zone_name: str) -> Optional[GcpZone]:
-            """Associates a node with a zone and its corresponding region."""
-            zone = self.zone_by_name.get(zone_name)
-            if zone:
-                region = self.region_by_zone_name.get(zone.id)
+        def set_zone_or_region(location_name: str) -> bool:
+            return set_zone(location_name) or set_region(location_name)
+
+        def set_zone(location_name: str) -> bool:
+            if zone := self.zone_by_name.get(location_name):
                 node._zone = zone
-                node._region = region
-                self.add_edge(zone, node=node, reverse=True)
-                # if region:
-                #     self.add_edge(region, node=node, reverse=True)
-            else:
-                log.debug(
-                    "Zone '%s' found but no corresponding zone object is available to associate with the node.",
-                    zone_name,
-                )
-            return zone
-
-        def associate_with_region(region_name: str) -> Optional[GcpRegion]:
-            """Associates a node with a region."""
-            region = self.region_by_name.get(region_name)
-            if region:
-                node._region = region
-                self.add_edge(region, node=node, reverse=True)
-            else:
-                log.debug(
-                    "Region '%s' found but no corresponding region object is available to associate with the node.",
-                    region_name,
-                )
-            return region
-
-        def extract_and_process_location(location_name: str) -> bool:
-            """Attempts to associate a node based on a location name."""
-            # Check for zone first
-            if associate_with_zone(location_name):
+                node._region = self.region_by_zone_name.get(zone.id)
+                self.add_edge(zone, node=node)
                 return True
-            # Then check for region
-            return bool(associate_with_region(location_name))
 
-        # Parse node ID
+            return False
+
+        def set_region(location_name: str) -> bool:
+            if region := self.region_by_name.get(location_name):
+                node._region = region
+                self.add_edge(node, node=region, reverse=True)
+                return True
+            else:
+                log.debug(
+                    "Region property '%s' found in the source but no corresponding region object is available to associate with the node.",
+                    location_name,
+                )
+            return False
+
         parts = node.id.split("/", maxsplit=4)
-        if len(parts) > 3 and parts[0] == "projects" and parts[2] in ["locations", "zones", "regions"]:
-            location_name = parts[3]
-            if extract_and_process_location(location_name):
-                return
+        if len(parts) > 3 and parts[0] == "projects":
+            if parts[2] in ["locations", "zones", "regions"]:
+                location_name = parts[3].lower()
+                if set_zone_or_region(location_name):
+                    return
 
-        if source:
-            for prop in [ZoneProp, InternalZoneProp, RegionProp, LocationProp]:
-                if prop in source:
-                    location_name = source[prop].lower().rsplit("/", 1)[-1]
-                    if prop in {ZoneProp, InternalZoneProp}:
-                        if associate_with_zone(location_name):
-                            return
-                    elif prop in {RegionProp}:
-                        if associate_with_region(location_name):
-                            return
-                    else:
-                        if extract_and_process_location(location_name):
-                            return
+        if source is not None:
+            if ZoneProp in source:
+                zone_name = source[ZoneProp].lower().rsplit("/", 1)[-1]
+                if set_zone(zone_name):
+                    return
+
+            if InternalZoneProp in source:
+                zone_name = source[InternalZoneProp].lower().rsplit("/", 1)[-1]
+                if set_zone(zone_name):
+                    return
+
+            if RegionProp in source:
+                region_name = source[RegionProp].lower().rsplit("/", 1)[-1]
+                if set_region(region_name):
+                    return
+            if LocationProp in source:
+                location_name = source[LocationProp].lower().rsplit("/", 1)[-1]
+                if set_zone_or_region(location_name):
+                    return
+
         # Fallback to GraphBuilder region, i.e. regional collection
         if self.region is not None:
             node._region = self.region
