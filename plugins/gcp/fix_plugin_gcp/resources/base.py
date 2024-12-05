@@ -219,7 +219,11 @@ class GraphBuilder:
                 node._region = self.region_by_zone_name.get(zone.id)
                 self.add_edge(zone, node=node)
                 return True
-
+            else:
+                log.debug(
+                    "Zone property '%s' found in the source but no corresponding region object is available to associate with the node.",
+                    location_name,
+                )
             return False
 
         def set_region(location_name: str) -> bool:
