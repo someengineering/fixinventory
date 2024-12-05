@@ -198,6 +198,7 @@ class GcpProjectCollector:
         rm_leaf_nodes(compute.GcpAcceleratorType)
         rm_leaf_nodes(billing.GcpSku)
         rm_leaf_nodes(billing.GcpService)
+        rm_leaf_nodes(compute.GcpInterconnectLocation)
         # remove regions that are not in use
         self.graph.remove_recursively(builder.nodes(GcpRegion, lambda r: r.compute_region_in_use(builder) is False))
 
