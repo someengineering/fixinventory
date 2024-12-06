@@ -35,7 +35,6 @@ from fixlib.baseresources import (
     BaseSnapshot,
     BaseVolumeType,
     MetricName,
-    MetricUnit,
     VolumeStatus,
     BaseAutoScalingGroup,
     InstanceStatus,
@@ -1095,9 +1094,8 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
 
         graph_builder.submit_work(service_name, collect_disk_types)
 
-    @classmethod
-    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
-        volume_id = cls.id
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AzureMetricQuery]:
+        volume_id = self.id
         queries = []
         delta = builder.metrics_delta
 
@@ -2998,9 +2996,8 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
 
         graph_builder.submit_work(service_name, collect_vm_sizes)
 
-    @classmethod
-    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
-        vm_id = cls.id
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AzureMetricQuery]:
+        vm_id = self.id
         queries = []
         delta = builder.metrics_delta
 

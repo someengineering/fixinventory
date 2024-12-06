@@ -943,8 +943,7 @@ class AzureStorageAccount(MicrosoftResource):
                 clazz=AzureStorageSku,
             )
 
-    @classmethod
-    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AzureMetricQuery]:
         queries = []
         start = builder.metrics_start
         now = builder.created_at
@@ -953,7 +952,7 @@ class AzureStorageAccount(MicrosoftResource):
         if delta.total_seconds() < 3600:
             delta = timedelta(hours=1)
             start = now - delta
-        account_id = cls.id
+        account_id = self.id
         blob_instance_id = account_id + "/blobServices/default"
         file_instance_id = account_id + "/fileServices/default"
         table_instance_id = account_id + "/tableServices/default"

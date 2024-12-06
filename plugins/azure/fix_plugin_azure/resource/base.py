@@ -191,8 +191,7 @@ class MicrosoftResource(BaseResource):
         # Default behavior: add resource to the namespace
         pass
 
-    @classmethod
-    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[AzureMetricQuery]:
         # Default behavior: do nothing
         return []
 
