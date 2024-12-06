@@ -19,14 +19,14 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateEndpointConnection,
     AzureMetricQuery,
 )
-from fix_plugin_azure.resource.metrics import AzureMetricData, update_resource_metrics
+from fix_plugin_azure.resource.metrics import normalizer_factory
 from fix_plugin_azure.resource.network import (
     AzureNetworkSecurityGroup,
     AzureNetworkSubnet,
     AzureNetworkInterface,
     AzureNetworkLoadBalancer,
 )
-from fix_plugin_azure.utils import MetricNormalization, rgetvalue
+from fix_plugin_azure.utils import rgetvalue
 from fixlib.baseresources import (
     BaseInstance,
     BaseKeyPair,
@@ -1096,58 +1096,51 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
         graph_builder.submit_work(service_name, collect_disk_types)
 
     @classmethod
-    def collect_usage_metrics(cls, builder: GraphBuilder) -> AzureMetricQuery:
-        volumes = {volume.id: volume for volume in collected_resources if volume}
+    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
+        volume_id = cls.id
         queries = []
-        start = builder.metrics_start
-        now = builder.created_at
         delta = builder.metrics_delta
-        for volume_id in volumes:
-            queries.extend(
-                [
-                    AzureMetricQuery.create(
-                        metric_name=metric_name,
-                        metric_namespace="microsoft.compute/disks",
-                        instance_id=volume_id,
-                        aggregation=("average",),
-                        ref_id=volume_id,
-                        unit="BytesPerSecond",
-                    )
-                    for metric_name in ["Composite Disk Write Bytes/sec", "Composite Disk Read Bytes/sec"]
+
+        queries.extend(
+            [
+                AzureMetricQuery.create(
+                    metric_name=name,
+                    metric_namespace="microsoft.compute/disks",
+                    metric_normalization_name=metric_name,
+                    instance_id=volume_id,
+                    aggregation=("average",),
+                    ref_id=volume_id,
+                    unit="BytesPerSecond",
+                    period=delta,
+                    normalization=normalizer_factory.bytes,
+                )
+                for name, metric_name in [
+                    ("Composite Disk Write Bytes/sec", MetricName.VolumeWrite),
+                    ("Composite Disk Read Bytes/sec", MetricName.VolumeRead),
                 ]
-            )
-            queries.extend(
-                [
-                    AzureMetricQuery.create(
-                        metric_name=metric_name,
-                        metric_namespace="microsoft.compute/disks",
-                        instance_id=volume_id,
-                        aggregation=("average",),
-                        ref_id=volume_id,
-                        unit="CountPerSecond",
-                    )
-                    for metric_name in ["Composite Disk Write Operations/sec", "Composite Disk Read Operations/sec"]
+            ]
+        )
+        queries.extend(
+            [
+                AzureMetricQuery.create(
+                    metric_name=name,
+                    metric_namespace="microsoft.compute/disks",
+                    metric_normalization_name=metric_name,
+                    instance_id=volume_id,
+                    aggregation=("average",),
+                    ref_id=volume_id,
+                    period=delta,
+                    unit="CountPerSecond",
+                    normalization=normalizer_factory.iops,
+                )
+                for name, metric_name in [
+                    ("Composite Disk Write Operations/sec", MetricName.VolumeWrite),
+                    ("Composite Disk Read Operations/sec", MetricName.VolumeRead),
                 ]
-            )
+            ]
+        )
 
-        metric_normalizers = {
-            "Composite Disk Write Bytes/sec": MetricNormalization(
-                metric_name=MetricName.VolumeWrite, unit=MetricUnit.Bytes
-            ),
-            "Composite Disk Read Bytes/sec": MetricNormalization(
-                metric_name=MetricName.VolumeRead, unit=MetricUnit.Bytes
-            ),
-            "Composite Disk Write Operations/sec": MetricNormalization(
-                metric_name=MetricName.VolumeWrite, unit=MetricUnit.IOPS
-            ),
-            "Composite Disk Read Operations/sec": MetricNormalization(
-                metric_name=MetricName.VolumeRead, unit=MetricUnit.IOPS
-            ),
-        }
-
-        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
-
-        update_resource_metrics(volumes, metric_result, metric_normalizers)
+        return queries
 
     @staticmethod
     def _get_nearest_size(size: int, lookup_map: Dict[int, Any]) -> int:
@@ -2977,12 +2970,6 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                 # Collect VM sizes for the VM in this location
                 AzureComputeVirtualMachineBase._collect_vm_sizes(builder, location)
 
-            if builder.config.collect_usage_metrics:
-                try:
-                    cls.collect_usage_metrics(builder, collected)
-                except Exception as e:
-                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
-
             return collected
 
         return []
@@ -3012,80 +2999,80 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
         graph_builder.submit_work(service_name, collect_vm_sizes)
 
     @classmethod
-    def collect_usage_metrics(cls, builder: GraphBuilder) -> AzureMetricQuery:
-        virtual_machines = {vm.id: vm for vm in collected_resources if vm}
+    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
+        vm_id = cls.id
         queries = []
-        start = builder.metrics_start
-        now = builder.created_at
         delta = builder.metrics_delta
-        for vm_id in virtual_machines:
-            queries.append(
+
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="Percentage CPU",
+                metric_namespace="Microsoft.Compute/virtualMachines",
+                metric_normalization_name=MetricName.CpuUtilization,
+                instance_id=vm_id,
+                aggregation=("average", "minimum", "maximum"),
+                ref_id=vm_id,
+                unit="Percent",
+                period=delta,
+                normalization=normalizer_factory.percent,
+            )
+        )
+        queries.extend(
+            [
                 AzureMetricQuery.create(
-                    metric_name="Percentage CPU",
+                    metric_name=name,
                     metric_namespace="Microsoft.Compute/virtualMachines",
+                    metric_normalization_name=metric_name,
                     instance_id=vm_id,
                     aggregation=("average", "minimum", "maximum"),
                     ref_id=vm_id,
-                    unit="Percent",
+                    unit="Bytes",
+                    period=delta,
+                    normalization=normalizer_factory.bytes,
                 )
-            )
-            queries.extend(
-                [
-                    AzureMetricQuery.create(
-                        metric_name=metric_name,
-                        metric_namespace="Microsoft.Compute/virtualMachines",
-                        instance_id=vm_id,
-                        aggregation=("average", "minimum", "maximum"),
-                        ref_id=vm_id,
-                        unit="Bytes",
-                    )
-                    for metric_name in ["Disk Write Bytes", "Disk Read Bytes"]
+                for name, metric_name in [
+                    ("Disk Write Bytes", MetricName.DiskWrite),
+                    ("Disk Read Bytes", MetricName.DiskRead),
                 ]
-            )
-            queries.extend(
-                [
-                    AzureMetricQuery.create(
-                        metric_name=metric_name,
-                        metric_namespace="Microsoft.Compute/virtualMachines",
-                        instance_id=vm_id,
-                        aggregation=("average", "minimum", "maximum"),
-                        ref_id=vm_id,
-                        unit="CountPerSecond",
-                    )
-                    for metric_name in ["Disk Write Operations/Sec", "Disk Read Operations/Sec"]
+            ]
+        )
+        queries.extend(
+            [
+                AzureMetricQuery.create(
+                    metric_name=name,
+                    metric_namespace="Microsoft.Compute/virtualMachines",
+                    metric_normalization_name=metric_name,
+                    instance_id=vm_id,
+                    aggregation=("average", "minimum", "maximum"),
+                    ref_id=vm_id,
+                    unit="CountPerSecond",
+                    period=delta,
+                    normalization=normalizer_factory.iops,
+                )
+                for name, metric_name in [
+                    ("Disk Write Operations/Sec", MetricName.DiskWrite),
+                    ("Disk Read Operations/Sec", MetricName.DiskRead),
                 ]
-            )
-            queries.extend(
-                [
-                    AzureMetricQuery.create(
-                        metric_name=metric_name,
-                        metric_namespace="Microsoft.Compute/virtualMachines",
-                        instance_id=vm_id,
-                        aggregation=("average", "minimum", "maximum"),
-                        ref_id=vm_id,
-                        unit="Bytes",
-                    )
-                    for metric_name in ["Network In", "Network Out"]
-                ]
-            )
+            ]
+        )
+        queries.extend(
+            [
+                AzureMetricQuery.create(
+                    metric_name=name,
+                    metric_namespace="Microsoft.Compute/virtualMachines",
+                    metric_normalization_name=metric_name,
+                    instance_id=vm_id,
+                    aggregation=("average", "minimum", "maximum"),
+                    ref_id=vm_id,
+                    unit="Bytes",
+                    period=delta,
+                    normalization=normalizer_factory.bytes,
+                )
+                for name, metric_name in [("Network In", MetricName.NetworkIn), ("Network Out", MetricName.NetworkOut)]
+            ]
+        )
 
-        metric_normalizers = {
-            "Percentage CPU": MetricNormalization(
-                metric_name=MetricName.CpuUtilization,
-                unit=MetricUnit.Percent,
-                normalize_value=lambda x: round(x, ndigits=3),
-            ),
-            "Network In": MetricNormalization(metric_name=MetricName.NetworkIn, unit=MetricUnit.Bytes),
-            "Network Out": MetricNormalization(metric_name=MetricName.NetworkOut, unit=MetricUnit.Bytes),
-            "Disk Read Operations/Sec": MetricNormalization(metric_name=MetricName.DiskRead, unit=MetricUnit.IOPS),
-            "Disk Write Operations/Sec": MetricNormalization(metric_name=MetricName.DiskWrite, unit=MetricUnit.IOPS),
-            "Disk Read Bytes": MetricNormalization(metric_name=MetricName.DiskRead, unit=MetricUnit.Bytes),
-            "Disk Write Bytes": MetricNormalization(metric_name=MetricName.DiskWrite, unit=MetricUnit.Bytes),
-        }
-
-        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
-
-        update_resource_metrics(virtual_machines, metric_result, metric_normalizers)
+        return queries
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if placement_group_id := self.proximity_placement_group:

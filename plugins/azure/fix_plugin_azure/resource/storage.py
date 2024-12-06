@@ -14,16 +14,14 @@ from fix_plugin_azure.resource.base import (
     AzureManagedServiceIdentity,
     AzurePrivateEndpointConnection,
     AzureMetricQuery,
-    MetricNormalization,
 )
-from fix_plugin_azure.resource.metrics import AzureMetricData, normalizer_factory, update_resource_metrics
+from fix_plugin_azure.resource.metrics import normalizer_factory
 from fixlib.baseresources import (
     BaseBucket,
     BaseNetworkShare,
     BaseQueue,
     EdgeType,
     MetricName,
-    MetricUnit,
     ModelReference,
     PhantomBaseResource,
     QueueType,
