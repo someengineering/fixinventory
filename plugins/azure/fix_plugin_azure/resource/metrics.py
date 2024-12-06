@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import datetime, timedelta
-from concurrent.futures import as_completed
+from functools import cached_property
 import logging
 from typing import ClassVar, Dict, Optional, List, Tuple, TypeVar
 
@@ -11,9 +11,14 @@ from azure.core.exceptions import (
 from attr import define, field
 
 from fix_plugin_azure.azure_client import AzureResourceSpec
-from fix_plugin_azure.resource.base import GraphBuilder
-from fix_plugin_azure.utils import MetricNormalization
-from fixlib.baseresources import BaseResource
+from fix_plugin_azure.resource.base import (
+    GraphBuilder,
+    AzureMetricQuery,
+    MetricNormalization,
+    STAT_MAP,
+    MicrosoftResource,
+)
+from fixlib.baseresources import BaseResource, MetricUnit
 from fixlib.json import from_json
 from fixlib.json_bender import Bender, S, ForallBend, Bend, bend
 from fixlib.utils import utc_str
@@ -93,39 +98,6 @@ class AzureMetricValue:
     timeseries: Optional[List[AzureMetricTimeSeries]] = field(default=None)
 
 
-@define(hash=True, frozen=True)
-class AzureMetricQuery:
-    metric_name: str
-    metric_namespace: str
-    ref_id: str
-    instance_id: str
-    metric_id: str
-    aggregation: Tuple[str, ...]
-    unit: str = "Count"
-
-    @staticmethod
-    def create(
-        metric_name: str,
-        metric_namespace: str,
-        instance_id: str,
-        ref_id: str,
-        aggregation: Tuple[str, ...],
-        metric_id: Optional[str] = None,
-        unit: str = "Count",
-    ) -> "AzureMetricQuery":
-        metric_id = f"{instance_id}/providers/Microsoft.Insights/metrics/{metric_name}"
-        # noinspection PyTypeChecker
-        return AzureMetricQuery(
-            metric_name=metric_name,
-            metric_namespace=metric_namespace,
-            instance_id=instance_id,
-            metric_id=metric_id,
-            aggregation=aggregation,
-            ref_id=ref_id,
-            unit=unit,
-        )
-
-
 @define(eq=False, slots=False)
 class AzureMetricData:
     kind: ClassVar[str] = "azure_metric"
@@ -193,27 +165,11 @@ class AzureMetricData:
     @staticmethod
     def query_for(
         builder: GraphBuilder,
+        resource: MicrosoftResource,
         queries: List[AzureMetricQuery],
         start_time: datetime,
         end_time: datetime,
-        delta: timedelta,
-    ) -> "Dict[AzureMetricQuery, AzureMetricData]":
-        """
-        A static method to query Azure metrics for multiple queries simultaneously.
-
-        Args:
-            builder (GraphBuilder): An instance of GraphBuilder used for submitting work.
-            queries (List[AzureMetricQuery]): A list of AzureMetricQuery objects representing the metrics to query.
-            start_time (datetime): The start time for the metrics query.
-            end_time (datetime): The end time for the metrics query.
-            delta (timedelta): The delta over which to aggregate the metrics.
-
-        Returns:
-            Dict[AzureMetricQuery, AzureMetricData]: A dictionary mapping each query to its corresponding metric data.
-        """
-        # Create a lookup dictionary for efficient mapping of metric IDs to queries
-        lookup = {q.metric_id: q for q in queries}
-        result: Dict[AzureMetricQuery, AzureMetricData] = {}
+    ) -> None:
 
         # Define API specifications for querying Azure metrics
         api_spec = AzureResourceSpec(
@@ -234,34 +190,19 @@ class AzureMetricData:
             access_path=None,
             expect_array=False,
         )
-        # Define the timespan and interval for the query
-        timespan = f"{utc_str(start_time)}/{utc_str(end_time)}"
-        interval = AzureMetricData.compute_interval(delta)
 
         # Submit queries for each AzureMetricQuery
-        futures = []
         for query in queries:
-            future = builder.submit_work(
+            builder.submit_work(
                 service_name,
                 AzureMetricData._query_for_single,
                 builder,
                 query,
                 api_spec,
-                timespan,
-                interval,
+                start_time,
+                end_time,
+                resource,
             )
-            futures.append(future)
-
-        # Retrieve results from submitted queries and populate the result dictionary
-        for future in as_completed(futures):
-            try:
-                metric, metric_id = future.result()
-                if metric is not None and metric_id is not None:
-                    result[lookup[metric_id]] = metric
-            except Exception as e:
-                log.warning(f"An error occurred while processing a metric query: {e}")
-                raise e
-        return result
 
     @staticmethod
     def _query_for_single(
@@ -269,14 +210,19 @@ class AzureMetricData:
         query: AzureMetricQuery,
         api_spec: AzureResourceSpec,
         timespan: str,
-        interval: str,
-    ) -> "Tuple[Optional[AzureMetricData], Optional[str]]":
+        start_time: datetime,
+        end_time: datetime,
+        resource: MicrosoftResource,
+    ) -> None:
         try:
             local_api_spec = deepcopy(api_spec)
             # Set the path for the API call based on the instance ID of the query
             local_api_spec.path = f"{query.instance_id}/providers/Microsoft.Insights/metrics"
             # Retrieve metric data from the API
             aggregation = ",".join(query.aggregation)
+            # Define the timespan and interval for the query
+            timespan = f"{utc_str(query.custom_start_time or start_time)}/{utc_str(end_time)}"
+            interval = AzureMetricData.compute_interval(query.period)
             part = builder.client.list(
                 local_api_spec,
                 metricnames=query.metric_name,
@@ -291,37 +237,87 @@ class AzureMetricData:
             for single in part:
                 metric: AzureMetricData = from_json(bend(AzureMetricData.mapping, single), AzureMetricData)
                 metric.set_values(query.aggregation)
-                metric_id = metric.metric_id
-                if metric_id is not None:
-                    return metric, metric_id
-            return None, None
+                update_resource_metrics(resource, query, metric)
         except HttpResponseError as e:
             # Handle unsupported metric namespace error
-            log.warning(f"Request error occurred: {e}.")
-            return None, None
+            log.warning(f"Request error occurredwhile processing metrics: {e}.")
         except Exception as e:
-            raise e
+            log.warning(f"An error occurred while processing metrics: {e}.")
 
 
 V = TypeVar("V", bound=BaseResource)
 
 
 def update_resource_metrics(
-    resources_map: Dict[str, V],
-    metric_result: Dict[AzureMetricQuery, AzureMetricData],
-    metric_normalizers: Dict[str, MetricNormalization],
+    resource: MicrosoftResource,
+    query: AzureMetricQuery,
+    metric: AzureMetricData,
 ) -> None:
-    for query, metric in metric_result.items():
-        resource = resources_map.get(query.ref_id)
-        if resource is None:
-            continue
-        metric_data = metric.metric_values
-        if metric_data:
-            for aggregation, metric_value in metric_data.items():
-                normalizer = metric_normalizers.get(query.metric_name)
-                if not normalizer:
-                    continue
-                name = normalizer.metric_name + "_" + normalizer.unit
-                value = metric_normalizers[query.metric_name].normalize_value(metric_value)
 
-                resource._resource_usage[name][normalizer.stat_map[aggregation]] = value
+    metric_data = metric.metric_values
+    normalizer = query.normalization
+    if metric_data:
+        for aggregation, metric_value in metric_data.items():
+            name = query.metric_normalization_name + "_" + normalizer.unit
+            value = normalizer.normalize_value(metric_value)
+            stat_name = STAT_MAP.get(aggregation)
+            try:
+                if stat_name:
+                    resource._resource_usage[name][str(stat_name)] = value
+            except KeyError as e:
+                log.warning(f"An error occurred while setting metric values: {e}")
+                raise
+
+
+class NormalizerFactory:
+    @cached_property
+    def count(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Count,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def bytes(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Bytes,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def bytes_per_second(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.BytesPerSecond,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def iops(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.IOPS,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def seconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Seconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def milliseconds(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Milliseconds,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+    @cached_property
+    def percent(self) -> MetricNormalization:
+        return MetricNormalization(
+            unit=MetricUnit.Percent,
+            normalize_value=lambda x: round(x, ndigits=4),
+        )
+
+
+normalizer_factory = NormalizerFactory()

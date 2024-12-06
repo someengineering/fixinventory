@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from concurrent.futures import Future
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Callable, cast, Union, Set
+from typing import Any, ClassVar, Dict, Optional, TypeVar, List, Type, Tuple, Callable, cast, Union, Set
 
 from attr import define, field
+from attrs import frozen
 from azure.identity import DefaultAzureCredential
 
 from fix_plugin_azure.azure_client import AzureResourceSpec, MicrosoftClient, MicrosoftRestSpec
@@ -20,6 +21,9 @@ from fixlib.baseresources import (
     BaseRegion,
     ModelReference,
     PhantomBaseResource,
+    StatName,
+    MetricName,
+    MetricUnit,
 )
 from fixlib.config import current_config
 from fixlib.core.actions import CoreFeedback
@@ -188,11 +192,9 @@ class MicrosoftResource(BaseResource):
         pass
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[MicrosoftResourceType], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
-    ) -> None:
+    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
         # Default behavior: do nothing
-        pass
+        return []
 
     @classmethod
     def collect_resources(
@@ -203,13 +205,7 @@ class MicrosoftResource(BaseResource):
         if spec := cls.api_spec:
             try:
                 items = builder.client.list(spec, **kwargs)
-                collected = cls.collect(items, builder)
-                if builder.config.collect_usage_metrics:
-                    try:
-                        cls.collect_usage_metrics(builder, collected)
-                    except Exception as e:
-                        log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
-                return collected
+                return cls.collect(items, builder)
             except Exception as e:
                 msg = f"Error while collecting {cls.__name__} with service {spec.service} and location: {builder.location}: {e}"
                 builder.core_feedback.info(msg, log)
@@ -1005,6 +1001,65 @@ class GraphBuilder:
             config=self.config,
             last_run_started_at=self.last_run_started_at,
             after_collect_actions=self.after_collect_actions,
+        )
+
+
+STAT_MAP: Dict[str, StatName] = {
+    "minimum": StatName.min,
+    "average": StatName.avg,
+    "maximum": StatName.max,
+}
+
+
+@frozen(kw_only=True)
+class MetricNormalization:
+    unit: MetricUnit
+    normalize_value: Callable[[float], float] = lambda x: x
+
+
+@define(hash=True, frozen=True)
+class AzureMetricQuery:
+    metric_name: str
+    metric_namespace: str
+    metric_normalization_name: MetricName
+    ref_id: str
+    instance_id: str
+    metric_id: str
+    aggregation: Tuple[str, ...]
+    period: timedelta
+    normalization: MetricNormalization
+    custom_start_time: Optional[datetime] = None
+    unit: str = "Count"
+
+    @staticmethod
+    def create(
+        *,
+        metric_name: str,
+        metric_namespace: str,
+        metric_normalization_name: MetricName,
+        instance_id: str,
+        ref_id: str,
+        normalization: MetricNormalization,
+        period: timedelta,
+        aggregation: Tuple[str, ...],
+        unit: str = "Count",
+        custom_start_time: Optional[datetime] = None,
+        metric_id: Optional[str] = None,
+    ) -> "AzureMetricQuery":
+        metric_id = f"{instance_id}/providers/Microsoft.Insights/metrics/{metric_name}"
+        # noinspection PyTypeChecker
+        return AzureMetricQuery(
+            metric_name=metric_name,
+            metric_namespace=metric_namespace,
+            metric_normalization_name=metric_normalization_name,
+            instance_id=instance_id,
+            metric_id=metric_id,
+            aggregation=aggregation,
+            ref_id=ref_id,
+            unit=unit,
+            normalization=normalization,
+            period=period,
+            custom_start_time=custom_start_time,
         )
 
 

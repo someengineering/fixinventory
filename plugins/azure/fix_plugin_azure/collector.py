@@ -39,6 +39,7 @@ from fix_plugin_azure.resource.microsoft_graph import (
     MicrosoftGraphOrganizationRoot,
 )
 from fix_plugin_azure.resource.monitor import resources as monitor_resources
+from fix_plugin_azure.resource.metrics import AzureMetricData
 from fix_plugin_azure.resource.mysql import AzureMysqlServerType, resources as mysql_resources
 from fix_plugin_azure.resource.network import (
     AzureNetworkExpressRoutePortsLocation,
@@ -159,6 +160,13 @@ class MicrosoftBaseCollector:
             for after_collect in builder.after_collect_actions:
                 after_collect()
 
+            if builder.config.collect_usage_metrics:
+                try:
+                    self.collect_usage_metrics(builder)
+                    builder.executor.wait_for_submitted_work()
+                except Exception as e:
+                    log.warning(f"[Azure]Failed to collect usage metrics in project {self.account.safe_name}: {e}")
+
             # connect nodes
             log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
@@ -183,6 +191,12 @@ class MicrosoftBaseCollector:
             error_accumulator.report_all(self.core_feedback)
             self.core_feedback.progress_done(self.account.id, 1, 1, context=[self.cloud.id])
             log.info(f"[Azure:{self.account.safe_name}] Collecting resources done.")
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> None:
+        for resource in builder.graph.nodes:
+            if isinstance(resource, MicrosoftResource) and (mq := resource.collect_usage_metrics(builder)):
+                start_at = builder.created_at - builder.metrics_delta
+                AzureMetricData.query_for(builder, resource, mq, start_at, builder.created_at)
 
     def collect_resource_list(
         self, name: str, builder: GraphBuilder, resources: List[Type[MicrosoftResource]]

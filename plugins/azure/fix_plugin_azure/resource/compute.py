@@ -17,8 +17,9 @@ from fix_plugin_azure.resource.base import (
     AzureExtendedLocation,
     AzurePrincipalClient,
     AzurePrivateEndpointConnection,
+    AzureMetricQuery,
 )
-from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
+from fix_plugin_azure.resource.metrics import AzureMetricData, update_resource_metrics
 from fix_plugin_azure.resource.network import (
     AzureNetworkSecurityGroup,
     AzureNetworkSubnet,
@@ -1064,11 +1065,6 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
                 AzureComputeDisk._collect_disk_types(builder, d_loc)
                 # Create additional custom disk sizes for disks with Ultra SSD or Premium SSD v2 types
                 AzureComputeDiskType.create_unique_disk_sizes(disks, builder, d_loc)
-            if builder.config.collect_usage_metrics:
-                try:
-                    cls.collect_usage_metrics(builder, collected)
-                except Exception as e:
-                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
             return collected
         return []
 
@@ -1100,9 +1096,7 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
         graph_builder.submit_work(service_name, collect_disk_types)
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[MicrosoftResource], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
-    ) -> None:
+    def collect_usage_metrics(cls, builder: GraphBuilder) -> AzureMetricQuery:
         volumes = {volume.id: volume for volume in collected_resources if volume}
         queries = []
         start = builder.metrics_start
@@ -3018,9 +3012,7 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
         graph_builder.submit_work(service_name, collect_vm_sizes)
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[MicrosoftResource], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
-    ) -> None:
+    def collect_usage_metrics(cls, builder: GraphBuilder) -> AzureMetricQuery:
         virtual_machines = {vm.id: vm for vm in collected_resources if vm}
         queries = []
         start = builder.metrics_start

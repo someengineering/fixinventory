@@ -8,15 +8,15 @@ from fix_plugin_azure.azure_client import AzureResourceSpec
 from fix_plugin_azure.resource.base import (
     AzureBaseUsage,
     MicrosoftResource,
-    MicrosoftResourceType,
     GraphBuilder,
     AzureExtendedLocation,
     AzureSku,
     AzureManagedServiceIdentity,
     AzurePrivateEndpointConnection,
+    AzureMetricQuery,
+    MetricNormalization,
 )
-from fix_plugin_azure.resource.metrics import AzureMetricData, AzureMetricQuery, update_resource_metrics
-from fix_plugin_azure.utils import MetricNormalization
+from fix_plugin_azure.resource.metrics import AzureMetricData, normalizer_factory, update_resource_metrics
 from fixlib.baseresources import (
     BaseBucket,
     BaseNetworkShare,
@@ -946,129 +946,149 @@ class AzureStorageAccount(MicrosoftResource):
             )
 
     @classmethod
-    def collect_usage_metrics(
-        cls: Type[MicrosoftResource], builder: GraphBuilder, collected_resources: List[MicrosoftResourceType]
-    ) -> None:
-        accounts = {storage_acc.id: storage_acc for storage_acc in collected_resources}
+    def collect_usage_metrics(cls, builder: GraphBuilder) -> List[AzureMetricQuery]:
         queries = []
         start = builder.metrics_start
         now = builder.created_at
         delta = builder.metrics_delta
-        # Minimum interval and time range for storage metrics is 1H
+        # # Minimum interval and time range for storage metrics is 1H
         if delta.total_seconds() < 3600:
             delta = timedelta(hours=1)
             start = now - delta
-        for account_id in accounts:
-            blob_instance_id = account_id + "/blobServices/default"
-            file_instance_id = account_id + "/fileServices/default"
-            table_instance_id = account_id + "/tableServices/default"
-            queue_instance_id = account_id + "/queueServices/default"
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="UsedCapacity",
-                    metric_namespace="microsoft.storage/storageaccounts",
-                    instance_id=account_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Bytes",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="TableCapacity",
-                    metric_namespace="microsoft.storage/storageaccounts/tableservices",
-                    instance_id=table_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Bytes",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="TableCount",
-                    metric_namespace="microsoft.storage/storageaccounts/tableservices",
-                    instance_id=table_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Count",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="QueueCapacity",
-                    metric_namespace="microsoft.storage/storageaccounts/queueservices",
-                    instance_id=queue_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Bytes",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="QueueCount",
-                    metric_namespace="microsoft.storage/storageaccounts/queueservices",
-                    instance_id=queue_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Count",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="FileCapacity",
-                    metric_namespace="microsoft.storage/storageaccounts/fileservices",
-                    instance_id=file_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Bytes",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="FileCount",
-                    metric_namespace="microsoft.storage/storageaccounts/fileservices",
-                    instance_id=file_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Count",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="BlobCapacity",
-                    metric_namespace="microsoft.storage/storageaccounts/blobservices",
-                    instance_id=blob_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Bytes",
-                )
-            )
-            queries.append(
-                AzureMetricQuery.create(
-                    metric_name="BlobCount",
-                    metric_namespace="microsoft.storage/storageaccounts/blobservices",
-                    instance_id=blob_instance_id,
-                    aggregation=("average",),
-                    ref_id=account_id,
-                    unit="Count",
-                )
-            )
+        account_id = cls.id
+        blob_instance_id = account_id + "/blobServices/default"
+        file_instance_id = account_id + "/fileServices/default"
+        table_instance_id = account_id + "/tableServices/default"
+        queue_instance_id = account_id + "/queueServices/default"
 
-        metric_normalizers = {
-            "UsedCapacity": MetricNormalization(metric_name=MetricName.UsedCapacity, unit=MetricUnit.Bytes),
-            "TableCapacity": MetricNormalization(metric_name=MetricName.TableCapacity, unit=MetricUnit.Bytes),
-            "TableCount": MetricNormalization(metric_name=MetricName.TableCount, unit=MetricUnit.Count),
-            "QueueCapacity": MetricNormalization(metric_name=MetricName.QueueCapacity, unit=MetricUnit.Bytes),
-            "QueueCount": MetricNormalization(metric_name=MetricName.QueueCount, unit=MetricUnit.Count),
-            "FileCapacity": MetricNormalization(metric_name=MetricName.FileCapacity, unit=MetricUnit.Bytes),
-            "FileCount": MetricNormalization(metric_name=MetricName.FileCount, unit=MetricUnit.Count),
-            "BlobCapacity": MetricNormalization(metric_name=MetricName.BlobCapacity, unit=MetricUnit.Bytes),
-            "BlobCount": MetricNormalization(metric_name=MetricName.BlobCount, unit=MetricUnit.Count),
-        }
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="UsedCapacity",
+                metric_namespace="microsoft.storage/storageaccounts",
+                metric_normalization_name=MetricName.UsedCapacity,
+                instance_id=account_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Bytes",
+                normalization=normalizer_factory.bytes,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="TableCapacity",
+                metric_namespace="microsoft.storage/storageaccounts/tableservices",
+                metric_normalization_name=MetricName.TableCapacity,
+                instance_id=table_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Bytes",
+                normalization=normalizer_factory.bytes,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="TableCount",
+                metric_namespace="microsoft.storage/storageaccounts/tableservices",
+                metric_normalization_name=MetricName.TableCount,
+                instance_id=table_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Count",
+                normalization=normalizer_factory.count,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="QueueCapacity",
+                metric_namespace="microsoft.storage/storageaccounts/queueservices",
+                metric_normalization_name=MetricName.QueueCapacity,
+                instance_id=queue_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Bytes",
+                normalization=normalizer_factory.bytes,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="QueueCount",
+                metric_namespace="microsoft.storage/storageaccounts/queueservices",
+                metric_normalization_name=MetricName.QueueCount,
+                instance_id=queue_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Count",
+                normalization=normalizer_factory.count,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="FileCapacity",
+                metric_namespace="microsoft.storage/storageaccounts/fileservices",
+                metric_normalization_name=MetricName.FileCapacity,
+                instance_id=file_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Bytes",
+                normalization=normalizer_factory.bytes,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="FileCount",
+                metric_namespace="microsoft.storage/storageaccounts/fileservices",
+                metric_normalization_name=MetricName.FileCount,
+                instance_id=file_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Count",
+                normalization=normalizer_factory.count,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="BlobCapacity",
+                metric_namespace="microsoft.storage/storageaccounts/blobservices",
+                metric_normalization_name=MetricName.BlobCapacity,
+                instance_id=blob_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Bytes",
+                normalization=normalizer_factory.bytes,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
+        queries.append(
+            AzureMetricQuery.create(
+                metric_name="BlobCount",
+                metric_namespace="microsoft.storage/storageaccounts/blobservices",
+                metric_normalization_name=MetricName.BlobCount,
+                instance_id=blob_instance_id,
+                aggregation=("average",),
+                ref_id=account_id,
+                unit="Count",
+                normalization=normalizer_factory.count,
+                period=delta,
+                custom_start_time=start,
+            )
+        )
 
-        metric_result = AzureMetricData.query_for(builder, queries, start, now, delta)
-
-        update_resource_metrics(accounts, metric_result, metric_normalizers)
+        return queries
 
 
 @define(eq=False, slots=False)
