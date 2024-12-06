@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Callable, Dict, TypeVar, Any
-from attr import frozen
+from typing import Dict, TypeVar, Any
 import functools
 
 from fixlib.json_bender import F
