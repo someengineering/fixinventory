@@ -166,7 +166,7 @@ class MicrosoftBaseCollector:
                     self.collect_usage_metrics(builder)
                     builder.executor.wait_for_submitted_work()
                 except Exception as e:
-                    log.warning(f"[Azure]Failed to collect usage metrics in project {self.account.safe_name}: {e}")
+                    log.warning(f"[Azure] Failed to collect usage metrics in project {self.account.safe_name}: {e}")
 
             # connect nodes
             log.info(f"[Azure:{self.account.safe_name}] Connect resources and create edges.")
