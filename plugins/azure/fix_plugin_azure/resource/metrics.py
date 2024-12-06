@@ -209,7 +209,6 @@ class AzureMetricData:
         builder: GraphBuilder,
         query: AzureMetricQuery,
         api_spec: AzureResourceSpec,
-        timespan: str,
         start_time: datetime,
         end_time: datetime,
         resource: MicrosoftResource,

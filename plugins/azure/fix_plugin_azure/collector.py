@@ -162,6 +162,7 @@ class MicrosoftBaseCollector:
 
             if builder.config.collect_usage_metrics:
                 try:
+                    log.info(f"[Azure:{self.account.safe_name}]  Collect usage metrics.")
                     self.collect_usage_metrics(builder)
                     builder.executor.wait_for_submitted_work()
                 except Exception as e:
