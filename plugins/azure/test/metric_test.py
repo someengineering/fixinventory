@@ -1,7 +1,10 @@
 from datetime import timedelta, datetime, timezone
-from fix_plugin_azure.resource.base import GraphBuilder
+from fix_plugin_azure.resource.base import GraphBuilder, AzureMetricQuery
 
-from fix_plugin_azure.resource.metrics import AzureMetricQuery, AzureMetricData
+from fix_plugin_azure.resource.compute import AzureComputeVirtualMachine
+from fix_plugin_azure.resource.metrics import AzureMetricData, normalizer_factory
+
+from fixlib.baseresources import MetricName
 
 
 def test_metric(builder: GraphBuilder) -> None:
@@ -9,17 +12,22 @@ def test_metric(builder: GraphBuilder) -> None:
     earlier = now - timedelta(days=60)
     delta = now - earlier
     resource_id = "/subscriptions/rwqrr2-31f1-rwqrrw-5325-wrq2r/resourceGroups/FOO/providers/Microsoft.Compute/virtualMachines/test1"
+    vm = AzureComputeVirtualMachine(id=resource_id, name="test1")
     write = AzureMetricQuery.create(
-        "Disk Write Operations/Sec",
-        "Microsoft.Compute/virtualMachines",
-        resource_id,
-        resource_id,
-        ("average", "minimum", "maximum"),
+        metric_name="Disk Write Operations/Sec",
+        metric_namespace="Microsoft.Compute/virtualMachines",
+        metric_normalization_name=MetricName.DiskWrite,
+        normalization=normalizer_factory.iops,
+        period=delta,
+        instance_id=resource_id,
+        ref_id=resource_id,
+        aggregation=("average", "minimum", "maximum"),
         unit="CountPerSecond",
     )
-    result = AzureMetricData.query_for(builder=builder, queries=[write], start_time=earlier, end_time=now, delta=delta)
-    assert result[write].metric_values == {
-        "average": 247685.56222444447,
-        "minimum": 291286.29000000004,
-        "maximum": 193903.44666666666,
+    AzureMetricData.query_for(builder=builder, resource=vm, queries=[write], start_time=earlier, end_time=now)
+    builder.executor.wait_for_submitted_work()
+    assert vm._resource_usage["disk_write_iops"] == {
+        "avg": 247685.5622,
+        "min": 291286.2900,
+        "max": 193903.4467,
     }
