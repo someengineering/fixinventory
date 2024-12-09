@@ -384,7 +384,7 @@ class AwsSSMResourceCompliance(AwsResource, PhantomBaseResource):
     compliance_details: Optional[Dict[str, str]] = field(default=None, metadata={"description": "A Key:Value tag combination for the compliance item."})  # fmt: skip
 
     def parse_finding(self) -> Finding:
-        title = self.title or ""
+        title = self.title or (self.compliance_details or {}).get("DocumentName") or ""
         severity = SEVERITY_MAPPING.get(self.severity or "", Severity.medium)
         details = self.compliance_details
         if self.execution_summary:

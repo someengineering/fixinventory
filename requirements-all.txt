@@ -47,7 +47,7 @@ distlib==0.3.9
 durationpy==0.9
 fastjsonschema==2.19.1
 filelock==3.16.1
-fixcompliance==0.4.35
+fixcompliance==0.4.36
 fixdatalink[extra]==2.0.2
 fixinventoryclient==2.0.1
 fixinventorydata==0.2.6
