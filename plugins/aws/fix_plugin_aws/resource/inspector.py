@@ -115,8 +115,7 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         if self.remediation and self.remediation.recommendation:
             remediation = self.remediation.recommendation.text or ""
         updated_at = self.updated_at
-        details = source.get("packageVulnerabilityDetails", {}) | source.get("codeVulnerabilityDetails", {})
-        return Finding(finding_title, finding_severity, description, remediation, updated_at, details)
+        return Finding(finding_title, finding_severity, description, remediation, updated_at, None)
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
