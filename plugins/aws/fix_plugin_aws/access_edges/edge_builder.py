@@ -1,86 +1,49 @@
-from enum import Enum
-import enum
-from functools import lru_cache
-from attr import frozen
-import networkx
-from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
-from policy_sentry.querying.actions import get_actions_for_service
-from typing import Callable, Dict, List, Literal, Set, Optional, Tuple, Union, Pattern
 import fnmatch
-from networkx.algorithms.dag import is_directed_acyclic_graph
+import logging
+import re
+from functools import lru_cache
+from typing import Callable, Dict, List, Literal, Optional, Pattern, Set, Tuple, Union
 
-from fixlib.baseresources import (
-    PermissionCondition,
-    PolicySource,
-    PermissionScope,
-    AccessPermission,
-    ResourceConstraint,
-)
-from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamUser, AwsIamRole
-from fixlib.baseresources import EdgeType, PolicySourceKind, HasResourcePolicy, PermissionLevel
-from fixlib.json import to_json, to_json_str
-from fixlib.types import Json
-
-from cloudsplaining.scan.policy_document import PolicyDocument
+import networkx
+from attr import frozen
 from cloudsplaining.scan.statement_detail import StatementDetail
-from policy_sentry.querying.actions import get_action_data
+from fix_plugin_aws.access_edges.arn_tree import PrincipalTree
+from fix_plugin_aws.access_edges.types import (
+    ActionWildcardPattern,
+    ArnResourceValueKind,
+    FixPolicyDocument,
+    FixStatementDetail,
+    ResourceWildcardPattern,
+    WildcardKind,
+)
+from fix_plugin_aws.resource.base import AwsAccount, AwsResource, GraphBuilder
+from fix_plugin_aws.resource.iam import AwsIamGroup, AwsIamPolicy, AwsIamRole, AwsIamUser
+from networkx.algorithms.dag import is_directed_acyclic_graph
+from policy_sentry.querying.actions import get_action_data, get_actions_for_service
 from policy_sentry.querying.all import get_all_actions
 from policy_sentry.querying.arns import get_matching_raw_arns, get_resource_type_name_with_raw_arn
 from policy_sentry.shared.iam_data import get_service_prefix_data
 from policy_sentry.util.arns import ARN, get_service_from_arn
+
+from fixlib.baseresources import (
+    AccessPermission,
+    EdgeType,
+    HasResourcePolicy,
+    PermissionCondition,
+    PermissionLevel,
+    PermissionScope,
+    PolicySource,
+    PolicySourceKind,
+    ResourceConstraint,
+)
 from fixlib.graph import EdgeKey
-import re
-import logging
+from fixlib.json import to_json, to_json_str
+from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.aws")
 
 
 ALL_ACTIONS = get_all_actions()
-
-
-class WildcardKind(Enum):
-    fixed = 1
-    pattern = 2
-    any = 3
-
-
-@frozen(slots=True)
-class ActionWildcardPattern:
-    pattern: str
-    service: str
-    kind: WildcardKind
-
-
-class FixStatementDetail(StatementDetail):
-    def __init__(self, statement: Json):
-        super().__init__(statement)
-
-        def pattern_from_action(action: str) -> ActionWildcardPattern:
-            if action == "*":
-                return ActionWildcardPattern(pattern=action, service="*", kind=WildcardKind.any)
-
-            action = action.lower()
-            service, action_name = action.split(":", 1)
-            if action_name == "*":
-                kind = WildcardKind.any
-            elif "*" in action_name:
-                kind = WildcardKind.pattern
-            else:
-                kind = WildcardKind.fixed
-
-            return ActionWildcardPattern(pattern=action, service=service, kind=kind)
-
-        self.actions_patterns = [pattern_from_action(action) for action in self.actions]
-        self.not_action_patterns = [pattern_from_action(action) for action in self.not_action]
-        self.resource_patterns = [ResourceWildcardPattern.from_str(resource) for resource in self.resources]
-        self.not_resource_patterns = [ResourceWildcardPattern.from_str(resource) for resource in self.not_resource]
-
-
-class FixPolicyDocument(PolicyDocument):
-    def __init__(self, policy_document: Json):
-        super().__init__(policy_document)
-
-        self.fix_statements = [FixStatementDetail(statement.json) for statement in self.statements]
 
 
 @frozen(slots=True)
@@ -89,284 +52,6 @@ class ActionToCheck:
     raw_lower: str
     service: str
     action_name: str
-
-
-class ArnResourceValueKind(enum.Enum):
-    Static = 1  # the segment is a fixed value, e.g. "s3", "vpc/vpc-0e9801d129EXAMPLE",
-    Pattern = 2  # the segment is a pattern, e.g. "my_corporate_bucket/*",
-    Any = 3  # the segment is missing, e.g. "::" or it is a wildcard, e.g. "*"
-
-    @staticmethod
-    def from_str(value: str) -> "ArnResourceValueKind":
-        if value == "*":
-            return ArnResourceValueKind.Any
-        if "*" in value:
-            return ArnResourceValueKind.Pattern
-        return ArnResourceValueKind.Static
-
-
-@frozen(slots=True)
-class ArnResource:
-    value: str
-    principal_arns: Set[str]
-    kind: ArnResourceValueKind
-    not_resource: bool
-
-    def matches(self, segment: str) -> bool:
-        _match = False
-        match self.kind:
-            case ArnResourceValueKind.Any:
-                _match = True
-            case ArnResourceValueKind.Pattern:
-                _match = fnmatch.fnmatch(segment, self.value)
-            case ArnResourceValueKind.Static:
-                _match = segment == self.value
-
-        if self.not_resource:
-            _match = not _match
-
-        return _match
-
-
-@frozen(slots=True)
-class ArnAccountId:
-    value: str
-    wildcard: bool  # if the account is a wildcard, e.g. "*" or "::"
-    principal_arns: Set[str]
-    children: List[ArnResource]
-
-    def matches(self, segment: str) -> bool:
-        return self.wildcard or self.value == segment
-
-
-@frozen(slots=True)
-class ArnRegion:
-    value: str
-    wildcard: bool  # if the region is a wildcard, e.g. "*" or "::"
-    principal_arns: Set[str]
-    children: List[ArnAccountId]
-
-    def matches(self, segment: str) -> bool:
-        return self.wildcard or self.value == segment
-
-
-@frozen(slots=True)
-class ArnService:
-    value: str
-    principal_arns: Set[str]
-    children: List[ArnRegion]
-
-    def matches(self, segment: str) -> bool:
-        return self.value == segment
-
-
-@frozen(slots=True)
-class ArnPartition:
-    value: str
-    wildcard: bool  # for the cases like "Allow": "*" on all resources
-    principal_arns: Set[str]
-    children: List[ArnService]
-
-    def matches(self, segment: str) -> bool:
-        return self.wildcard or segment == self.value
-
-
-def is_wildcard(segment: str) -> bool:
-    return segment == "*" or segment == ""
-
-
-class PrincipalTree:
-    def __init__(self) -> None:
-        self.partitions: List[ArnPartition] = []
-
-    def _add_allow_all_wildcard(self, principal_arn: str) -> None:
-        partition = next((p for p in self.partitions if p.value == "*"), None)
-        if not partition:
-            partition = ArnPartition(value="*", wildcard=True, principal_arns=set(), children=[])
-            self.partitions.append(partition)
-
-        partition.principal_arns.add(principal_arn)
-
-    def _add_resource(self, resource_constraint: str, principal_arn: str, nr: bool = False) -> None:
-        """
-        _add resource will add the principal arn at the resource level
-        """
-
-        try:
-            arn = ARN(resource_constraint)
-            # Find existing or create partition
-            partition = next((p for p in self.partitions if p.value == arn.partition), None)
-            if not partition:
-                partition = ArnPartition(value=arn.partition, wildcard=False, principal_arns=set(), children=[])
-                self.partitions.append(partition)
-
-            # Find or create service
-            service = next((s for s in partition.children if s.value == arn.service_prefix), None)
-            if not service:
-                service = ArnService(value=arn.service_prefix, principal_arns=set(), children=[])
-                partition.children.append(service)
-
-            # Find or create region
-            region_wildcard = arn.region == "*" or not arn.region
-            region = next((r for r in service.children if r.value == (arn.region or "*")), None)
-            if not region:
-                region = ArnRegion(value=arn.region or "*", wildcard=region_wildcard, principal_arns=set(), children=[])
-                service.children.append(region)
-
-            # Find or create account
-            account_wildcard = arn.account == "*" or not arn.account
-            account = next((a for a in region.children if a.value == (arn.account or "*")), None)
-            if not account:
-                account = ArnAccountId(
-                    value=arn.account or "*", wildcard=account_wildcard, principal_arns=set(), children=[]
-                )
-                region.children.append(account)
-
-            # Add resource
-            resource = next(
-                (r for r in account.children if r.value == arn.resource_string and r.not_resource == nr), None
-            )
-            if not resource:
-                if arn.resource_string == "*":
-                    resource_kind = ArnResourceValueKind.Any
-                elif "*" in arn.resource_string:
-                    resource_kind = ArnResourceValueKind.Pattern
-                else:
-                    resource_kind = ArnResourceValueKind.Static
-                resource = ArnResource(
-                    value=arn.resource_string, principal_arns=set(), kind=resource_kind, not_resource=nr
-                )
-                account.children.append(resource)
-
-            resource.principal_arns.add(principal_arn)
-
-        except Exception as e:
-            log.error(f"Error parsing ARN {principal_arn}: {e}")
-            pass
-
-    def _add_service(self, service_prefix: str, principal_arn: str) -> None:
-        # Find existing or create partition
-        partition = next((p for p in self.partitions if p.value == "*"), None)
-        if not partition:
-            partition = ArnPartition(value="*", wildcard=True, principal_arns=set(), children=[])
-            self.partitions.append(partition)
-
-        # Find or create service
-        service = next((s for s in partition.children if s.value == service_prefix), None)
-        if not service:
-            service = ArnService(value=service_prefix, principal_arns=set(), children=[])
-            partition.children.append(service)
-
-        service.principal_arns.add(principal_arn)
-
-    def add_principal(self, principal_arn: str, policy_documents: List[FixPolicyDocument]) -> None:
-        """
-        This method iterates over every policy statement and adds corresponding arns to principal tree.
-        """
-
-        for policy_doc in policy_documents:
-            for statement in policy_doc.fix_statements:
-                if statement.effect_allow:
-                    has_wildcard_resource = False
-                    for resource in statement.resources:
-                        if resource == "*":
-                            has_wildcard_resource = True
-                            continue
-                        self._add_resource(resource, principal_arn)
-                    for not_resource in statement.not_resource:
-                        self._add_resource(not_resource, principal_arn, nr=True)
-
-                    if has_wildcard_resource or (not statement.resources and not statement.not_resource):
-                        for ap in statement.actions_patterns:
-                            if ap.kind == WildcardKind.any:
-                                self._add_allow_all_wildcard(principal_arn)
-                            self._add_service(ap.service, principal_arn)
-
-    def list_principals(self, resource_arn: ARN) -> Set[str]:
-        """
-        this will be called for every resource and it must be fast
-        """
-        principals: Set[str] = set()
-
-        matching_partitions = [p for p in self.partitions if p.value if p.matches(resource_arn.partition)]
-        if not matching_partitions:
-            return principals
-
-        matching_services = [
-            s for p in matching_partitions for s in p.children if s.matches(resource_arn.service_prefix)
-        ]
-        if not matching_services:
-            return principals
-        principals.update([arn for s in matching_services for arn in s.principal_arns])
-
-        matching_regions = [r for s in matching_services for r in s.children if r.matches(resource_arn.region)]
-        if not matching_regions:
-            return principals
-        principals.update([arn for r in matching_regions for arn in r.principal_arns])
-
-        matching_account_ids = [a for r in matching_regions for a in r.children if r.matches(resource_arn.account)]
-        if not matching_account_ids:
-            return principals
-        principals.update([arn for a in matching_account_ids for arn in a.principal_arns])
-
-        matching_resources = [
-            r for a in matching_account_ids for r in a.children if r.matches(resource_arn.resource_string)
-        ]
-        if not matching_resources:
-            return principals
-
-        principals.update([arn for r in matching_resources for arn in r.principal_arns])
-
-        return principals
-
-
-@frozen(slots=True)
-class ResourceWildcardPattern:
-    raw_value: str
-    partition: str | None  # None in case the whole string is "*"
-    service: str
-    region: str
-    region_value_kind: ArnResourceValueKind
-    account: str
-    account_value_kind: ArnResourceValueKind
-    resource: str
-    resource_value_kind: ArnResourceValueKind
-
-    @staticmethod
-    def from_str(value: str) -> "ResourceWildcardPattern":
-        if value == "*":
-            return ResourceWildcardPattern(
-                raw_value=value,
-                partition=None,
-                service="*",
-                region="*",
-                region_value_kind=ArnResourceValueKind.Any,
-                account="*",
-                account_value_kind=ArnResourceValueKind.Any,
-                resource="*",
-                resource_value_kind=ArnResourceValueKind.Any,
-            )
-
-        try:
-            splitted = value.split(":", 5)
-            if len(splitted) != 6:
-                raise ValueError(f"Invalid resource pattern: {value}")
-            _, partition, service, region, account, resource = splitted
-
-            return ResourceWildcardPattern(
-                raw_value=value,
-                partition=partition,
-                service=service,
-                region=region,
-                region_value_kind=ArnResourceValueKind.from_str(region),
-                account=account,
-                account_value_kind=ArnResourceValueKind.from_str(account),
-                resource=resource,
-                resource_value_kind=ArnResourceValueKind.from_str(resource),
-            )
-        except Exception as e:
-            log.error(f"Error parsing resource pattern {value}: {e}")
-            raise e
 
 
 @frozen(slots=True)

@@ -4,7 +4,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import List, Type, Optional, Union, cast, Any
 
-from fix_plugin_aws.access_edges import AccessEdgeCreator
+from fix_plugin_aws.access_edges.edge_builder import AccessEdgeCreator
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource import (
