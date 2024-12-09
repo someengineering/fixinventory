@@ -5,9 +5,10 @@ from typing import Any, ClassVar, Dict, Optional, List, Tuple, Type
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.compute import GcpSslCertificate
-from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, ModelReference
+from fix_plugin_gcp.resources.monitoring import normalizer_factory, STANDART_STAT_MAP
+from fixlib.baseresources import BaseDatabase, DatabaseInstanceStatus, MetricName, ModelReference
 from fixlib.json_bender import F, Bender, S, Bend, ForallBend, K, MapEnum, AsInt
 from fixlib.types import Json
 
@@ -765,6 +766,74 @@ class GcpSqlDatabaseInstance(GcpResource, BaseDatabase):
                     clazz.collect(items, graph_builder)
 
                 graph_builder.submit_work(collect_sql_resources, spec, cls)
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="cloudsql.googleapis.com/database/cpu/utilization",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.CpuUtilization,
+                    normalization=normalizer_factory.percent,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.database_id": f"{builder.project.id}:{self.id}",
+                        "resource.labels.region": self.region().id,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.database_id": f"{builder.project.id}:{self.id}",
+                        "resource.labels.region": self.region().id,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    ("cloudsql.googleapis.com/database/network/connections", MetricName.DatabaseConnections),
+                    ("cloudsql.googleapis.com/database/network/sent_bytes_count", MetricName.NetworkBytesSent),
+                    ("cloudsql.googleapis.com/database/network/received_bytes_count", MetricName.NetworkBytesReceived),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.iops,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.database_id": f"{builder.project.id}:{self.id}",
+                        "resource.labels.region": self.region().id,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    ("cloudsql.googleapis.com/database/disk/read_ops_count", MetricName.DiskRead),
+                    ("cloudsql.googleapis.com/database/disk/write_ops_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+        return queries
 
     @classmethod
     def called_collect_apis(cls) -> List[GcpApiSpec]:

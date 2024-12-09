@@ -1,4 +1,3 @@
-from fixlib.proc import num_default_threads
 from fixlib.config import Config
 from fix_plugin_gcp import GCPCollectorPlugin
 
@@ -11,5 +10,5 @@ def test_args() -> None:
     assert len(Config.gcp.project) == 0
     assert len(Config.gcp.collect) == 0
     assert len(Config.gcp.no_collect) == 0
-    assert Config.gcp.project_pool_size == num_default_threads()
+    assert Config.gcp.project_pool_size == 64
     assert Config.gcp.fork_process is True

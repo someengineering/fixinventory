@@ -12,6 +12,7 @@ from fixlib.json import value_in_path
 from fixlib.types import Json
 
 InternalZoneProp = "_zone"
+ZoneProp = "zone"
 RegionProp = "region"
 
 # Store the discovery function as separate variable.

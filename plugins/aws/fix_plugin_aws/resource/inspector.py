@@ -115,8 +115,7 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
         if self.remediation and self.remediation.recommendation:
             remediation = self.remediation.recommendation.text or ""
         updated_at = self.updated_at
-        details = source.get("packageVulnerabilityDetails", {}) | source.get("codeVulnerabilityDetails", {})
-        return Finding(finding_title, finding_severity, description, remediation, updated_at, details)
+        return Finding(finding_title, finding_severity, description, remediation, updated_at, None)
 
     @classmethod
     def collect_resources(cls, builder: GraphBuilder) -> None:
@@ -151,7 +150,10 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
                 action="list-findings",
                 result_name="findings",
                 expected_errors=["AccessDeniedException"],
-                filterCriteria={"awsAccountId": [{"comparison": "EQUALS", "value": f"{builder.account.id}"}]},
+                filterCriteria={
+                    "awsAccountId": [{"comparison": "EQUALS", "value": f"{builder.account.id}"}],
+                    "findingStatus": [{"comparison": "EQUALS", "value": "ACTIVE"}],
+                },
             ):
                 if finding := AwsInspectorFinding.from_api(item, builder):
                     for fr in finding.finding_resources or []:

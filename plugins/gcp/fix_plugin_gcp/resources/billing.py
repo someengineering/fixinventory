@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import ClassVar, Dict, Optional, List, Type, cast, Any
+from typing import ClassVar, Dict, Optional, List, Type, Any
 
 from attr import define, field
 
@@ -146,18 +146,22 @@ class GcpService(GcpResource):
     display_name: Optional[str] = field(default=None)
 
     @classmethod
-    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+    def collect(cls, raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
         # Additional behavior: iterate over list of collected GcpService and for each:
         # - collect related GcpSku
-        result: List[GcpResource] = super().collect(raw, builder)  # type: ignore
         SERVICES_COLLECT_LIST = [
             "Compute Engine",
         ]
-        service_names = [
-            service.name for service in cast(List[GcpService], result) if service.display_name in SERVICES_COLLECT_LIST
-        ]
-        for service_name in service_names:
-            builder.submit_work(GcpSku.collect_resources, builder, parent=service_name)
+        service_names: List[str] = []
+        services = []
+        for service in raw:
+            if service.get("displayName") in SERVICES_COLLECT_LIST:
+                service_names.append(str(service["name"]))
+                services.append(service)
+        result = super().collect(services, builder)
+
+        for s_name in service_names:
+            builder.submit_work(GcpSku.collect_resources, builder, parent=s_name)
 
         return result
 

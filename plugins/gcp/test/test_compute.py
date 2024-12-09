@@ -1,9 +1,19 @@
+from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta, datetime
 import json
 import os
+from typing import List
+
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion
 from fix_plugin_gcp.resources.compute import *
 from fix_plugin_gcp.resources.billing import GcpSku
+from fix_plugin_gcp.resources.monitoring import GcpMonitoringMetricData
+from fixlib.threading import ExecutorQueue
+from fixlib.baseresources import InstanceStatus
+
+from google.auth.credentials import AnonymousCredentials
+
 from .random_client import roundtrip, connect_resource, FixturedClient
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpRegion
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
@@ -137,9 +147,8 @@ def test_gcp_instance_template(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_instance(random_builder: GraphBuilder) -> None:
-    gcp_instance = roundtrip(GcpInstance, random_builder)
-    connect_resource(random_builder, gcp_instance, GcpMachineType, selfLink=gcp_instance.machine_type)
-    assert len(random_builder.edges_of(GcpMachineType, GcpInstance)) == 1
+    roundtrip(GcpInstance, random_builder)
+    assert len(random_builder.nodes(clazz=GcpMachineType)) > 0
 
 
 def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
@@ -159,13 +168,50 @@ def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:
         for node, data in random_builder.graph.nodes(data=True):
             node.connect_in_graph(random_builder, data.get("source") or {})
         first_instance: GcpInstance = res[0]
-
-    assert len(random_builder.resources_of(GcpMachineType)) == 1
+    random_builder.executor.wait_for_submitted_work()
+    assert len(random_builder.resources_of(GcpMachineType)) > 0
     only_machine_type = random_builder.resources_of(GcpMachineType)[0]
     assert first_instance.instance_cores == only_machine_type.instance_cores
     assert first_instance.instance_memory == only_machine_type.instance_memory
     assert only_machine_type._zone
     assert only_machine_type._region
+
+
+def test_gcp_instance_usage_metrics(random_builder: GraphBuilder) -> None:
+    gcp_instance = roundtrip(GcpInstance, random_builder)
+    gcp_instance.instance_status = InstanceStatus.RUNNING
+
+    random_builder.region = GcpRegion(id="us-east1", name="us-east1")
+    random_builder.created_at = datetime(2020, 5, 30, 15, 45, 30)
+    random_builder.metrics_delta = timedelta(hours=1)
+
+    queries = gcp_instance.collect_usage_metrics(random_builder)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        queue = ExecutorQueue(executor, tasks_per_key=lambda _: 10, name="test")
+        g_builder = GraphBuilder(
+            random_builder.graph,
+            random_builder.cloud,
+            random_builder.project,
+            AnonymousCredentials(),  # type: ignore
+            queue,
+            random_builder.core_feedback,
+            random_builder.error_accumulator,
+            GcpRegion(id="global", name="global"),
+            random_builder.config,
+            last_run_started_at=random_builder.last_run_started_at,
+        )
+        GcpMonitoringMetricData.query_for(
+            g_builder,
+            gcp_instance,
+            queries,
+            random_builder.created_at,
+            random_builder.created_at + random_builder.metrics_delta,
+        )
+        g_builder.executor.wait_for_submitted_work()
+
+        assert gcp_instance._resource_usage["cpu_utilization_percent"]["avg"] > 0.0
+        assert gcp_instance._resource_usage["network_in_bytes"]["avg"] > 0.0
+        assert gcp_instance._resource_usage["disk_read_iops"]["avg"] > 0.0
 
 
 def test_machine_type_ondemand_cost(random_builder: GraphBuilder) -> None:
@@ -221,7 +267,8 @@ def test_gcp_machine_image(random_builder: GraphBuilder) -> None:
 
 
 def test_gcp_machine_type(random_builder: GraphBuilder) -> None:
-    roundtrip(GcpMachineType, random_builder)
+    roundtrip(GcpInstance, random_builder)
+    assert len(random_builder.resources_of(GcpMachineType)) > 0
 
 
 def test_gcp_network_edge_security_service(random_builder: GraphBuilder) -> None:

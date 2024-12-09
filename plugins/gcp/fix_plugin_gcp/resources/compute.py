@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import ipaddress
 from datetime import datetime
@@ -7,8 +8,9 @@ from urllib.parse import urlparse
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec, InternalZoneProp
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
 from fix_plugin_gcp.resources.billing import GcpSku
+from fix_plugin_gcp.resources.monitoring import STANDART_STAT_MAP, PERCENTILE_STAT_MAP, normalizer_factory
 from fixlib.baseresources import (
     BaseAutoScalingGroup,
     BaseBucket,
@@ -24,6 +26,7 @@ from fixlib.baseresources import (
     BaseSubnet,
     BaseTunnel,
     BaseVolumeType,
+    MetricName,
     ModelReference,
     BaseVolume,
     VolumeStatus,
@@ -967,6 +970,14 @@ class GcpBackendService(GcpResource):
             builder.add_edge(self, reverse=True, clazz=GcpNetwork, link=self.network)
 
 
+resource_group_map: Dict[str, str] = {
+    "local-ssd": "LocalSSD",
+    "pd-balanced": "SSD",
+    "pd-ssd": "SSD",
+    "pd-standard": "PDStandard",
+}
+
+
 @define(eq=False, slots=False)
 class GcpDiskType(GcpResource, BaseVolumeType):
     kind: ClassVar[str] = "gcp_disk_type"
@@ -986,6 +997,16 @@ class GcpDiskType(GcpResource, BaseVolumeType):
         response_regional_sub_path="diskTypes",
         mutate_iam_permissions=[],  # can not be mutated
     )
+    # collected via GcpDisk()
+    collect_individual_api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
+        service=service_name,
+        version="v1",
+        accessors=["diskTypes"],
+        action="list",
+        response_path="items",
+        request_parameter={"project": "{project}", "zone": "{zone}", "filter": "{filter}"},
+        request_parameter_in={"project", "zone", "filter"},
+    )
     _reference_kinds: ClassVar[ModelReference] = {"predecessors": {"default": ["gcp_sku"]}}
     mapping: ClassVar[Dict[str, Bender]] = {
         "id": S("name").or_else(S("id")).or_else(S("selfLink")),
@@ -1002,12 +1023,24 @@ class GcpDiskType(GcpResource, BaseVolumeType):
     default_disk_size_gb: Optional[int] = field(default=None)
     valid_disk_size: Optional[str] = field(default=None)
 
-    resource_group_map: ClassVar[Dict[str, str]] = {
-        "local-ssd": "LocalSSD",
-        "pd-balanced": "SSD",
-        "pd-ssd": "SSD",
-        "pd-standard": "PDStandard",
-    }
+    @classmethod
+    def collect_individual(
+        cls: Type[GcpResource], builder: GraphBuilder, region_and_types: Dict[str, List[str]]
+    ) -> None:
+        for zone, names in region_and_types.items():
+            filter_str = " OR ".join([f"name={name}" for name in names])
+
+            def collect_disk_types(volume_zone: str, filter_str: str) -> None:
+                for disk_type in builder.client.list(
+                    GcpDiskType.collect_individual_api_spec,
+                    zone=volume_zone,
+                    filter=filter_str,
+                ):
+                    disk_type[InternalZoneProp] = volume_zone  # `add_node()` picks this up and sets proper zone/region
+                    if disk_type_obj := GcpDiskType.from_api(disk_type, builder):
+                        builder.add_node(disk_type_obj, disk_type)
+
+            builder.submit_work(collect_disk_types, zone, filter_str)
 
     def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
         """Adds edges from disk_types type to SKUs and determines ondemand pricing"""
@@ -1015,7 +1048,7 @@ class GcpDiskType(GcpResource, BaseVolumeType):
             return
 
         log.debug((f"Looking up pricing for {self.rtdname} in {self.region().rtdname}"))
-        resource_group = self.resource_group_map.get(self.name)
+        resource_group = resource_group_map.get(self.name)
 
         def sku_filter(sku: GcpSku) -> bool:
             if not self.name:
@@ -1202,6 +1235,81 @@ class GcpDisk(GcpResource, BaseVolume):
         for user in source.get("users", []):
             builder.dependant_node(self, clazz=GcpInstance, link=user, reverse=True, delete_same_as_default=False)
         builder.add_edge(self, reverse=True, clazz=GcpDiskType, link=self.volume_type)
+
+    @classmethod
+    def collect(cls, raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+        # Additional behavior: iterate over list of collected GcpDisks and for each collect GcpDiskType
+        result: List[GcpDisk] = super().collect(raw, builder)  # type: ignore
+        disk_types = list({disk.type for disk in result if disk and disk.type})
+        disk_region_with_types: Dict[str, List[str]] = defaultdict(list)
+        for disk_type in disk_types:
+            # example:
+            # https://www.googleapis.com/compute/v1/projects/project/zones/us-central1-a/diskTypes/pd-balanced
+            zone, _, name = disk_type.split("/")[-3:]
+            disk_region_with_types[zone].append(name)
+        builder.submit_work(GcpDiskType.collect_individual, builder, disk_region_with_types)
+
+        return result  # type: ignore # list is not covariant
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="compute.googleapis.com/instance/disk/average_io_queue_depth",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.VolumeQueueLength,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.iops,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.device_name": self.id, "resource.labels.zone": self.zone().id},
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.bytes,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.device_name": self.id},
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+        return queries
 
 
 @define(eq=False, slots=False)
@@ -1669,9 +1777,72 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                 GcpTargetPool,
             )
             builder.add_edge(self, clazz=target_classes, link=self.target)
-        self._collect_backends(builder)
+        self.collect_backends(builder)
 
-    def _collect_backends(self, graph_builder: GraphBuilder) -> None:
+    def post_process_instance(self, builder: GraphBuilder, source: Json) -> None:
+        # Calculate the processed bytes
+        total_bytes: Dict[str, float] = defaultdict(float)
+        for metric_name, metric_values in self._resource_usage.items():
+            if metric_name.endswith("_bytes_count"):
+                for name, value in metric_values.items():
+                    total_bytes[name] += value
+        if total_bytes:
+            self._resource_usage["processed_bytes"] = dict(total_bytes)
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+        if not self.load_balancing_scheme:
+            return []
+        lb_type = "external/regional" if "EXTERNAL" in self.load_balancing_scheme else "internal"
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.label.forwarding_rule_name": self.id,
+                        "resource.labels.region": self.region().id,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    (f"loadbalancing.googleapis.com/https/{lb_type}/request_count", MetricName.RequestCount),
+                    (f"loadbalancing.googleapis.com/https/{lb_type}/request_bytes_count", MetricName.RequestBytesCount),
+                    (
+                        f"loadbalancing.googleapis.com/https/{lb_type}/response_bytes_count",
+                        MetricName.ResponseBytesCount,
+                    ),
+                ]
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=f"loadbalancing.googleapis.com/https/{lb_type}/backend_latencies",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.Latency,
+                    normalization=normalizer_factory.milliseconds(),
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.label.forwarding_rule_name": self.id,
+                        "resource.labels.region": self.region().id,
+                    },
+                )
+                for stat in PERCENTILE_STAT_MAP
+            ]
+        )
+
+        return queries
+
+    def collect_backends(self, graph_builder: GraphBuilder) -> None:
         if not self.target:
             return
         backend_services = graph_builder.nodes(clazz=GcpBackendService)
@@ -1688,34 +1859,20 @@ class GcpForwardingRule(GcpResource, BaseLoadBalancer):
                 if backend_service.backend_service_backends:
                     for backend in backend_service.backend_service_backends:
                         if backend.group:
-
-                            def fetch_instances(group: str) -> None:
-                                api_spec = GcpApiSpec(
-                                    service=service_name,
-                                    version="v1",
-                                    accessors=["instanceGroups"],
-                                    action="listInstances",
-                                    request_parameter={
-                                        "project": "{project}",
-                                        "zone": "{zone}",
-                                        "instanceGroup": "{instanceGroup}",
-                                    },
-                                    request_parameter_in={"project", "zone", "instanceGroup"},
-                                    response_path="items",
-                                )
-                                path_data = urlparse(group).path.split("/")
-                                try:
-                                    zone = path_data[6]
-                                    instance_group = path_data[8]
-
-                                    items = graph_builder.client.list(api_spec, zone=zone, instanceGroup=instance_group)
-                                    for item in items:
-                                        if vm_id := item.get("instance"):
-                                            self.backends.append(vm_id)
-                                except Exception as e:
-                                    log.warning(f"An error occured while setting backends property: {e}")
-
-                            graph_builder.submit_work(fetch_instances, backend.group)
+                            instance_groups = graph_builder.nodes(clazz=GcpInstanceGroup)
+                            path_data = urlparse(backend.group).path.split("/")
+                            try:
+                                region = path_data[6]
+                                instance_group_name = path_data[8]
+                                for instance_group in instance_groups:
+                                    if (
+                                        instance_group_name == instance_group.id
+                                        and region == instance_group.region().id
+                                    ):
+                                        for instance_name in instance_group._group_instance_names or []:
+                                            self.backends.append(instance_name)
+                            except Exception as e:
+                                log.warning(f"An error occured while setting backends property: {e}")
 
 
 @define(eq=False, slots=False)
@@ -2855,14 +3012,15 @@ class GcpInstanceGroupManager(GcpResource):
 
 
 @define(eq=False, slots=False)
-class GcpInstanceGroup(GcpResource):
+class GcpInstanceGroup(GcpResource, BaseAutoScalingGroup):
     kind: ClassVar[str] = "gcp_instance_group"
     _kind_display: ClassVar[str] = "GCP Instance Group"
     _kind_description: ClassVar[str] = "A GCP Instance Group is a collection of virtual machine instances that operate as a single entity. It manages multiple identical instances, distributes incoming traffic, and automatically adjusts the number of instances based on demand. Instance Groups provide load balancing, auto-scaling, and rolling updates to maintain application availability and performance in Google Cloud Platform."  # fmt: skip
     _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/instance-groups"
     _kind_service: ClassVar[Optional[str]] = service_name
     _reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]}
+        "predecessors": {"default": ["gcp_network", "gcp_subnetwork"], "delete": ["gcp_network", "gcp_subnetwork"]},
+        "successors": {"default": ["gcp_instance"], "delete": []},
     }
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "group", "group": "compute"}
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
@@ -2890,12 +3048,37 @@ class GcpInstanceGroup(GcpResource):
         "network": S("network"),
         "size": S("size"),
         "subnetwork": S("subnetwork"),
+        "max_size": S("size"),
     }
     fingerprint: Optional[str] = field(default=None)
     named_ports: Optional[List[GcpNamedPort]] = field(default=None)
     network: Optional[str] = field(default=None)
     size: Optional[int] = field(default=None)
     subnetwork: Optional[str] = field(default=None)
+    _group_instance_names: Optional[List[str]] = None
+
+    def post_process(self, graph_builder: GraphBuilder, source: Json) -> None:
+        def collect_instances() -> None:
+            api_spec = GcpApiSpec(
+                service=service_name,
+                version="v1",
+                accessors=["instanceGroups"],
+                action="listInstances",
+                request_parameter={"project": "{project}", "zone": "{zone}", "instanceGroup": "{instanceGroup}"},
+                request_parameter_in={"project", "zone", "instanceGroup"},
+                response_path="items",
+            )
+            instances = graph_builder.client.list(api_spec, zone=self.zone().id, instanceGroup=self.id)
+            for instance in instances:
+                instance_link_parts = instance["instance"].rsplit("/", 3)
+                instance_name = instance_link_parts[-1]
+                if not self._group_instance_names:
+                    self._group_instance_names = []
+                self._group_instance_names.append(instance_name)
+                zone = graph_builder.zone_by_name.get(instance_link_parts[-3])
+                graph_builder.add_edge(self, clazz=GcpInstance, _zone=zone, id=instance_name)
+
+        graph_builder.submit_work(collect_instances)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.network:
@@ -3553,27 +3736,103 @@ class GcpInstance(GcpResource, BaseInstance):
                 self, reverse=True, delete_same_as_default=True, clazz=GcpSubnetwork, link=nic.subnetwork
             )
 
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        if self.instance_status != InstanceStatus.RUNNING:
+            return []
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="compute.googleapis.com/instance/cpu/utilization",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.CpuUtilization,
+                    normalization=normalizer_factory.percent,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.bytes,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/network/received_bytes_count", MetricName.NetworkIn),
+                    ("compute.googleapis.com/instance/network/sent_bytes_count", MetricName.NetworkOut),
+                ]
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.iops,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_ops_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_ops_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name=name,
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=metric_name,
+                    normalization=normalizer_factory.bytes,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={"metric.labels.instance_name": self.id, "resource.labels.zone": self.zone().id},
+                )
+                for stat in STANDART_STAT_MAP
+                for name, metric_name in [
+                    ("compute.googleapis.com/instance/disk/read_bytes_count", MetricName.DiskRead),
+                    ("compute.googleapis.com/instance/disk/write_bytes_count", MetricName.DiskWrite),
+                ]
+            ]
+        )
+        return queries
+
     @classmethod
-    def collect(cls: Type[GcpResource], raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
+    def collect(cls, raw: List[Json], builder: GraphBuilder) -> List[GcpResource]:
         # Additional behavior: iterate over list of collected GcpInstances and for each:
         # - extract machineType if custom
         # - then create GcpMachineType object for each unique custom machine type
         # - add the new objects to the graph
         result: List[GcpInstance] = super().collect(raw, builder)  # type: ignore
-        custom_machine_types = list(
-            set(
-                [
-                    instance.machine_type
-                    for instance in result
-                    if instance.machine_type and "custom" in instance.machine_type
-                ]
-            )
-        )
-        for machine_type in custom_machine_types:
+        machine_types = list({instance.machine_type for instance in result if instance and instance.machine_type})
+
+        machine_region_with_types: Dict[str, List[str]] = defaultdict(list)
+        for machine_type in machine_types:
             # example:
             # https://www.googleapis.com/compute/v1/projects/proj/zones/us-east1-b/machineTypes/e2-custom-medium-1024
             zone, _, name = machine_type.split("/")[-3:]
-            builder.submit_work(GcpMachineType.collect_individual, builder, zone, name)
+            machine_region_with_types[zone].append(name)
+        builder.submit_work(GcpMachineType.collect_individual, builder, machine_region_with_types)
 
         return result  # type: ignore # list is not covariant
 
@@ -4140,25 +4399,15 @@ class GcpMachineType(GcpResource, BaseInstanceType):
     _docs_url: ClassVar[str] = "https://cloud.google.com/compute/docs/machine-types"
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "type", "group": "compute"}
-    api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
-        service=service_name,
-        version="v1",
-        accessors=["machineTypes"],
-        action="aggregatedList",
-        request_parameter={"project": "{project}"},
-        request_parameter_in={"project"},
-        response_path="items",
-        response_regional_sub_path="machineTypes",
-        mutate_iam_permissions=[],  # can not be mutated
-    )
+    # collected via GcpInstance()
     collect_individual_api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
         version="v1",
         accessors=["machineTypes"],
-        action="get",
-        response_path="",
-        request_parameter={"project": "{project}", "zone": "{zone}", "machineType": "{machineType}"},
-        request_parameter_in={"project", "zone", "machineType"},
+        action="list",
+        response_path="items",
+        request_parameter={"project": "{project}", "zone": "{zone}", "filter": "{filter}"},
+        request_parameter_in={"project", "zone", "filter"},
     )
     _reference_kinds: ClassVar[ModelReference] = {
         "predecessors": {"default": ["gcp_sku"]},
@@ -4191,15 +4440,25 @@ class GcpMachineType(GcpResource, BaseInstanceType):
     scratch_disks: Optional[List[int]] = field(default=None)
 
     @classmethod
-    def collect_individual(cls: Type[GcpResource], builder: GraphBuilder, zone: str, name: str) -> None:
-        result = builder.client.get(
-            GcpMachineType.collect_individual_api_spec,
-            zone=zone,
-            machineType=name,
-        )
-        result[InternalZoneProp] = zone  # `add_node()` picks this up and sets proper zone/region
-        if machine_type_obj := GcpMachineType.from_api(result, builder):
-            builder.add_node(machine_type_obj, result)
+    def collect_individual(
+        cls: Type[GcpResource], builder: GraphBuilder, region_and_types: Dict[str, List[str]]
+    ) -> None:
+        for zone, names in region_and_types.items():
+            filter_str = " OR ".join([f"name={name}" for name in names])
+
+            def collect_machine_types(instance_zone: str, filter_str: str) -> None:
+                for machine_type in builder.client.list(
+                    GcpMachineType.collect_individual_api_spec,
+                    zone=instance_zone,
+                    filter=filter_str,
+                ):
+                    machine_type[InternalZoneProp] = (
+                        instance_zone  # `add_node()` picks this up and sets proper zone/region
+                    )
+                    if machine_type_obj := GcpMachineType.from_api(machine_type, builder):
+                        builder.add_node(machine_type_obj, machine_type)
+
+            builder.submit_work(collect_machine_types, zone, filter_str)
 
     def _machine_type_matches_sku_description(self, sku_description: str) -> bool:
         if not self.name:
@@ -5160,7 +5419,7 @@ class GcpNotificationEndpointGrpcSettings:
 
 
 @define(eq=False, slots=False)
-class GcpNotificationEndpoint(GcpResource):
+class GcpNotificationEndpoint(GcpResource, PhantomBaseResource):
     kind: ClassVar[str] = "gcp_notification_endpoint"
     _kind_display: ClassVar[str] = "GCP Notification Endpoint"
     _kind_description: ClassVar[str] = "GCP Notification Endpoint is a Google Cloud Platform service that receives and processes notifications from various GCP resources. It acts as a central point for collecting and routing alerts, updates, and event data. Users can configure endpoints to direct notifications to specific destinations like email, SMS, or third-party applications for monitoring and response purposes."  # fmt: skip
@@ -7644,7 +7903,7 @@ resources: List[Type[GcpResource]] = [
     GcpNetwork,
     GcpNodeGroup,
     GcpNodeTemplate,
-    GcpNodeType,
+    # GcpNodeType,  # TODO: collect nodes from NodeGroup and connect types
     GcpPacketMirroring,
     GcpPublicAdvertisedPrefix,
     GcpCommitment,

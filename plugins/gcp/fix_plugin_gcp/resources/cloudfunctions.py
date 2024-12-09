@@ -4,8 +4,9 @@ from typing import ClassVar, Dict, Optional, List, Type, Any
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus
-from fixlib.baseresources import BaseServerlessFunction
+from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder, GcpMonitoringQuery
+from fix_plugin_gcp.resources.monitoring import normalizer_factory, STANDART_STAT_MAP, PERCENTILE_STAT_MAP
+from fixlib.baseresources import BaseServerlessFunction, MetricName
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 
 
@@ -299,6 +300,71 @@ class GcpCloudFunction(GcpResource, BaseServerlessFunction):
     update_time: Optional[datetime] = field(default=None)
     upgrade_info: Optional[GcpUpgradeInfo] = field(default=None)
     url: Optional[str] = field(default=None)
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="cloudfunctions.googleapis.com/function/execution_count",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.Invocations,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "metric.labels.status": "ok",
+                        "resource.labels.function_name": self.resource_raw_name,
+                        "resource.labels.region": self.region().id,
+                        "resource.type": "cloud_function",
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="cloudfunctions.googleapis.com/function/execution_count",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.Errors,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "metric.labels.status": "error",
+                        "resource.labels.function_name": self.resource_raw_name,
+                        "resource.labels.region": self.region().id,
+                        "resource.type": "cloud_function",
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="cloudfunctions.googleapis.com/function/execution_times",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.Duration,
+                    # convert nanoseconds to milliseconds
+                    normalization=normalizer_factory.milliseconds(lambda x: round(x / 1_000_000, ndigits=4)),
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.function_name": self.resource_raw_name,
+                        "resource.labels.region": self.region().id,
+                        "resource.type": "cloud_function",
+                    },
+                )
+                for stat in PERCENTILE_STAT_MAP
+            ]
+        )
+        return queries
 
 
 resources: List[Type[GcpResource]] = [GcpCloudFunction]

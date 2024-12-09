@@ -1,6 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Type, List, Any, Optional
+from datetime import datetime, timezone
+from typing import Type, List, Any, Optional, cast
 
 from fix_plugin_gcp.config import GcpConfig
 from fix_plugin_gcp.gcp_client import GcpApiSpec
@@ -8,18 +9,23 @@ from fix_plugin_gcp.resources import (
     compute,
     container,
     billing,
+    scc,
     sqladmin,
     storage,
     aiplatform,
     firestore,
     filestore,
     cloudfunctions,
+    monitoring,
+    pubsub,
 )
 from fix_plugin_gcp.resources.base import GcpResource, GcpProject, ExecutorQueue, GraphBuilder, GcpRegion, GcpZone
 from fix_plugin_gcp.utils import Credentials
 from fixlib.baseresources import Cloud
 from fixlib.core.actions import CoreFeedback, ErrorAccumulator
 from fixlib.graph import Graph
+from fixlib.json import value_in_path
+from fixlib.types import Json
 
 log = logging.getLogger("fix.plugins.gcp")
 all_resources: List[Type[GcpResource]] = (
@@ -32,6 +38,8 @@ all_resources: List[Type[GcpResource]] = (
     + firestore.resources
     + filestore.resources
     + cloudfunctions.resources
+    + pubsub.resources
+    + scc.resources
 )
 
 
@@ -58,6 +66,7 @@ class GcpProjectCollector:
         cloud: Cloud,
         project: GcpProject,
         core_feedback: CoreFeedback,
+        task_data: Json,
         max_resources_per_account: Optional[int] = None,
     ) -> None:
         self.config = config
@@ -67,6 +76,7 @@ class GcpProjectCollector:
         self.error_accumulator = ErrorAccumulator()
         self.graph = Graph(root=self.project, max_nodes=max_resources_per_account)
         self.credentials = Credentials.get(self.project.id)
+        self.task_data = task_data
 
     def collect(self) -> None:
         with ThreadPoolExecutor(
@@ -77,7 +87,20 @@ class GcpProjectCollector:
             # It should only be used in scenarios, where it is safe to do so.
             # This executor is shared between all regions.
             shared_queue = ExecutorQueue(executor, self.project.safe_name)
+
+            def get_last_run() -> Optional[datetime]:
+                td = self.task_data
+                if not td:
+                    return None
+                timestamp = value_in_path(td, ["timing", td.get("step", ""), "started_at"])
+
+                if timestamp is None:
+                    return None
+
+                return datetime.fromtimestamp(timestamp, timezone.utc)
+
             project_global_region = GcpRegion.fallback_global_region(self.project)
+            last_run = get_last_run()
             global_builder = GraphBuilder(
                 self.graph,
                 self.cloud,
@@ -87,6 +110,8 @@ class GcpProjectCollector:
                 self.core_feedback,
                 self.error_accumulator,
                 project_global_region,
+                config=self.config,
+                last_run_started_at=last_run,
             )
             global_builder.add_node(project_global_region, {})
 
@@ -111,8 +136,19 @@ class GcpProjectCollector:
                 global_builder.submit_work(self.collect_region, global_builder.for_region(region))
             global_builder.executor.wait_for_submitted_work()
 
+            # call all registered after collect hooks
+            for after_collect in global_builder.after_collect_actions:
+                after_collect()
+
             self.error_accumulator.report_all(global_builder.core_feedback)
 
+            if global_builder.config.collect_usage_metrics:
+                try:
+                    log.info(f"[GCP:{self.project.id}] Collect usage metrics.")
+                    self.collect_usage_metrics(global_builder)
+                    global_builder.executor.wait_for_submitted_work()
+                except Exception as e:
+                    log.warning(f"Failed to collect usage metrics in project {self.project.id}: {e}")
             log.info(f"[GCP:{self.project.id}] Connect resources and create edges.")
             # connect nodes
             for node, data in list(self.graph.nodes(data=True)):
@@ -128,8 +164,18 @@ class GcpProjectCollector:
                 if isinstance(node, GcpResource):
                     node.post_process_instance(global_builder, data.get("source", {}))
 
+            global_builder.executor.wait_for_submitted_work()
+
             self.core_feedback.progress_done(self.project.id, 1, 1, context=[self.cloud.id])
             log.info(f"[GCP:{self.project.id}] Collecting resources done.")
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> None:
+        for resource in builder.graph.nodes:
+            if isinstance(resource, GcpResource) and (mq := resource.collect_usage_metrics(builder)):
+                start_at = builder.created_at - builder.metrics_delta
+                region = cast(GcpRegion, resource.region())
+                rb = builder.for_region(region)
+                monitoring.GcpMonitoringMetricData.query_for(rb, resource, mq, start_at, builder.created_at)
 
     def remove_unconnected_nodes(self, builder: GraphBuilder) -> None:
         def rm_leaf_nodes(clazz: Any, ignore_kinds: Optional[Type[Any]] = None) -> None:

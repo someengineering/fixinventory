@@ -1,7 +1,7 @@
 import os
 import socket
 from datetime import datetime
-from typing import Iterable, List, Union, Callable, Any, Dict, Optional
+from typing import Iterable, TypeVar, List, Union, Callable, Any, Dict, Optional
 
 from google.oauth2 import service_account
 from googleapiclient import discovery
@@ -19,6 +19,7 @@ from fixlib.lock import RWLock
 
 log = fixlib.logger.getLogger("fix." + __name__)
 fixlib.logger.getLogger("googleapiclient").setLevel(fixlib.logger.ERROR)
+T = TypeVar("T")
 
 
 SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]

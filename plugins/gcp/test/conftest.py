@@ -32,7 +32,15 @@ def random_builder() -> Iterator[GraphBuilder]:
         project_global_region = GcpRegion.fallback_global_region(project)
         credentials = AnonymousCredentials()  # type: ignore
         builder = GraphBuilder(
-            Graph(), Cloud(id="gcp"), project, credentials, queue, feedback, accumulator, project_global_region
+            Graph(),
+            Cloud(id="gcp"),
+            project,
+            credentials,
+            queue,
+            feedback,
+            accumulator,
+            project_global_region,
+            GcpConfig(),
         )
         builder.add_node(project_global_region, {})
         # add predefined regions and zones

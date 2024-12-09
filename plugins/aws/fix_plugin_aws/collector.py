@@ -237,11 +237,11 @@ class AwsAccountCollector:
                 try:
                     log.info(f"[Aws:{self.account.id}] Collect usage metrics.")
                     self.collect_usage_metrics(global_builder)
+                    shared_queue.wait_for_submitted_work()
                 except Exception as e:
                     log.warning(
                         f"Failed to collect usage metrics on account {self.account.id} in region {global_builder.region.id}: {e}"
                     )
-            shared_queue.wait_for_submitted_work()
 
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
@@ -325,8 +325,9 @@ class AwsAccountCollector:
                 continue
             # region can be overridden in the query: s3 is global, but need to be queried per region
             if region := cast(AwsRegion, resource.region()):
-                lookup_map[resource.id] = resource
                 resource_queries: List[cloudwatch.AwsCloudwatchQuery] = resource.collect_usage_metrics(builder)
+                if resource_queries:
+                    lookup_map[resource.id] = resource
                 for query in resource_queries:
                     query_region = query.region or region
                     start = query.start_delta or builder.metrics_delta

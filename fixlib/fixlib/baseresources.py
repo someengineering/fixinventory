@@ -116,8 +116,7 @@ class ResourceChanges:
         return changes
 
 
-# todo: replace to StrEnum once resoto is on 3.11
-class MetricName(str, Enum):
+class MetricName(StrEnum):
     def __str__(self) -> str:
         return self.value
 
@@ -150,6 +149,8 @@ class MetricName(str, Enum):
 
     # load balancers
     RequestCount = "request"  # _count will be added to the end because of the unit
+    RequestBytesCount = "request_bytes"  # _count will be added to the end because of the unit
+    ResponseBytesCount = "response_bytes"  # _count will be added to the end because of the unit
     ActiveConnectionCount = "active_connection"  # _count will be added to the end because of the unit
     ALBActiveConnectionCount = "alb_active_connection"  # _count will be added to the end because of the unit
     ConnectionAttemptCount = "connection_attempt"  # _count will be added to the end because of the unit
@@ -195,6 +196,8 @@ class MetricName(str, Enum):
     DiskQueueDepth = "disk_queue_depth"
     NetworkReceiveThroughput = "network_receive_throughput"
     NetworkTransmitThroughput = "network_transmit_throughput"
+    NetworkBytesSent = "network_bytes_sent"
+    NetworkBytesReceived = "network_bytes_received"
 
     # serverless
     Invocations = "invocations"
@@ -1109,7 +1112,7 @@ class BaseQueue(BaseResource):
     _categories: ClassVar[List[Category]] = [Category.storage]
     queue_type: Optional[QueueType] = None
     approximate_message_count: Optional[int] = None
-    message_retention_period: Optional[int] = None
+    message_retention_period_days: Optional[int] = None
 
 
 @define(eq=False, slots=False)
