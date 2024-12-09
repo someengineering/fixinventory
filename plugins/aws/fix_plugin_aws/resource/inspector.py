@@ -151,7 +151,10 @@ class AwsInspectorFinding(AwsResource, PhantomBaseResource):
                 action="list-findings",
                 result_name="findings",
                 expected_errors=["AccessDeniedException"],
-                filterCriteria={"awsAccountId": [{"comparison": "EQUALS", "value": f"{builder.account.id}"}]},
+                filterCriteria={
+                    "awsAccountId": [{"comparison": "EQUALS", "value": f"{builder.account.id}"}],
+                    "findingStatus": [{"comparison": "EQUALS", "value": "ACTIVE"}],
+                },
             ):
                 if finding := AwsInspectorFinding.from_api(item, builder):
                     for fr in finding.finding_resources or []:
