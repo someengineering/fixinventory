@@ -157,15 +157,11 @@ class GcpSccFinding(GcpResource):
             else:
                 remediation = None
                 title = "unknown"
-            source_finding = source.get("finding", {})
             source_resource = source.get("resource", {})
-            details = source_finding.get("sourceProperties", {})
             aws_metadata = source_resource.get("awsMetadata", {})
             azure_metadata = source_resource.get("azureMetadata", {})
             severity = SEVERITY_MAPPING.get(finding.severity or "") or Severity.medium
-            return Finding(
-                title, severity, description, remediation, finding.event_time, details | aws_metadata | azure_metadata
-            )
+            return Finding(title, severity, description, remediation, finding.event_time, aws_metadata | azure_metadata)
         return None
 
     @classmethod
