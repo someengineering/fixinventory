@@ -699,7 +699,9 @@ class AwsGuardDutyFinding(AwsResource, PhantomBaseResource):
                     "FindingIds",
                     expected_errors=["BadRequestException"],
                     DetectorId=detector_id,
-                    FindingCriteria={"Criterion": {"accountId": {"Eq": [builder.account.id]}}},
+                    FindingCriteria={
+                        "Criterion": {"accountId": {"Eq": [builder.account.id]}, "service.archived": {"Eq": ["false"]}},
+                    },
                 ): detector_id
                 for detector_id in detector_ids
             }
