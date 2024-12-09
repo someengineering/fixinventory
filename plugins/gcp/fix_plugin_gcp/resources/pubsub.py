@@ -4,8 +4,9 @@ from typing import ClassVar, Dict, Optional, List, Type, Any
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, GraphBuilder
-from fixlib.baseresources import BaseQueue, ModelReference, QueueType
+from fix_plugin_gcp.resources.base import GcpMonitoringQuery, GcpResource, GcpDeprecationStatus, GraphBuilder
+from fix_plugin_gcp.resources.monitoring import STANDART_STAT_MAP, normalizer_factory
+from fixlib.baseresources import BaseQueue, MetricName, ModelReference, QueueType
 from fixlib.json_bender import Bender, S, Bend, K, F
 from fixlib.types import Json
 
@@ -267,6 +268,65 @@ class GcpPubSubSubscription(GcpResource, BaseQueue):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if topic := self.subscription_topic:
             builder.add_edge(self, clazz=GcpPubSubTopic, reverse=True, name=topic)
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="pubsub.googleapis.com/subscription/push_request_count",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.NumberOfMessagesReceived,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.subscription_id": self.resource_raw_name,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        if self.subscription_topic:
+            topic_id = self.subscription_topic.rsplit("/", maxsplit=1)[-1]
+            queries.extend(
+                [
+                    GcpMonitoringQuery.create(
+                        query_name="pubsub.googleapis.com/topic/send_message_operation_count",
+                        period=delta,
+                        ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                        metric_name=MetricName.NumberOfMessagesSent,
+                        normalization=normalizer_factory.count,
+                        stat=stat,
+                        project_id=builder.project.id,
+                        metric_filters={
+                            "resource.labels.topic_id": topic_id,
+                        },
+                    )
+                    for stat in STANDART_STAT_MAP
+                ]
+            )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="pubsub.googleapis.com/subscription/oldest_unacked_message_age",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.ApproximateAgeOfOldestMessage,
+                    normalization=normalizer_factory.seconds,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.subscription_id": self.resource_raw_name,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        return queries
 
 
 @define(eq=False, slots=False)

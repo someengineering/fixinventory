@@ -4429,7 +4429,7 @@ class GcpMachineType(GcpResource, BaseInstanceType):
         "maximum_persistent_disks_size_gb": S("maximumPersistentDisksSizeGb"),
         "scratch_disks": S("scratchDisks", default=[]) >> ForallBend(S("diskGb")),
         "instance_type": S("name"),
-        "instance_cores": S("guestCpus") >> F(lambda x: float(x)),
+        "instance_cores": S("guestCpus") >> F(float),
         "instance_memory": S("memoryMb") >> F(lambda x: float(x) / 1024),
     }
     accelerators: Optional[List[GcpAccelerators]] = field(default=None)
@@ -5419,7 +5419,7 @@ class GcpNotificationEndpointGrpcSettings:
 
 
 @define(eq=False, slots=False)
-class GcpNotificationEndpoint(GcpResource, PhantomBaseResource):
+class GcpNotificationEndpoint(GcpResource):
     kind: ClassVar[str] = "gcp_notification_endpoint"
     _kind_display: ClassVar[str] = "GCP Notification Endpoint"
     _kind_description: ClassVar[str] = "GCP Notification Endpoint is a Google Cloud Platform service that receives and processes notifications from various GCP resources. It acts as a central point for collecting and routing alerts, updates, and event data. Users can configure endpoints to direct notifications to specific destinations like email, SMS, or third-party applications for monitoring and response purposes."  # fmt: skip

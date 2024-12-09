@@ -4,8 +4,15 @@ from typing import ClassVar, Dict, Optional, List, Type
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GcpResource, GcpDeprecationStatus, get_client
-from fixlib.baseresources import BaseBucket
+from fix_plugin_gcp.resources.base import (
+    GcpMonitoringQuery,
+    GcpResource,
+    GcpDeprecationStatus,
+    GraphBuilder,
+    get_client,
+)
+from fix_plugin_gcp.resources.monitoring import STANDART_STAT_MAP, normalizer_factory
+from fixlib.baseresources import BaseBucket, MetricName
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, AsBool
 
@@ -417,6 +424,48 @@ class GcpBucket(GcpResource, BaseBucket):
     bucket_website: Optional[GcpWebsite] = field(default=None)
     requester_pays: Optional[bool] = field(default=None)
     lifecycle_rule: List[GcpRule] = field(factory=list)
+
+    def collect_usage_metrics(self, builder: GraphBuilder) -> List[GcpMonitoringQuery]:
+        queries: List[GcpMonitoringQuery] = []
+        delta = builder.metrics_delta
+
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="storage.googleapis.com/storage/total_bytes",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.BucketSizeBytes,
+                    normalization=normalizer_factory.bytes,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.bucket_name": self.id,
+                        "resource.labels.location": self.region().id,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        queries.extend(
+            [
+                GcpMonitoringQuery.create(
+                    query_name="storage.googleapis.com/storage/object_count",
+                    period=delta,
+                    ref_id=f"{self.kind}/{self.id}/{self.region().id}",
+                    metric_name=MetricName.NumberOfObjects,
+                    normalization=normalizer_factory.count,
+                    stat=stat,
+                    project_id=builder.project.id,
+                    metric_filters={
+                        "resource.labels.bucket_name": self.id,
+                        "resource.labels.location": self.region().id,
+                    },
+                )
+                for stat in STANDART_STAT_MAP
+            ]
+        )
+        return queries
 
     def pre_delete(self, graph: Graph) -> bool:
         client = get_client(self)
