@@ -213,8 +213,8 @@ class GraphBuilder:
         def set_zone_or_region(location_name: str) -> bool:
             return set_zone(location_name) or set_region(location_name)
 
-        def set_zone(location_name: str) -> bool:
-            if zone := self.zone_by_name.get(location_name):
+        def set_zone(zone_name: str) -> bool:
+            if zone := self.zone_by_name.get(zone_name):
                 node._zone = zone
                 node._region = self.region_by_zone_name.get(zone.id)
                 self.add_edge(zone, node=node)
@@ -222,28 +222,21 @@ class GraphBuilder:
             else:
                 log.debug(
                     "Zone property '%s' found in the source but no corresponding region object is available to associate with the node.",
-                    location_name,
+                    zone_name,
                 )
             return False
 
-        def set_region(location_name: str) -> bool:
-            if region := self.region_by_name.get(location_name):
+        def set_region(region_name: str) -> bool:
+            if region := self.region_by_name.get(region_name):
                 node._region = region
                 self.add_edge(node, node=region, reverse=True)
                 return True
             else:
                 log.debug(
                     "Region property '%s' found in the source but no corresponding region object is available to associate with the node.",
-                    location_name,
+                    region_name,
                 )
             return False
-
-        parts = node.id.split("/", maxsplit=4)
-        if len(parts) > 3 and parts[0] == "projects":
-            if parts[2] in ["locations", "zones", "regions"]:
-                location_name = parts[3].lower()
-                if set_zone_or_region(location_name):
-                    return
 
         if source is not None:
             if ZoneProp in source:
@@ -260,8 +253,16 @@ class GraphBuilder:
                 region_name = source[RegionProp].lower().rsplit("/", 1)[-1]
                 if set_region(region_name):
                     return
+            # location property can be a zone or region
             if LocationProp in source:
                 location_name = source[LocationProp].lower().rsplit("/", 1)[-1]
+                if set_zone_or_region(location_name):
+                    return
+        
+        parts = node.id.split("/", maxsplit=4)
+        if len(parts) > 3 and parts[0] == "projects":
+            if parts[2] in ["locations", "zones", "regions"]:
+                location_name = parts[3].lower()
                 if set_zone_or_region(location_name):
                     return
 

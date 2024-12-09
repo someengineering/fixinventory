@@ -14,7 +14,7 @@ from fix_plugin_gcp.resources.base import (
     GcpProject,
     GcpExpectedErrorCodes,
 )
-from fixlib.baseresources import SEVERITY_MAPPING, Finding, Severity, PhantomBaseResource
+from fixlib.baseresources import SEVERITY_MAPPING, Finding, Severity
 from fixlib.json_bender import Bender, S, Bend
 from fixlib.types import Json
 
@@ -122,7 +122,7 @@ class GcpFindingResource:
 
 
 @define(eq=False, slots=False)
-class GcpSccFinding(GcpResource, PhantomBaseResource):
+class GcpSccFinding(GcpResource):
     kind: ClassVar[str] = "gcp_scc_finding"
     _model_export: ClassVar[bool] = False
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
