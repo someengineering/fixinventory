@@ -258,7 +258,7 @@ class GraphBuilder:
                 location_name = source[LocationProp].lower().rsplit("/", 1)[-1]
                 if set_zone_or_region(location_name):
                     return
-        
+
         parts = node.id.split("/", maxsplit=4)
         if len(parts) > 3 and parts[0] == "projects":
             if parts[2] in ["locations", "zones", "regions"]:
