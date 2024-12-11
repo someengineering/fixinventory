@@ -15,7 +15,7 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateEndpointConnection,
     AzureMetricQuery,
 )
-from fix_plugin_azure.resource.metrics import normalizer_factory
+from fix_plugin_azure.resource.metrics import NormalizerFactory
 from fixlib.baseresources import (
     BaseBucket,
     BaseNetworkShare,
@@ -967,7 +967,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Bytes",
-                normalization=normalizer_factory.bytes,
+                normalization=NormalizerFactory.bytes,
                 period=delta,
                 custom_start_time=start,
             )
@@ -981,7 +981,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Bytes",
-                normalization=normalizer_factory.bytes,
+                normalization=NormalizerFactory.bytes,
                 period=delta,
                 custom_start_time=start,
             )
@@ -995,7 +995,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Count",
-                normalization=normalizer_factory.count,
+                normalization=NormalizerFactory.count,
                 period=delta,
                 custom_start_time=start,
             )
@@ -1009,7 +1009,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Bytes",
-                normalization=normalizer_factory.bytes,
+                normalization=NormalizerFactory.bytes,
                 period=delta,
                 custom_start_time=start,
             )
@@ -1023,7 +1023,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Count",
-                normalization=normalizer_factory.count,
+                normalization=NormalizerFactory.count,
                 period=delta,
                 custom_start_time=start,
             )
@@ -1037,7 +1037,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Bytes",
-                normalization=normalizer_factory.bytes,
+                normalization=NormalizerFactory.bytes,
                 period=delta,
                 custom_start_time=start,
             )
@@ -1051,7 +1051,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Count",
-                normalization=normalizer_factory.count,
+                normalization=NormalizerFactory.count,
                 period=delta,
                 custom_start_time=start,
             )
@@ -1065,7 +1065,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Bytes",
-                normalization=normalizer_factory.bytes,
+                normalization=NormalizerFactory.bytes,
                 period=delta,
                 custom_start_time=start,
             )
@@ -1079,7 +1079,7 @@ class AzureStorageAccount(MicrosoftResource):
                 aggregation=("average",),
                 ref_id=account_id,
                 unit="Count",
-                normalization=normalizer_factory.count,
+                normalization=NormalizerFactory.count,
                 period=delta,
                 custom_start_time=start,
             )

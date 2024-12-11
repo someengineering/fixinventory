@@ -2,7 +2,7 @@ from datetime import timedelta, datetime, timezone
 from fix_plugin_azure.resource.base import GraphBuilder, AzureMetricQuery
 
 from fix_plugin_azure.resource.compute import AzureComputeVirtualMachine
-from fix_plugin_azure.resource.metrics import AzureMetricData, normalizer_factory
+from fix_plugin_azure.resource.metrics import AzureMetricData, NormalizerFactory
 
 from fixlib.baseresources import MetricName
 
@@ -17,7 +17,7 @@ def test_metric(builder: GraphBuilder) -> None:
         metric_name="Disk Write Operations/Sec",
         metric_namespace="Microsoft.Compute/virtualMachines",
         metric_normalization_name=MetricName.DiskWrite,
-        normalization=normalizer_factory.iops,
+        normalization=NormalizerFactory.iops,
         period=delta,
         instance_id=resource_id,
         ref_id=resource_id,

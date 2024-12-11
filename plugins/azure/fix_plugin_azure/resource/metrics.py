@@ -49,6 +49,13 @@ class AzureMetricMetadataValues:
     value: Optional[str] = field(default=None)
 
 
+class __FiiP:
+    pass
+
+
+fip = __FiiP()
+
+
 @define(eq=False, slots=False)
 class AzureMetricTimeSeriesValues:
     kind: ClassVar[str] = "azure_metric_time_series_values"
@@ -268,7 +275,14 @@ def update_resource_metrics(
                 raise
 
 
-class NormalizerFactory:
+class __NormalizerFactory:
+    __instance = None
+
+    def __new__(cls) -> "__NormalizerFactory":
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance
+
     @cached_property
     def count(self) -> MetricNormalization:
         return MetricNormalization(
@@ -319,4 +333,4 @@ class NormalizerFactory:
         )
 
 
-normalizer_factory = NormalizerFactory()
+NormalizerFactory = __NormalizerFactory()

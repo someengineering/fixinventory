@@ -19,7 +19,7 @@ from fix_plugin_azure.resource.base import (
     AzurePrivateEndpointConnection,
     AzureMetricQuery,
 )
-from fix_plugin_azure.resource.metrics import normalizer_factory
+from fix_plugin_azure.resource.metrics import NormalizerFactory
 from fix_plugin_azure.resource.network import (
     AzureNetworkSecurityGroup,
     AzureNetworkSubnet,
@@ -1110,7 +1110,7 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
                     ref_id=volume_id,
                     unit="BytesPerSecond",
                     period=delta,
-                    normalization=normalizer_factory.bytes,
+                    normalization=NormalizerFactory.bytes,
                 )
                 for name, metric_name in [
                     ("Composite Disk Write Bytes/sec", MetricName.VolumeWrite),
@@ -1129,7 +1129,7 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
                     ref_id=volume_id,
                     period=delta,
                     unit="CountPerSecond",
-                    normalization=normalizer_factory.iops,
+                    normalization=NormalizerFactory.iops,
                 )
                 for name, metric_name in [
                     ("Composite Disk Write Operations/sec", MetricName.VolumeWrite),
@@ -3011,7 +3011,7 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                 ref_id=vm_id,
                 unit="Percent",
                 period=delta,
-                normalization=normalizer_factory.percent,
+                normalization=NormalizerFactory.percent,
             )
         )
         queries.extend(
@@ -3025,7 +3025,7 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                     ref_id=vm_id,
                     unit="Bytes",
                     period=delta,
-                    normalization=normalizer_factory.bytes,
+                    normalization=NormalizerFactory.bytes,
                 )
                 for name, metric_name in [
                     ("Disk Write Bytes", MetricName.DiskWrite),
@@ -3044,7 +3044,7 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                     ref_id=vm_id,
                     unit="CountPerSecond",
                     period=delta,
-                    normalization=normalizer_factory.iops,
+                    normalization=NormalizerFactory.iops,
                 )
                 for name, metric_name in [
                     ("Disk Write Operations/Sec", MetricName.DiskWrite),
@@ -3063,7 +3063,7 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                     ref_id=vm_id,
                     unit="Bytes",
                     period=delta,
-                    normalization=normalizer_factory.bytes,
+                    normalization=NormalizerFactory.bytes,
                 )
                 for name, metric_name in [("Network In", MetricName.NetworkIn), ("Network Out", MetricName.NetworkOut)]
             ]
