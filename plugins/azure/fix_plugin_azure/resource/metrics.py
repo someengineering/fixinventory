@@ -49,13 +49,6 @@ class AzureMetricMetadataValues:
     value: Optional[str] = field(default=None)
 
 
-class __FiiP:
-    pass
-
-
-fip = __FiiP()
-
-
 @define(eq=False, slots=False)
 class AzureMetricTimeSeriesValues:
     kind: ClassVar[str] = "azure_metric_time_series_values"
