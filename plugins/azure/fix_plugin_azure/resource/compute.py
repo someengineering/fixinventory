@@ -1097,7 +1097,6 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AzureMetricQuery]:
         volume_id = self.id
         queries = []
-        delta = builder.metrics_delta
 
         queries.extend(
             [
@@ -1109,7 +1108,6 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
                     aggregation=("average",),
                     ref_id=volume_id,
                     unit="BytesPerSecond",
-                    period=delta,
                     normalization=NormalizerFactory.bytes,
                 )
                 for name, metric_name in [
@@ -1127,7 +1125,6 @@ class AzureComputeDisk(MicrosoftResource, BaseVolume):
                     instance_id=volume_id,
                     aggregation=("average",),
                     ref_id=volume_id,
-                    period=delta,
                     unit="CountPerSecond",
                     normalization=NormalizerFactory.iops,
                 )
@@ -2999,7 +2996,6 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
     def collect_usage_metrics(self, builder: GraphBuilder) -> List[AzureMetricQuery]:
         vm_id = self.id
         queries = []
-        delta = builder.metrics_delta
 
         queries.append(
             AzureMetricQuery.create(
@@ -3010,7 +3006,6 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                 aggregation=("average", "minimum", "maximum"),
                 ref_id=vm_id,
                 unit="Percent",
-                period=delta,
                 normalization=NormalizerFactory.percent,
             )
         )
@@ -3024,7 +3019,6 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                     aggregation=("average", "minimum", "maximum"),
                     ref_id=vm_id,
                     unit="Bytes",
-                    period=delta,
                     normalization=NormalizerFactory.bytes,
                 )
                 for name, metric_name in [
@@ -3043,7 +3037,6 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                     aggregation=("average", "minimum", "maximum"),
                     ref_id=vm_id,
                     unit="CountPerSecond",
-                    period=delta,
                     normalization=NormalizerFactory.iops,
                 )
                 for name, metric_name in [
@@ -3062,7 +3055,6 @@ class AzureComputeVirtualMachineBase(MicrosoftResource, BaseInstance):
                     aggregation=("average", "minimum", "maximum"),
                     ref_id=vm_id,
                     unit="Bytes",
-                    period=delta,
                     normalization=NormalizerFactory.bytes,
                 )
                 for name, metric_name in [("Network In", MetricName.NetworkIn), ("Network Out", MetricName.NetworkOut)]

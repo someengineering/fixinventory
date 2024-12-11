@@ -221,7 +221,7 @@ class AzureMetricData:
             aggregation = ",".join(query.aggregation)
             # Define the timespan and interval for the query
             timespan = f"{utc_str(query.custom_start_time or start_time)}/{utc_str(end_time)}"
-            interval = AzureMetricData.compute_interval(query.period)
+            interval = AzureMetricData.compute_interval(query.custom_period or builder.metrics_delta)
             part = builder.client.list(
                 local_api_spec,
                 metricnames=query.metric_name,

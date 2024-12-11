@@ -1025,8 +1025,8 @@ class AzureMetricQuery:
     instance_id: str
     metric_id: str
     aggregation: Tuple[str, ...]
-    period: timedelta
     normalization: MetricNormalization
+    custom_period: Optional[timedelta] = None
     custom_start_time: Optional[datetime] = None
     unit: str = "Count"
 
@@ -1039,10 +1039,10 @@ class AzureMetricQuery:
         instance_id: str,
         ref_id: str,
         normalization: MetricNormalization,
-        period: timedelta,
         aggregation: Tuple[str, ...],
         unit: str = "Count",
         custom_start_time: Optional[datetime] = None,
+        custom_period: Optional[timedelta] = None,
         metric_id: Optional[str] = None,
     ) -> "AzureMetricQuery":
         metric_id = f"{instance_id}/providers/Microsoft.Insights/metrics/{metric_name}"
@@ -1057,7 +1057,7 @@ class AzureMetricQuery:
             ref_id=ref_id,
             unit=unit,
             normalization=normalization,
-            period=period,
+            custom_period=custom_period,
             custom_start_time=custom_start_time,
         )
 

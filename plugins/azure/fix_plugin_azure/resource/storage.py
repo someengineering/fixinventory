@@ -968,7 +968,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -982,7 +982,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -996,7 +996,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -1010,7 +1010,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -1024,7 +1024,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -1038,7 +1038,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -1052,7 +1052,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -1066,7 +1066,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )
@@ -1080,7 +1080,7 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                period=delta,
+                custom_period=delta,
                 custom_start_time=start,
             )
         )

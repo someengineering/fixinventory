@@ -18,7 +18,7 @@ def test_metric(builder: GraphBuilder) -> None:
         metric_namespace="Microsoft.Compute/virtualMachines",
         metric_normalization_name=MetricName.DiskWrite,
         normalization=NormalizerFactory.iops,
-        period=delta,
+        custom_period=delta,
         instance_id=resource_id,
         ref_id=resource_id,
         aggregation=("average", "minimum", "maximum"),
