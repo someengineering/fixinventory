@@ -73,19 +73,3 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_FIXINVENTORY_PLUGIN_AWS }}
           packages_dir: ./plugins/aws/dist/
-
-      - name: Upload AWS policies
-        if: github.event_name != 'pull_request'
-        working-directory: ./plugins/aws
-        run: |
-          pip install --upgrade --editable .
-          pip install --upgrade --editable ./tools/awspolicygen
-          export GITHUB_REF="${{ github.ref }}"
-          export GITHUB_REF_TYPE="${{ github.ref_type }}"
-          export GITHUB_EVENT_NAME="${{ github.event_name }}"
-          export API_TOKEN="${{ secrets.API_TOKEN }}"
-          export SPACES_KEY="${{ secrets.SPACES_KEY }}"
-          export SPACES_SECRET="${{ secrets.SPACES_SECRET }}"
-          export AWS_ACCESS_KEY_ID="${{ secrets.S3_FIXINVENTORYPUBLIC_AWS_ACCESS_KEY_ID }}"
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.S3_FIXINVENTORYPUBLIC_AWS_SECRET_ACCESS_KEY }}"
-          awspolicygen --verbose --spaces-name somecdn --spaces-region ams3 --spaces-path fix/aws/ --aws-s3-bucket fixinventorypublic --aws-s3-bucket-path cf/

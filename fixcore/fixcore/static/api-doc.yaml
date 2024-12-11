@@ -404,7 +404,6 @@ paths:
     post:
       summary: "Merge a given graph with the existing graph under marked merge nodes as batch update."
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Merge a given graph with the existing graph under marked merge nodes as batch update.
       tags:
         - graph_management
@@ -458,7 +457,6 @@ paths:
     get:
       summary: "Get a list of all running batch updates"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Get a list of all running batch updates.
       tags:
         - graph_management
@@ -475,7 +473,6 @@ paths:
     post:
       summary: "Commit a batch update"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Commit a batch update.
       tags:
         - graph_management
@@ -498,7 +495,6 @@ paths:
     delete:
       summary: "Abort a batch update"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Abort a batch update.
       tags:
         - graph_management
@@ -584,7 +580,6 @@ paths:
     post:
       summary: "Create a new node under the given parent node"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Create a new node under the given parent node.
       tags:
         - node_management
@@ -619,7 +614,6 @@ paths:
     get:
       summary: "Get a node with the given node id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Get a node with the given node id
       tags:
         - node_management
@@ -641,7 +635,6 @@ paths:
     patch:
       summary: "Update a node with the given node id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Update a node with the given node id
       tags:
         - node_management
@@ -670,7 +663,6 @@ paths:
     delete:
       summary: "Delete a node with the given node id."
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Delete a node with the given node id.
       tags:
         - node_management
@@ -689,7 +681,6 @@ paths:
     patch:
       summary: "Patch a node with the given node id in given section"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Patch a node with the given node id in given section
       tags:
         - node_management
@@ -723,7 +714,6 @@ paths:
     post:
       summary: "Transform the search into the raw database search"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Show the underlying raw search.
       tags:
         - debug
@@ -2153,7 +2143,6 @@ paths:
     get:
       summary: "Get all configuration keys"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Get all configuration keys in the system.
       tags:
         - config
@@ -2213,7 +2202,6 @@ paths:
     get:
       summary: "Get all configuration keys that have a model defined."
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Get all configuration keys that have a model defined.
       tags:
         - config_validation
@@ -2231,7 +2219,6 @@ paths:
     get:
       summary: "Get a configuration by its id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Fetch a configuration by id.
       tags:
         - config
@@ -2261,7 +2248,6 @@ paths:
     put:
       summary: "Replace a configuration with given id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Replace a configuration identified by id with provided value.
       tags:
         - config
@@ -2310,7 +2296,6 @@ paths:
     patch:
       summary: "Patch a configuration by its id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Patch a configuration identified by id with provided value.
       tags:
         - config
@@ -2359,7 +2344,6 @@ paths:
     delete:
       summary: "Delete a configuration by its id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Delete a configuration identified by id with provided value.
       tags:
         - config
@@ -2378,7 +2362,6 @@ paths:
     get:
       summary: "Get a configuration validation by its id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Fetch the validation of a configuration by id.
       tags:
         - config_validation
@@ -2405,7 +2388,6 @@ paths:
     put:
       summary: "Replace a configuration validation with given id"
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Replace a configuration validation identified by id with provided value.
       tags:
         - config_validation
@@ -2519,7 +2501,6 @@ paths:
     get:
       summary: Get information about CLI
       description: |
-        **Experimental**: This API is not stable and might be subject of change.<br/>
         Get information about CLI
       tags:
         - cli
