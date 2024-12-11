@@ -1026,8 +1026,9 @@ class AzureMetricQuery:
     metric_id: str
     aggregation: Tuple[str, ...]
     normalization: MetricNormalization
-    custom_period: Optional[timedelta] = None
-    custom_start_time: Optional[datetime] = None
+    # Optional `start_time` and `period` override defaults for query timespan and interval.
+    period: Optional[timedelta] = None
+    start_time: Optional[datetime] = None
     unit: str = "Count"
 
     @staticmethod
@@ -1041,8 +1042,8 @@ class AzureMetricQuery:
         normalization: MetricNormalization,
         aggregation: Tuple[str, ...],
         unit: str = "Count",
-        custom_start_time: Optional[datetime] = None,
-        custom_period: Optional[timedelta] = None,
+        start_time: Optional[datetime] = None,
+        period: Optional[timedelta] = None,
         metric_id: Optional[str] = None,
     ) -> "AzureMetricQuery":
         metric_id = f"{instance_id}/providers/Microsoft.Insights/metrics/{metric_name}"
@@ -1057,8 +1058,8 @@ class AzureMetricQuery:
             ref_id=ref_id,
             unit=unit,
             normalization=normalization,
-            custom_period=custom_period,
-            custom_start_time=custom_start_time,
+            period=period,
+            start_time=start_time,
         )
 
 

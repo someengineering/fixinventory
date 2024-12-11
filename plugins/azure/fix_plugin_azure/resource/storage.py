@@ -948,7 +948,7 @@ class AzureStorageAccount(MicrosoftResource):
         start = builder.metrics_start
         now = builder.created_at
         delta = builder.metrics_delta
-        # # Minimum interval and time range for storage metrics is 1H
+        # Minimum interval and time range for storage metrics is 1H
         if delta.total_seconds() < 3600:
             delta = timedelta(hours=1)
             start = now - delta
@@ -968,8 +968,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -982,8 +982,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -996,8 +996,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -1010,8 +1010,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -1024,8 +1024,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -1038,8 +1038,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -1052,8 +1052,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -1066,8 +1066,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Bytes",
                 normalization=NormalizerFactory.bytes,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
         queries.append(
@@ -1080,8 +1080,8 @@ class AzureStorageAccount(MicrosoftResource):
                 ref_id=account_id,
                 unit="Count",
                 normalization=NormalizerFactory.count,
-                custom_period=delta,
-                custom_start_time=start,
+                period=delta,
+                start_time=start,
             )
         )
 
