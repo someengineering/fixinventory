@@ -604,12 +604,6 @@ class AzureMachineLearningCompute(MicrosoftResource):
                 # Collect VM sizes for the compute resources in this location
                 cls._collect_vm_sizes(builder, location, compute_resources)
 
-            if builder.config.collect_usage_metrics:
-                try:
-                    cls.collect_usage_metrics(builder, collected)
-                except Exception as e:
-                    log.warning(f"Failed to collect usage metrics for {cls.__name__}: {e}")
-
             return collected
 
         return []

@@ -753,12 +753,6 @@ class AzureMysqlServer(MicrosoftResource, BaseDatabase):
                 # Collect MySQL server types for the servers in this group
                 AzureMysqlServer._collect_mysql_server_types(builder, location, sku_name, sku_tier, version)
 
-            if builder.config.collect_usage_metrics:
-                try:
-                    cls.collect_usage_metrics(builder, collected)
-                except Exception as e:
-                    log.warning(f"Failed to collect usage metrics for {cls.__name__} in {location}: {e}")
-
             return collected
 
         return []
