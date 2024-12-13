@@ -225,7 +225,7 @@ class AwsBedrockCustomModel(BedrockTaggable, BaseAIModel, AwsResource):
                     job.tags.update({tag.get("key"): tag.get("value")})
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 service_name,
                 "get-custom-model",
                 modelIdentifier=js["modelArn"],
@@ -508,7 +508,7 @@ class AwsBedrockGuardrail(BedrockTaggable, AwsResource):
                     job.tags.update({tag.get("key"): tag.get("value")})
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 service_name,
                 "get-guardrail",
                 guardrailIdentifier=js["id"],
@@ -640,7 +640,7 @@ class AwsBedrockModelCustomizationJob(BedrockTaggable, BaseAIJob, AwsResource):
                     job.tags.update({tag.get("key"): tag.get("value")})
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 service_name,
                 "get-model-customization-job",
                 jobIdentifier=js["jobArn"],
@@ -840,7 +840,7 @@ class AwsBedrockEvaluationJob(BedrockTaggable, BaseAIJob, AwsResource):
                     job.tags.update({tag.get("key"): tag.get("value")})
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 service_name,
                 "get-evaluation-job",
                 jobIdentifier=js["jobArn"],
@@ -944,33 +944,32 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock-agent", "list-agents", "agentSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("agent", "agentId"),
-        "name": S("agent", "agentName"),
-        "ctime": S("agent", "createdAt"),
-        "mtime": S("agent", "updatedAt"),
-        "arn": S("agent", "agentArn"),
-        "agent_arn": S("agent", "agentArn"),
-        "agent_id": S("agent", "agentId"),
-        "agent_name": S("agent", "agentName"),
-        "agent_resource_role_arn": S("agent", "agentResourceRoleArn"),
-        "agent_status": S("agent", "agentStatus"),
-        "agent_version": S("agent", "agentVersion").or_else(S("latestAgentVersion")),
-        "client_token": S("agent", "clientToken"),
-        "created_at": S("agent", "createdAt"),
-        "customer_encryption_key_arn": S("agent", "customerEncryptionKeyArn"),
-        "description": S("agent", "description"),
-        "failure_reasons": S("agent", "failureReasons", default=[]),
-        "foundation_model": S("agent", "foundationModel"),
-        "guardrail_configuration": S("agent", "guardrailConfiguration")
-        >> Bend(AwsBedrockGuardrailConfiguration.mapping),
-        "idle_session_ttl_in_seconds": S("agent", "idleSessionTTLInSeconds"),
-        "instruction": S("agent", "instruction"),
-        "memory_configuration": S("agent", "memoryConfiguration") >> Bend(AwsBedrockMemoryConfiguration.mapping),
-        "prepared_at": S("agent", "preparedAt"),
-        "prompt_override_configuration": S("agent", "promptOverrideConfiguration")
+        "id": S("agentId"),
+        "name": S("agentName"),
+        "ctime": S("createdAt"),
+        "mtime": S("updatedAt"),
+        "arn": S("agentArn"),
+        "agent_arn": S("agentArn"),
+        "agent_id": S("agentId"),
+        "agent_name": S("agentName"),
+        "agent_resource_role_arn": S("agentResourceRoleArn"),
+        "agent_status": S("agentStatus"),
+        "agent_version": S("agentVersion"),
+        "client_token": S("clientToken"),
+        "created_at": S("createdAt"),
+        "customer_encryption_key_arn": S("customerEncryptionKeyArn"),
+        "description": S("description"),
+        "failure_reasons": S("failureReasons", default=[]),
+        "foundation_model": S("foundationModel"),
+        "guardrail_configuration": S("guardrailConfiguration") >> Bend(AwsBedrockGuardrailConfiguration.mapping),
+        "idle_session_ttl_in_seconds": S("idleSessionTTLInSeconds"),
+        "instruction": S("instruction"),
+        "memory_configuration": S("memoryConfiguration") >> Bend(AwsBedrockMemoryConfiguration.mapping),
+        "prepared_at": S("preparedAt"),
+        "prompt_override_configuration": S("promptOverrideConfiguration")
         >> Bend(AwsBedrockPromptOverrideConfiguration.mapping),
-        "agent_recommended_actions": S("agent", "recommendedActions", default=[]),
-        "updated_at": S("agent", "updatedAt"),
+        "agent_recommended_actions": S("recommendedActions", default=[]),
+        "updated_at": S("updatedAt"),
     }
     agent_arn: Optional[str] = field(default=None, metadata={"description": "The Amazon Resource Name (ARN) of the agent."})  # fmt: skip
     agent_id: Optional[str] = field(default=None, metadata={"description": "The unique identifier of the agent."})  # fmt: skip
@@ -1038,13 +1037,13 @@ class AwsBedrockAgent(BedrockTaggable, AwsResource):
                 agent.tags.update(tags[0])
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 "bedrock-agent",
                 "get-agent",
+                "agent",
                 agentId=js["agentId"],
             ):
                 if instance := AwsBedrockAgent.from_api(result, builder):
-                    instance.agent_version = js["latestAgentVersion"]
                     builder.add_node(instance, result)
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
@@ -1269,23 +1268,22 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
     }
     api_spec: ClassVar[AwsApiSpec] = AwsApiSpec("bedrock-agent", "list-knowledge-bases", "knowledgeBaseSummaries")
     mapping: ClassVar[Dict[str, Bender]] = {
-        "id": S("knowledgeBase", "knowledgeBaseId"),
-        "name": S("knowledgeBase", "name"),
-        "arn": S("knowledgeBase", "knowledgeBaseArn"),
-        "ctime": S("knowledgeBase", "createdAt"),
-        "mtime": S("knowledgeBase", "updatedAt"),
-        "created_at": S("knowledgeBase", "createdAt"),
-        "description": S("knowledgeBase", "description"),
-        "failure_reasons": S("knowledgeBase", "failureReasons", default=[]),
-        "knowledge_base_arn": S("knowledgeBase", "knowledgeBaseArn"),
-        "knowledge_base_configuration": S("knowledgeBase", "knowledgeBaseConfiguration")
+        "id": S("knowledgeBaseId"),
+        "name": S("name"),
+        "arn": S("knowledgeBaseArn"),
+        "ctime": S("createdAt"),
+        "mtime": S("updatedAt"),
+        "created_at": S("createdAt"),
+        "description": S("description"),
+        "failure_reasons": S("failureReasons", default=[]),
+        "knowledge_base_arn": S("knowledgeBaseArn"),
+        "knowledge_base_configuration": S("knowledgeBaseConfiguration")
         >> Bend(AwsBedrockKnowledgeBaseConfiguration.mapping),
-        "knowledge_base_id": S("knowledgeBase", "knowledgeBaseId"),
-        "role_arn": S("knowledgeBase", "roleArn"),
-        "status": S("knowledgeBase", "status"),
-        "storage_configuration": S("knowledgeBase", "storageConfiguration")
-        >> Bend(AwsBedrockStorageConfiguration.mapping),
-        "updated_at": S("knowledgeBase", "updatedAt"),
+        "knowledge_base_id": S("knowledgeBaseId"),
+        "role_arn": S("roleArn"),
+        "status": S("status"),
+        "storage_configuration": S("storageConfiguration") >> Bend(AwsBedrockStorageConfiguration.mapping),
+        "updated_at": S("updatedAt"),
     }
     created_at: Optional[datetime] = field(default=None, metadata={"description": "The time at which the knowledge base was created."})  # fmt: skip
     description: Optional[str] = field(default=None, metadata={"description": "The description of the knowledge base."})  # fmt: skip
@@ -1326,9 +1324,10 @@ class AwsBedrockAgentKnowledgeBase(BedrockTaggable, AwsResource):
                 knowledge_base.tags.update(tags[0])
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 "bedrock-agent",
                 "get-knowledge-base",
+                "knowledgeBase",
                 knowledgeBaseId=js["knowledgeBaseId"],
             ):
                 if instance := cls.from_api(result, builder):
@@ -1493,7 +1492,7 @@ class AwsBedrockAgentPrompt(BedrockTaggable, AwsResource):
                 prompt.tags.update(tags[0])
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 "bedrock-agent",
                 "get-prompt",
                 promptIdentifier=js["id"],
@@ -1834,7 +1833,7 @@ class AwsBedrockAgentFlow(BedrockTaggable, AwsResource):
                     builder.submit_work("bedrock-agent", add_tags, instance)
 
         for js in json:
-            for result in builder.client.list(
+            if result := builder.client.get(
                 "bedrock-agent",
                 "get-flow",
                 flowIdentifier=js["id"],
