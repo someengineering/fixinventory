@@ -1,10 +1,8 @@
 import logging
 from datetime import datetime
-from typing import Callable, Dict, TypeVar, Any
-from attr import frozen
+from typing import Dict, TypeVar, Any
 import functools
 
-from fixlib.baseresources import StatName, MetricName, MetricUnit
 from fixlib.json_bender import F
 
 T = TypeVar("T")
@@ -34,10 +32,6 @@ def rgetvalue(data: Dict[str, Any], key_path: str, default: Any = None) -> Any:
         else:
             return default
     return nested_value
-
-
-def identity(x: T) -> T:
-    return x
 
 
 def case_insensitive_eq(left: T, right: T) -> bool:
@@ -70,15 +64,3 @@ def from_str_to_typed(config_type: str, value: str) -> Any:
 
 TimestampToIso = F(lambda x: datetime.fromtimestamp(x).isoformat())
 NoneIfEmpty = F(lambda x: x if x else None)
-
-
-@frozen(kw_only=True)
-class MetricNormalization:
-    metric_name: MetricName
-    unit: MetricUnit
-    stat_map: Dict[str, StatName] = {
-        "minimum": StatName.min,
-        "average": StatName.avg,
-        "maximum": StatName.max,
-    }
-    normalize_value: Callable[[float], float] = identity

@@ -71,8 +71,8 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
                     service_name,
                     "get-repository-policy",
                     "policyText",
-                    repositoryName=repository.name,
                     expected_errors=["RepositoryPolicyNotFoundException", "RepositoryNotFoundException"],
+                    repositoryName=repository.name,
                 ):
                     repository.repository_policy = sort_json(json_loads(raw_policy), sort_list=True)  # type: ignore
 
@@ -83,7 +83,7 @@ class AwsEcrRepository(AwsResource, HasResourcePolicy):
                     "get-lifecycle-policy",
                     "lifecyclePolicyText",
                     repositoryName=repository.name,
-                    expected_errors=["LifecyclePolicyNotFoundException"],
+                    expected_errors=["LifecyclePolicyNotFoundException", "RepositoryNotFoundException"],
                 ):
                     repository.lifecycle_policy = sort_json(json.loads(policy), sort_list=True)  # type: ignore
 

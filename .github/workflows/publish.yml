@@ -34,34 +34,34 @@ jobs:
         run: |
           yarn install --frozen-lockfile
 
-      - name: Wait for AWS policies to be uploaded
-        if: github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: aws
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update AWS policy JSON
-        shell: bash
-        working-directory: ./docs.fix.security/iam/aws
-        run: |
-          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
-          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
-
-      - name: Wait for GCP policies to be uploaded
-        if: github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: gcp
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update GCP policy JSON
-        shell: bash
-        working-directory: ./docs.fix.security/iam/gcp
-        run: |
-          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
+#      - name: Wait for AWS policies to be uploaded
+#        if: github.event_name != 'workflow_dispatch'
+#        uses: lewagon/wait-on-check-action@v1.3.1
+#        with:
+#          ref: ${{ github.ref }}
+#          check-name: aws
+#          repo-token: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Update AWS policy JSON
+#        shell: bash
+#        working-directory: ./docs.fix.security/iam/aws
+#        run: |
+#          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
+#          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
+#
+#      - name: Wait for GCP policies to be uploaded
+#        if: github.event_name != 'workflow_dispatch'
+#        uses: lewagon/wait-on-check-action@v1.3.1
+#        with:
+#          ref: ${{ github.ref }}
+#          check-name: gcp
+#          repo-token: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Update GCP policy JSON
+#        shell: bash
+#        working-directory: ./docs.fix.security/iam/gcp
+#        run: |
+#          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
 
       - name: Clean existing Kroki images
         shell: bash
@@ -138,28 +138,28 @@ jobs:
         run: |
           yarn gen-api-docs
 
-      - name: Update AWS policy JSON
-        shell: bash
-        working-directory: ./inventory.fix.security/iam/aws/edge
-        run: |
-          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
-          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
-          wget -qO FixMutate.json https://cdn.some.engineering/fix/aws/edge/FixMutate.json
-
-      - name: Wait for GCP policies to be uploaded
-        if: github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: gcp
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update GCP policy JSON
-        shell: bash
-        working-directory: ./inventory.fix.security/iam/gcp/edge
-        run: |
-          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
-          wget -qO fix_mutate.json https://cdn.some.engineering/fix/gcp/edge/fix_mutate.json
+#      - name: Update AWS policy JSON
+#        shell: bash
+#        working-directory: ./inventory.fix.security/iam/aws/edge
+#        run: |
+#          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/edge/FixOrgList.json
+#          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/edge/FixCollect.json
+#          wget -qO FixMutate.json https://cdn.some.engineering/fix/aws/edge/FixMutate.json
+#
+#      - name: Wait for GCP policies to be uploaded
+#        if: github.event_name != 'workflow_dispatch'
+#        uses: lewagon/wait-on-check-action@v1.3.1
+#        with:
+#          ref: ${{ github.ref }}
+#          check-name: gcp
+#          repo-token: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Update GCP policy JSON
+#        shell: bash
+#        working-directory: ./inventory.fix.security/iam/gcp/edge
+#        run: |
+#          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/edge/fix_access.json
+#          wget -qO fix_mutate.json https://cdn.some.engineering/fix/gcp/edge/fix_mutate.json
 
       - name: Clean existing Kroki images
         if: github.event_name == 'workflow_dispatch' # only when triggered manually
@@ -286,38 +286,38 @@ jobs:
         run: |
           yarn gen-api-docs
 
-      - name: Wait for AWS policies to be uploaded
-        if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: aws
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update AWS policy JSON
-        if: steps.release.outputs.prerelease == 'false'
-        shell: bash
-        working-directory: ./inventory.fix.security/iam/aws/${{ steps.release.outputs.docsVersion }}
-        run: |
-          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixOrgList.json
-          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixCollect.json
-          wget -qO FixMutate.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixMutate.json
-
-      - name: Wait for GCP policies to be uploaded
-        if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-name: gcp
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update GCP policy JSON
-        if: steps.release.outputs.prerelease == 'false'
-        shell: bash
-        working-directory: ./inventory.fix.security/iam/gcp/${{ steps.release.outputs.docsVersion }}
-        run: |
-          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_access.json
-          wget -qO fix_mutate.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_mutate.json
+#      - name: Wait for AWS policies to be uploaded
+#        if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
+#        uses: lewagon/wait-on-check-action@v1.3.1
+#        with:
+#          ref: ${{ github.ref }}
+#          check-name: aws
+#          repo-token: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Update AWS policy JSON
+#        if: steps.release.outputs.prerelease == 'false'
+#        shell: bash
+#        working-directory: ./inventory.fix.security/iam/aws/${{ steps.release.outputs.docsVersion }}
+#        run: |
+#          wget -qO FixOrgList.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixOrgList.json
+#          wget -qO FixCollect.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixCollect.json
+#          wget -qO FixMutate.json https://cdn.some.engineering/fix/aws/${{ steps.release.outputs.tag }}/FixMutate.json
+#
+#      - name: Wait for GCP policies to be uploaded
+#        if: steps.release.outputs.prerelease == 'false' && github.event_name != 'workflow_dispatch'
+#        uses: lewagon/wait-on-check-action@v1.3.1
+#        with:
+#          ref: ${{ github.ref }}
+#          check-name: gcp
+#          repo-token: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Update GCP policy JSON
+#        if: steps.release.outputs.prerelease == 'false'
+#        shell: bash
+#        working-directory: ./inventory.fix.security/iam/gcp/${{ steps.release.outputs.docsVersion }}
+#        run: |
+#          wget -qO fix_access.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_access.json
+#          wget -qO fix_mutate.json https://cdn.some.engineering/fix/gcp/${{ steps.release.outputs.tag }}/fix_mutate.json
 
       - name: Modify Docker Compose YAML
         if: steps.release.outputs.prerelease == 'false'

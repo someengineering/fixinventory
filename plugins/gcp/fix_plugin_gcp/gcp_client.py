@@ -14,6 +14,7 @@ from fixlib.types import Json
 InternalZoneProp = "_zone"
 ZoneProp = "zone"
 RegionProp = "region"
+LocationProp = "location"
 
 # Store the discovery function as separate variable.
 # This is used in tests to change the builder function.
