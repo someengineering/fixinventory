@@ -2245,7 +2245,7 @@ class FormatCommand(CLICommand, OutputTransformer):
     - `--text` [Optional] - will create a text representation of every element.
     - `--cytoscape` [Optional] - will create a string representation in the well known Cytoscape .cyjs format.
       See: [https://js.cytoscape.org/#notation/elements-json](https://js.cytoscape.org/#notation/elements-json)
-    - `--graphml` [Optional] - will create string representaion of the result in graphml format.
+    - `--graphml` [Optional] - will create string representation of the result in graphml format.
       See: [http://graphml.graphdrawing.org](http://graphml.graphdrawing.org)
     - `--dot` [Optional] - will create a string representation in graphviz dot format.
       See: [https://graphviz.org/doc/info/lang.html](https://graphviz.org/doc/info/lang.html)
@@ -4613,7 +4613,7 @@ class ConfigsCommand(CLICommand):
     - cfg_id [mandatory]: The identifier of the configuration.
     - prop: the path of the property to set. Nested properties can be accessed via `.`.
     - value: the value of the property path to set. It can be any json conform element.
-    - path: the path of the file that holds the configuration to upate.
+    - path: the path of the file that holds the configuration to update.
 
     ## Examples
 
@@ -5043,7 +5043,7 @@ class ReportCommand(CLICommand, EntityProvider):
     ## Examples
 
     ```shell
-    # List all available chekcs
+    # List all available checks
     > report checks list
     aws_apigateway_authorizers_enabled
     aws_s3_account_level_public_access_blocks
@@ -5388,14 +5388,14 @@ class AppsCommand(CLICommand):
 
         async def app_update(app_name: InfraAppName) -> AsyncIterator[JsonElement]:
             updated_manifest = await self.dependencies.infra_apps_package_manager.update(app_name)
-            yield f"App {app_name} updated sucessfully to the latest version ({updated_manifest.version})"
+            yield f"App {app_name} updated successfully to the latest version ({updated_manifest.version})"
 
         async def app_update_all() -> AsyncIterator[JsonElement]:
             async for name, result in self.dependencies.infra_apps_package_manager.update_all():
                 if isinstance(result, Failure):
                     yield f"App {name} failed to update: {result}"
                 else:
-                    yield f"App {name} updated sucessfully to the latest version ({result.version})"
+                    yield f"App {name} updated successfully to the latest version ({result.version})"
 
         async def apps_list() -> AsyncIterator[JsonElement]:
             async for app in self.dependencies.infra_apps_package_manager.list():
@@ -5828,7 +5828,7 @@ class GraphCommand(CLICommand):
             if not source:
                 source = ctx.graph_name
             snapshot_name = await self.dependencies.graph_manager.snapshot(source, label)
-            yield f"Graph {source} snapshoted to {snapshot_name}."
+            yield f"Graph {source} snapshotted to {snapshot_name}."
 
         async def graph_delete(graph_name: GraphName) -> AsyncIterator[JsonElement]:
             await self.dependencies.graph_manager.delete(graph_name)
