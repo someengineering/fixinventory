@@ -1188,13 +1188,13 @@ async def test_apps(cli: CLI, package_manager: PackageManager, infra_apps_runtim
 
     # update the app
     assert (
-        "App cleanup-untagged updated sucessfully to the latest version"
+        "App cleanup-untagged updated successfully to the latest version"
         in (await execute("apps update cleanup-untagged", str))[0]
     )
 
     # update all apps
     assert (
-        "App cleanup-untagged updated sucessfully to the latest version"
+        "App cleanup-untagged updated successfully to the latest version"
         in (await execute("apps update cleanup-untagged", str))[0]
     )
 
