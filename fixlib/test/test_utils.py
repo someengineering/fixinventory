@@ -479,7 +479,7 @@ def test_freeze():
     # nested too
     nested_dict = {"foo": flat_dict}
     assert freeze(nested_dict) == frozendict({"foo": frozendict(flat_dict)})
-    # and a list to tupple
+    # and a list to tuple
     assert freeze([1, 2]) == (1, 2)
 
 

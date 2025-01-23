@@ -878,7 +878,7 @@ class Tree(object):
         cn = self[nid]
         for attr, val in attrs.items():
             if attr == "identifier":
-                # Updating node id meets following contraints:
+                # Updating node id meets following constraints:
                 # * Update node identifier property
                 # * Update parent's followers
                 # * Update children's parents

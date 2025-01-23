@@ -491,7 +491,7 @@ def merge_json_elements(
     merge_strategy: Callable[[JsonElement, JsonElement], JsonElement] = lambda existing_val, update_val: update_val,
 ) -> JsonElement:
     """
-    Merges two JsonElements accorting to merge strategy.
+    Merges two JsonElements according to merge strategy.
     By default recursively traverses Dicts and prefers the new value
     """
     if isinstance(existing, dict) and isinstance(update, dict):

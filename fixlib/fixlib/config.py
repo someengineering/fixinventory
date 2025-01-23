@@ -157,7 +157,7 @@ class Config(metaclass=MetaConfig):
                 if reload and self.restart_required(new_config):
                     restart()
 
-            # update the global config object with the confif from the core
+            # update the global config object with the config from the core
             Config.running_config.data = self.with_default_config(raw_config_json)
             # if the raw_config was not empty, we need to set the revision too
             if new_config_revision:
