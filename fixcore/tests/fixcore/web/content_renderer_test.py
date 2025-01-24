@@ -22,7 +22,6 @@ from tests.fixcore.hypothesis_extension import (
     json_array_gen,
     json_simple_element_gen,
     node_gen,
-    graph_stream,
 )
 
 

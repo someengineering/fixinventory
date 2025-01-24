@@ -7,7 +7,7 @@ from fixlib.json import from_json
 from fixlib.types import Json
 
 # noinspection PyUnresolvedReferences
-from typing import Type, Tuple, TypeVar, List
+from typing import Type, Tuple, List
 import pytest
 
 # noinspection PyUnresolvedReferences
