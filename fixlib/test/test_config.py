@@ -3,7 +3,7 @@ import pytest
 from attrs import define, field
 from typing import ClassVar, Dict, Any
 
-from fixlib.baseresources import BaseResource, BaseSecurityGroup
+from fixlib.baseresources import BaseSecurityGroup
 from fixlib.config import Config, ConfigNotFoundError
 from fixlib.args import get_arg_parser, ArgumentParser
 from fixlib.core import add_args as core_add_args

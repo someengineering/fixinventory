@@ -2,7 +2,6 @@ import os
 import tempfile
 import time
 
-import cherrypy
 import requests
 
 from fixlib.utils import get_free_port

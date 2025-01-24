@@ -1,5 +1,5 @@
 from textwrap import dedent
-from typing import List, cast, Dict
+from typing import List, cast
 import os
 
 import pytest
@@ -13,7 +13,6 @@ from fixcore.message_bus import CoreMessage, Event, Message
 from tests.fixcore.message_bus_test import wait_for_message
 from fixcore.model.model import Kind, ComplexKind, Property
 from fixcore.model.typed_model import to_js, from_js
-from fixcore.types import Json
 from types import SimpleNamespace
 
 
