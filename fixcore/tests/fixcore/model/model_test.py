@@ -186,7 +186,7 @@ def test_datetime() -> None:
     assert a.coerce_if_required("12mo").startswith("20")  # type: ignore
     with pytest.raises(Exception) as no_date:
         a.check_valid("simply no date")
-    assert str(no_date.value) == f"Invalid isoformat string: 'simply no date'"
+    assert str(no_date.value) == "Invalid isoformat string: 'simply no date'"
 
 
 def test_date() -> None:
@@ -199,7 +199,7 @@ def test_date() -> None:
     assert a.coerce_if_required("12mo").startswith("20")  # type: ignore
     with pytest.raises(Exception) as no_date:
         a.check_valid("simply no date")
-    assert str(no_date.value) == f"Invalid isoformat string: 'simply no date'"
+    assert str(no_date.value) == "Invalid isoformat string: 'simply no date'"
 
 
 def test_dictionary() -> None:

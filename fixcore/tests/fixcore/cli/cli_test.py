@@ -203,7 +203,7 @@ async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command("search some_int==0 | aggregate foo, bla as bla: sum(bar) as a")
     assert (
         commands[0].executable_commands[0].arg
-        == f"'aggregate(reported.foo, reported.bla as bla: sum(reported.bar) as a):reported.some_int == 0 sort a asc'"
+        == "'aggregate(reported.foo, reported.bla as bla: sum(reported.bar) as a):reported.some_int == 0 sort a asc'"
     )
 
     # multiple head/tail commands are combined correctly
@@ -216,7 +216,7 @@ async def test_create_query_parts(cli: CLI) -> None:
     commands = await cli.evaluate_cli_command("search is(volume) | tail -10")
     assert (
         commands[0].executable_commands[0].arg
-        == f"'is(\"volume\") sort reported.kind desc, reported.name desc, reported.id desc limit 10 reversed '"
+        == "'is(\"volume\") sort reported.kind desc, reported.name desc, reported.id desc limit 10 reversed '"
     )
     commands = await cli.evaluate_cli_command("search is(volume) sort name | tail -10 | head 5")
     assert commands[0].executable_commands[0].arg == "'is(\"volume\") sort reported.name desc limit 5, 5 reversed '"

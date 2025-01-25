@@ -1017,21 +1017,21 @@ async def test_pagerduty_alias(cli: CLI, echo_http_server: Tuple[int, List[Tuple
 @pytest.mark.asyncio
 async def test_welcome(cli: CLI) -> None:
     ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
-    result = await cli.execute_cli_command(f"welcome", list_sink, ctx)
+    result = await cli.execute_cli_command("welcome", list_sink, ctx)
     assert "Fix" in result[0][0]
 
 
 @pytest.mark.asyncio
 async def test_tip_of_the_day(cli: CLI) -> None:
     ctx = CLIContext(console_renderer=ConsoleRenderer.default_renderer())
-    result = await cli.execute_cli_command(f"totd", list_sink, ctx)
+    result = await cli.execute_cli_command("totd", list_sink, ctx)
     assert generic_tips[0].command_line in result[0][0]
 
 
 @pytest.mark.asyncio
 async def test_certificate(cli: CLI) -> None:
     result = await cli.execute_cli_command(
-        f"certificate create --common-name foo.inventory.fix.security --dns-names bla --ip-addresses 1.2.3.4 --days-valid 1",
+        "certificate create --common-name foo.inventory.fix.security --dns-names bla --ip-addresses 1.2.3.4 --days-valid 1",
         list_sink,
     )
     # will create 2 files
@@ -1054,14 +1054,14 @@ async def test_execute_task(cli: CLI) -> None:
 
     # execute-task in source position
     source_result = await cli.execute_cli_command(
-        f'execute-task --command success_task --arg "--foo bla test"', list_sink
+        'execute-task --command success_task --arg "--foo bla test"', list_sink
     )
     assert len(source_result[0]) == 1
     assert source_result[0] == [{"result": "done!"}]
 
     # execute task in flow position: every incoming node creates a new task
     flow_result = await cli.execute_cli_command(
-        f'search all limit 3 | execute-task --command success_task --arg "--t {{id}}"', list_sink
+        'search all limit 3 | execute-task --command success_task --arg "--t {id}"', list_sink
     )
     assert len(flow_result[0]) == 3
 
@@ -1077,15 +1077,15 @@ async def test_history(cli: CLI, filled_graph_db: ArangoGraphDB) -> None:
     five_min_later = utc_str(now + timedelta(minutes=5))
     assert await history_count("history") == 112  # 112 inserts for the filled graph db
     assert await history_count(f"history --after {five_min_ago}") == 112
-    assert await history_count(f"history --after 5m") == 112
+    assert await history_count("history --after 5m") == 112
     assert await history_count(f"history --after {five_min_later}") == 0
     assert await history_count(f"history --before {five_min_ago}") == 0
-    assert await history_count(f"history --before 5m") == 0
-    assert await history_count(f"history --change node_created") == 112
-    assert await history_count(f"history --change node_updated") == 0
-    assert await history_count(f"history --change node_deleted") == 0
-    assert await history_count(f"history --change node_created --change node_updated --change node_deleted") == 112
-    assert await history_count(f"history is(foo)") == 10
+    assert await history_count("history --before 5m") == 0
+    assert await history_count("history --change node_created") == 112
+    assert await history_count("history --change node_updated") == 0
+    assert await history_count("history --change node_deleted") == 0
+    assert await history_count("history --change node_created --change node_updated --change node_deleted") == 112
+    assert await history_count("history is(foo)") == 10
     # combine all selectors
     assert await history_count(f"history --after 5m --before {five_min_later} --change node_created is(foo)") == 10
 
@@ -1429,12 +1429,12 @@ async def test_db(cli: CLI) -> None:
 
     # search with aggregation does not export anything
     with pytest.raises(Exception):
-        await sync_and_check(f"search all | aggregate kind:sum(1) | db sync sqlite --database foo")
+        await sync_and_check("search all | aggregate kind:sum(1) | db sync sqlite --database foo")
 
     # define all parameters and check the connection string
     with pytest.raises(Exception) as ex:
         await sync_and_check(
-            f"db sync sqlite --database db --host bla --port 1234 --user test --password check --arg foo=bla foo2=bla2",
+            "db sync sqlite --database db --host bla --port 1234 --user test --password check --arg foo=bla foo2=bla2",
             expected_table_count=11,
         )
     assert "sqlite://test:check@bla:1234" in str(ex.value)

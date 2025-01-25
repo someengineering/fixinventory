@@ -38,7 +38,7 @@ class ApiClient:
             return model
 
     async def list_graphs(self) -> Set[str]:
-        async with self.session.get(self.base_path + f"/graph") as response:
+        async with self.session.get(self.base_path + "/graph") as response:
             return set(await response.json())
 
     async def get_graph(self, name: str) -> Optional[AccessJson]:
@@ -179,7 +179,7 @@ class ApiClient:
                 raise AttributeError(await r.text())
 
     async def subscribers(self) -> List[Subscriber]:
-        async with self.session.get(self.base_path + f"/subscribers") as r:
+        async with self.session.get(self.base_path + "/subscribers") as r:
             if r.status == 200:
                 return from_js(await r.json(), List[Subscriber])
             else:
@@ -235,7 +235,7 @@ class ApiClient:
 
     async def cli_evaluate(self, graph: str, command: str, **env: str) -> List[Tuple[ParsedCommands, List[AccessJson]]]:
         props = {"graph": graph, "section": "reported", **env}
-        async with self.session.post(self.base_path + f"/cli/evaluate", data=command, params=props) as r:
+        async with self.session.post(self.base_path + "/cli/evaluate", data=command, params=props) as r:
             if r.status == 200:
                 return [
                     (
@@ -249,21 +249,21 @@ class ApiClient:
 
     async def cli_execute(self, graph: str, command: str, **env: str) -> List[JsonElement]:
         props = {"graph": graph, "section": "reported", **env}
-        async with self.session.post(self.base_path + f"/cli/execute", data=command, params=props) as r:
+        async with self.session.post(self.base_path + "/cli/execute", data=command, params=props) as r:
             if r.status == 200:
                 return AccessJson.wrap_list(await r.json())  # type: ignore
             else:
                 raise AttributeError(await r.text())
 
     async def cli_info(self) -> AccessJson:
-        async with self.session.get(self.base_path + f"/cli/info") as r:
+        async with self.session.get(self.base_path + "/cli/info") as r:
             if r.status == 200:
                 return AccessJson.wrap_object(await r.json())
             else:
                 raise AttributeError(await r.text())
 
     async def configs(self) -> List[str]:
-        async with self.session.get(self.base_path + f"/configs") as r:
+        async with self.session.get(self.base_path + "/configs") as r:
             if r.status == 200:
                 return AccessJson.wrap_list(await r.json())  # type: ignore
             else:
@@ -299,7 +299,7 @@ class ApiClient:
                 raise AttributeError(await r.text())
 
     async def get_configs_model(self) -> Model:
-        async with self.session.get(self.base_path + f"/configs/model") as r:
+        async with self.session.get(self.base_path + "/configs/model") as r:
             if r.status == 200:
                 model_json = await r.json()
                 model = Model.from_kinds([from_js(kind, Kind) for kind in model_json["kinds"].values()])  # type: ignore
@@ -326,14 +326,14 @@ class ApiClient:
             return from_js(await response.json(), ConfigValidation)
 
     async def ping(self) -> str:
-        async with self.session.get(self.base_path + f"/system/ping") as r:
+        async with self.session.get(self.base_path + "/system/ping") as r:
             if r.status == 200:
                 return await r.text()
             else:
                 raise AttributeError(await r.text())
 
     async def ready(self) -> str:
-        async with self.session.get(self.base_path + f"/system/ready") as r:
+        async with self.session.get(self.base_path + "/system/ready") as r:
             if r.status == 200:
                 return await r.text()
             else:

@@ -30,8 +30,8 @@ try:
     from pathlib import Path
     import shlex
 except ImportError:
-    print(f"Can't import one or more modules. Is fix dev environment activated?")
-    print(f"Hint: see https://inventory.fix.security/docs/contributing/components for more info.")
+    print("Can't import one or more modules. Is fix dev environment activated?")
+    print("Hint: see https://inventory.fix.security/docs/contributing/components for more info.")
     exit(1)
 
 JsonElement = Union[str, int, float, bool, None, Mapping[str, Any], Sequence[Any]]
@@ -221,7 +221,7 @@ def send_analytics(run_id: str, event: str):
         client.api_key = api_key
         for consumer in client.consumers:
             consumer.api_key = api_key
-        system_id = f"dot-rendering-script"
+        system_id = "dot-rendering-script"
         now = utc()
         client.identify(system_id, {"run_id": run_id, "created_at": now})
         client.capture(

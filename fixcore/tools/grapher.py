@@ -46,7 +46,7 @@ def node(level, identity, replace: bool = False, kind: Optional[str] = None):
         reported["kind"] = kind
     metadata = {"level": level}
     metadata = metadata | {"replace": True} if replace else metadata
-    desired = {"name": f"some cool name", "age": 29}
+    desired = {"name": "some cool name", "age": 29}
     js = {"id": identity, "reported": reported, "metadata": metadata, "desired": desired}
     # replace flag is now on metadata level
     # js = js | {"replace": True} if replace else js
@@ -57,7 +57,7 @@ def edge(from_node, to_node, edge_type):
     print(json.dumps({"from": from_node, "to": to_node, "edge_type": edge_type}))
 
 
-root = f"root"
+root = "root"
 collector_root = f"{collector}_root"
 node(0, root, kind="graph_root")
 node(0, collector_root, replace=True, kind="cloud")
