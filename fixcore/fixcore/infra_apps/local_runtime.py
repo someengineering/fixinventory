@@ -58,7 +58,7 @@ class LocalfixcoreAppRuntime(Runtime, Service):
         argv: List[str],
     ) -> AsyncIterator[str]:
         graphdb = self.dbaccess.get_graph_db(graph)
-        env = Environment(extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"], enable_async=True)
+        env = Environment(extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"], enable_async=True, autoescape=True)
         template = env.from_string(manifest.source)
 
         model = await self.model_handler.load_model(graph)
