@@ -38,7 +38,7 @@ cloudsplaining==0.8.0
 colorama==0.4.6
 coverage[toml]==7.6.10
 cryptography==44.0.0
-deepdiff==8.1.1
+deepdiff==8.0.1
 defusedxml==0.7.1
 deprecated==1.2.18
 detect-secrets==1.5.0

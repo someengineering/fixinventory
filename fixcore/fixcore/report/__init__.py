@@ -33,7 +33,7 @@ _ReportSeverityScore: Dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high"
 
 @total_ordering
 class ReportSeverity(Enum):
-    kind: ClassVar[str] = "fix_core_report_check_severity"
+    kind: ClassVar[str] = "fix_core_report_check_severity"  # type: ignore
     info = "info"
     low = "low"
     medium = "medium"
