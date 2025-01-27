@@ -1098,7 +1098,7 @@ class BaseBucket(BaseResource):
 
 @unique
 class QueueType(Enum):
-    kind: ClassVar[str] = "queue_type"
+    kind: ClassVar[str] = "queue_type"  # type: ignore
     STANDARD = "standard"
     FIFO = "fifo"
 
