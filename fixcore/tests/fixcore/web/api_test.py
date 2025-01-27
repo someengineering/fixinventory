@@ -101,7 +101,7 @@ l1:
                 "--no-scheduling",
                 "--ignore-interrupted-tasks",
                 "--override",
-                f"fixcore.api.https_port=null",
+                "fixcore.api.https_port=null",
                 f"fixcore.api.http_port={http_port}",
                 "fixcore.api.web_hosts=0.0.0.0",
                 "fixcore.graph.use_view=false",
