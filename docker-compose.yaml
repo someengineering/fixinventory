@@ -1,6 +1,6 @@
 services:
   graphdb-upgrade:
-    image: arangodb:3.10.1
+    image: arangodb:3.11.12
     container_name: graphdb-upgrade
     environment:
       - ARANGO_ROOT_PASSWORD=
@@ -11,7 +11,7 @@ services:
     command:
       - --database.auto-upgrade
   graphdb:
-    image: arangodb:3.10.1
+    image: arangodb:3.11.12
     depends_on:
       graphdb-upgrade:
         condition: service_completed_successfully
