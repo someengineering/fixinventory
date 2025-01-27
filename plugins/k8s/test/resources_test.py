@@ -1,6 +1,3 @@
-# noinspection PyUnresolvedReferences
-import pytest
-
 from fixlib.json import from_json
 
 # noinspection PyUnresolvedReferences
