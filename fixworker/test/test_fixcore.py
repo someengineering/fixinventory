@@ -17,7 +17,7 @@ class ExampleAccount(BaseAccount):
     kind: ClassVar[str] = "example_account"
 
     def delete(self, graph: Graph) -> bool:
-        return NotImplemented
+        return False
 
 
 class ExampleCollectorPlugin(BaseCollectorPlugin):

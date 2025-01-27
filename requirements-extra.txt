@@ -84,7 +84,7 @@ networkx==3.4.2
 oauth2client==4.1.3
 oauthlib==3.2.2
 onelogin==2.0.4
-orderly-set==5.2.3
+orderly-set==5.2.2
 orjson==3.10.15
 packaging==24.2
 parsy==2.1
