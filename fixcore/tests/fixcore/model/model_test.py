@@ -104,7 +104,7 @@ def test_number() -> None:
     assert int32.coerce_if_required("no number") is None
     assert int32.check_valid(1) is None
     assert int32.check_valid(8) is None
-    assert int32.check_valid("8") is 8
+    assert int32.check_valid("8") == 8
     assert expect_error(int32, "7.123") == "Expected type int32 but got str"
     assert flot.check_valid("7.123") == 7.123
     assert expect_error(int32, 0) == ">0< should be greater or equals than: 1"

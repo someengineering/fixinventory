@@ -607,7 +607,7 @@ class AwsDynamoDbGlobalTable(DynamoDbTaggable, AwsResource, HasResourcePolicy):
             builder.submit_work(service_name, add_instance, js)
 
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
-        if self.dynamodb_replication_group is not []:
+        if self.dynamodb_replication_group != []:
             for replica in self.dynamodb_replication_group:
                 if replica.kms_master_key_id:
                     builder.dependant_node(
