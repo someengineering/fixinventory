@@ -43,14 +43,14 @@ def test_access_json() -> None:
     assert access.a == "a"
     assert access.b.d.f[2] == 2
     assert access.this == js
-    assert str(access.b.d.f[99]) is "null"
-    assert str(access.b.d.f["test"]) is "null"
-    assert str(access.foo.bla.bar[23].now) is "null"
+    assert str(access.b.d.f[99]) == "null"
+    assert str(access.b.d.f["test"]) == "null"
+    assert str(access.foo.bla.bar[23].now) == "null"
     assert json.dumps(access.b.d, sort_keys=True) == '{"e": "e", "f": [0, 1, 2, 3, 4]}'
 
     assert access["a"] == "a"
     assert access["b"]["d"]["f"][2] == 2
-    assert str(access["foo"]["bla"]["bar"][23]["now"]) is "null"
+    assert str(access["foo"]["bla"]["bar"][23]["now"]) == "null"
     assert json.dumps(access["b"]["d"], sort_keys=True) == '{"e": "e", "f": [0, 1, 2, 3, 4]}'
 
     assert [a for a in access] == ["a", "b"]
