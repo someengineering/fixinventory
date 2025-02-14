@@ -3,7 +3,7 @@ name = "fixinventory-plugin-k8s"
 description = "Fix Kubernetes Collector Plugin"
 version = "4.3.0"
 authors = [{name="Some Engineering Inc."}]
-license = { text="AGPLv3" }
+license = { text="Apache-2.0" }
 requires-python = ">=3.12"
 classifiers = [
     # Current project status
@@ -12,7 +12,7 @@ classifiers = [
     "Intended Audience :: System Administrators",
     "Intended Audience :: Information Technology",
     # License information
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (Apache-2.0+)",
     # Supported python versions
     "Programming Language :: Python :: 3.12",
     # Supported OS's
