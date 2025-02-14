@@ -1,9 +1,9 @@
 [project]
 name = "fixinventory-plugin-hetzner"
 description = "Fix Hetzner Collector Plugin"
-version = "4.2.0"
+version = "4.3.0"
 authors = [{name="Some Engineering Inc."}]
-license = { text="AGPLv3" }
+license = { text="Apache-2.0" }
 requires-python = ">=3.11"
 classifiers = [
     # Current project status
@@ -12,7 +12,7 @@ classifiers = [
     "Intended Audience :: System Administrators",
     "Intended Audience :: Information Technology",
     # License information
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (Apache-2.0+)",
     # Supported python versions
     "Programming Language :: Python :: 3.11",
     # Supported OS's
@@ -27,7 +27,7 @@ classifiers = [
 readme = {file="README.md", content-type="text/markdown"}
 
 dependencies = [
-    "fixinventorylib==4.2.0",
+    "fixinventorylib==4.3.0",
     "hcloud==2.2.0",
 ]
 
