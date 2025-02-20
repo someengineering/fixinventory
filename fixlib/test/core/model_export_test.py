@@ -83,8 +83,8 @@ def test_collection() -> None:
     assert is_collection(list) is True
     assert is_collection(dict) is False
 
-    assert type_arg(Optional[List[int]]) == int
-    assert type_arg(List[datetime]) == datetime
+    assert type_arg(Optional[List[int]]) is int
+    assert type_arg(List[datetime]) is datetime
 
 
 def test_dictionary() -> None:

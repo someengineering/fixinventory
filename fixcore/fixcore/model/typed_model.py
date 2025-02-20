@@ -25,7 +25,7 @@ def type_fqn(tpe: type) -> str:
 
 
 def from_js(json: JsonElement, clazz: Type[AnyT]) -> AnyT:
-    return jsons.load(json, cls=clazz) if clazz != dict else json  # type: ignore
+    return jsons.load(json, cls=clazz) if clazz is not dict else json  # type: ignore
 
 
 def to_js(node: Any, **kwargs: Any) -> Json:

@@ -539,7 +539,7 @@ def path_set(obj, path, value, **options):
         while len(seq) < index:
             seq.append(None)
 
-        if value_index_type == int:
+        if value_index_type is int:
             seq.append([])
         elif value_index_type is None:
             seq.append(None)
