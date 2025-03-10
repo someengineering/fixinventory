@@ -1,4 +1,4 @@
-![Fix Shell](https://cdn.fix.security/assets/fixinventory/fixinventory-search-multiple.gif)
+![Fix Shell](https://cdn.some.engineering/assets/fixinventory/fixinventory-search-multiple.gif)
 
 [![Version](https://img.shields.io/github/v/tag/someengineering/fixinventory?label=latest)](https://github.com/someengineering/fixinventory/tags/)
 [![Build](https://img.shields.io/github/actions/workflow/status/someengineering/fixinventory/docker-build.yml)](https://github.com/someengineering/fixinventory/commits/main)
@@ -144,7 +144,7 @@ For example, suppose I want to understand which S3 buckets in my infrastructure 
  > search --with-edges is(aws_iam_user) and name=matthias -iam[0:]{permissions[*].level==write}-> is(aws_iam_user, aws_s3_bucket) | format --dot
 ```
 
-![Fix Graph](https://cdn.fix.security/assets/fixinventory/fixinventory-security-graph.png)
+![Fix Graph](https://cdn.some.engineering/assets/fixinventory/fixinventory-security-graph.png)
 
 Read more about [traversing the graph](https://inventory.fix.security/concepts/asset-inventory-graph#traversal) in our docs. Fix Security, our hosted SaaS product, offers these visualizations out of the box.
 
