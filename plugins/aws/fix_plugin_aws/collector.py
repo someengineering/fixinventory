@@ -2,10 +2,9 @@ import logging
 from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-import os
 from typing import List, Type, Optional, Union, cast, Any
 
-from fix_plugin_aws.access_edges import AccessEdgeCreator
+from fix_plugin_aws.access_edges.edge_builder import AccessEdgeCreator
 from fix_plugin_aws.aws_client import AwsClient
 from fix_plugin_aws.configuration import AwsConfig
 from fix_plugin_aws.resource import (
@@ -50,8 +49,6 @@ from fix_plugin_aws.resource import (
     backup,
     bedrock,
     scp,
-    guardduty,
-    inspector,
 )
 from fix_plugin_aws.resource.base import (
     AwsAccount,
@@ -106,7 +103,6 @@ regional_resources: List[Type[AwsResource]] = (
     + elb.resources
     + elbv2.resources
     + glacier.resources
-    + guardduty.resources
     + kinesis.resources
     + kms.resources
     + lambda_.resources
@@ -121,7 +117,6 @@ regional_resources: List[Type[AwsResource]] = (
     + backup.resources
     + amazonq.resources
     + bedrock.resources
-    + inspector.resources
 )
 all_resources: List[Type[AwsResource]] = global_resources + regional_resources
 
@@ -248,10 +243,6 @@ class AwsAccountCollector:
                         f"Failed to collect usage metrics on account {self.account.id} in region {global_builder.region.id}: {e}"
                     )
 
-            # call all registered after collect hooks
-            for after_collect in global_builder.after_collect_actions:
-                after_collect()
-
             # connect nodes
             log.info(f"[Aws:{self.account.id}] Connect resources and create edges.")
             for node, data in list(self.graph.nodes(data=True)):
@@ -271,7 +262,7 @@ class AwsAccountCollector:
                     log.warning(f"Unexpected node type {node} in graph")
                     raise Exception("Only AWS resources expected")
 
-            access_edge_collection_enabled = os.environ.get("ACCESS_EDGE_COLLECTION_ENABLED", "false").lower() == "true"
+            access_edge_collection_enabled = False
             if access_edge_collection_enabled and global_builder.config.collect_access_edges:
                 # add access edges
                 log.info(f"[Aws:{self.account.id}] Create access edges.")
