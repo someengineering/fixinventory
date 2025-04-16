@@ -16,6 +16,8 @@ from fixlib.baseresources import BaseBucket, MetricName
 from fixlib.graph import Graph
 from fixlib.json_bender import Bender, S, Bend, ForallBend, AsBool
 
+from fix_plugin_gcp.utils import get_universe_domain_api
+
 service_name = "storage"
 
 
@@ -432,7 +434,7 @@ class GcpBucket(GcpResource, BaseBucket):
         queries.extend(
             [
                 GcpMonitoringQuery.create(
-                    query_name="storage.googleapis.com/storage/total_bytes",
+                    query_name=f"{get_universe_domain_api(service="storage")}/storage/total_bytes",
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     metric_name=MetricName.BucketSizeBytes,
@@ -450,7 +452,7 @@ class GcpBucket(GcpResource, BaseBucket):
         queries.extend(
             [
                 GcpMonitoringQuery.create(
-                    query_name="storage.googleapis.com/storage/object_count",
+                    query_name=f"{get_universe_domain_api(service="storage")}/storage/object_count",
                     period=delta,
                     ref_id=f"{self.kind}/{self.id}/{self.region().id}",
                     metric_name=MetricName.NumberOfObjects,

@@ -11,6 +11,8 @@ from fixlib.core.actions import CoreFeedback
 from fixlib.json import value_in_path
 from fixlib.types import Json
 
+from .utils import get_universe_domain_api
+
 InternalZoneProp = "_zone"
 ZoneProp = "zone"
 RegionProp = "region"
@@ -134,7 +136,11 @@ class GcpClient:
 
     def call_single(self, api_spec: GcpApiSpec, body: Optional[Any] = None, **kwargs: Any) -> Json:
         client = _discovery_function(
-            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+            api_spec.service,
+            api_spec.version,
+            credentials=self.credentials,
+            cache=MemoryCache(),
+            discoveryServiceUrl=get_universe_domain_api(service="discovery"),
         )
         executor = client
         for accessor in api_spec.accessors:
@@ -150,7 +156,11 @@ class GcpClient:
     def list(self, api_spec: GcpApiSpec, **kwargs: Any) -> List[Json]:
         # todo add caching
         client = _discovery_function(
-            api_spec.service, api_spec.version, credentials=self.credentials, cache=MemoryCache()
+            api_spec.service,
+            api_spec.version,
+            credentials=self.credentials,
+            cache=MemoryCache(),
+            discoveryServiceUrl=get_universe_domain_api(service="discovery"),
         )
         executor = client
         for accessor in api_spec.accessors:
