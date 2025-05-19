@@ -156,7 +156,7 @@ rich==13.9.4
 rsa==4.9
 s3transfer==0.11.2
 schema==0.7.7
-setuptools==75.8.0
+setuptools==78.1.1
 six==1.17.0
 slack-sdk==3.34.0
 snowflake-connector-python==3.13.1
