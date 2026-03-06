@@ -1,4 +1,4 @@
-jupyterlab==4.2.5
+jupyterlab==4.4.8
 jupyterlite==0.2.2
 plotly==5.18.0
 
