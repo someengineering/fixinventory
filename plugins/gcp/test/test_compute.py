@@ -13,7 +13,7 @@ from fixlib.baseresources import InstanceStatus
 
 from google.auth.credentials import AnonymousCredentials
 
-from .random_client import roundtrip, connect_resource, FixturedClient
+from .random_client import roundtrip, connect_resource, FixturedClient, create_node
 
 
 def test_gcp_accelerator_type(random_builder: GraphBuilder) -> None:
@@ -24,6 +24,16 @@ def test_gcp_address(random_builder: GraphBuilder) -> None:
     address = roundtrip(GcpAddress, random_builder)
     connect_resource(random_builder, address, GcpSubnetwork, selfLink=address.subnetwork)
     assert len(random_builder.edges_of(GcpSubnetwork, GcpAddress)) == 1
+
+    instance_link = f"https://www.googleapis.com/compute/v1/projects/{random_builder.project.id}/zones/us-east1-b/instances/test-instance"
+    address_source, address_with_user = create_node(GcpAddress, users=[instance_link])
+    random_builder.add_node(address_with_user, address_source)
+    instance_source, instance = create_node(GcpInstance, selfLink=instance_link)
+    random_builder.add_node(instance, instance_source)
+
+    address_with_user.connect_in_graph(random_builder, address_source)
+
+    assert len(random_builder.edges_of(GcpInstance, GcpAddress)) == 1
 
 
 def test_gcp_autoscaler(random_builder: GraphBuilder) -> None:
@@ -149,6 +159,18 @@ def test_gcp_instance_template(random_builder: GraphBuilder) -> None:
 def test_gcp_instance(random_builder: GraphBuilder) -> None:
     roundtrip(GcpInstance, random_builder)
     assert len(random_builder.nodes(clazz=GcpMachineType)) > 0
+
+    disk_link = (
+        f"https://www.googleapis.com/compute/v1/projects/{random_builder.project.id}/zones/us-east1-b/disks/test-disk"
+    )
+    instance_source, instance_with_disk = create_node(GcpInstance, disks=[{"source": disk_link}])
+    random_builder.add_node(instance_with_disk, instance_source)
+    disk_source, disk = create_node(GcpDisk, selfLink=disk_link)
+    random_builder.add_node(disk, disk_source)
+
+    instance_with_disk.connect_in_graph(random_builder, instance_source)
+
+    assert len(random_builder.edges_of(GcpInstance, GcpDisk)) == 1
 
 
 def test_gcp_instance_custom_machine_type(random_builder: GraphBuilder) -> None:

@@ -102,7 +102,7 @@ class GcpAddress(GcpResource, BaseIPAddress):
     _kind_service: ClassVar[Optional[str]] = service_name
     _metadata: ClassVar[Dict[str, Any]] = {"icon": "dns", "group": "networking"}
     _reference_kinds: ClassVar[ModelReference] = {
-        "predecessors": {"default": ["gcp_subnetwork"]},
+        "predecessors": {"default": ["gcp_subnetwork", "gcp_instance"]},
         "successors": {
             "delete": ["gcp_subnetwork"],
         },
@@ -159,6 +159,8 @@ class GcpAddress(GcpResource, BaseIPAddress):
     def connect_in_graph(self, builder: GraphBuilder, source: Json) -> None:
         if self.subnetwork:
             builder.dependant_node(self, reverse=True, clazz=GcpSubnetwork, link=self.subnetwork)
+        for user in self.users or []:
+            builder.add_edge(self, reverse=True, clazz=GcpInstance, link=user)
 
 
 @define(eq=False, slots=False)
@@ -3598,7 +3600,8 @@ class GcpInstance(GcpResource, BaseInstance):
         "predecessors": {
             "default": ["gcp_network", "gcp_subnetwork", "gcp_machine_type"],
             "delete": ["gcp_network", "gcp_subnetwork"],
-        }
+        },
+        "successors": {"default": ["gcp_disk"]},
     }
     api_spec: ClassVar[GcpApiSpec] = GcpApiSpec(
         service=service_name,
@@ -3729,6 +3732,10 @@ class GcpInstance(GcpResource, BaseInstance):
         super().connect_in_graph(builder, source)
         if self.machine_type:
             self.connect_machine_type(self.machine_type, builder)
+
+        for disk in self.disks or []:
+            if disk.source:
+                builder.add_edge(self, clazz=GcpDisk, link=disk.source)
 
         for nic in self.network_interfaces or []:
             builder.dependant_node(self, reverse=True, delete_same_as_default=True, clazz=GcpNetwork, link=nic.network)
