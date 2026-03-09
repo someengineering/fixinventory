@@ -525,7 +525,7 @@ class GcpResource(BaseResource):
                 items = builder.client.list(spec, **kwargs)
                 resources = cls.collect(items, builder)
                 log.info(
-                    f"[GCP:{builder.project.id}:{builder.region.safe_name if builder.region else "global"}] finished collecting: {cls.kind}"
+                    f"[GCP:{builder.project.id}:{builder.region.safe_name if builder.region else 'global'}] finished collecting: {cls.kind}"
                 )
                 return resources
         return []
