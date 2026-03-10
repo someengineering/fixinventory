@@ -5,7 +5,7 @@ from typing import ClassVar, Dict, Optional, List, Type, Any
 from attr import define, field
 
 from fix_plugin_gcp.gcp_client import GcpApiSpec
-from fix_plugin_gcp.resources.base import GraphBuilder, GcpErrorHandler, GcpResource, GcpDeprecationStatus
+from fix_plugin_gcp.resources.base import GraphBuilder, GcpErrorHandler, GcpExpectedErrorCodes, GcpResource, GcpDeprecationStatus
 from fixlib.baseresources import BaseNetworkShare, ModelReference
 from fixlib.json_bender import Bender, S, Bend, ForallBend
 from fixlib.types import Json
@@ -282,7 +282,7 @@ class GcpFilestoreInstance(GcpResource, BaseNetworkShare):
                 graph_builder.error_accumulator,
                 spec.service,
                 graph_builder.region.safe_name if graph_builder.region else None,
-                set(),
+                GcpExpectedErrorCodes,
                 f" in {graph_builder.project.id} kind {GcpFilestoreInstanceSnapshot.kind}",
             ):
                 items = graph_builder.client.list(spec)

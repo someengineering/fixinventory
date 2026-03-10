@@ -1,5 +1,9 @@
 import json
 import os
+from types import SimpleNamespace
+
+from googleapiclient.errors import HttpError
+
 from fix_plugin_gcp.resources.base import *
 from fix_plugin_gcp.resources.compute import GcpMachineType
 
@@ -48,3 +52,33 @@ def test_gcp_region_collects_quotas(random_builder: GraphBuilder) -> None:
 
     for predecessor in random_builder.graph.predecessors(region_quotas[0]):
         assert isinstance(predecessor, GcpRegion)
+
+
+def test_gcp_error_handler_suppresses_service_disabled_error(random_builder: GraphBuilder) -> None:
+    error = {
+        "error": {
+            "code": 403,
+            "message": (
+                "Cloud Filestore API has not been used in project test-project before or it is disabled. "
+                "Enable it by visiting https://console.developers.google.com/apis/api/file.googleapis.com/overview"
+            ),
+            "status": "PERMISSION_DENIED",
+            "details": [
+                {
+                    "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+                    "reason": "SERVICE_DISABLED",
+                    "domain": "googleapis.com",
+                    "metadata": {
+                        "consumer": "projects/test-project",
+                        "service": "file.googleapis.com",
+                    },
+                }
+            ],
+        }
+    }
+    exc = HttpError(SimpleNamespace(status=403, reason="Forbidden"), json.dumps(error).encode("utf-8"))
+
+    with GcpErrorHandler("list", random_builder.error_accumulator, "file", None, GcpExpectedErrorCodes):
+        raise exc
+
+    assert random_builder.error_accumulator.regional_errors == {}

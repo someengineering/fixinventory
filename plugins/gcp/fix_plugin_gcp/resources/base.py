@@ -771,7 +771,8 @@ class GcpZone(GcpResource, BaseZone):
 
 
 GcpExpectedErrorCodes = {
-    "PERMISSION_DENIED:usageLimits:accessNotConfigured"  # resource not enabled - no resources to expect
+    "PERMISSION_DENIED:usageLimits:accessNotConfigured",  # resource not enabled - no resources to expect
+    "PERMISSION_DENIED:googleapis.com:SERVICE_DISABLED",  # service disabled - no resources to expect
 }
 
 
@@ -817,6 +818,12 @@ class GcpErrorHandler:
                 errors = {
                     f'{status}:{error.get("domain", "none")}:{error.get("reason", "none")}'
                     for error in (value_in_path(exc_content, ["error", "errors"]) or [])
+                    if isinstance(error, dict)
+                }
+                errors |= {
+                    f'{status}:{detail.get("domain", "none")}:{detail.get("reason", "none")}'
+                    for detail in (value_in_path(exc_content, ["error", "details"]) or [])
+                    if isinstance(detail, dict) and detail.get("reason")
                 }
                 error_details = str(exc_content.get("error", {}).get("message", exc_value))
                 # Check if error message matches any of the expected substrings
