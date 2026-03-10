@@ -159,8 +159,7 @@ class GcpClient:
         params = {k: v.format_map(params_map) for k, v in api_spec.request_parameter.items()}
         result: List[Json] = []
 
-        def next_responses(request: Any) -> None:
-            response = request.execute()
+        def add_page(response: Json) -> None:
             page = value_in_path(response, api_spec.response_path)
             if (sub_path := api_spec.response_regional_sub_path) is not None and isinstance(page, dict):
                 for zonal_marker, zonal_response in page.items():
@@ -176,14 +175,16 @@ class GcpClient:
             else:
                 raise ValueError(f"Unexpected response type: {type(page)}")
 
-            if hasattr(executor, api_spec.next_action) and (
-                nxt_req := getattr(executor, api_spec.next_action)(previous_request=request, previous_response=response)
-            ):
-                return next_responses(nxt_req)
-
         if api_spec.service_with_region_prefix and isinstance(executor._baseUrl, str):
             executor._baseUrl = executor._baseUrl.replace(api_spec.service, f"{self.region}-{api_spec.service}", 1)
-        next_responses(getattr(executor, api_spec.action)(**params))
+        request = getattr(executor, api_spec.action)(**params)
+        while request is not None:
+            response = request.execute()
+            add_page(response)
+            if hasattr(executor, api_spec.next_action):
+                request = getattr(executor, api_spec.next_action)(previous_request=request, previous_response=response)
+            else:
+                request = None
         return result
 
     @staticmethod
