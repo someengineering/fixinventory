@@ -8,6 +8,7 @@ from pytest import fixture
 from fixcore.analytics import InMemoryEventSender
 from fixcore.config import ConfigHandler, ConfigEntity, ConfigValidation, ConfigOverride
 from fixcore.config.config_handler_service import ConfigHandlerService
+from fixcore.core_config import CustomCommandsConfig, FixCoreCommandsConfigId
 from fixcore.ids import ConfigId
 from fixcore.message_bus import CoreMessage, Event, Message
 from tests.fixcore.message_bus_test import wait_for_message
@@ -298,6 +299,37 @@ async def test_config_yaml(config_handler: ConfigHandler, config_model: List[Kin
     )
     config_with_override_yaml = await config_handler.config_yaml(test_config_id) or ""
     assert expect_override_comment in config_with_override_yaml
+
+
+@pytest.mark.asyncio
+async def test_config_yaml_handles_non_string_list_overrides_for_core_commands(
+    config_handler: ConfigHandler,
+) -> None:
+    override = {
+        "custom_commands": {
+            "commands": [
+                {
+                    "name": "search-foo",
+                    "info": "Search Foo resources.",
+                    "template": "search is(foo)",
+                }
+            ]
+        }
+    }
+
+    await config_handler.put_config(
+        ConfigEntity(FixCoreCommandsConfigId, CustomCommandsConfig().json()), validate=False
+    )
+    cast(ConfigHandlerService, config_handler).override_service = cast(
+        ConfigOverride,
+        SimpleNamespace(get_override=lambda cfg_id: override if cfg_id == FixCoreCommandsConfigId else None),
+    )
+
+    config_yaml = await config_handler.config_yaml(FixCoreCommandsConfigId)
+
+    assert config_yaml is not None
+    assert "custom_commands:" in config_yaml
+    assert "commands:" in config_yaml
 
 
 @pytest.mark.asyncio

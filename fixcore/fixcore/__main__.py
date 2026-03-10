@@ -33,7 +33,6 @@ from fixcore.core_config import (
     inside_docker,
     inside_kubernetes,
     helm_installation,
-    FixCoreConfigId,
     parse_config,
     CoreConfig,
 )
@@ -123,7 +122,7 @@ def run_process(args: Namespace) -> None:
         if args.multi_tenant_setup:
             deps = Dependencies(system_info=system_info())
             deps.add(ServiceNames.temp_dir, temp)
-            config = deps.add(ServiceNames.config, parse_config(args, {}, lambda: None))
+            config = deps.add(ServiceNames.config, parse_config(args, {}, lambda _: None))
             # jwt_signing_keys are not required for multi-tenant setup.
             deps.add(ServiceNames.jwt_signing_key_holder, EphemeralJwtSigningKey())
             cert_handler_no_ca = deps.add(ServiceNames.cert_handler, CertificateHandlerNoCA.lookup(config, temp))
@@ -146,7 +145,7 @@ def run_process(args: Namespace) -> None:
                 deps.add(ServiceNames.system_data, system_data)
                 # only to be used for CoreConfig creation
                 core_config_override_service = asyncio.run(override_config_for_startup(args.config_override_path))
-                config = config_from_db(args, sdb, lambda: core_config_override_service.get_override(FixCoreConfigId))
+                config = config_from_db(args, sdb, core_config_override_service.get_override)
                 cert_handler = deps.add(ServiceNames.cert_handler, CertificateHandlerWithCA.lookup(config, sdb, temp))
                 verify = False if args.graphdb_no_ssl_verify else str(cert_handler.ca_bundle)
                 deps.add(ServiceNames.config, evolve(config, run=RunConfig(temp, verify)))
