@@ -207,7 +207,8 @@ class ConfigHandlerService(ConfigHandler, Service):
 
                     def mkstr(val: Any) -> str:
                         if isinstance(val, list):
-                            return f'[{", ".join(val)}]'
+                            items = cast(List[object], val)
+                            return f'[{", ".join(str(v) for v in items)}]'
                         return str(val)
 
                     return mkstr(update)

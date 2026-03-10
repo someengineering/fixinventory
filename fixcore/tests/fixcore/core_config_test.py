@@ -16,9 +16,13 @@ from fixcore.core_config import (
     migrate_core_config,
     migrate_command_config,
     CustomCommandsConfig,
+    SnapshotsScheduleConfig,
     alias_templates,
+    FixCoreCommandsConfigId,
     FixCoreCommandsRoot,
     FixCoreConfigId,
+    FixCoreSnapshotsConfigId,
+    FixCoreSnapshotsRoot,
     current_git_hash,
 )
 from fixcore.system_start import parse_args
@@ -40,7 +44,7 @@ def test_parse_broken(config_json: Json) -> None:
     del cfg["fixcore"]["api"]["https_port"]
 
     # parse this configuration
-    parsed = parse_config(parse_args(["--analytics-opt-out"]), cfg, lambda: None)
+    parsed = parse_config(parse_args(["--analytics-opt-out"]), cfg, lambda _: None)
     parsed_json = to_js(parsed.editable, strip_attr="kind")
 
     # web_hosts and https_port were not available and are reverted to the default values
@@ -57,13 +61,13 @@ def test_parse_broken(config_json: Json) -> None:
 
 
 def test_read_config(config_json: Json) -> None:
-    parsed = parse_config(parse_args(["--analytics-opt-out"]), config_json, lambda: None)
+    parsed = parse_config(parse_args(["--analytics-opt-out"]), config_json, lambda _: None)
     assert parsed.json() == config_json
 
 
 def test_override_via_cmd_line(default_config: CoreConfig) -> None:
     config = {"runtime": {"debug": False}}
-    parsed = parse_config(parse_args(["--debug"]), config, lambda: None)
+    parsed = parse_config(parse_args(["--debug"]), config, lambda _: None)
     assert parsed.runtime.debug == True
 
 
@@ -101,10 +105,55 @@ def test_config_override(config_json: Json) -> None:
     parsed = parse_config(
         parse_args(["--analytics-opt-out"]),
         cfg,
-        lambda: overrides.get(FixCoreConfigId),
+        lambda config_id: overrides.get(config_id),
     )
     assert parsed.api.web_hosts == ["11.12.13.14"]
     assert parsed.api.https_port == 1337
+
+
+def test_command_config_override() -> None:
+    overrides = {
+        FixCoreCommandsConfigId: {
+            FixCoreCommandsRoot: {
+                "commands": [
+                    {
+                        "name": "compliance_orphan_disk_match",
+                        "info": "Read-only selector for disks without an attached consumer signal.",
+                        "template": "search is(volume) with (empty, <-- is(instance))",
+                    }
+                ]
+            }
+        }
+    }
+
+    parsed = parse_config(
+        parse_args(["--analytics-opt-out"]),
+        {},
+        lambda config_id: overrides.get(config_id),
+    )
+
+    assert any(cmd.name == "compliance_orphan_disk_match" for cmd in parsed.custom_commands.commands)
+
+
+def test_snapshot_config_override() -> None:
+    overrides = {
+        FixCoreSnapshotsConfigId: {
+            FixCoreSnapshotsRoot: {
+                "snapshots": {
+                    "weekly": {"schedule": "0 12 * * 1", "retain": 9},
+                }
+            }
+        }
+    }
+
+    parsed = parse_config(
+        parse_args(["--analytics-opt-out"]),
+        {},
+        lambda config_id: overrides.get(config_id),
+    )
+
+    assert parsed.snapshots.snapshots["weekly"].schedule == "0 12 * * 1"
+    assert parsed.snapshots.snapshots["weekly"].retain == 9
 
 
 def test_model() -> None:

@@ -697,7 +697,7 @@ schema_registry.add(
 def parse_config(
     args: Namespace,
     core_config: Json,
-    get_core_overrides: Callable[[], Optional[Json]],
+    get_overrides: Callable[[ConfigId], Optional[Json]],
     command_templates: Optional[Json] = None,
     snapshot_schedule: Optional[Json] = None,
 ) -> CoreConfig:
@@ -730,7 +730,7 @@ def parse_config(
             adjusted = set_value_in_path(value, path, adjusted)
 
     # here we only care about the fixcore overrides
-    core_config_overrides = (get_core_overrides() or {}).get(FixCoreRoot)
+    core_config_overrides = (get_overrides(FixCoreConfigId) or {}).get(FixCoreRoot)
     # merge the file overrides into the adjusted config
     if core_config_overrides:
         adjusted = merge_json_elements(adjusted, core_config_overrides)
@@ -756,20 +756,32 @@ def parse_config(
         ed = EditableConfig()
 
     commands_config = CustomCommandsConfig()
-    if command_templates:
-        try:
-            migrated_commands = migrate_command_config(command_templates)
-            cmd_cfg_to_parse = migrated_commands or command_templates
-            commands_config = from_js(cmd_cfg_to_parse.get(FixCoreCommandsRoot), CustomCommandsConfig)
-        except Exception as e:
-            log.error(f"Can not parse command templates. Fall back to defaults. Reason: {e}", exc_info=e)
+    try:
+        command_config_json = command_templates or CustomCommandsConfig().json()
+        migrated_commands = migrate_command_config(command_config_json)
+        cmd_cfg_to_parse = migrated_commands or command_config_json
+        command_overrides = (get_overrides(FixCoreCommandsConfigId) or {}).get(FixCoreCommandsRoot)
+        if command_overrides:
+            cmd_cfg_to_parse = cast(
+                Json,
+                merge_json_elements(cmd_cfg_to_parse, {FixCoreCommandsRoot: command_overrides}),
+            )
+        commands_config = from_js(cmd_cfg_to_parse.get(FixCoreCommandsRoot), CustomCommandsConfig)
+    except Exception as e:
+        log.error(f"Can not parse command templates. Fall back to defaults. Reason: {e}", exc_info=e)
 
     snapshots_config = SnapshotsScheduleConfig()
-    if snapshot_schedule:
-        try:
-            snapshots_config = from_js(snapshot_schedule.get(FixCoreSnapshotsRoot), SnapshotsScheduleConfig)
-        except Exception as e:
-            log.error(f"Can not parse snapshot schedule. Fall back to defaults. Reason: {e}", exc_info=e)
+    try:
+        snapshot_config_json = snapshot_schedule or SnapshotsScheduleConfig().json()
+        snapshot_overrides = (get_overrides(FixCoreSnapshotsConfigId) or {}).get(FixCoreSnapshotsRoot)
+        if snapshot_overrides:
+            snapshot_config_json = cast(
+                Json,
+                merge_json_elements(snapshot_config_json, {FixCoreSnapshotsRoot: snapshot_overrides}),
+            )
+        snapshots_config = from_js(snapshot_config_json.get(FixCoreSnapshotsRoot), SnapshotsScheduleConfig)
+    except Exception as e:
+        log.error(f"Can not parse snapshot schedule. Fall back to defaults. Reason: {e}", exc_info=e)
 
     return CoreConfig(
         api=ed.api,
@@ -818,7 +830,7 @@ def migrate_command_config(cmd_config: Json) -> Optional[Json]:
 def config_from_db(
     args: Namespace,
     db: StandardDatabase,
-    get_core_overrides: Callable[[], Optional[Json]],
+    get_overrides: Callable[[ConfigId], Optional[Json]],
     collection_name: str = "configs",
 ) -> CoreConfig:
     if configs := db.collection(collection_name) if db.has_collection(collection_name) else None:
@@ -830,5 +842,5 @@ def config_from_db(
                 snapshots_config_entity = cast(Optional[Json], configs.get(FixCoreSnapshotsConfigId))
                 snapshots_config = snapshots_config_entity.get("config") if snapshots_config_entity else None
 
-                return parse_config(args, config, get_core_overrides, command_config, snapshots_config)
-    return parse_config(args, {}, get_core_overrides)
+                return parse_config(args, config, get_overrides, command_config, snapshots_config)
+    return parse_config(args, {}, get_overrides)
