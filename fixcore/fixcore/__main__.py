@@ -33,7 +33,6 @@ from fixcore.core_config import (
     inside_docker,
     inside_kubernetes,
     helm_installation,
-    FixCoreConfigId,
     parse_config,
     CoreConfig,
 )

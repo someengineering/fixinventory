@@ -317,7 +317,9 @@ async def test_config_yaml_handles_non_string_list_overrides_for_core_commands(
         }
     }
 
-    await config_handler.put_config(ConfigEntity(FixCoreCommandsConfigId, CustomCommandsConfig().json()), validate=False)
+    await config_handler.put_config(
+        ConfigEntity(FixCoreCommandsConfigId, CustomCommandsConfig().json()), validate=False
+    )
     cast(ConfigHandlerService, config_handler).override_service = cast(
         ConfigOverride,
         SimpleNamespace(get_override=lambda cfg_id: override if cfg_id == FixCoreCommandsConfigId else None),
