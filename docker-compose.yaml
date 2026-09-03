@@ -40,7 +40,7 @@ services:
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
   fixcore:
-    image: somecr.io/someengineering/fixcore:edge
+    image: ghcr.io/someengineering/fixcore:edge
     container_name: fixcore
     depends_on:
       - graphdb
@@ -64,7 +64,7 @@ services:
     restart: always
     stop_grace_period: 2m
   fixworker:
-    image: somecr.io/someengineering/fixworker:edge
+    image: ghcr.io/someengineering/fixworker:edge
     container_name: fixworker
     depends_on:
       - fixcore
@@ -83,7 +83,7 @@ services:
     restart: always
     stop_grace_period: 2m
   fixmetrics:
-    image: somecr.io/someengineering/fixmetrics:edge
+    image: ghcr.io/someengineering/fixmetrics:edge
     container_name: fixmetrics
     depends_on:
       - fixcore
@@ -97,7 +97,7 @@ services:
     restart: always
     stop_grace_period: 2m
   fixshell:
-    image: somecr.io/someengineering/fixshell:edge
+    image: ghcr.io/someengineering/fixshell:edge
     container_name: fixshell
     depends_on:
       - fixcore
