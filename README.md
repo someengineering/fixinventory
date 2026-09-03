@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/github/v/tag/someengineering/fixinventory?label=latest)](https://github.com/someengineering/fixinventory/tags/)
 [![Build](https://img.shields.io/github/actions/workflow/status/someengineering/fixinventory/docker-build.yml)](https://github.com/someengineering/fixinventory/commits/main)
-[![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://inventory.fix.security/docs)
+[![Docs](https://img.shields.io/badge/docs-latest-<COLOR>.svg)](https://fixinventory.org/docs)
 [![Discord](https://img.shields.io/discord/778029408132923432?label=discord)](https://discord.gg/XvpyRQ4yj2)
 [![Known Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/someengineering/fixinventory/requirements.txt)](https://app.snyk.io/org/some-engineering-inc./projects)
 [![CodeCoverage](https://codecov.io/gh/someengineering/fixinventory/graph/badge.svg?token=ZEZW5JAR5J)](https://codecov.io/gh/someengineering/fixinventory)
@@ -51,7 +51,7 @@ We believe that the only effective approach is to use a graph-based data model t
 
 - **Dependency and access graph**: Fix Inventory stores dependency and access metadata in a graph database and makes it queryable for users. For risk analysis, you can traverse the graph and weave together interconnected risks in a fraction of a second.
 
-- **Multi-cloud abstractions**: Our unified data model uses over 40 “[base kinds](https://inventory.fix.security/reference/unified-data-model/base)” to describe common resources such as ‘database’ or ‘ip_address’, to implement a single set of policies (e.g. “no unencrypted storage volumes”) that works across all clouds.
+- **Multi-cloud abstractions**: Our unified data model uses over 40 “[base kinds](https://fixinventory.org/reference/unified-data-model/base)” to describe common resources such as ‘database’ or ‘ip_address’, to implement a single set of policies (e.g. “no unencrypted storage volumes”) that works across all clouds.
 
 - **Resource lifecycle tracking:** By default, Fix takes an hourly snapshot of your inventory and tracks configuration changes for each resource. Each snapshot is stored, which creates a timeline and diff view for every resource and its changes.
 
@@ -85,7 +85,7 @@ Three concepts are helpful to understand how Fix Inventory works and how it’s 
 
 Fix Inventory has knowledge of the provider-specific data model for every resource. To collect metadata from every cloud, Fix Inventory uses a pluggable architecture. Each collector plugin includes logic to extract data from the cloud provider APIs.
 
-Post-collection, Fix Inventory normalizes the data and maps it to our [unified data model](https://inventory.fix.security/reference/unified-data-model) with [common properties](https://inventory.fix.security/reference/unified-data-model#resource-base-kind), [static typing](https://inventory.fix.security/reference/unified-data-model#complex-and-simple-kinds) and [inheritance](https://inventory.fix.security/reference/unified-data-model#resource-hierarchy).
+Post-collection, Fix Inventory normalizes the data and maps it to our [unified data model](https://fixinventory.org/reference/unified-data-model) with [common properties](https://fixinventory.org/reference/unified-data-model#resource-base-kind), [static typing](https://fixinventory.org/reference/unified-data-model#complex-and-simple-kinds) and [inheritance](https://fixinventory.org/reference/unified-data-model#resource-hierarchy).
 
 In Fix Inventory, everything is a `resource` - cloud services, users, policies, etc.
 
@@ -102,7 +102,7 @@ search age < "3d”
 
 ### 2. Query language & policies
 
-Fix Inventory comes with a human-readable query language, and the user interface is our [CLI](https://inventory.fix.security/reference/cli). The CLI provides an easy way to explore your infrastructure and get answers to security-related questions such as:
+Fix Inventory comes with a human-readable query language, and the user interface is our [CLI](https://fixinventory.org/reference/cli). The CLI provides an easy way to explore your infrastructure and get answers to security-related questions such as:
 
 - Does user X have privileged access to resource Y?
 
@@ -110,7 +110,7 @@ Fix Inventory comes with a human-readable query language, and the user interface
 
 - Which resources are incorrectly tagged?
 
-Due to its statically typed data model, you can search for names, strings, or numbers in any combination. You can also leverage the dependency and access graph to include the relationships between resources, users, and permissions in your searches. Fix Inventory also supports [full-text search](https://inventory.fix.security/reference/search/full-text).
+Due to its statically typed data model, you can search for names, strings, or numbers in any combination. You can also leverage the dependency and access graph to include the relationships between resources, users, and permissions in your searches. Fix Inventory also supports [full-text search](https://fixinventory.org/reference/search/full-text).
 
 One key purpose of our query language is to define rules and policies that govern how your infrastructure should behave and then automatically trigger alerts and actions when these rules are violated.
 
@@ -120,9 +120,9 @@ For example, if you have a policy that all volumes must be encrypted, the follow
 > search is(volume) and volume_encrypted=false
 ```
 
-The search leverages the common kind `volume` and will return results for all clouds. Turning a search into a policy and setting up [alerting](https://inventory.fix.security/how-to-guides/alerting) is also possible.
+The search leverages the common kind `volume` and will return results for all clouds. Turning a search into a policy and setting up [alerting](https://fixinventory.org/how-to-guides/alerting) is also possible.
 
-Fix Inventory ships with industry-standard benchmarks, like the CIS Benchmarks for AWS or Azure, the ISO-27001 or NIS-2. A report can be generated by invoking the [report](https://inventory.fix.security/reference/cli/report/benchmark) command:
+Fix Inventory ships with industry-standard benchmarks, like the CIS Benchmarks for AWS or Azure, the ISO-27001 or NIS-2. A report can be generated by invoking the [report](https://fixinventory.org/reference/cli/report/benchmark) command:
 
 ```jsx
 > report benchmark run iso27001
@@ -146,7 +146,7 @@ For example, suppose I want to understand which S3 buckets in my infrastructure 
 
 ![Fix Graph](https://cdn.some.engineering/assets/fixinventory/fixinventory-security-graph.png)
 
-Read more about [traversing the graph](https://inventory.fix.security/concepts/asset-inventory-graph#traversal) in our docs. Fix Security, our hosted SaaS product, offers these visualizations out of the box.
+Read more about [traversing the graph](https://fixinventory.org/concepts/asset-inventory-graph#traversal) in our docs. Fix Security, our hosted SaaS product, offers these visualizations out of the box.
 
 ## 💖 Community
 
@@ -164,7 +164,7 @@ Fix Inventory is an open-source project by Some Engineering. Contact us on [our 
 
 Feel free to [open a GitHub issue](https://github.com/someengineering/fixinventory/issues/new) for small fixes and changes. For bigger changes and new plugins, please open an issue first to prevent duplicated work and to have the relevant discussions first.
 
-Please follow our [contribution guidelines](https://inventory.fix.security/development) to get started.
+Please follow our [contribution guidelines](https://fixinventory.org/development) to get started.
 
 ## 🎟 License
 
